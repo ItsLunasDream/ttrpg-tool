@@ -52,6 +52,7 @@ npm run dist:win  # Windows-Installer und portable exe nach release/
 | Verlinkte Notiz öffnen | Strg (bzw. Cmd) halten und auf den Link klicken |
 | Kurzinfo ansehen | Mit der Maus über den Link fahren |
 | Speichern | Strg+S, oder Autosave laufen lassen |
+| In der Notiz suchen und ersetzen | Strg+F |
 | Zwischen Fundstellen springen | F3 und Umschalt+F3, oder die Pfeile über dem Editor |
 | Kampagne sichern | „Als ZIP sichern" in der Kopfzeile |
 | Steckbrief anpassen | „Notiztypen" in der Kopfzeile |
