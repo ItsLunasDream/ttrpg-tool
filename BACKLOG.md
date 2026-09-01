@@ -46,7 +46,6 @@ Ersetzen wäre ein eigener Punkt.
 
 ### Phase 2
 
-- Versionsverlauf, alte Textstände wiederherstellbar
 - Export als PDF
 - Export als Markdown
 - Schreibhilfe ohne KI: konkrete Options-Listen als Startpunkt, zum Beispiel
@@ -86,6 +85,11 @@ alle Sprachen erweitert werden.
   im Index erfasst (`NoteIndex.ambiguous`), in der Oberfläche aber nicht
   angezeigt. Beim Verlinken gewinnt stillschweigend die erste Notiz
 - Aus dem Text entfernte Bilder bleiben als Datei in `assets/` liegen
+- Der Versionsverlauf wächst mit und landet auch in der ZIP-Sicherung. Bei
+  vielen Notizen und hoher Höchstzahl kann das spürbar werden
+- Beziehungen kennen keine Gegenrichtung: legst du eine an, entsteht in der
+  Zielnotiz nichts. Das ist so gewollt, weil die Sichten unterschiedlich sein
+  sollen, könnte aber einen Vorschlag vertragen
 - Die Windows-Anwendung ist nicht signiert, Windows zeigt beim ersten Start
   eine SmartScreen-Warnung. Eine Signatur bräuchte ein kostenpflichtiges
   Zertifikat
@@ -158,3 +162,19 @@ direkten Dateizugriff.
 
 Bildfelder sind eine neue Feldart im Steckbrief, lassen sich also über den
 Notiztypen-Dialog auch bei anderen Typen ergänzen.
+
+### Versionsverlauf
+
+Frühere Stände liegen unter `history/<noteId>/<zeitstempel>.md` in der
+Kampagne, also im selben Klartextformat wie die Notiz selbst. Aufrufbar über
+„Verlauf" in der Kopfzeile des Editors, mit Vorschau und Wiederherstellen.
+
+Zwei Entscheidungen dabei:
+- Zwischen zwei Fassungen derselben Notiz liegen mindestens fünf Minuten.
+  Ohne diese Sperre würde der Autosave im Sekundentakt hunderte fast
+  gleicher Stände anlegen. Innerhalb des Fensters bleibt der älteste Stand
+  erhalten, man kommt also verlässlich fünf, zehn, fünfzehn Minuten zurück
+- Beim Wiederherstellen wird der aktuelle Stand vorher gesichert, das
+  Zurückholen ist also selbst umkehrbar
+
+Abschaltbar in den Einstellungen, Höchstzahl je Notiz dort einstellbar.

@@ -130,7 +130,32 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelectorAll('.note-list li').length === 2;`),
       'Notizliste zeigt nicht beide Charaktere');
 
-    // 3. Mira bekommt Steckbrieffeld und Text, damit die Kurzinfo etwas zeigt
+    // 3. Beziehungen: mit zwei Notizen muss die Auswahl gefuellt sein
+    await selectNote(window, 'Mira Falkenhand');
+    check(
+      await run(window, `const select = document.querySelector('.relations__add select');
+         return Boolean(select) && select.options.length === 2;`),
+      'Auswahlliste für Beziehungen ist leer, obwohl es eine zweite Notiz gibt'
+    );
+
+    await run(
+      window,
+      `const select = document.querySelector('.relations__add select');
+       const option = [...select.options].find((o) => o.textContent.includes('Toran'));
+       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, option.value);
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;`
+    );
+    await sleep(300);
+    await clickButton(window, 'Hinzufügen', "document.querySelector('.relations__add')");
+    await sleep(500);
+    check(await run(window, `return document.querySelectorAll('.relation').length === 1;`),
+      'Beziehung wurde nicht angelegt');
+    // Jetzt gibt es keine freie Notiz mehr, statt leerer Liste muss ein Hinweis stehen
+    check(await run(window, `return document.querySelector('.relations__add') === null;`),
+      'Leere Auswahlliste bleibt sichtbar');
+
+    // 4. Mira bekommt Steckbrieffeld und Text, damit die Kurzinfo etwas zeigt
     await selectNote(window, 'Mira Falkenhand');
     await setField(window, 'Spezies', 'Waldelfe');
     await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
@@ -139,7 +164,7 @@ app.whenReady().then(async () => {
     await sleep(600);
     await save(window);
 
-    // 4. Text mit Wiki-Link in Torans Notiz tippen
+    // 5. Text mit Wiki-Link in Torans Notiz tippen
     await selectNote(window, 'Toran');
     await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
     await sleep(200);
@@ -153,7 +178,7 @@ app.whenReady().then(async () => {
     check(await run(window, `return /\\d+ Wörter/.test(document.querySelector('.note-editor__words').textContent);`),
       'Wortzaehler fehlt');
 
-    // 5. Kurzinfo-Karte muss den Textanfang zeigen
+    // 6. Kurzinfo-Karte muss den Textanfang zeigen
     await run(
       window,
       `const link = document.querySelector('.ProseMirror .wikilink');
@@ -169,10 +194,10 @@ app.whenReady().then(async () => {
     await run(window, `document.querySelector('.ProseMirror').dispatchEvent(new MouseEvent('mouseleave', { bubbles: true })); return true;`);
     await sleep(300);
 
-    // 6. Speichern per Strg+S
+    // 7. Speichern per Strg+S
     await save(window);
 
-    // 7. Suche: Treffer markiert in Liste und im Editor
+    // 8. Suche: Treffer markiert in Liste und im Editor
     await run(
       window,
       `setValue(document.querySelector('.note-list__search input'), 'gold');
@@ -198,12 +223,12 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelectorAll('.ProseMirror .search-hit').length === 0;`),
       'Hervorhebung bleibt nach Leeren der Suche stehen');
 
-    // 8. Backlink muss jetzt bei Mira auftauchen
+    // 9. Backlink muss jetzt bei Mira auftauchen
     await selectNote(window, 'Mira Falkenhand');
     check(await run(window, `return document.querySelector('.backlinks')?.textContent.includes('Toran') === true;`),
       'Backlink von Toran fehlt bei Mira');
 
-    // 9. Datei auf der Platte pruefen
+    // 10. Datei auf der Platte pruefen
     const campaignsDir = path.join(userData, 'vault', 'campaigns');
     const campaignId = fs.readdirSync(campaignsDir)[0];
     const notesDir = path.join(campaignsDir, campaignId, 'notes');
@@ -215,7 +240,7 @@ app.whenReady().then(async () => {
     check(files.every((raw) => !raw.includes('\\[')), 'Klammern wurden beim Speichern maskiert');
     check(files.some((raw) => raw.includes('schemaVersion: 1')), 'schemaVersion fehlt');
 
-    // 10. Notiztyp anpassen: Feld umbenennen und neues Feld anlegen
+    // 11. Notiztyp anpassen: Feld umbenennen und neues Feld anlegen
     await clickButton(window, 'Notiztypen');
     await sleep(500);
     check(await run(window, `return Boolean(document.querySelector('.type-editor'));`), 'Notiztyp-Editor öffnet nicht');
@@ -302,7 +327,7 @@ app.whenReady().then(async () => {
       'Notiz bekam nicht den neuen Typ'
     );
 
-    // 11. Bild ins Portrait-Feld ziehen und im Fliesstext einfuegen
+    // 12. Bild ins Portrait-Feld ziehen und im Fliesstext einfuegen
     await selectNote(window, 'Mira Falkenhand');
 
     // Ein winziges PNG, das im Renderer als Datei uebergeben wird
@@ -371,7 +396,7 @@ app.whenReady().then(async () => {
       check(assets.length === 2, `erwartet zwei Bilddateien, gefunden ${assets.length}`);
     }
 
-    // 12. Sprache auf Englisch und wieder zurueck
+    // 13. Sprache auf Englisch und wieder zurueck
     await clickButton(window, 'Einstellungen');
     await sleep(500);
     await run(
@@ -407,7 +432,7 @@ app.whenReady().then(async () => {
     await clickButton(window, '×', "document.querySelector('.modal__header')");
     await sleep(400);
 
-    // 13. Umbenennen muss die Links mitziehen
+    // 14. Umbenennen muss die Links mitziehen
     await selectNote(window, 'Mira Falkenhand');
     await run(
       window,
@@ -420,6 +445,26 @@ app.whenReady().then(async () => {
     const afterRename = fs.readdirSync(notesDir).map((name) => fs.readFileSync(path.join(notesDir, name), 'utf8'));
     check(afterRename.some((raw) => raw.includes('[[Mira Sturmhand]]')), 'Umbenennen hat den Link nicht mitgezogen');
     check(afterRename.every((raw) => !raw.includes('[[Mira Falkenhand]]')), 'Alter Linkname blieb stehen');
+    // 15. Versionsverlauf: alten Stand wiederherstellen
+    await selectNote(window, 'Toran');
+    await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
+    await sleep(200);
+    window.webContents.insertText(' Nachtrag.');
+    await sleep(500);
+    await save(window);
+
+    await clickButton(window, 'Verlauf');
+    await sleep(1200);
+    check(await run(window, `return Boolean(document.querySelector('.history__list'));`),
+      'Verlauf zeigt keine Fassungen');
+
+    await clickButton(window, 'Wiederherstellen', "document.querySelector('.modal')");
+    await sleep(1500);
+    check(await run(window, `return document.querySelector('.modal') === null;`), 'Verlaufs-Dialog bleibt offen');
+    check(
+      await run(window, `return !document.querySelector('.ProseMirror').textContent.includes('Nachtrag');`),
+      'Der alte Stand wurde nicht wiederhergestellt'
+    );
   } catch (error) {
     problems.push(String(error));
   }

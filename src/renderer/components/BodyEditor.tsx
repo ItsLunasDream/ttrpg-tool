@@ -21,6 +21,12 @@ interface Props {
   /** Aktueller Suchbegriff aus der Seitenleiste, leer wenn nicht gesucht wird. */
   searchQuery: string;
   campaignId: string;
+  /**
+   * Wird hochgezaehlt, wenn der Text von aussen ersetzt wurde, etwa beim
+   * Wiederherstellen einer alten Fassung. Der Editor laedt dann neu, obwohl
+   * dieselbe Notiz offen bleibt.
+   */
+  reloadKey: number;
   /** Legt ein Bild in der Kampagne ab und liefert den relativen Verweis. */
   onImportImage: (file: File) => Promise<string | null>;
   /** Oeffnet den Dateidialog und liefert den relativen Verweis. */
@@ -39,6 +45,7 @@ export function BodyEditor({
   index,
   searchQuery,
   campaignId,
+  reloadKey,
   onChange,
   onOpenNote,
   onCreateNote,
@@ -146,13 +153,15 @@ export function BodyEditor({
 
   editorRef.current = editor;
 
-  // Inhalt nur beim Notizwechsel neu setzen, sonst springt der Cursor.
-  const loadedNoteId = useRef(noteId);
+  // Inhalt nur bei Notizwechsel oder ersetztem Text neu setzen, sonst
+  // springt bei jedem Tastendruck der Cursor an den Anfang.
+  const loaded = useRef(`${noteId}:${reloadKey}`);
   useEffect(() => {
-    if (!editor || loadedNoteId.current === noteId) return;
-    loadedNoteId.current = noteId;
+    const marker = `${noteId}:${reloadKey}`;
+    if (!editor || loaded.current === marker) return;
+    loaded.current = marker;
     editor.commands.setContent(markdownToHtml(markdown, (target) => assetUrl(campaignId, target)), false);
-  }, [editor, noteId, markdown, campaignId]);
+  }, [editor, noteId, reloadKey, markdown, campaignId]);
 
   const insertImage = useCallback(
     (relativePath: string) => {

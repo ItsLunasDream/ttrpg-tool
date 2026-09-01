@@ -3,7 +3,7 @@ import { api, call } from './api';
 import { buildIndex, filterNotes, searchNotes, type SearchFilters } from './noteIndex';
 import { normalizeName } from '../shared/wikilinks';
 import { DEFAULT_NOTE_TYPES } from '../shared/noteTypes';
-import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, SearchHit } from '../shared/types';
+import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion, SearchHit } from '../shared/types';
 import { CampaignBar } from './components/CampaignBar';
 import { NoteList } from './components/NoteList';
 import { NoteEditor } from './components/NoteEditor';
@@ -15,6 +15,7 @@ import { LanguageProvider, useLanguage, useT } from './i18n';
 import { DEFAULT_LANGUAGE } from '../shared/i18n';
 import type { Language } from '../shared/i18n';
 import { NoteTypesDialog } from './components/NoteTypesDialog';
+import { HistoryDialog } from './components/HistoryDialog';
 
 type Dialog =
   | { kind: 'none' }
@@ -24,7 +25,8 @@ type Dialog =
   | { kind: 'deleteCampaign'; campaign: Campaign }
   | { kind: 'newNote'; type: NoteType }
   | { kind: 'deleteNote'; note: Note }
-  | { kind: 'noteTypes' };
+  | { kind: 'noteTypes' }
+  | { kind: 'history'; note: Note };
 
 const EMPTY_FILTERS: SearchFilters = { query: '', type: 'all', tag: null };
 
@@ -39,7 +41,7 @@ export function App() {
 }
 
 function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language) => void }) {
-  const { t, compare } = useLanguage();
+  const { t, compare, language } = useLanguage();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
@@ -51,6 +53,10 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const [hover, setHover] = useState<{ note: Note; rect: DOMRect } | null>(null);
   const [dialog, setDialog] = useState<Dialog>({ kind: 'none' });
   const [message, setMessage] = useState<{ text: string; tone: 'info' | 'error' } | null>(null);
+  const [versions, setVersions] = useState<NoteVersion[] | null>(null);
+  // Wird hochgezaehlt, wenn der Text einer offenen Notiz von aussen ersetzt
+  // wurde. Ohne dieses Signal zeigte der Editor weiter den alten Stand.
+  const [reloadKey, setReloadKey] = useState(0);
 
   const draftRef = useRef<Note | null>(null);
   draftRef.current = draft;
@@ -149,6 +155,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         const result = await call(api.notes.rename(campaignId, current.id, current.title));
         saved = result.note;
         await reloadNotes(campaignId);
+        if (saved.body !== current.body) setReloadKey((previous) => previous + 1);
         if (result.rewritten > 0) {
           report(result.rewritten === 1 ? t('msg.renamedOne') : t('msg.renamed', { count: result.rewritten }));
         }
@@ -219,6 +226,22 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     if (!campaignId) return null;
     return (await guard(() => call(api.assets.pick(campaignId)))) ?? null;
   }, [activeCampaignId, guard]);
+
+  /** Verlauf oeffnen. Ungespeichertes wird vorher gesichert, sonst fehlt es dort. */
+  const openHistory = useCallback(
+    async (note: Note) => {
+      const campaignId = activeCampaignId;
+      if (!campaignId) return;
+
+      setVersions(null);
+      setDialog({ kind: 'history', note });
+      await guard(async () => {
+        await persist();
+        setVersions(await call(api.history.list(campaignId, note.id)));
+      });
+    },
+    [activeCampaignId, guard, persist]
+  );
 
   const patchDraft = useCallback((patch: Partial<Note>) => {
     setDraft((previous) => (previous ? { ...previous, ...patch } : previous));
@@ -346,12 +369,14 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 onSave={() => void save()}
                 onRename={() => void save()}
                 onDelete={() => setDialog({ kind: 'deleteNote', note: draft })}
+                onOpenHistory={() => void openHistory(draft)}
                 onOpenNote={openNote}
                 onCreateNote={createNoteFromLink}
                 onHoverNote={(note, rect) => setHover(note && rect ? { note, rect } : null)}
                 onOpenExternal={(url) => void guard(() => call(api.openExternal(url)))}
                 searchQuery={filters.query}
                 campaignId={activeCampaignId}
+                reloadKey={reloadKey}
                 onImportImage={importImage}
                 onPickImage={pickImage}
               />
@@ -395,6 +420,33 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               setCampaigns((previous) => previous.map((entry) => (entry.id === updated.id ? updated : entry)));
               setDialog({ kind: 'none' });
               report(t('types.saved'));
+            })
+          }
+        />
+      ) : null}
+
+      {dialog.kind === 'history' ? (
+        <HistoryDialog
+          note={dialog.note}
+          versions={versions}
+          historyEnabled={settings.historyEnabled}
+          onClose={() => setDialog({ kind: 'none' })}
+          onRestore={(versionId) =>
+            void guard(async () => {
+              const campaignId = activeCampaignId;
+              if (!campaignId) return;
+
+              const restored = await call(api.history.restore(campaignId, dialog.note.id, versionId));
+              await reloadNotes(campaignId);
+              setDraft(restored);
+              setDirty(false);
+              setReloadKey((previous) => previous + 1);
+              setDialog({ kind: 'none' });
+
+              const version = versions?.find((entry) => entry.id === versionId);
+              if (version) {
+                report(t('history.restored', { date: new Date(version.savedAt).toLocaleString(language) }));
+              }
             })
           }
         />

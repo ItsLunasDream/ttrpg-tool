@@ -20,6 +20,7 @@ interface Props {
   onSave: () => void;
   onRename: (title: string) => void;
   onDelete: () => void;
+  onOpenHistory: () => void;
   onOpenNote: (noteId: string) => void;
   onCreateNote: (title: string) => void;
   onHoverNote: (note: Note | null, rect: DOMRect | null) => void;
@@ -27,6 +28,8 @@ interface Props {
   /** Suchbegriff aus der Seitenleiste, fuer die Hervorhebung im Text. */
   searchQuery: string;
   campaignId: string;
+  /** Hochgezaehlt, wenn der Text von aussen ersetzt wurde. */
+  reloadKey: number;
   onImportImage: (file: File) => Promise<string | null>;
   onPickImage: () => Promise<string | null>;
 }
@@ -58,6 +61,9 @@ export function NoteEditor(props: Props) {
         <button type="button" onClick={onSave} disabled={!dirty || saving}>
           {t('editor.save')}
         </button>
+        <button type="button" onClick={props.onOpenHistory}>
+          {t('history.open')}
+        </button>
         <button type="button" className="danger" onClick={onDelete}>
           {t('editor.delete')}
         </button>
@@ -75,6 +81,7 @@ export function NoteEditor(props: Props) {
             index={index}
             searchQuery={props.searchQuery}
             campaignId={props.campaignId}
+            reloadKey={props.reloadKey}
             onImportImage={props.onImportImage}
             onPickImage={props.onPickImage}
             onChange={(body) => onPatch({ body })}

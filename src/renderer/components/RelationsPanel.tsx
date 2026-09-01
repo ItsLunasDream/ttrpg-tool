@@ -20,8 +20,9 @@ export function RelationsPanel({ note, index, onChange, onOpenNote }: Props) {
   const t = useT();
   const [targetId, setTargetId] = useState('');
 
-  const available = index.notes.filter(
-    (candidate) => candidate.id !== note.id && !note.relations.some((relation) => relation.targetId === candidate.id)
+  const others = index.notes.filter((candidate) => candidate.id !== note.id);
+  const available = others.filter(
+    (candidate) => !note.relations.some((relation) => relation.targetId === candidate.id)
   );
 
   function add() {
@@ -89,19 +90,26 @@ export function RelationsPanel({ note, index, onChange, onOpenNote }: Props) {
         ))}
       </datalist>
 
-      <div className="relations__add">
-        <select value={targetId} onChange={(event) => setTargetId(event.target.value)}>
-          <option value="">{t('relations.choose')}</option>
-          {available.map((candidate) => (
-            <option value={candidate.id} key={candidate.id}>
-              {candidate.title} ({findNoteType(index.types, candidate.type).label})
-            </option>
-          ))}
-        </select>
-        <button type="button" onClick={add} disabled={!targetId}>
-          {t('relations.add')}
-        </button>
-      </div>
+      {available.length === 0 ? (
+        // Eine leere Auswahlliste ohne Erklaerung sieht aus wie ein Fehler.
+        <p className="panel__empty">
+          {others.length === 0 ? t('relations.needsSecondNote') : t('relations.allLinked')}
+        </p>
+      ) : (
+        <div className="relations__add">
+          <select value={targetId} onChange={(event) => setTargetId(event.target.value)}>
+            <option value="">{t('relations.choose')}</option>
+            {available.map((candidate) => (
+              <option value={candidate.id} key={candidate.id}>
+                {candidate.title} ({findNoteType(index.types, candidate.type).label})
+              </option>
+            ))}
+          </select>
+          <button type="button" onClick={add} disabled={!targetId}>
+            {t('relations.add')}
+          </button>
+        </div>
+      )}
     </section>
   );
 }

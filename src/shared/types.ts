@@ -54,6 +54,14 @@ export interface Note extends NoteMeta {
   body: string;
 }
 
+/** Ein gesicherter Stand einer Notiz. */
+export interface NoteVersion {
+  id: string;
+  savedAt: string;
+  title: string;
+  body: string;
+}
+
 export interface Campaign {
   id: string;
   schemaVersion: number;
@@ -69,6 +77,8 @@ export interface AppSettings {
   language: Language;
   autosaveEnabled: boolean;
   autosaveDelayMs: number;
+  historyEnabled: boolean;
+  historyMaxVersions: number;
   lastCampaignId: string | null;
 }
 
