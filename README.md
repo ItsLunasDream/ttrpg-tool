@@ -144,6 +144,30 @@ Textgenerator.
 - Mehrdeutige Namen (zwei Notizen mit gleichem Titel oder Alias) werden im
   Index erfasst, in der Oberfläche aber noch nicht gesondert angezeigt.
 
+## Tests der Paketierung
+
+Der Rauchtest unten laeuft gegen die ungepackte App. Fehlt eine Abhaengigkeit
+erst im fertigen Installationspaket, sieht er das nicht. Dafuer gibt es
+`scripts/verify-package.mjs`: das Skript startet die **gepackte** Anwendung und
+prueft, dass sie ohne fehlende Module hochkommt.
+
+```bash
+npx electron-builder --linux dir --publish never
+xvfb-run -a npm run verify:package -- "$PWD/release/linux-unpacked/backstory-creator"
+```
+
+Unter Windows nach `npm run dist:win`:
+
+```bash
+npm run verify:package -- "release\win-unpacked\Backstory Creator.exe"
+```
+
+Beide Prüfungen laufen in der CI, bevor die Windows-Anwendung hochgeladen wird.
+
+Hauptprozess und Preload werden komplett gebündelt (esbuild, nur `electron`
+bleibt extern). Das Paket enthält deshalb gar kein `node_modules`, und es kann
+keine Abhängigkeit mehr fehlen.
+
 ## Rauchtest
 
 `scripts/smoke.cjs` startet die gebaute App, legt eine Kampagne und zwei

@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { Vault } from '../dist/tests/entry.mjs';
+import entry from '../dist/tests/entry.cjs';
+
+const {Vault} = entry;
 
 async function withVault(run) {
   const root = await mkdtemp(path.join(tmpdir(), 'backstory-'));

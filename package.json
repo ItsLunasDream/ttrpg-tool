@@ -15,12 +15,10 @@
     "smoke": "npm run build && xvfb-run -a electron scripts/smoke.cjs --no-sandbox",
     "icon": "node scripts/make-icon.mjs",
     "dist:win": "npm run build && electron-builder --win --publish never",
-    "dist:linux": "npm run build && electron-builder --linux --publish never"
+    "dist:linux": "npm run build && electron-builder --linux --publish never",
+    "verify:package": "node scripts/verify-package.mjs"
   },
-  "dependencies": {
-    "archiver": "^7.0.1",
-    "js-yaml": "^4.1.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@tiptap/extension-placeholder": "^2.11.5",
     "@tiptap/pm": "^2.11.5",
@@ -32,9 +30,11 @@
     "@types/react-dom": "^18.3.1",
     "@types/turndown": "^5.0.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "archiver": "^7.0.1",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8",
     "esbuild": "^0.24.0",
+    "js-yaml": "^4.1.0",
     "marked": "^12.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -55,8 +55,10 @@
       "buildResources": "build"
     },
     "files": [
-      "dist/**/*",
-      "package.json"
+      "dist/main/**/*",
+      "dist/renderer/**/*",
+      "package.json",
+      "!**/*.map"
     ],
     "win": {
       "icon": "build/icon.ico",

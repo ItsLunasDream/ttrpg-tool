@@ -1,18 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  findWikiLinks,
-  rewriteWikiLinks,
-  parseFrontmatter,
-  stringifyFrontmatter,
-  countWords,
-  markdownToHtml,
-  htmlToMarkdown,
-  buildIndex,
-  backlinksFor,
-  unresolvedLinks,
-  searchNotes
-} from '../dist/tests/entry.mjs';
+import entry from '../dist/tests/entry.cjs';
+
+const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes} = entry;
 
 function note(overrides) {
   return {

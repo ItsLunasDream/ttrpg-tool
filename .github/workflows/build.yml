@@ -21,9 +21,35 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
+  package-check:
+    name: Gepacktes Paket prüfen
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run icon
+      - name: Linux-Paket bauen
+        run: npx electron-builder --linux dir --publish never
+      # Faengt fehlende Abhaengigkeiten im asar-Paket ab. Die Tests oben
+      # laufen gegen die Quelle und koennen das nicht sehen.
+      - name: Gepackte Anwendung starten
+        run: xvfb-run -a npm run verify:package -- "$PWD/release/linux-unpacked/backstory-creator"
+      - name: Log bei Fehler sichern
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-verify-log
+          path: package-verify.log
+          if-no-files-found: ignore
+
   windows:
     name: Windows-Anwendung
-    needs: test
+    needs: package-check
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,12 +60,13 @@ jobs:
       - run: npm ci
       - run: npm run icon
       - run: npm run dist:win
+      - name: Gepackte Anwendung starten
+        run: npm run verify:package -- "${{ github.workspace }}\release\win-unpacked\Backstory Creator.exe"
       - name: Ergebnis hochladen
         uses: actions/upload-artifact@v4
         with:
           name: backstory-creator-windows
-          path: |
-            release/*.exe
+          path: release/*.exe
           if-no-files-found: error
           retention-days: 90
 
