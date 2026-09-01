@@ -25,10 +25,24 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
+  const [view, setView] = useState({ x: 0, y: 0, width: WIDTH, height: HEIGHT });
+  const [panning, setPanning] = useState<{ x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const edges = useMemo(() => buildGraphEdges(index, mode), [index, mode]);
-  const nodeSeeds = useMemo(() => buildGraphNodes(index.notes, edges), [index.notes, edges]);
+  // Ausgeblendete Typen fliegen samt ihrer Kanten raus, damit die Anordnung
+  // den verbleibenden Knoten den ganzen Platz gibt.
+  const visibleNotes = useMemo(
+    () => index.notes.filter((note) => !hiddenTypes.has(note.type)),
+    [index.notes, hiddenTypes]
+  );
+  const visibleIndex = useMemo(
+    () => ({ ...index, notes: visibleNotes, byId: new Map(visibleNotes.map((note) => [note.id, note])) }),
+    [index, visibleNotes]
+  );
+
+  const edges = useMemo(() => buildGraphEdges(visibleIndex, mode), [visibleIndex, mode]);
+  const nodeSeeds = useMemo(() => buildGraphNodes(visibleNotes, edges), [visibleNotes, edges]);
 
   const computed = useMemo(
     () => layoutGraph(nodeSeeds, edges, { width: WIDTH, height: HEIGHT, seed }),
@@ -39,6 +53,7 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
   // verschobene Knoten werden verworfen.
   useEffect(() => {
     setPositions({});
+    setView({ x: 0, y: 0, width: WIDTH, height: HEIGHT });
   }, [computed]);
 
   const nodes: GraphNode[] = useMemo(
@@ -67,14 +82,31 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
     return found;
   }, [hovered, edges]);
 
-  function toSvgPoint(event: React.MouseEvent): { x: number; y: number } | null {
+  /** Bildschirmkoordinate in Diagrammkoordinate, unter Beruecksichtigung des Zooms. */
+  function toSvgPoint(event: { clientX: number; clientY: number }): { x: number; y: number } | null {
     const svg = svgRef.current;
     if (!svg) return null;
     const rect = svg.getBoundingClientRect();
     return {
-      x: ((event.clientX - rect.left) / rect.width) * WIDTH,
-      y: ((event.clientY - rect.top) / rect.height) * HEIGHT
+      x: view.x + ((event.clientX - rect.left) / rect.width) * view.width,
+      y: view.y + ((event.clientY - rect.top) / rect.height) * view.height
     };
+  }
+
+  /** Zoomt um den Punkt unter dem Mauszeiger, nicht um die Bildmitte. */
+  function zoomAt(factor: number, anchor: { x: number; y: number } | null) {
+    setView((previous) => {
+      const width = Math.min(WIDTH * 4, Math.max(WIDTH / 8, previous.width * factor));
+      const scale = width / previous.width;
+      const height = previous.height * scale;
+      const point = anchor ?? { x: previous.x + previous.width / 2, y: previous.y + previous.height / 2 };
+      return {
+        width,
+        height,
+        x: point.x - (point.x - previous.x) * scale,
+        y: point.y - (point.y - previous.y) * scale
+      };
+    });
   }
 
   return (
@@ -95,9 +127,47 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
           ))}
         </div>
 
+        <div className="graph__modes">
+          <button
+            type="button"
+            className={hiddenTypes.size === 0 ? 'is-active' : undefined}
+            onClick={() => setHiddenTypes(new Set())}
+            title={t('graph.filterType')}
+          >
+            {t('graph.allTypes')}
+          </button>
+          {index.types.map((def) => (
+            <button
+              key={def.id}
+              type="button"
+              className={hiddenTypes.has(def.id) ? undefined : 'is-active'}
+              onClick={() =>
+                setHiddenTypes((previous) => {
+                  const next = new Set(previous);
+                  if (next.has(def.id)) next.delete(def.id);
+                  else next.add(def.id);
+                  return next;
+                })
+              }
+            >
+              <span className="graph__swatch" style={{ background: typeColor(def.id) }} />
+              {def.label}
+            </button>
+          ))}
+        </div>
+
         <span className="graph__count">{t('graph.nodes', { nodes: nodes.length, edges: edges.length })}</span>
         <span className="campaign-bar__spacer" />
 
+        <button type="button" title={t('graph.zoomOut')} onClick={() => zoomAt(1.25, null)}>
+          −
+        </button>
+        <button type="button" title={t('graph.zoomIn')} onClick={() => zoomAt(0.8, null)}>
+          +
+        </button>
+        <button type="button" onClick={() => setView({ x: 0, y: 0, width: WIDTH, height: HEIGHT })}>
+          {t('graph.zoomReset')}
+        </button>
         <button type="button" onClick={() => setSeed((previous) => previous + 1)}>
           {t('graph.recalculate')}
         </button>
@@ -111,16 +181,36 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
       <svg
         ref={svgRef}
         className="graph__canvas"
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`}
         preserveAspectRatio="xMidYMid meet"
-        onMouseMove={(event) => {
-          if (!dragging) return;
-          const point = toSvgPoint(event);
-          if (point) setPositions((previous) => ({ ...previous, [dragging]: point }));
+        onWheel={(event) => zoomAt(event.deltaY > 0 ? 1.12 : 0.89, toSvgPoint(event))}
+        onMouseDown={(event) => {
+          // Nur auf freier Flaeche verschieben, auf Knoten gilt das Ziehen.
+          if (event.target === event.currentTarget) setPanning(toSvgPoint(event));
         }}
-        onMouseUp={() => setDragging(null)}
+        onMouseMove={(event) => {
+          if (dragging) {
+            const point = toSvgPoint(event);
+            if (point) setPositions((previous) => ({ ...previous, [dragging]: point }));
+            return;
+          }
+          if (!panning) return;
+
+          const point = toSvgPoint(event);
+          if (!point) return;
+          setView((previous) => ({
+            ...previous,
+            x: previous.x - (point.x - panning.x),
+            y: previous.y - (point.y - panning.y)
+          }));
+        }}
+        onMouseUp={() => {
+          setDragging(null);
+          setPanning(null);
+        }}
         onMouseLeave={() => {
           setDragging(null);
+          setPanning(null);
           setHovered(null);
         }}
       >
@@ -161,7 +251,7 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
         })}
 
         {nodes.map((node) => {
-          const note = index.byId.get(node.id);
+          const note = visibleIndex.byId.get(node.id);
           if (!note) return null;
 
           const dimmed = neighbours ? !neighbours.has(node.id) : false;
@@ -182,13 +272,17 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
             >
               <title>{`${note.title} · ${findNoteType(index.types, note.type).label}`}</title>
               <circle r={radius} fill={typeColor(note.type)} />
-              <text y={radius + 13}>{note.title}</text>
+              {/* Der Umriss in Hintergrundfarbe haelt die Beschriftung ueber
+                  Kanten und anderen Knoten lesbar. */}
+              <text y={radius + 15} className="graph__label">
+                {note.title}
+              </text>
             </g>
           );
         })}
       </svg>
 
-      <p className="graph__hint">{t('graph.hint')}</p>
+      <p className="graph__hint">{t('graph.hintFull')}</p>
     </div>
   );
 }

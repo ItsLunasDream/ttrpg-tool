@@ -270,6 +270,13 @@ const de = {
   'graph.hint': 'Klick auf einen Knoten öffnet die Notiz. Knoten lassen sich verschieben.',
   'graph.recalculate': 'Neu anordnen',
   'graph.nodes': '{nodes} Notizen, {edges} Verbindungen',
+  'graph.zoomIn': 'Vergrößern',
+  'graph.zoomOut': 'Verkleinern',
+  'graph.zoomReset': 'Ansicht zurücksetzen',
+  'graph.filterType': 'Typen',
+  'graph.allTypes': 'Alle',
+  'graph.hintFull':
+    'Klick auf einen Knoten öffnet die Notiz. Knoten lassen sich verschieben, die Fläche mit gedrückter Maustaste, das Mausrad zoomt.',
 
   'ai.title': 'Assistent',
   'ai.questions': 'Fragen zum Weiterdenken',
@@ -568,6 +575,13 @@ const en: Partial<Record<MessageKey, string>> = {
   'graph.hint': 'Click a node to open the note. Nodes can be dragged.',
   'graph.recalculate': 'Rearrange',
   'graph.nodes': '{nodes} notes, {edges} connections',
+  'graph.zoomIn': 'Zoom in',
+  'graph.zoomOut': 'Zoom out',
+  'graph.zoomReset': 'Reset the view',
+  'graph.filterType': 'Types',
+  'graph.allTypes': 'All',
+  'graph.hintFull':
+    'Click a node to open the note. Nodes can be dragged, the canvas pans with the mouse held down, the wheel zooms.',
 
   'ai.title': 'Assistant',
   'ai.questions': 'Questions to think further',

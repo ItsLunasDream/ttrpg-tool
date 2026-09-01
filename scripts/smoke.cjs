@@ -556,6 +556,45 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelectorAll('.graph__edge--mention').length === 0;`),
       'Filter auf Beziehungen wirkt nicht');
 
+    // Typfilter: Charaktere ausblenden muss Knoten entfernen
+    const beforeFilter = await run(window, `return document.querySelectorAll('.graph__node').length;`);
+    await run(
+      window,
+      `const bars = document.querySelectorAll('.graph__modes');
+       const chip = [...bars[bars.length - 1].querySelectorAll('button')]
+         .find((b) => b.textContent.includes('Charakter'));
+       if (!chip) throw new Error('Typfilter für Charakter fehlt');
+       chip.click();
+       return true;`
+    );
+    await sleep(900);
+    const afterFilter = await run(window, `return document.querySelectorAll('.graph__node').length;`);
+    check(afterFilter < beforeFilter, `Typfilter wirkt nicht (${beforeFilter} -> ${afterFilter})`);
+
+    await clickButton(window, 'Alle', "document.querySelectorAll('.graph__modes')[1]");
+    await sleep(800);
+    check(
+      await run(window, `return document.querySelectorAll('.graph__node').length === ${beforeFilter};`),
+      'Zurücksetzen des Typfilters wirkt nicht'
+    );
+
+    // Zoom verändert die viewBox und lässt sich zurücksetzen
+    const zoomed = await run(
+      window,
+      `const svg = document.querySelector('.graph__canvas');
+       const before = svg.getAttribute('viewBox');
+       [...document.querySelectorAll('.graph__bar button')].find((b) => b.textContent.trim() === '+').click();
+       return before;`
+    );
+    await sleep(500);
+    check(await run(window, `return document.querySelector('.graph__canvas').getAttribute('viewBox') !== ${JSON.stringify(zoomed)};`),
+      'Zoom verändert die Ansicht nicht');
+
+    await clickButton(window, 'Ansicht zurücksetzen', "document.querySelector('.graph__bar')");
+    await sleep(500);
+    check(await run(window, `return document.querySelector('.graph__canvas').getAttribute('viewBox') === '0 0 1200 780';`),
+      'Zurücksetzen der Ansicht wirkt nicht');
+
     // Klick auf einen Knoten oeffnet die Notiz
     await run(window, `document.querySelector('.graph__node').dispatchEvent(new MouseEvent('click', { bubbles: true })); return true;`);
     await sleep(900);
