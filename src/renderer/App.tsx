@@ -3,7 +3,16 @@ import { api, call } from './api';
 import { buildIndex, filterNotes, searchNotes, type SearchFilters } from './noteIndex';
 import { normalizeName } from '../shared/wikilinks';
 import { DEFAULT_NOTE_TYPES } from '../shared/noteTypes';
-import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion, SearchHit } from '../shared/types';
+import type {
+  AppSettings,
+  Campaign,
+  Note,
+  NoteType,
+  NoteTypeDef,
+  NoteVersion,
+  OrphanedAsset,
+  SearchHit
+} from '../shared/types';
 import type { PromptCategory } from '../shared/writingPrompts';
 import { CampaignBar } from './components/CampaignBar';
 import { NoteList } from './components/NoteList';
@@ -19,6 +28,7 @@ import { NoteTypesDialog } from './components/NoteTypesDialog';
 import { HistoryDialog } from './components/HistoryDialog';
 import { PromptsDialog } from './components/PromptsDialog';
 import { GraphView } from './components/GraphView';
+import { CleanupDialog } from './components/CleanupDialog';
 import type { AiStatus } from './components/AssistantPanel';
 import type { AiTask } from '../main/ai/provider';
 
@@ -32,7 +42,8 @@ type Dialog =
   | { kind: 'deleteNote'; note: Note }
   | { kind: 'noteTypes' }
   | { kind: 'history'; note: Note }
-  | { kind: 'prompts' };
+  | { kind: 'prompts' }
+  | { kind: 'cleanup' };
 
 const EMPTY_FILTERS: SearchFilters = { query: '', type: 'all', tag: null };
 
@@ -66,6 +77,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const [prompts, setPrompts] = useState<PromptCategory[] | null>(null);
   const [showGraph, setShowGraph] = useState(false);
   const [aiStatus, setAiStatus] = useState<AiStatus | null>(null);
+  const [orphans, setOrphans] = useState<OrphanedAsset[] | null>(null);
 
   const draftRef = useRef<Note | null>(null);
   draftRef.current = draft;
@@ -366,6 +378,15 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         }
         onToggleGraph={() => setShowGraph((previous) => !previous)}
         graphOpen={showGraph}
+        onCleanup={() =>
+          activeCampaign &&
+          void guard(async () => {
+            setOrphans(null);
+            setDialog({ kind: 'cleanup' });
+            await persist();
+            setOrphans(await call(api.assets.orphans(activeCampaign.id)));
+          })
+        }
         onOpenSettings={() => setDialog({ kind: 'settings' })}
         onEditNoteTypes={() => setDialog({ kind: 'noteTypes' })}
       />
@@ -487,6 +508,21 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               setCampaigns((previous) => previous.map((entry) => (entry.id === updated.id ? updated : entry)));
               setDialog({ kind: 'none' });
               report(t('types.saved'));
+            })
+          }
+        />
+      ) : null}
+
+      {dialog.kind === 'cleanup' && activeCampaignId ? (
+        <CleanupDialog
+          campaignId={activeCampaignId}
+          assets={orphans}
+          onClose={() => setDialog({ kind: 'none' })}
+          onDelete={(names) =>
+            void guard(async () => {
+              const removed = await call(api.assets.deleteMany(activeCampaignId, names));
+              report(removed === 1 ? t('cleanup.deletedOne') : t('cleanup.deleted', { count: removed }));
+              setOrphans(await call(api.assets.orphans(activeCampaignId)));
             })
           }
         />

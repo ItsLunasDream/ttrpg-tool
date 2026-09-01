@@ -12,7 +12,7 @@ import { askProvider, createProvider, decryptSecret, encryptSecret, AiError } fr
 import type { AiTask } from './ai/provider';
 import { findNoteType } from '../shared/noteTypes';
 import { findWikiLinks, normalizeName } from '../shared/wikilinks';
-import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion } from '../shared/types';
+import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion, OrphanedAsset } from '../shared/types';
 
 export interface IpcContext {
   vault: Vault;
@@ -184,6 +184,11 @@ export function registerIpc(context: IpcContext): void {
       throw error;
     }
   });
+
+  handle<[string], OrphanedAsset[]>('asset:orphans', (campaignId) => vault.listOrphanedAssets(campaignId));
+  handle<[string, string[]], number>('asset:deleteMany', (campaignId, names) =>
+    vault.deleteAssets(campaignId, names)
+  );
 
   handle<[string], void>('shell:openExternal', async (url) => {
     // Nur http(s) oeffnen, damit ein Link im Text keine beliebigen Handler startet.

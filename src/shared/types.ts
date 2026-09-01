@@ -54,6 +54,12 @@ export interface Note extends NoteMeta {
   body: string;
 }
 
+/** Eine Bilddatei, auf die keine Notiz mehr verweist. */
+export interface OrphanedAsset {
+  name: string;
+  bytes: number;
+}
+
 /** Ein gesicherter Stand einer Notiz. */
 export interface NoteVersion {
   id: string;

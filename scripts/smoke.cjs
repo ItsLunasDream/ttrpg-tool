@@ -562,7 +562,17 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelector('.graph__canvas') === null
        && Boolean(document.querySelector('.note-editor'));`), 'Klick auf einen Knoten öffnet keine Notiz');
 
-    // 18. Versionsverlauf: alten Stand wiederherstellen
+    // 18. Aufräumen: benutzte Bilder bleiben, unbenutzte werden angeboten
+    await clickButton(window, 'Aufräumen');
+    await sleep(2000);
+    check(await run(window, `return Boolean(document.querySelector('.modal'));`), 'Aufräumen-Dialog öffnet nicht');
+    // Beide Bilder sind noch in Benutzung, es darf nichts angeboten werden
+    check(await run(window, `return document.querySelectorAll('.cleanup li').length === 0;`),
+      'Benutzte Bilder wurden als verwaist gemeldet');
+    await clickButton(window, 'Schließen', "document.querySelector('.modal__footer')");
+    await sleep(500);
+
+    // 19. Versionsverlauf: alten Stand wiederherstellen
     await selectNote(window, 'Toran');
     await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
     await sleep(200);

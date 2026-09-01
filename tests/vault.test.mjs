@@ -431,3 +431,88 @@ test('Unlesbare Schreibhilfe-Datei faellt auf die Vorlage zurueck', async () => 
     assert.ok((await vault.readPrompts('de')).length >= 5);
   });
 });
+
+test('Verwaiste Bilder werden gefunden, benutzte nicht', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+
+    const imBody = await vault.saveAsset(campaign.id, 'szene.png', new Uint8Array([1, 2, 3]));
+    const imField = await vault.saveAsset(campaign.id, 'portrait.png', new Uint8Array([1, 2, 3, 4]));
+    const unused = await vault.saveAsset(campaign.id, 'alt.png', new Uint8Array([1, 2, 3, 4, 5]));
+
+    await vault.saveNote(campaign.id, {
+      ...note,
+      body: `Text ![Szene](${imBody})`,
+      fields: { portrait: imField }
+    });
+
+    const orphans = await vault.listOrphanedAssets(campaign.id);
+    assert.deepEqual(
+      orphans.map((entry) => entry.name),
+      [unused.replace('assets/', '')],
+      'falsche Dateien als verwaist gemeldet'
+    );
+    assert.equal(orphans[0].bytes, 5);
+  });
+});
+
+test('Bilder aus dem Versionsverlauf gelten als benutzt', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    const image = await vault.saveAsset(campaign.id, 'szene.png', new Uint8Array([1, 2, 3]));
+
+    const withImage = await vault.saveNote(campaign.id, { ...note, body: `![](${image})` });
+    await backdateVersions(path.join(root, 'campaigns', campaign.id, 'history', note.id));
+
+    // Bild aus dem Text entfernen: der alte Stand wandert in den Verlauf
+    await vault.saveNote(campaign.id, { ...withImage, body: 'Ohne Bild.' });
+
+    assert.deepEqual(
+      await vault.listOrphanedAssets(campaign.id),
+      [],
+      'ein noch im Verlauf benutztes Bild wurde als verwaist gemeldet'
+    );
+  });
+});
+
+test('Ohne Versionsverlauf wird das entfernte Bild verwaist', async () => {
+  await withVault(async (vault) => {
+    vault.setHistoryOptions({ enabled: false, maxVersions: 50 });
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    const image = await vault.saveAsset(campaign.id, 'szene.png', new Uint8Array([1, 2, 3]));
+
+    const withImage = await vault.saveNote(campaign.id, { ...note, body: `![](${image})` });
+    await vault.saveNote(campaign.id, { ...withImage, body: 'Ohne Bild.' });
+
+    const orphans = await vault.listOrphanedAssets(campaign.id);
+    assert.equal(orphans.length, 1);
+    assert.equal(orphans[0].name, image.replace('assets/', ''));
+  });
+});
+
+test('Loeschen entfernt genau die genannten Dateien', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const keep = await vault.saveAsset(campaign.id, 'behalten.png', new Uint8Array([1]));
+    const drop = await vault.saveAsset(campaign.id, 'weg.png', new Uint8Array([1]));
+
+    const removed = await vault.deleteAssets(campaign.id, [drop.replace('assets/', '')]);
+    assert.equal(removed, 1);
+
+    const files = await readdir(path.join(root, 'campaigns', campaign.id, 'assets'));
+    assert.deepEqual(files, [keep.replace('assets/', '')]);
+
+    // Erneutes Loeschen ist kein Fehler
+    assert.equal(await vault.deleteAssets(campaign.id, [drop.replace('assets/', '')]), 0);
+  });
+});
+
+test('Loeschen laesst keinen Ausbruch aus dem Bildverzeichnis zu', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    await assert.rejects(() => vault.deleteAssets(campaign.id, ['../campaign.json']), { key: 'error.invalidAsset' });
+  });
+});
