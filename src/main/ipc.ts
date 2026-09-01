@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron';
-import { Vault, VaultError, readSettings, writeSettings } from './vault';
+import { Vault, VaultError, writeSettings } from './vault';
 import { zipDirectory } from './export';
 import type { AppSettings, Campaign, Note, NoteType } from '../shared/types';
 
