@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts} = entry;
+const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, layoutGraph, buildGraphEdges, buildGraphNodes} = entry;
 
 /** Baut einen Index mit den Standardtypen. */
 function makeIndex(notes) {
@@ -223,6 +223,7 @@ const ALLOWED_SAME = new Set([
   'export.tags',
   'fieldType.text',
   'fieldType.url',
+  'graph.open',
   'toolbar.code'
 ]);
 
@@ -384,4 +385,94 @@ test('defaultPrompts liefert eine Kopie, kein geteiltes Objekt', () => {
   const first = defaultPrompts('de');
   first[0].options.push('Testeintrag');
   assert.ok(!defaultPrompts('de')[0].options.includes('Testeintrag'), 'Vorlage wurde verändert');
+});
+
+test('Graph erzeugt gerichtete Kanten aus Beziehungen und Erwähnungen', () => {
+  const mira = note({
+    id: '1',
+    title: 'Mira',
+    relations: [{ id: 'r1', targetId: '2', type: 'Mentorin', note: '' }],
+    body: 'Sie kennt [[Toran]] gut.'
+  });
+  const toran = note({ id: '2', title: 'Toran' });
+  const index = makeIndex([mira, toran]);
+
+  const relations = buildGraphEdges(index, 'relations');
+  assert.equal(relations.length, 1);
+  assert.deepEqual(relations[0], { source: '1', target: '2', label: 'Mentorin', kind: 'relation' });
+
+  const mentions = buildGraphEdges(index, 'mentions');
+  assert.equal(mentions.length, 1);
+  assert.equal(mentions[0].kind, 'mention');
+
+  assert.equal(buildGraphEdges(index, 'both').length, 2);
+});
+
+test('Graph zaehlt mehrfache Erwähnungen nur einmal', () => {
+  const mira = note({ id: '1', title: 'Mira', body: '[[Toran]] und nochmal [[Toran]].' });
+  const index = makeIndex([mira, note({ id: '2', title: 'Toran' })]);
+  assert.equal(buildGraphEdges(index, 'mentions').length, 1);
+});
+
+test('Graph ignoriert Selbstverweise und gelöschte Ziele', () => {
+  const solo = note({
+    id: '1',
+    title: 'Mira',
+    body: 'Ich, [[Mira]], schreibe das.',
+    relations: [{ id: 'r1', targetId: 'weg', type: 'Feindin', note: '' }]
+  });
+  assert.deepEqual(buildGraphEdges(makeIndex([solo]), 'both'), []);
+});
+
+test('Knotengrad zaehlt ein- und ausgehende Kanten', () => {
+  const notes = [note({ id: '1', title: 'A' }), note({ id: '2', title: 'B' }), note({ id: '3', title: 'C' })];
+  const edges = [
+    { source: '1', target: '2', label: '', kind: 'relation' },
+    { source: '3', target: '2', label: '', kind: 'relation' }
+  ];
+  const degrees = Object.fromEntries(buildGraphNodes(notes, edges).map((entry) => [entry.id, entry.degree]));
+  assert.deepEqual(degrees, { 1: 1, 2: 2, 3: 1 });
+});
+
+test('Anordnung ist wiederholbar und bleibt in der Fläche', () => {
+  const ids = [
+    { id: 'a', degree: 1 },
+    { id: 'b', degree: 1 },
+    { id: 'c', degree: 0 }
+  ];
+  const edges = [{ source: 'a', target: 'b', label: '', kind: 'relation' }];
+  const options = { width: 800, height: 600, iterations: 120, seed: 7 };
+
+  const first = layoutGraph(ids, edges, options);
+  const second = layoutGraph(ids, edges, options);
+  assert.deepEqual(first, second, 'gleicher Startwert liefert unterschiedliche Anordnungen');
+
+  for (const node of first) {
+    assert.ok(node.x >= 0 && node.x <= 800, `x außerhalb der Fläche: ${node.x}`);
+    assert.ok(node.y >= 0 && node.y <= 600, `y außerhalb der Fläche: ${node.y}`);
+    assert.ok(Number.isFinite(node.x) && Number.isFinite(node.y), 'ungültige Koordinate');
+  }
+});
+
+test('Verbundene Knoten landen näher beieinander als unverbundene', () => {
+  const ids = [
+    { id: 'a', degree: 1 },
+    { id: 'b', degree: 1 },
+    { id: 'c', degree: 0 }
+  ];
+  const edges = [{ source: 'a', target: 'b', label: '', kind: 'relation' }];
+  const nodes = layoutGraph(ids, edges, { width: 800, height: 600, iterations: 400, seed: 3 });
+
+  const at = (id) => nodes.find((node) => node.id === id);
+  const distance = (first, second) => Math.hypot(first.x - second.x, first.y - second.y);
+
+  const linked = distance(at('a'), at('b'));
+  const loose = Math.min(distance(at('a'), at('c')), distance(at('b'), at('c')));
+  assert.ok(linked < loose, `verbunden ${linked.toFixed(1)} nicht näher als unverbunden ${loose.toFixed(1)}`);
+});
+
+test('Anordnung kommt mit einem einzelnen Knoten klar', () => {
+  const nodes = layoutGraph([{ id: 'a', degree: 0 }], [], { width: 400, height: 300 });
+  assert.equal(nodes.length, 1);
+  assert.ok(Number.isFinite(nodes[0].x));
 });

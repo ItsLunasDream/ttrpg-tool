@@ -957,6 +957,111 @@ mark {
   background: var(--bg-input);
 }
 
+.graph {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.graph__bar {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 14px;
+}
+
+.graph__modes {
+  display: flex;
+  gap: 4px;
+}
+
+.graph__modes button.is-active,
+.campaign-bar button.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.graph__count,
+.graph__hint {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.graph__hint {
+  margin: 0;
+  padding: 0 14px 8px;
+}
+
+.graph__empty {
+  color: var(--text-muted);
+  margin: 0;
+  padding: 10px 14px 0;
+}
+
+.graph__canvas {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.graph__edge line {
+  stroke: var(--border-strong);
+  stroke-width: 1.4;
+}
+
+.graph__edge {
+  color: var(--border-strong);
+}
+
+.graph__edge--relation line {
+  stroke: var(--accent);
+}
+
+.graph__edge--relation {
+  color: var(--accent);
+}
+
+.graph__edge--mention line {
+  stroke-dasharray: 4 4;
+}
+
+.graph__edge text {
+  fill: var(--text-muted);
+  font-size: 10px;
+  text-anchor: middle;
+}
+
+.graph__edge.is-dimmed {
+  opacity: 0.15;
+}
+
+.graph__node {
+  cursor: pointer;
+}
+
+.graph__node circle {
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+
+.graph__node.is-active circle {
+  stroke: var(--text);
+  stroke-width: 3;
+}
+
+.graph__node text {
+  fill: var(--text);
+  font-size: 11px;
+  text-anchor: middle;
+}
+
+.graph__node.is-dimmed {
+  opacity: 0.2;
+}
+
 /* --- Notiztyp-Editor --- */
 
 .type-editor {

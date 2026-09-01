@@ -12,6 +12,8 @@ interface Props {
   onExport: () => void;
   onExportMarkdown: () => void;
   onExportPdf: () => void;
+  onToggleGraph: () => void;
+  graphOpen: boolean;
   onEditNoteTypes: () => void;
   onOpenSettings: () => void;
 }
@@ -40,6 +42,14 @@ export function CampaignBar(props: Props) {
       </button>
       <button type="button" onClick={props.onRename} disabled={!activeCampaignId}>
         {t('bar.rename')}
+      </button>
+      <button
+        type="button"
+        className={props.graphOpen ? 'is-active' : undefined}
+        onClick={props.onToggleGraph}
+        disabled={!activeCampaignId}
+      >
+        {t('graph.open')}
       </button>
       <button type="button" onClick={props.onEditNoteTypes} disabled={!activeCampaignId}>
         {t('bar.noteTypes')}
