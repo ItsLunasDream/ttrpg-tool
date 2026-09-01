@@ -18,6 +18,7 @@ import type { Language } from '../shared/i18n';
 import { NoteTypesDialog } from './components/NoteTypesDialog';
 import { HistoryDialog } from './components/HistoryDialog';
 import { PromptsDialog } from './components/PromptsDialog';
+import { GraphView } from './components/GraphView';
 
 type Dialog =
   | { kind: 'none' }
@@ -61,6 +62,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   // wurde. Ohne dieses Signal zeigte der Editor weiter den alten Stand.
   const [reloadKey, setReloadKey] = useState(0);
   const [prompts, setPrompts] = useState<PromptCategory[] | null>(null);
+  const [showGraph, setShowGraph] = useState(false);
 
   const draftRef = useRef<Note | null>(null);
   draftRef.current = draft;
@@ -356,6 +358,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
             if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
           })
         }
+        onToggleGraph={() => setShowGraph((previous) => !previous)}
+        graphOpen={showGraph}
         onOpenSettings={() => setDialog({ kind: 'settings' })}
         onEditNoteTypes={() => setDialog({ kind: 'noteTypes' })}
       />
@@ -376,7 +380,17 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
           </aside>
 
           <section className="app__content">
-            {draft ? (
+            {showGraph ? (
+              <GraphView
+                index={index}
+                activeNoteId={draft?.id ?? null}
+                onClose={() => setShowGraph(false)}
+                onOpenNote={(noteId) => {
+                  openNote(noteId);
+                  setShowGraph(false);
+                }}
+              />
+            ) : draft ? (
               <NoteEditor
                 note={draft}
                 index={index}

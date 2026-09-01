@@ -530,7 +530,39 @@ app.whenReady().then(async () => {
     check(fs.existsSync(path.join(userData, 'vault', 'writing-prompts.json')),
       'writing-prompts.json wurde nicht angelegt');
 
-    // 17. Versionsverlauf: alten Stand wiederherstellen
+    // 17. Graph-Ansicht
+    await clickButton(window, 'Graph');
+    await sleep(1500);
+    check(await run(window, `return Boolean(document.querySelector('.graph__canvas'));`), 'Graph öffnet nicht');
+    check(await run(window, `return document.querySelectorAll('.graph__node').length >= 3;`),
+      'Zu wenige Knoten im Graph');
+    check(await run(window, `return document.querySelectorAll('.graph__edge').length >= 2;`),
+      'Zu wenige Kanten im Graph');
+    check(
+      await run(window, `return document.querySelectorAll('.graph__edge--relation').length >= 1
+         && document.querySelectorAll('.graph__edge--mention').length >= 1;`),
+      'Beziehungen und Erwähnungen werden nicht unterschieden'
+    );
+    // Knoten muessen auseinanderliegen, nicht alle auf einem Punkt
+    check(
+      await run(window, `const points = [...document.querySelectorAll('.graph__node')]
+           .map((g) => g.getAttribute('transform'));
+         return new Set(points).size === points.length;`),
+      'Knoten liegen übereinander'
+    );
+
+    await clickButton(window, 'Beziehungen', "document.querySelector('.graph__modes')");
+    await sleep(800);
+    check(await run(window, `return document.querySelectorAll('.graph__edge--mention').length === 0;`),
+      'Filter auf Beziehungen wirkt nicht');
+
+    // Klick auf einen Knoten oeffnet die Notiz
+    await run(window, `document.querySelector('.graph__node').dispatchEvent(new MouseEvent('click', { bubbles: true })); return true;`);
+    await sleep(900);
+    check(await run(window, `return document.querySelector('.graph__canvas') === null
+       && Boolean(document.querySelector('.note-editor'));`), 'Klick auf einen Knoten öffnet keine Notiz');
+
+    // 18. Versionsverlauf: alten Stand wiederherstellen
     await selectNote(window, 'Toran');
     await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
     await sleep(200);

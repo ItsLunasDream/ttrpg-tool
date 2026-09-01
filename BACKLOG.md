@@ -44,10 +44,12 @@ Ersetzen wäre ein eigener Punkt.
 
 ## Geplante Phasen
 
-### Phase 3
+### Graph verfeinern
 
-- Graph-Ansicht des Beziehungsnetzes, je Kampagne. Die Datenbasis liegt
-  bereits vor: gerichtete Beziehungen mit Typ und Freitext an jeder Notiz
+Die Anordnung ist statisch: sie wird einmal berechnet, danach lassen sich
+Knoten nur von Hand verschieben. Denkbar wären eine laufende Simulation beim
+Ziehen, Zoomen und Verschieben der ganzen Fläche sowie ein Filter nach
+Notiztyp. Beschriftungen überlappen sich bei dichten Netzen.
 
 ### Phase 4
 
@@ -199,3 +201,19 @@ das schwächste Glied. Deshalb liegen sie als `writing-prompts.json` im
 Speicherort und sind mit jedem Texteditor zu ändern. Eigene Kategorien lassen
 sich ergänzen, die Vorlage komplett ersetzen. Eine kaputte Datei fällt auf die
 Vorlage zurück, unbrauchbare Einzeleinträge werden übersprungen.
+
+### Graph-Ansicht
+
+Über „Graph" in der Kopfzeile, je Kampagne. Knoten sind Notizen, eingefärbt
+nach Notiztyp und in der Größe nach Anzahl der Verbindungen. Kanten sind
+gerichtet: durchgezogen und beschriftet für Beziehungen, gestrichelt für
+Erwähnungen aus `[[Links]]`. Umschaltbar zwischen beiden und beidem.
+
+Beim Überfahren eines Knotens treten er und seine Nachbarn hervor, ein Klick
+öffnet die Notiz, Knoten lassen sich verschieben.
+
+Die kräftebasierte Anordnung ist von Hand geschrieben statt mit einer
+Bibliothek: das Netz einer Kampagne ist klein, und so bleibt die Anwendung
+ohne zusätzliche Abhängigkeit. Sie ist wiederholbar, dieselbe Kampagne sieht
+also gleich aus. Nach der Simulation wird das Ergebnis in die Fläche
+eingepasst, sonst hängt die Größe des Netzes von der Knotenzahl ab.

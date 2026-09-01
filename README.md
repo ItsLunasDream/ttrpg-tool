@@ -57,6 +57,7 @@ npm run dist:win  # Windows-Installer und portable exe nach release/
 | Steckbrief anpassen | „Notiztypen" in der Kopfzeile |
 | Sprache wechseln | Einstellungen → Sprache |
 | Bild einfügen | Knopf ▣ in der Werkzeugleiste, oder Bild in den Text ziehen bzw. einfügen |
+| Beziehungsnetz ansehen | „Graph" in der Kopfzeile |
 | Vorschläge zum Weiterschreiben | „Schreibhilfe" in der Kopfzeile des Editors |
 | Notiz exportieren | „MD" oder „PDF" in der Kopfzeile des Editors |
 | Kampagne exportieren | „Kampagne als Markdown" bzw. „als PDF" in der Kopfzeile |
@@ -140,7 +141,7 @@ die Graph-Ansicht in Phase 3.
 src/shared/     Datenmodell, Notiztyp-Vorlage, Wiki-Link-Parsing, Texte
 src/main/       Electron-Hauptprozess: Dateisystem, IPC, ZIP-Export
 src/preload/    Einzige Brücke zum Renderer (contextIsolation aktiv)
-src/renderer/   React-Oberfläche, TipTap-Editor, Notizindex
+src/renderer/   React-Oberfläche, TipTap-Editor, Notizindex, Graph
 tests/          Tests der Kernlogik und der Vault-Schicht
 ```
 
@@ -165,9 +166,8 @@ Umgesetzt (MVP):
 - Versionsverlauf mit Vorschau und Wiederherstellen, abschaltbar
 - Export als Markdown und als PDF, je Notiz oder für die ganze Kampagne
 - Schreibhilfe mit Vorschlagslisten, ohne KI und frei bearbeitbar
+- Graph-Ansicht des Beziehungsnetzes, nach Notiztyp eingefärbt
 - Autosave (abschaltbar) und Strg+S
-
-Phase 3: Graph-Ansicht des Beziehungsnetzes.
 
 Phase 4: KI-Sidebar hinter einem austauschbaren Provider-Interface
 (Ollama lokal oder Claude API), als Rückfrage- und Konsistenzhilfe, nicht als

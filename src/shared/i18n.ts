@@ -226,7 +226,18 @@ const de = {
   'prompts.empty': 'Keine Vorschläge vorhanden.',
   'prompts.editFile': 'Liste bearbeiten',
   'prompts.hint':
-    'Das sind Startpunkte, keine Vorgaben. Die Vorschläge stehen als writing-prompts.json im Speicherort und lassen sich dort mit einem Texteditor ergänzen oder komplett ersetzen.'
+    'Das sind Startpunkte, keine Vorgaben. Die Vorschläge stehen als writing-prompts.json im Speicherort und lassen sich dort mit einem Texteditor ergänzen oder komplett ersetzen.',
+
+  'graph.open': 'Graph',
+  'graph.close': 'Zurück zum Text',
+  'graph.title': 'Beziehungsnetz',
+  'graph.relations': 'Beziehungen',
+  'graph.mentions': 'Erwähnungen',
+  'graph.both': 'Beides',
+  'graph.empty': 'Noch keine Verbindungen in dieser Kampagne.',
+  'graph.hint': 'Klick auf einen Knoten öffnet die Notiz. Knoten lassen sich verschieben.',
+  'graph.recalculate': 'Neu anordnen',
+  'graph.nodes': '{nodes} Notizen, {edges} Verbindungen'
 } as const;
 
 export type MessageKey = keyof typeof de;
@@ -440,7 +451,18 @@ const en: Partial<Record<MessageKey, string>> = {
   'prompts.empty': 'No suggestions available.',
   'prompts.editFile': 'Edit the list',
   'prompts.hint':
-    'These are starting points, not rules. The suggestions live in writing-prompts.json in your storage location and can be extended or replaced there with a text editor.'
+    'These are starting points, not rules. The suggestions live in writing-prompts.json in your storage location and can be extended or replaced there with a text editor.',
+
+  'graph.open': 'Graph',
+  'graph.close': 'Back to the text',
+  'graph.title': 'Relationship map',
+  'graph.relations': 'Relationships',
+  'graph.mentions': 'Mentions',
+  'graph.both': 'Both',
+  'graph.empty': 'No connections in this campaign yet.',
+  'graph.hint': 'Click a node to open the note. Nodes can be dragged.',
+  'graph.recalculate': 'Rearrange',
+  'graph.nodes': '{nodes} notes, {edges} connections'
 };
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { de, en };

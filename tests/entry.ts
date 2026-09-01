@@ -17,3 +17,5 @@ export { Vault } from '../src/main/vault';
 export { zipDirectory } from '../src/main/export';
 export { renderNoteMarkdown, referencedAssets, toFileName } from '../src/main/markdownExport';
 export { defaultPrompts } from '../src/shared/writingPrompts';
+export { layoutGraph } from '../src/renderer/graph/layout';
+export { buildGraphEdges, buildGraphNodes } from '../src/renderer/graph/build';
