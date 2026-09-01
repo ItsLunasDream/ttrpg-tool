@@ -57,6 +57,7 @@ npm run dist:win  # Windows-Installer und portable exe nach release/
 | Steckbrief anpassen | „Notiztypen" in der Kopfzeile |
 | Sprache wechseln | Einstellungen → Sprache |
 | Bild einfügen | Knopf ▣ in der Werkzeugleiste, oder Bild in den Text ziehen bzw. einfügen |
+| Assistent fragen | Sidebar im Editor, Einstellungen → Assistent |
 | Beziehungsnetz ansehen | „Graph" in der Kopfzeile |
 | Vorschläge zum Weiterschreiben | „Schreibhilfe" in der Kopfzeile des Editors |
 | Notiz exportieren | „MD" oder „PDF" in der Kopfzeile des Editors |
@@ -116,6 +117,16 @@ auch außerhalb des Tools lesbar bleiben. Angezeigt werden sie über ein eigenes
 Protokoll `backstory-asset://`, das ausschließlich aus dem `assets`-Ordner der
 jeweiligen Kampagne liefert; der Renderer behält keinen direkten Dateizugriff.
 
+**Der KI-Assistent** ist optional und abschaltbar. Er sitzt in der Sidebar des
+Editors und stellt Fragen, prüft gegen verlinkte Notizen und gibt
+Stilrückmeldung. Er schreibt nichts in den Text: das ist in der
+Systemanweisung festgeschrieben und dadurch, dass die Antwort nur in der
+Sidebar erscheint. Anbieter sind Ollama (lokal, kostenlos) oder die Claude API
+(kostenpflichtig), hinter einem gemeinsamen Interface in `src/main/ai/`.
+
+Alle Netzaufrufe laufen im Hauptprozess. Der API-Schlüssel wird mit dem
+Schlüsselbund des Systems verschlüsselt und erreicht den Renderer nie.
+
 **Versionsverlauf** sichert den vorherigen Stand, bevor eine Notiz
 überschrieben wird, höchstens aber alle fünf Minuten. Ohne diese Sperre würde
 der Autosave im Sekundentakt hunderte fast gleicher Stände anlegen. Beim
@@ -139,7 +150,7 @@ die Graph-Ansicht in Phase 3.
 
 ```
 src/shared/     Datenmodell, Notiztyp-Vorlage, Wiki-Link-Parsing, Texte
-src/main/       Electron-Hauptprozess: Dateisystem, IPC, ZIP-Export
+src/main/       Electron-Hauptprozess: Dateisystem, IPC, Export, KI-Anbindung
 src/preload/    Einzige Brücke zum Renderer (contextIsolation aktiv)
 src/renderer/   React-Oberfläche, TipTap-Editor, Notizindex, Graph
 tests/          Tests der Kernlogik und der Vault-Schicht
@@ -167,11 +178,9 @@ Umgesetzt (MVP):
 - Export als Markdown und als PDF, je Notiz oder für die ganze Kampagne
 - Schreibhilfe mit Vorschlagslisten, ohne KI und frei bearbeitbar
 - Graph-Ansicht des Beziehungsnetzes, nach Notiztyp eingefärbt
+- KI-Assistent in der Sidebar, wahlweise über Ollama (lokal) oder die Claude
+  API, abschaltbar und austauschbar
 - Autosave (abschaltbar) und Strg+S
-
-Phase 4: KI-Sidebar hinter einem austauschbaren Provider-Interface
-(Ollama lokal oder Claude API), als Rückfrage- und Konsistenzhilfe, nicht als
-Textgenerator.
 
 ## Backlog
 

@@ -224,6 +224,7 @@ const ALLOWED_SAME = new Set([
   'fieldType.text',
   'fieldType.url',
   'graph.open',
+  'settings.apiKeyPlaceholder',
   'toolbar.code'
 ]);
 

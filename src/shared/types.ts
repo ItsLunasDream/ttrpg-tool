@@ -71,6 +71,8 @@ export interface Campaign {
   noteTypes: NoteTypeDef[];
 }
 
+export type AiProviderId = 'none' | 'ollama' | 'claude';
+
 export interface AppSettings {
   schemaVersion: number;
   vaultRoot: string;
@@ -79,6 +81,13 @@ export interface AppSettings {
   autosaveDelayMs: number;
   historyEnabled: boolean;
   historyMaxVersions: number;
+  /** Welche KI-Anbindung benutzt wird. 'none' schaltet die Sidebar ab. */
+  aiProvider: AiProviderId;
+  ollamaBaseUrl: string;
+  ollamaModel: string;
+  claudeModel: string;
+  /** Verschluesselter API-Schluessel. Erreicht den Renderer nie. */
+  claudeApiKeyEncrypted: string;
   lastCampaignId: string | null;
 }
 

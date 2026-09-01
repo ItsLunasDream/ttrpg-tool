@@ -44,20 +44,24 @@ Ersetzen wäre ein eigener Punkt.
 
 ## Geplante Phasen
 
+### Antworten des Assistenten strömen lassen
+
+Der Assistent wartet aktuell auf die vollständige Antwort. Bei langen
+Antworten wirkt das wie ein Hänger. Beide Anbieter können strömen, das
+Interface müsste dafür einen Rückkanal bekommen.
+
+### Assistent mit Gesprächsverlauf
+
+Jede Anfrage steht für sich. Eine Rückfrage zur letzten Antwort ist nicht
+möglich. Wäre nützlich, kostet aber bei der Claude API mehr, weil der Verlauf
+mitgeschickt wird.
+
 ### Graph verfeinern
 
 Die Anordnung ist statisch: sie wird einmal berechnet, danach lassen sich
 Knoten nur von Hand verschieben. Denkbar wären eine laufende Simulation beim
 Ziehen, Zoomen und Verschieben der ganzen Fläche sowie ein Filter nach
 Notiztyp. Beschriftungen überlappen sich bei dichten Netzen.
-
-### Phase 4
-
-- KI-Sidebar hinter einem austauschbaren Provider-Interface, wahlweise Ollama
-  lokal oder Claude API. Rolle: Rückfragen zum Weiterdenken, Konsistenzcheck
-  gegen verlinkte Notizen, Stilfeedback. Ausdrücklich kein Textgenerator
-- Das `AIProvider`-Interface wird bewusst erst zusammen mit dem ersten echten
-  Provider entworfen. Ein Interface ohne Implementierung ist geraten
 
 ### Weitere Sprachen
 
@@ -217,3 +221,30 @@ Bibliothek: das Netz einer Kampagne ist klein, und so bleibt die Anwendung
 ohne zusätzliche Abhängigkeit. Sie ist wiederholbar, dieselbe Kampagne sieht
 also gleich aus. Nach der Simulation wird das Ergebnis in die Fläche
 eingepasst, sonst hängt die Größe des Netzes von der Knotenzahl ab.
+
+### KI-Assistent, Phase 4
+
+Sidebar im Editor mit drei Aufgaben: Fragen zum Weiterdenken, Konsistenzcheck
+gegen die verlinkten Notizen, Stilfeedback. Kein Textgenerator: die
+Systemanweisung verbietet fertige Absätze ausdrücklich, und die Antwort landet
+in der Sidebar, nie im Text.
+
+Zwei Anbieter hinter einem gemeinsamen Interface (`src/main/ai/provider.ts`):
+- **Ollama**, lokal und kostenlos, Adresse und Modell einstellbar
+- **Claude API**, kostenpflichtig, Modell einstellbar
+
+Ein dritter Anbieter ist eine Datei, kein Eingriff in die Anwendung. Das
+Interface wurde wie angekündigt erst zusammen mit den beiden echten
+Implementierungen entworfen.
+
+Entscheidungen dabei:
+- Alle Netzaufrufe laufen im Hauptprozess. Der Renderer behält keinen
+  Netzzugriff, und der API-Schlüssel erreicht ihn nie
+- Der Schlüssel wird mit dem Schlüsselbund des Systems verschlüsselt. Steht
+  das nicht zur Verfügung, wird gar nicht gespeichert: ein Schlüssel im
+  Klartext wäre schlechter als keiner
+- Als Kontext gehen nur die verlinkten Notizen mit, gekürzt und auf zwölf
+  begrenzt. Sonst wächst die Anfrage mit der Kampagne und wird teuer, ohne
+  besser zu werden
+- Fehlermeldungen der Anbieter tragen Schlüssel statt fertiger Texte, sonst
+  wären sie bei englischer Oberfläche weiterhin deutsch

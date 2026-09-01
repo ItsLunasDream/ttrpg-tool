@@ -19,8 +19,8 @@
     "verify:package": "node scripts/verify-package.mjs",
     "dist:linux:dir": "npm run build && electron-builder --linux dir --publish never"
   },
-  "dependencies": {},
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
     "@tiptap/extension-image": "^2.27.2",
     "@tiptap/extension-placeholder": "^2.11.5",
     "@tiptap/pm": "^2.11.5",

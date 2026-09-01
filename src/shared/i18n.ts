@@ -185,6 +185,22 @@ const de = {
   'error.unsupportedImage': 'Dieses Bildformat wird nicht unterstützt: {extension}',
   'error.imageTooLarge': 'Das Bild ist größer als {limit} MB.',
   'error.versionMissing': 'Diese Fassung gibt es nicht mehr.',
+  'error.noAiProvider': 'Es ist keine KI-Anbindung eingerichtet.',
+  'error.noteMissing': 'Diese Notiz gibt es nicht mehr.',
+  'error.aiNoConnection': 'Keine Verbindung: Läuft Ollama?',
+  'error.aiTimeout': 'Zeitüberschreitung. Läuft Ollama, und ist das Modell geladen?',
+  'error.aiHttp': 'Der Anbieter antwortete mit HTTP {status}.',
+  'error.aiEmpty': 'Der Anbieter hat keine Antwort geliefert.',
+  'error.aiAuth': 'Der API-Schlüssel wird nicht akzeptiert.',
+  'error.aiRateLimit': 'Zu viele Anfragen. Versuch es gleich noch einmal.',
+  'error.aiModelMissing': 'Dieses Modell gibt es nicht oder du hast keinen Zugriff darauf.',
+  'error.aiRefused': 'Die Anfrage wurde abgelehnt. Formuliere die Notiz um oder frag anders.',
+  'error.aiOther': 'Der Anbieter meldet: {detail}',
+  'error.aiNoModels': 'In Ollama ist kein Modell installiert.',
+  'error.aiModelNotInstalled': 'Das Modell {model} ist in Ollama nicht installiert.',
+  'error.aiNoKey': 'Kein API-Schlüssel hinterlegt.',
+  'error.noSecureStorage':
+    'Dieses System bietet keine sichere Ablage für Schlüssel. Der Schlüssel wird deshalb nicht gespeichert.',
 
   'image.insert': 'Bild einfügen',
   'image.choose': 'Bild wählen …',
@@ -237,7 +253,35 @@ const de = {
   'graph.empty': 'Noch keine Verbindungen in dieser Kampagne.',
   'graph.hint': 'Klick auf einen Knoten öffnet die Notiz. Knoten lassen sich verschieben.',
   'graph.recalculate': 'Neu anordnen',
-  'graph.nodes': '{nodes} Notizen, {edges} Verbindungen'
+  'graph.nodes': '{nodes} Notizen, {edges} Verbindungen',
+
+  'ai.title': 'Assistent',
+  'ai.questions': 'Fragen zum Weiterdenken',
+  'ai.consistency': 'Konsistenzcheck',
+  'ai.style': 'Stilfeedback',
+  'ai.thinking': 'Denkt nach …',
+  'ai.disabled': 'Keine KI-Anbindung eingerichtet. Einstellungen → Assistent.',
+  'ai.notReady': 'Nicht bereit: {detail}',
+  'ai.ready': 'Bereit: {detail}',
+  'ai.hint': 'Der Assistent stellt Fragen und prüft. Er schreibt den Text nicht für dich.',
+  'ai.clear': 'Antwort verwerfen',
+
+  'settings.ai': 'Assistent',
+  'settings.aiProvider': 'KI-Anbindung',
+  'settings.aiNone': 'Keine',
+  'settings.aiOllama': 'Ollama (lokal, kostenlos)',
+  'settings.aiClaude': 'Claude API (kostenpflichtig)',
+  'settings.ollamaUrl': 'Ollama-Adresse',
+  'settings.ollamaModel': 'Ollama-Modell',
+  'settings.claudeModel': 'Claude-Modell',
+  'settings.apiKey': 'API-Schlüssel',
+  'settings.apiKeySet': 'Ein Schlüssel ist hinterlegt.',
+  'settings.apiKeyPlaceholder': 'sk-ant-…',
+  'settings.apiKeySave': 'Schlüssel speichern',
+  'settings.apiKeyClear': 'Schlüssel löschen',
+  'settings.apiKeyHint':
+    'Der Schlüssel wird mit dem Schlüsselbund des Systems verschlüsselt und verlässt den Hauptprozess nicht. Die Claude API rechnet nach Verbrauch ab.',
+  'settings.aiCheck': 'Verbindung prüfen'
 } as const;
 
 export type MessageKey = keyof typeof de;
@@ -410,6 +454,22 @@ const en: Partial<Record<MessageKey, string>> = {
   'error.unsupportedImage': 'This image format is not supported: {extension}',
   'error.imageTooLarge': 'The image is larger than {limit} MB.',
   'error.versionMissing': 'This version no longer exists.',
+  'error.noAiProvider': 'No AI connection is set up.',
+  'error.noteMissing': 'This note no longer exists.',
+  'error.aiNoConnection': 'No connection: is Ollama running?',
+  'error.aiTimeout': 'Timed out. Is Ollama running and the model loaded?',
+  'error.aiHttp': 'The provider answered with HTTP {status}.',
+  'error.aiEmpty': 'The provider returned no answer.',
+  'error.aiAuth': 'The API key is not accepted.',
+  'error.aiRateLimit': 'Too many requests. Try again in a moment.',
+  'error.aiModelMissing': 'That model does not exist or you have no access to it.',
+  'error.aiRefused': 'The request was declined. Rephrase the note or ask differently.',
+  'error.aiOther': 'The provider reports: {detail}',
+  'error.aiNoModels': 'No model is installed in Ollama.',
+  'error.aiModelNotInstalled': 'The model {model} is not installed in Ollama.',
+  'error.aiNoKey': 'No API key stored.',
+  'error.noSecureStorage':
+    'This system offers no secure storage for keys, so the key was not saved.',
 
   'image.insert': 'Insert image',
   'image.choose': 'Choose image …',
@@ -462,7 +522,35 @@ const en: Partial<Record<MessageKey, string>> = {
   'graph.empty': 'No connections in this campaign yet.',
   'graph.hint': 'Click a node to open the note. Nodes can be dragged.',
   'graph.recalculate': 'Rearrange',
-  'graph.nodes': '{nodes} notes, {edges} connections'
+  'graph.nodes': '{nodes} notes, {edges} connections',
+
+  'ai.title': 'Assistant',
+  'ai.questions': 'Questions to think further',
+  'ai.consistency': 'Consistency check',
+  'ai.style': 'Style feedback',
+  'ai.thinking': 'Thinking …',
+  'ai.disabled': 'No AI connection set up. Settings → Assistant.',
+  'ai.notReady': 'Not ready: {detail}',
+  'ai.ready': 'Ready: {detail}',
+  'ai.hint': 'The assistant asks questions and checks. It does not write the text for you.',
+  'ai.clear': 'Discard answer',
+
+  'settings.ai': 'Assistant',
+  'settings.aiProvider': 'AI connection',
+  'settings.aiNone': 'None',
+  'settings.aiOllama': 'Ollama (local, free)',
+  'settings.aiClaude': 'Claude API (paid)',
+  'settings.ollamaUrl': 'Ollama address',
+  'settings.ollamaModel': 'Ollama model',
+  'settings.claudeModel': 'Claude model',
+  'settings.apiKey': 'API key',
+  'settings.apiKeySet': 'A key is stored.',
+  'settings.apiKeyPlaceholder': 'sk-ant-…',
+  'settings.apiKeySave': 'Save key',
+  'settings.apiKeyClear': 'Delete key',
+  'settings.apiKeyHint':
+    'The key is encrypted with the system keychain and never leaves the main process. The Claude API bills by usage.',
+  'settings.aiCheck': 'Check connection'
 };
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { de, en };

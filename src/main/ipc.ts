@@ -8,6 +8,10 @@ import { ALLOWED_IMAGE_EXTENSIONS } from './vault';
 import { referencedAssets, renderNoteMarkdown, toFileName } from './markdownExport';
 import { exportNotesToPdf } from './pdfExport';
 import type { PromptCategory } from '../shared/writingPrompts';
+import { askProvider, createProvider, decryptSecret, encryptSecret, AiError } from './ai';
+import type { AiTask } from './ai/provider';
+import { findNoteType } from '../shared/noteTypes';
+import { findWikiLinks, normalizeName } from '../shared/wikilinks';
 import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion } from '../shared/types';
 
 export interface IpcContext {
@@ -128,6 +132,58 @@ export function registerIpc(context: IpcContext): void {
   handle<[string, string, Uint8Array], string>('asset:save', (campaignId, name, data) =>
     vault.saveAsset(campaignId, name, data)
   );
+
+  // --- KI-Assistent --------------------------------------------------------
+
+  handle<[], { provider: string; ready: boolean; detail: string; hasKey: boolean }>('ai:status', async () => {
+    const provider = createProvider(context.settings, decryptSecret(context.settings.claudeApiKeyEncrypted));
+    const hasKey = Boolean(context.settings.claudeApiKeyEncrypted);
+
+    if (!provider) return { provider: 'none', ready: false, detail: '', hasKey };
+
+    const status = await provider.check();
+    return {
+      provider: provider.id,
+      ready: status.ready,
+      // Der Grund wird hier uebersetzt, wo die eingestellte Sprache bekannt ist.
+      detail: status.ready ? status.detail : translate(context.settings.language, status.key, status.params),
+      hasKey
+    };
+  });
+
+  /** Der Schluessel wird verschluesselt abgelegt und nie zurueckgegeben. */
+  handle<[string], AppSettings>('ai:setApiKey', async (apiKey) => {
+    const encrypted = encryptSecret(apiKey.trim());
+    if (encrypted === null) throw new VaultError('error.noSecureStorage');
+
+    context.settings = await writeSettings(context.settingsFile, {
+      ...context.settings,
+      claudeApiKeyEncrypted: encrypted
+    });
+    return context.settings;
+  });
+
+  handle<[string, string, AiTask], string>('ai:ask', async (campaignId, noteId, task) => {
+    const provider = createProvider(context.settings, decryptSecret(context.settings.claudeApiKeyEncrypted));
+    if (!provider) throw new VaultError('error.noAiProvider');
+
+    const campaign = await vault.getCampaign(campaignId);
+    const notes = await vault.listNotes(campaignId);
+    const note = notes.find((entry) => entry.id === noteId);
+    if (!note) throw new VaultError('error.noteMissing');
+
+    try {
+      return await askProvider(provider, {
+        task,
+        language: context.settings.language,
+        note: describeNote(note, campaign.noteTypes),
+        context: describeLinkedNotes(note, notes, campaign.noteTypes)
+      });
+    } catch (error) {
+      if (error instanceof AiError) throw new VaultError(error.key, error.params);
+      throw error;
+    }
+  });
 
   handle<[string], void>('shell:openExternal', async (url) => {
     // Nur http(s) oeffnen, damit ein Link im Text keine beliebigen Handler startet.
@@ -258,6 +314,48 @@ export function registerIpc(context: IpcContext): void {
 /** Ordnername aus dem Kampagnennamen, ohne Zeichen, die Dateisysteme stoeren. */
 function sanitizeDirName(name: string): string {
   return name.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Kampagne';
+}
+
+/** Notiz als Klartext fuer das Modell, ohne YAML und ohne Bildverweise. */
+function describeNote(note: Note, types: NoteTypeDef[], maxBodyChars = 8000): string {
+  const def = findNoteType(types, note.type);
+  const lines = [`Titel: ${note.title}`, `Typ: ${def.label}`];
+
+  for (const field of def.fields) {
+    const value = note.fields[field.key]?.trim();
+    if (value && field.type !== 'image') lines.push(`${field.label}: ${value}`);
+  }
+  if (note.aliases.length) lines.push(`Aliase: ${note.aliases.join(', ')}`);
+
+  const body = note.body.replace(/!\[[^\]]*\]\([^)]*\)/g, '').trim();
+  lines.push('', body.length > maxBodyChars ? `${body.slice(0, maxBodyChars)} […]` : body);
+  return lines.join('\n');
+}
+
+/**
+ * Verlinkte Notizen als Kontext, gekuerzt. Ohne diese Grenze waechst die
+ * Anfrage mit der Kampagne und wird teuer, ohne besser zu werden.
+ */
+function describeLinkedNotes(note: Note, notes: Note[], types: NoteTypeDef[], perNoteChars = 1200): string {
+  const byName = new Map<string, Note>();
+  for (const entry of notes) {
+    for (const name of [entry.title, ...entry.aliases]) byName.set(normalizeName(name), entry);
+  }
+
+  const linked = new Map<string, Note>();
+  for (const link of findWikiLinks(note.body)) {
+    const target = byName.get(normalizeName(link.target));
+    if (target && target.id !== note.id) linked.set(target.id, target);
+  }
+  for (const relation of note.relations) {
+    const target = notes.find((entry) => entry.id === relation.targetId);
+    if (target) linked.set(target.id, target);
+  }
+
+  return [...linked.values()]
+    .slice(0, 12)
+    .map((entry) => describeNote(entry, types, perNoteChars))
+    .join('\n\n---\n\n');
 }
 
 function slug(name: string): string {
