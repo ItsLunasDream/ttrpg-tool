@@ -114,3 +114,19 @@ Textgenerator.
   schadet nicht.
 - Mehrdeutige Namen (zwei Notizen mit gleichem Titel oder Alias) werden im
   Index erfasst, in der Oberfläche aber noch nicht gesondert angezeigt.
+
+## Rauchtest
+
+`scripts/smoke.cjs` startet die gebaute App, legt eine Kampagne und zwei
+Notizen an, tippt einen Wiki-Link, speichert und prüft die Dateien auf der
+Platte, inklusive Umbenennen mit Link-Rewrite. Unter Linux mit Xvfb:
+
+```bash
+npm run smoke
+```
+
+Unter Windows und macOS direkt ohne Xvfb:
+
+```bash
+npm run build && npx electron scripts/smoke.cjs
+```

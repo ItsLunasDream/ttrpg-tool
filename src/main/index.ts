@@ -27,11 +27,17 @@ async function createWindow(): Promise<void> {
     return { action: 'deny' };
   });
 
-  if (devServerUrl) {
-    await window.loadURL(devServerUrl);
-    window.webContents.openDevTools({ mode: 'detach' });
-  } else {
-    await window.loadFile(path.join(__dirname, '../renderer/index.html'));
+  try {
+    if (devServerUrl) {
+      await window.loadURL(devServerUrl);
+      window.webContents.openDevTools({ mode: 'detach' });
+    } else {
+      await window.loadFile(path.join(__dirname, '../renderer/index.html'));
+    }
+  } catch (error) {
+    // Ein Reload waehrend des Ladens bricht die Navigation ab. Das ist kein Fehler,
+    // der die App beenden sollte.
+    if (!String(error).includes('ERR_ABORTED')) throw error;
   }
 }
 
