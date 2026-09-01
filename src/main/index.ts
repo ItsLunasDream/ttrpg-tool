@@ -1,0 +1,57 @@
+import path from 'node:path';
+import { app, BrowserWindow, shell } from 'electron';
+import { Vault, readSettings } from './vault';
+import { registerIpc } from './ipc';
+
+const devServerUrl = process.env.VITE_DEV_SERVER_URL;
+
+async function createWindow(): Promise<void> {
+  const window = new BrowserWindow({
+    width: 1440,
+    height: 900,
+    minWidth: 1024,
+    minHeight: 640,
+    backgroundColor: '#16141c',
+    title: 'Backstory Creator',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false
+    }
+  });
+
+  // Externe Links gehoeren in den Systembrowser, nicht in ein App-Fenster.
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http:') || url.startsWith('https:')) void shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
+  if (devServerUrl) {
+    await window.loadURL(devServerUrl);
+    window.webContents.openDevTools({ mode: 'detach' });
+  } else {
+    await window.loadFile(path.join(__dirname, '../renderer/index.html'));
+  }
+}
+
+void app.whenReady().then(async () => {
+  const settingsFile = path.join(app.getPath('userData'), 'settings.json');
+  const defaultRoot = path.join(app.getPath('userData'), 'vault');
+  const settings = await readSettings(settingsFile, defaultRoot);
+
+  const vault = new Vault(settings.vaultRoot);
+  await vault.init();
+
+  registerIpc({ vault, settingsFile, settings });
+
+  await createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) void createWindow();
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
