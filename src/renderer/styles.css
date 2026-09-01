@@ -489,6 +489,13 @@ mark {
   padding: 5px 14px;
 }
 
+.search-bar__query,
+.search-bar__replace {
+  flex: 1;
+  max-width: 220px;
+  padding: 3px 7px;
+}
+
 .search-bar__term {
   color: var(--accent);
   font-size: 12px;

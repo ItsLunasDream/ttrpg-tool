@@ -4,7 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
 import { createWikiLinkExtension, type SuggestionState } from '../editor/wikiLinkExtension';
-import { createSearchHighlightExtension, selectMatch } from '../editor/searchHighlight';
+import { createSearchHighlightExtension, replaceMatches, selectMatch } from '../editor/searchHighlight';
 import { htmlToMarkdown, markdownToHtml } from '../editor/markdown';
 import { assetPath, assetUrl, isImageFile } from '../editor/assets';
 import { normalizeName } from '../../shared/wikilinks';
@@ -31,6 +31,8 @@ interface Props {
   onImportImage: (file: File) => Promise<string | null>;
   /** Oeffnet den Dateidialog und liefert den relativen Verweis. */
   onPickImage: () => Promise<string | null>;
+  /** Meldung an die Anwendung, etwa nach dem Ersetzen. */
+  onReport: (text: string) => void;
   onChange: (markdown: string) => void;
   onOpenNote: (noteId: string) => void;
   onCreateNote: (title: string) => void;
@@ -51,13 +53,20 @@ export function BodyEditor({
   onCreateNote,
   onHoverNote,
   onImportImage,
-  onPickImage
+  onPickImage,
+  onReport
 }: Props) {
   const t = useT();
   const [suggestion, setSuggestion] = useState<SuggestionState | null>(null);
   const [highlight, setHighlight] = useState(0);
   const [matchCount, setMatchCount] = useState(0);
   const [activeMatch, setActiveMatch] = useState(-1);
+  // Eigene Suche im Dokument, unabhaengig von der Suche in der Seitenleiste.
+  const [localSearch, setLocalSearch] = useState<{ query: string; replace: string } | null>(null);
+
+  // Ist die eigene Suche offen, gilt ihr Begriff, sonst der aus der Seitenleiste.
+  const effectiveQuery = localSearch ? localSearch.query : searchQuery;
+  const searchOpen = Boolean(localSearch) || Boolean(searchQuery.trim());
 
   // Handler laufen in ProseMirror-Plugins, die nur einmal erzeugt werden.
   // Ueber diese Ref sehen sie trotzdem immer den aktuellen Index.
@@ -67,8 +76,8 @@ export function BodyEditor({
   const handlersRef = useRef({ onOpenNote, onHoverNote });
   handlersRef.current = { onOpenNote, onHoverNote };
 
-  const queryRef = useRef(searchQuery);
-  queryRef.current = searchQuery;
+  const queryRef = useRef(effectiveQuery);
+  queryRef.current = effectiveQuery;
   const activeMatchRef = useRef(activeMatch);
   activeMatchRef.current = activeMatch;
 
@@ -175,7 +184,7 @@ export function BodyEditor({
   useEffect(() => {
     setActiveMatch(-1);
     if (editor) editor.view.dispatch(editor.state.tr);
-  }, [editor, searchQuery, noteId]);
+  }, [editor, effectiveQuery, noteId]);
 
   const goToMatch = useCallback(
     (direction: 1 | -1) => {
@@ -184,25 +193,51 @@ export function BodyEditor({
         ? (direction === 1 ? 0 : matchCount - 1)
         : (activeMatch + direction + matchCount) % matchCount;
       setActiveMatch(next);
-      selectMatch(editor.view, next, searchQuery);
+      selectMatch(editor.view, next, effectiveQuery);
     },
-    [editor, matchCount, activeMatch, searchQuery]
+    [editor, matchCount, activeMatch, effectiveQuery]
   );
 
   // F3 und Umschalt+F3 springen zwischen den Fundstellen, wie in einem
   // Code-Editor. Ohne Suchbegriff passiert nichts.
   useEffect(() => {
-    if (!searchQuery.trim() || matchCount === 0) return;
-
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== 'F3') return;
-      event.preventDefault();
-      goToMatch(event.shiftKey ? -1 : 1);
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
+        event.preventDefault();
+        setLocalSearch((previous) => previous ?? { query: '', replace: '' });
+        // Der Fokus muss nach dem Rendern gesetzt werden.
+        window.setTimeout(() => document.querySelector<HTMLInputElement>('.search-bar__query')?.select(), 0);
+        return;
+      }
+
+      if (event.key === 'Escape' && localSearch) {
+        event.preventDefault();
+        setLocalSearch(null);
+        editorRef.current?.commands.focus();
+        return;
+      }
+
+      if (event.key === 'F3' && effectiveQuery.trim() && matchCount > 0) {
+        event.preventDefault();
+        goToMatch(event.shiftKey ? -1 : 1);
+      }
     }
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [searchQuery, matchCount, goToMatch]);
+  }, [effectiveQuery, matchCount, goToMatch, localSearch]);
+
+  const replace = useCallback(
+    (scope: number | 'all') => {
+      if (!editor || !localSearch?.query.trim()) return;
+      const count = replaceMatches(editor.view, localSearch.query, localSearch.replace, scope);
+      if (count > 0) {
+        setActiveMatch(-1);
+        onReport(count === 1 ? t('search.replacedOne') : t('search.replaced', { count }));
+      }
+    },
+    [editor, localSearch, onReport, t]
+  );
 
   const candidates = useMemo(() => {
     if (!suggestion) return [];
@@ -263,20 +298,63 @@ export function BodyEditor({
 
   return (
     <div className="body-editor">
-      {searchQuery.trim() ? (
+      {searchOpen ? (
         <div className="search-bar">
-          <span className="search-bar__term">„{searchQuery.trim()}"</span>
+          {localSearch ? (
+            <>
+              <input
+                className="search-bar__query"
+                value={localSearch.query}
+                placeholder={t('search.inNote')}
+                aria-label={t('search.inNote')}
+                onChange={(event) => setLocalSearch({ ...localSearch, query: event.target.value })}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    goToMatch(event.shiftKey ? -1 : 1);
+                  }
+                }}
+              />
+              <input
+                className="search-bar__replace"
+                value={localSearch.replace}
+                placeholder={t('search.replaceWith')}
+                aria-label={t('search.replaceWith')}
+                onChange={(event) => setLocalSearch({ ...localSearch, replace: event.target.value })}
+              />
+            </>
+          ) : (
+            <span className="search-bar__term" title={t('search.fromSidebar')}>
+              „{searchQuery.trim()}"
+            </span>
+          )}
+
           <span className="search-bar__count">
             {matchCount === 0
               ? t('search.noHit')
               : t('search.position', { current: activeMatch === -1 ? '–' : activeMatch + 1, total: matchCount })}
           </span>
+
           <button type="button" title={t('search.previous')} disabled={matchCount === 0} onClick={() => goToMatch(-1)}>
             ‹
           </button>
           <button type="button" title={t('search.next')} disabled={matchCount === 0} onClick={() => goToMatch(1)}>
             ›
           </button>
+
+          {localSearch ? (
+            <>
+              <button type="button" disabled={matchCount === 0 || activeMatch === -1} onClick={() => replace(activeMatch)}>
+                {t('search.replace')}
+              </button>
+              <button type="button" disabled={matchCount === 0} onClick={() => replace('all')}>
+                {t('search.replaceAll')}
+              </button>
+              <button type="button" className="icon-button" title={t('search.close')} onClick={() => setLocalSearch(null)}>
+                ×
+              </button>
+            </>
+          ) : null}
         </div>
       ) : null}
 

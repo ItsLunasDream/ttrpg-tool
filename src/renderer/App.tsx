@@ -467,6 +467,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 reloadKey={reloadKey}
                 onImportImage={importImage}
                 onPickImage={pickImage}
+                onReport={report}
               />
             ) : (
               <div className="placeholder">

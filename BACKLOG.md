@@ -23,6 +23,18 @@ Angepasste Notiztypen gelten nur für eine Kampagne. Beim Anlegen einer neuen
 Kampagne startet man wieder bei der Vorlage. Sinnvoll wäre, die Typen einer
 bestehenden Kampagne übernehmen zu können.
 
+### Weitere Feldarten im Steckbrief
+
+Aktuell gibt es Text, mehrzeilig, Zahl und Link. Denkbar wären Auswahllisten
+mit festen Werten, Datumsfelder oder Ankreuzfelder. Erst umsetzen, wenn ein
+konkreter Bedarf da ist.
+
+### Notiztypen zwischen Kampagnen übernehmen
+
+Angepasste Notiztypen gelten nur für eine Kampagne. Beim Anlegen einer neuen
+Kampagne startet man wieder bei der Vorlage. Sinnvoll wäre, die Typen einer
+bestehenden Kampagne übernehmen zu können.
+
 ### Eigene Suchleiste im Editor
 
 Die Markierung im Editor folgt derzeit dem Suchbegriff aus der Seitenleiste.
@@ -248,3 +260,14 @@ Wichtig dabei: der Versionsverlauf wird mitgelesen. Ein Bild, das eine
 gesicherte Fassung noch braucht, gilt nicht als verwaist, sonst würde das
 Wiederherstellen ein kaputtes Bild ergeben. Wer aggressiver aufräumen will,
 schaltet den Verlauf ab.
+
+### Eigene Suchleiste im Editor
+
+Strg+F öffnet eine Suche, die nur in der offenen Notiz sucht, unabhängig von
+der Suche in der Seitenleiste. Mit Feld zum Ersetzen, „Ersetzen" für die
+aktive Fundstelle und „Alle ersetzen". Enter springt zur nächsten Stelle,
+Escape schließt.
+
+Ist die eigene Suche offen, gilt ihr Begriff; sonst weiterhin der aus der
+Seitenleiste. Ersetzen läuft in einer Transaktion, ein Rückgängig holt also
+alles zusammen zurück.

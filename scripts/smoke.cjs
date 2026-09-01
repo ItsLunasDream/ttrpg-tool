@@ -562,7 +562,46 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelector('.graph__canvas') === null
        && Boolean(document.querySelector('.note-editor'));`), 'Klick auf einen Knoten öffnet keine Notiz');
 
-    // 18. Aufräumen: benutzte Bilder bleiben, unbenutzte werden angeboten
+    // 18. Eigene Suche im Editor mit Strg+F, samt Ersetzen
+    await selectNote(window, 'Toran');
+    await run(
+      window,
+      `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', ctrlKey: true, bubbles: true })); return true;`
+    );
+    await sleep(600);
+    check(await run(window, `return Boolean(document.querySelector('.search-bar__query'));`),
+      'Strg+F öffnet keine Suchleiste');
+
+    await run(window, `setValue(document.querySelector('.search-bar__query'), 'Gold'); return true;`);
+    await sleep(700);
+    check(await run(window, `return document.querySelectorAll('.ProseMirror .search-hit').length === 1;`),
+      'Eigene Suche hebt nichts hervor');
+
+    await run(window, `setValue(document.querySelector('.search-bar__replace'), 'Silber'); return true;`);
+    await sleep(400);
+    await clickButton(window, 'Alle ersetzen', "document.querySelector('.search-bar')");
+    await sleep(900);
+
+    check(
+      await run(window, `const text = document.querySelector('.ProseMirror').textContent;
+         return text.includes('Silber') && !text.includes('Gold');`),
+      'Ersetzen hat nicht gewirkt'
+    );
+    check(await run(window, `return document.querySelectorAll('.ProseMirror .search-hit').length === 0;`),
+      'Nach dem Ersetzen bleiben Fundstellen markiert');
+
+    // Escape schliesst die eigene Suche wieder
+    await run(
+      window,
+      `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`
+    );
+    await sleep(500);
+    check(await run(window, `return document.querySelector('.search-bar__query') === null;`),
+      'Escape schließt die Suchleiste nicht');
+
+    await save(window);
+
+    // 19. Aufräumen: benutzte Bilder bleiben, unbenutzte werden angeboten
     await clickButton(window, 'Aufräumen');
     await sleep(2000);
     check(await run(window, `return Boolean(document.querySelector('.modal'));`), 'Aufräumen-Dialog öffnet nicht');
@@ -572,7 +611,7 @@ app.whenReady().then(async () => {
     await clickButton(window, 'Schließen', "document.querySelector('.modal__footer')");
     await sleep(500);
 
-    // 19. Versionsverlauf: alten Stand wiederherstellen
+    // 20. Versionsverlauf: alten Stand wiederherstellen
     await selectNote(window, 'Toran');
     await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
     await sleep(200);

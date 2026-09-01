@@ -24,6 +24,7 @@ interface Props {
   onDelete: () => void;
   onOpenHistory: () => void;
   onOpenPrompts: () => void;
+  onReport: (text: string) => void;
   aiStatus: AiStatus | null;
   onAsk: (task: AiTask) => Promise<string | null>;
   onExportMarkdown: () => void;
@@ -100,6 +101,7 @@ export function NoteEditor(props: Props) {
             reloadKey={props.reloadKey}
             onImportImage={props.onImportImage}
             onPickImage={props.onPickImage}
+            onReport={props.onReport}
             onChange={(body) => onPatch({ body })}
             onOpenNote={props.onOpenNote}
             onCreateNote={props.onCreateNote}
