@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { findNoteType } from '../../shared/noteTypes';
 import type { Note, Relation } from '../../shared/types';
 import { backlinksFor, unresolvedLinks, type NoteIndex } from '../noteIndex';
+import { normalizeName } from '../../shared/wikilinks';
 import { countWords } from '../editor/markdown';
 import { BodyEditor } from './BodyEditor';
 import { RelationsPanel } from './RelationsPanel';
@@ -25,6 +26,7 @@ interface Props {
   onOpenHistory: () => void;
   onOpenPrompts: () => void;
   onReport: (text: string) => void;
+  onAddReverseRelation: (targetId: string) => void;
   aiStatus: AiStatus | null;
   onAsk: (task: AiTask, onChunk: (text: string) => void) => Promise<string | null>;
   onExportMarkdown: () => void;
@@ -50,6 +52,13 @@ export function NoteEditor(props: Props) {
   const backlinks = useMemo(() => backlinksFor(index, note.id), [index, note.id]);
   const unresolved = useMemo(() => unresolvedLinks(index, note), [index, note]);
   const words = useMemo(() => countWords(note.body), [note.body]);
+
+  // Teilt sich diese Notiz einen Namen mit einer anderen, treffen Links darauf
+  // stillschweigend immer dieselbe. Darauf muss hingewiesen werden.
+  const ambiguousName = useMemo(
+    () => [note.title, ...note.aliases].find((name) => index.ambiguous.has(normalizeName(name))),
+    [note.title, note.aliases, index.ambiguous]
+  );
 
   const status = t(saving ? 'editor.saving' : dirty ? 'editor.unsaved' : 'editor.saved');
 
@@ -88,6 +97,12 @@ export function NoteEditor(props: Props) {
 
       {!autosaveEnabled && dirty ? (
         <p className="note-editor__warning">{t('editor.autosaveOffHint')}</p>
+      ) : null}
+
+      {ambiguousName ? (
+        <p className="note-editor__warning note-editor__warning--danger">
+          {t('editor.ambiguous', { name: ambiguousName })}
+        </p>
       ) : null}
 
       <div className="note-editor__columns">
@@ -167,6 +182,7 @@ export function NoteEditor(props: Props) {
             index={index}
             onChange={(relations: Relation[]) => onPatch({ relations })}
             onOpenNote={props.onOpenNote}
+            onAddReverse={props.onAddReverseRelation}
           />
 
           <AssistantPanel status={props.aiStatus} onAsk={props.onAsk} />

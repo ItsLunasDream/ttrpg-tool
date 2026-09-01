@@ -166,6 +166,19 @@ app.whenReady().then(async () => {
     await sleep(500);
     check(await run(window, `return document.querySelectorAll('.relation').length === 1;`),
       'Beziehung wurde nicht angelegt');
+
+    // Die Gegenrichtung fehlt und muss angeboten werden
+    check(await run(window, `return Boolean(document.querySelector('.relation__reverse'));`),
+      'Fehlende Gegenrichtung wird nicht angeboten');
+    await clickButton(window, 'Gegenrichtung anlegen', "document.querySelector('.relation__reverse')");
+    await sleep(1200);
+    check(await run(window, `return document.querySelector('.relation__reverse') === null;`),
+      'Hinweis auf die Gegenrichtung bleibt stehen');
+
+    await selectNote(window, 'Toran');
+    check(await run(window, `return document.querySelectorAll('.relation').length === 1;`),
+      'Gegenrichtung wurde bei Toran nicht angelegt');
+    await selectNote(window, 'Mira Falkenhand');
     // Jetzt gibt es keine freie Notiz mehr, statt leerer Liste muss ein Hinweis stehen
     check(await run(window, `return document.querySelector('.relations__add') === null;`),
       'Leere Auswahlliste bleibt sichtbar');

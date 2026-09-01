@@ -408,17 +408,29 @@ export class Vault {
     const note = await this.getNote(campaignId, noteId);
     if (note.title === trimmed) return { note, rewritten: 0 };
 
-    const updated = await this.saveNote(campaignId, { ...note, title: trimmed });
-
     let rewritten = 0;
+    let ownBody = note.body;
+
+    // Erst die Verweise umschreiben, den Titel zuletzt setzen. Bricht es
+    // dazwischen ab, traegt die Notiz noch den alten Titel und ein erneutes
+    // Umbenennen holt den Rest nach. Andersherum waere der Zustand nicht
+    // mehr zu reparieren.
     for (const other of await this.listNotes(campaignId)) {
-      if (other.id === noteId) continue;
       const body = rewriteWikiLinks(other.body, note.title, trimmed);
       if (body === other.body) continue;
+
+      // Verlinkt sich die Notiz selbst, wird das zusammen mit dem Titel
+      // gespeichert, sonst bliebe dort der alte Name stehen.
+      if (other.id === noteId) {
+        ownBody = body;
+        continue;
+      }
+
       await this.writeNote(campaignId, { ...other, body, updatedAt: new Date().toISOString() });
       rewritten += 1;
     }
 
+    const updated = await this.saveNote(campaignId, { ...note, title: trimmed, body: ownBody });
     return { note: updated, rewritten };
   }
 

@@ -47,17 +47,15 @@ alle Sprachen erweitert werden.
 - Beim Kampagnenwechsel werden alle Notizen der Kampagne in den Speicher
   geladen. Für einige hundert Notizen unkritisch, darüber bräuchte es einen
   Index statt Volllast
-- Umbenennen einer Notiz schreibt alle betroffenen Dateien einzeln. Ein
-  Absturz mittendrin könnte einen Teil der Links auf dem alten Namen lassen
-- Mehrdeutige Namen, also zwei Notizen mit gleichem Titel oder Alias, werden
-  im Index erfasst (`NoteIndex.ambiguous`), in der Oberfläche aber nicht
-  angezeigt. Beim Verlinken gewinnt stillschweigend die erste Notiz
+- Umbenennen einer Notiz schreibt alle betroffenen Dateien einzeln. Bricht es
+  mittendrin ab, zeigen einige Links schon auf den neuen Namen, der noch nicht
+  vergeben ist. Der Titel wird zuletzt gesetzt, ein erneutes Umbenennen holt
+  den Rest deshalb nach
+- Bei mehrdeutigen Namen gewinnt beim Verlinken weiterhin die erste Notiz.
+  Immerhin wird jetzt darauf hingewiesen
 - Der Versionsverlauf wächst mit und landet auch in der ZIP-Sicherung. Bei
   vielen Notizen und hoher Höchstzahl kann das spürbar werden
 - Der PDF-Export bietet keine Auswahl von Schriftart, Rand oder Seitengröße
-- Beziehungen kennen keine Gegenrichtung: legst du eine an, entsteht in der
-  Zielnotiz nichts. Das ist so gewollt, weil die Sichten unterschiedlich sein
-  sollen, könnte aber einen Vorschlag vertragen
 - Die Windows-Anwendung ist nicht signiert, Windows zeigt beim ersten Start
   eine SmartScreen-Warnung. Eine Signatur bräuchte ein kostenpflichtiges
   Zertifikat
@@ -277,3 +275,25 @@ die eine Abmeldung zurückgibt.
 Getestet ist das Zerlegen des Datenstroms gegen ein gefälschtes `fetch`,
 inklusive einer über zwei Pakete verteilten Zeile. Gegen ein echtes Modell
 lief es mangels Zugang nicht.
+
+### Drei Fehler beim Aufräumen der bekannten Grenzen
+
+**Selbstverweis beim Umbenennen.** Eine Notiz, die sich selbst verlinkt,
+behielt im eigenen Text den alten Namen. Der Link zeigte danach ins Leere.
+
+**Reihenfolge beim Umbenennen.** Der Titel wurde vor den Verweisen gesetzt.
+Brach es dazwischen ab, war der Zustand nicht mehr durch erneutes Umbenennen
+zu reparieren. Jetzt kommen die Verweise zuerst, der Titel zuletzt.
+
+Beide sind durch Tests abgedeckt, die gegen die alte Fassung fehlschlagen.
+
+**Mehrdeutige Namen.** Teilen sich zwei Notizen einen Titel oder Alias,
+trafen Links stillschweigend immer dieselbe. Jetzt steht eine Warnung über
+dem Editor.
+
+### Gegenrichtung bei Beziehungen anbieten
+
+Beziehungen bleiben gerichtet, das ist gewollt. Fehlt die Gegenrichtung, wird
+sie jetzt aber angeboten: ein Klick legt bei der Zielnotiz eine Beziehung
+zurück an, ohne Typ, damit dort eingetragen werden kann, wie es von der
+anderen Seite aussieht.
