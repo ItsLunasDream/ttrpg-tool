@@ -254,7 +254,9 @@ export function registerIpc(context: IpcContext): void {
       relations: translate(language, 'export.relations'),
       mentionedBy: translate(language, 'export.mentionedBy'),
       aliases: translate(language, 'export.aliases'),
-      tags: translate(language, 'export.tags')
+      tags: translate(language, 'export.tags'),
+      yes: translate(language, 'field.yes'),
+      no: translate(language, 'field.no')
     };
 
     const usedNames = new Set<string>();
@@ -311,7 +313,9 @@ export function registerIpc(context: IpcContext): void {
           relations: translate(language, 'export.relations'),
           mentionedBy: translate(language, 'export.mentionedBy'),
           aliases: translate(language, 'export.aliases'),
-          tags: translate(language, 'export.tags')
+          tags: translate(language, 'export.tags'),
+          yes: translate(language, 'field.yes'),
+          no: translate(language, 'field.no')
         },
         // Ein einzelner kaputter Verweis darf den ganzen Export nicht
         // abbrechen. Ein leerer Pfad ergibt nur ein fehlendes Bild.

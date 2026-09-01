@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { findNoteType } from '../../shared/noteTypes';
+import { CHECKED, findNoteType } from '../../shared/noteTypes';
 import type { Note, Relation } from '../../shared/types';
 import { backlinksFor, unresolvedLinks, type NoteIndex } from '../noteIndex';
 import { normalizeName } from '../../shared/wikilinks';
@@ -142,6 +142,24 @@ export function NoteEditor(props: Props) {
                       onPickImage={props.onPickImage}
                       onImportImage={props.onImportImage}
                     />
+                  ) : field.type === 'select' ? (
+                    <select value={value} onChange={(e) => setValue(e.target.value)}>
+                      <option value="">{t('field.notSet')}</option>
+                      {(field.options ?? []).map((option) => (
+                        <option value={option} key={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : field.type === 'checkbox' ? (
+                    <input
+                      type="checkbox"
+                      className="field__checkbox"
+                      checked={Boolean(value)}
+                      onChange={(e) => setValue(e.target.checked ? CHECKED : '')}
+                    />
+                  ) : field.type === 'date' ? (
+                    <input type="date" value={value} onChange={(e) => setValue(e.target.value)} />
                   ) : field.type === 'textarea' ? (
                     <textarea rows={3} value={value} placeholder={field.placeholder} onChange={(e) => setValue(e.target.value)} />
                   ) : (

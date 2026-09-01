@@ -616,6 +616,10 @@ mark {
   margin-bottom: 3px;
 }
 
+.field__checkbox {
+  width: auto;
+}
+
 .field__row {
   align-items: center;
   display: flex;

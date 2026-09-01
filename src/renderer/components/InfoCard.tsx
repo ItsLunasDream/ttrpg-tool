@@ -19,7 +19,9 @@ export function InfoCard({ note, types, campaignId, rect, onOpen }: Props) {
   const t = useT();
   const def = findNoteType(types, note.type);
   const portraitField = def.fields.find((field) => field.type === 'image' && note.fields[field.key]?.trim());
-  const filled = def.fields.filter((field) => field.type !== 'image' && note.fields[field.key]?.trim());
+  const filled = def.fields.filter(
+    (field) => field.type !== 'image' && (note.fields[field.key]?.trim() || field.type === 'checkbox')
+  );
   const preview = textPreview(note.body);
 
   const left = Math.max(8, Math.min(rect.left, window.innerWidth - CARD_WIDTH - 8));
@@ -52,7 +54,11 @@ export function InfoCard({ note, types, campaignId, rect, onOpen }: Props) {
           {filled.map((field) => (
             <div key={field.key}>
               <dt>{field.label}</dt>
-              <dd>{note.fields[field.key]}</dd>
+              <dd>
+                {field.type === 'checkbox'
+                  ? t(note.fields[field.key] ? 'field.yes' : 'field.no')
+                  : note.fields[field.key]}
+              </dd>
             </div>
           ))}
         </dl>

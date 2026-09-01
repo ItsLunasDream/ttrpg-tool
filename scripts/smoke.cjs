@@ -303,6 +303,30 @@ app.whenReady().then(async () => {
     );
     await sleep(250);
 
+    // Eine Auswahlliste anlegen und mit Werten füllen
+    await clickButton(window, '+ Feld', "document.querySelector('.type-editor')");
+    await sleep(300);
+    await run(
+      window,
+      `const rows = [...document.querySelectorAll('.type-editor__fields li')];
+       const row = rows[rows.length - 1];
+       setValue(row.querySelector('.type-editor__field-label'), 'Gesinnung');
+       const select = row.querySelector('select');
+       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, 'select');
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;`
+    );
+    await sleep(400);
+    await run(
+      window,
+      `const rows = [...document.querySelectorAll('.type-editor__fields li')];
+       const area = rows[rows.length - 1].querySelector('textarea');
+       if (!area) throw new Error('Eingabe für Auswahlwerte fehlt');
+       setValue(area, 'Rechtschaffen' + String.fromCharCode(10) + 'Neutral' + String.fromCharCode(10) + 'Chaotisch');
+       return true;`
+    );
+    await sleep(300);
+
     await clickButton(window, 'Übernehmen', "document.querySelector('.modal')");
     await sleep(900);
 
@@ -314,6 +338,16 @@ app.whenReady().then(async () => {
          return labels.includes('Volk') && labels.includes('Heimat') && !labels.includes('Spezies');`
       ),
       'Steckbrief übernimmt die Änderungen nicht'
+    );
+    check(
+      await run(
+        window,
+        `const field = [...document.querySelectorAll('.note-editor__side .field')]
+           .find((f) => f.textContent.startsWith('Gesinnung'));
+         const select = field?.querySelector('select');
+         return Boolean(select) && [...select.options].map((o) => o.value).includes('Chaotisch');`
+      ),
+      'Auswahlliste erscheint nicht im Steckbrief'
     );
     check(
       await run(

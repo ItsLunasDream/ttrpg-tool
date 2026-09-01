@@ -9,7 +9,7 @@ export const SCHEMA_VERSION = 1;
  */
 export type NoteType = string;
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'url' | 'image';
+export type FieldType = 'text' | 'textarea' | 'number' | 'url' | 'image' | 'select' | 'date' | 'checkbox';
 
 export interface FieldDef {
   /** Stabiler Schluessel, unter dem der Wert in der Notiz steht. Wird nie geaendert. */
@@ -17,6 +17,8 @@ export interface FieldDef {
   label: string;
   type: FieldType;
   placeholder?: string;
+  /** Nur fuer die Feldart Auswahlliste. */
+  options?: string[];
 }
 
 export interface NoteTypeDef {
