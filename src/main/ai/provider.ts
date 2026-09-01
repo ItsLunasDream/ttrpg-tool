@@ -33,7 +33,17 @@ export interface AiProvider {
    * als Schluessel zurueck, damit er uebersetzt werden kann.
    */
   check(): Promise<AiStatus>;
-  ask(request: AiRequest, systemPrompt: string, userPrompt: string): Promise<string>;
+  /**
+   * Stellt die Frage. `onChunk` bekommt Teiltexte, sobald sie eintreffen;
+   * der Rueckgabewert ist die vollstaendige Antwort. Anbieter ohne Stroemen
+   * rufen `onChunk` einfach einmal am Ende auf.
+   */
+  ask(
+    request: AiRequest,
+    systemPrompt: string,
+    userPrompt: string,
+    onChunk: (text: string) => void
+  ): Promise<string>;
 }
 
 /**

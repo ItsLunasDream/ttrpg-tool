@@ -26,7 +26,7 @@ interface Props {
   onOpenPrompts: () => void;
   onReport: (text: string) => void;
   aiStatus: AiStatus | null;
-  onAsk: (task: AiTask) => Promise<string | null>;
+  onAsk: (task: AiTask, onChunk: (text: string) => void) => Promise<string | null>;
   onExportMarkdown: () => void;
   onExportPdf: () => void;
   onOpenNote: (noteId: string) => void;

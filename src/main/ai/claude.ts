@@ -40,9 +40,16 @@ export class ClaudeProvider implements AiProvider {
     }
   }
 
-  async ask(_request: AiRequest, systemPrompt: string, userPrompt: string): Promise<string> {
+  async ask(
+    _request: AiRequest,
+    systemPrompt: string,
+    userPrompt: string,
+    onChunk: (text: string) => void
+  ): Promise<string> {
     try {
-      const response = await this.client.beta.messages.create({
+      // Gestroemt, damit die Antwort waehrend des Schreibens erscheint und
+      // lange Antworten nicht in einen Zeitablauf laufen.
+      const stream = this.client.beta.messages.stream({
         model: this.options.model,
         max_tokens: 16000,
         thinking: { type: 'adaptive' },
@@ -53,6 +60,9 @@ export class ClaudeProvider implements AiProvider {
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       });
+
+      stream.on('text', onChunk);
+      const response = await stream.finalMessage();
 
       if (response.stop_reason === 'refusal') throw new AiError('error.aiRefused');
 

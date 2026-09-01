@@ -24,8 +24,19 @@ const api = {
   ai: {
     status: () => invoke<{ provider: string; ready: boolean; detail: string; hasKey: boolean }>('ai:status'),
     setApiKey: (apiKey: string) => invoke<AppSettings>('ai:setApiKey', apiKey),
-    ask: (campaignId: string, noteId: string, task: AiTask) =>
-      invoke<string>('ai:ask', campaignId, noteId, task)
+    ask: (campaignId: string, noteId: string, task: AiTask, streamId: string) =>
+      invoke<string>('ai:ask', campaignId, noteId, task, streamId),
+    /**
+     * Teiltexte der laufenden Antwort. Liefert eine Funktion zum Abmelden.
+     * Der Renderer bekommt bewusst kein ipcRenderer, nur diesen Ausschnitt.
+     */
+    onChunk: (streamId: string, callback: (text: string) => void) => {
+      const listener = (_event: unknown, id: string, text: string) => {
+        if (id === streamId) callback(text);
+      };
+      ipcRenderer.on('ai:chunk', listener);
+      return () => ipcRenderer.off('ai:chunk', listener);
+    }
   },
   prompts: {
     get: () => invoke<PromptCategory[]>('prompts:get'),

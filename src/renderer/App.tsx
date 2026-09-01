@@ -430,11 +430,20 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 onDelete={() => setDialog({ kind: 'deleteNote', note: draft })}
                 onOpenHistory={() => void openHistory(draft)}
                 aiStatus={aiStatus}
-                onAsk={async (task: AiTask) => {
+                onAsk={async (task: AiTask, onChunk: (text: string) => void) => {
                   const campaignId = activeCampaignId;
                   if (!campaignId) return null;
                   await persist();
-                  return guard(() => call(api.ai.ask(campaignId, draft.id, task)));
+
+                  // Eigene Kennung je Anfrage, damit Teiltexte einer alten
+                  // Anfrage nicht in einer neuen Antwort landen.
+                  const streamId = crypto.randomUUID();
+                  const unsubscribe = api.ai.onChunk(streamId, onChunk);
+                  try {
+                    return await guard(() => call(api.ai.ask(campaignId, draft.id, task, streamId)));
+                  } finally {
+                    unsubscribe();
+                  }
                 }}
                 onOpenPrompts={() => {
                   setDialog({ kind: 'prompts' });

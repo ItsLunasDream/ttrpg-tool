@@ -1117,6 +1117,18 @@ mark {
   white-space: pre-wrap;
 }
 
+.assistant__answer.is-streaming::after {
+  animation: assistant-caret 1s step-end infinite;
+  content: '▌';
+  color: var(--accent);
+}
+
+@keyframes assistant-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
 .assistant__warning {
   color: var(--link-missing);
 }
