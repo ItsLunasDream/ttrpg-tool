@@ -1,4 +1,5 @@
 import { Modal } from './Modal';
+import { useT } from '../i18n';
 
 interface Props {
   title: string;
@@ -8,7 +9,9 @@ interface Props {
   onClose: () => void;
 }
 
-export function ConfirmDialog({ title, message, confirmLabel = 'Löschen', onConfirm, onClose }: Props) {
+export function ConfirmDialog({ title, message, confirmLabel, onConfirm, onClose }: Props) {
+  const t = useT();
+
   return (
     <Modal
       title={title}
@@ -16,10 +19,10 @@ export function ConfirmDialog({ title, message, confirmLabel = 'Löschen', onCon
       footer={
         <>
           <button type="button" onClick={onClose}>
-            Abbrechen
+            {t('dialog.cancel')}
           </button>
           <button type="button" className="danger" onClick={onConfirm}>
-            {confirmLabel}
+            {confirmLabel ?? t('dialog.delete')}
           </button>
         </>
       }

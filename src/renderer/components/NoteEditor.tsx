@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { noteTypeDef } from '../../shared/noteTypes';
+import { findNoteType } from '../../shared/noteTypes';
 import type { Note, Relation } from '../../shared/types';
 import { backlinksFor, unresolvedLinks, type NoteIndex } from '../noteIndex';
 import { countWords } from '../editor/markdown';
@@ -7,6 +7,8 @@ import { BodyEditor } from './BodyEditor';
 import { RelationsPanel } from './RelationsPanel';
 import { BacklinksPanel } from './BacklinksPanel';
 import { TokenInput } from './TokenInput';
+import { ImageField } from './ImageField';
+import { useT } from '../i18n';
 
 interface Props {
   note: Note;
@@ -22,17 +24,23 @@ interface Props {
   onCreateNote: (title: string) => void;
   onHoverNote: (note: Note | null, rect: DOMRect | null) => void;
   onOpenExternal: (url: string) => void;
+  /** Suchbegriff aus der Seitenleiste, fuer die Hervorhebung im Text. */
+  searchQuery: string;
+  campaignId: string;
+  onImportImage: (file: File) => Promise<string | null>;
+  onPickImage: () => Promise<string | null>;
 }
 
 export function NoteEditor(props: Props) {
+  const t = useT();
   const { note, index, dirty, saving, autosaveEnabled, onPatch, onSave, onRename, onDelete } = props;
-  const def = noteTypeDef(note.type);
+  const def = findNoteType(index.types, note.type);
 
   const backlinks = useMemo(() => backlinksFor(index, note.id), [index, note.id]);
   const unresolved = useMemo(() => unresolvedLinks(index, note), [index, note]);
   const words = useMemo(() => countWords(note.body), [note.body]);
 
-  const status = saving ? 'Speichert …' : dirty ? 'Nicht gespeichert' : 'Gespeichert';
+  const status = t(saving ? 'editor.saving' : dirty ? 'editor.unsaved' : 'editor.saved');
 
   return (
     <div className="note-editor">
@@ -42,21 +50,21 @@ export function NoteEditor(props: Props) {
           value={note.title}
           onChange={(event) => onPatch({ title: event.target.value })}
           onBlur={(event) => onRename(event.target.value)}
-          aria-label="Titel"
+          aria-label={t('editor.title')}
         />
         <span className="badge">{def.label}</span>
         <span className={`status status--${dirty ? 'dirty' : 'clean'}`}>{status}</span>
-        <span className="note-editor__words">{words} Wörter</span>
+        <span className="note-editor__words">{t('editor.words', { count: words })}</span>
         <button type="button" onClick={onSave} disabled={!dirty || saving}>
-          Speichern
+          {t('editor.save')}
         </button>
         <button type="button" className="danger" onClick={onDelete}>
-          Löschen
+          {t('editor.delete')}
         </button>
       </header>
 
       {!autosaveEnabled && dirty ? (
-        <p className="note-editor__warning">Autosave ist aus. Strg+S speichert.</p>
+        <p className="note-editor__warning">{t('editor.autosaveOffHint')}</p>
       ) : null}
 
       <div className="note-editor__columns">
@@ -65,6 +73,10 @@ export function NoteEditor(props: Props) {
             noteId={note.id}
             markdown={note.body}
             index={index}
+            searchQuery={props.searchQuery}
+            campaignId={props.campaignId}
+            onImportImage={props.onImportImage}
+            onPickImage={props.onPickImage}
             onChange={(body) => onPatch({ body })}
             onOpenNote={props.onOpenNote}
             onCreateNote={props.onCreateNote}
@@ -74,7 +86,7 @@ export function NoteEditor(props: Props) {
 
         <aside className="note-editor__side">
           <section className="panel">
-            <h3 className="panel__title">Steckbrief</h3>
+            <h3 className="panel__title">{t('editor.profile')}</h3>
             {def.fields.map((field) => {
               const value = note.fields[field.key] ?? '';
               const setValue = (next: string) => onPatch({ fields: { ...note.fields, [field.key]: next } });
@@ -82,7 +94,15 @@ export function NoteEditor(props: Props) {
               return (
                 <label className="field" key={field.key}>
                   <span className="field__label">{field.label}</span>
-                  {field.type === 'textarea' ? (
+                  {field.type === 'image' ? (
+                    <ImageField
+                      campaignId={props.campaignId}
+                      value={value}
+                      onChange={setValue}
+                      onPickImage={props.onPickImage}
+                      onImportImage={props.onImportImage}
+                    />
+                  ) : field.type === 'textarea' ? (
                     <textarea rows={3} value={value} placeholder={field.placeholder} onChange={(e) => setValue(e.target.value)} />
                   ) : (
                     <span className="field__row">
@@ -94,7 +114,7 @@ export function NoteEditor(props: Props) {
                       />
                       {field.type === 'url' && value.trim() ? (
                         <button type="button" className="link-button" onClick={() => props.onOpenExternal(value.trim())}>
-                          öffnen
+                          {t('editor.open')}
                         </button>
                       ) : null}
                     </span>
@@ -104,12 +124,17 @@ export function NoteEditor(props: Props) {
             })}
 
             <TokenInput
-              label="Aliase"
+              label={t('editor.aliases')}
               values={note.aliases}
-              placeholder="Spitzname, Titel …"
+              placeholder={t('editor.aliasesHint')}
               onChange={(aliases) => onPatch({ aliases })}
             />
-            <TokenInput label="Tags" values={note.tags} placeholder="Kampagnenrolle, Thema …" onChange={(tags) => onPatch({ tags })} />
+            <TokenInput
+              label={t('editor.tags')}
+              values={note.tags}
+              placeholder={t('editor.tagsHint')}
+              onChange={(tags) => onPatch({ tags })}
+            />
           </section>
 
           <RelationsPanel
@@ -121,6 +146,7 @@ export function NoteEditor(props: Props) {
 
           <BacklinksPanel
             backlinks={backlinks}
+            types={index.types}
             unresolved={unresolved}
             onOpenNote={props.onOpenNote}
             onCreateNote={props.onCreateNote}

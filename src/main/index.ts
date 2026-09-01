@@ -2,8 +2,12 @@ import path from 'node:path';
 import { app, BrowserWindow, shell } from 'electron';
 import { Vault, readSettings } from './vault';
 import { registerIpc } from './ipc';
+import { handleAssetProtocol, registerAssetScheme } from './assetProtocol';
 
 const devServerUrl = process.env.VITE_DEV_SERVER_URL;
+
+// Muss vor app.whenReady stehen, sonst darf das Schema keine Bilder liefern.
+registerAssetScheme();
 
 async function createWindow(): Promise<void> {
   const window = new BrowserWindow({
@@ -48,6 +52,7 @@ void app.whenReady().then(async () => {
 
   const vault = new Vault(settings.vaultRoot);
   await vault.init();
+  handleAssetProtocol(vault);
 
   registerIpc({ vault, settingsFile, settings });
 

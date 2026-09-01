@@ -16,22 +16,67 @@ turndown.escape = (text: string) => escapeText(text).replace(/\\([[\]])/g, '$1')
 
 marked.setOptions({ gfm: true, breaks: false });
 
-export function markdownToHtml(markdown: string): string {
-  return marked.parse(markdown, { async: false }) as string;
+/**
+ * Bildverweise stehen im Markdown relativ als assets/x.png. Das haelt die
+ * Dateien portabel, etwa fuer Obsidian. Zum Anzeigen im Editor muessen sie in
+ * eine ladbare URL uebersetzt werden, beim Speichern wieder zurueck.
+ */
+export type AssetResolver = (relativePath: string) => string;
+
+const ASSET_MARKDOWN = /(!\[[^\]]*\]\()(assets\/[^)\s]+)(\))/g;
+
+export function markdownToHtml(markdown: string, resolveAsset?: AssetResolver): string {
+  const prepared = resolveAsset
+    ? markdown.replace(ASSET_MARKDOWN, (_whole, prefix: string, target: string, suffix: string) =>
+        `${prefix}${resolveAsset(target)}${suffix}`
+      )
+    : markdown;
+
+  return marked.parse(prepared, { async: false }) as string;
 }
 
-export function htmlToMarkdown(html: string): string {
-  return turndown.turndown(html).trim();
+export function htmlToMarkdown(html: string, toRelative?: (url: string) => string | null): string {
+  const markdown = turndown.turndown(html).trim();
+  if (!toRelative) return markdown;
+
+  return markdown.replace(/(!\[[^\]]*\]\()([^)\s]+)(\))/g, (whole, prefix: string, url: string, suffix: string) => {
+    const relative = toRelative(url);
+    return relative ? `${prefix}${relative}${suffix}` : whole;
+  });
+}
+
+/**
+ * Entfernt Markdown-Syntax und laesst nur den lesbaren Text uebrig.
+ * Wiki-Links werden auf ihren Anzeigetext reduziert.
+ */
+export function stripMarkdown(markdown: string): string {
+  return markdown
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/\[\[([^[\]|]+)(?:\|([^[\]]*))?\]\]/g, (_whole, target: string, label?: string) => label || target)
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s{0,3}>\s?/gm, '')
+    .replace(/^\s{0,3}([-*+]|\d+\.)\s+/gm, '')
+    .replace(/^\s{0,3}([-*_])\s*\1\s*\1[-*_\s]*$/gm, '')
+    .replace(/(\*\*|__|\*|_|~~)/g, '');
 }
 
 /** Zaehlt Woerter im Markdown-Rumpf, ohne Syntax mitzuzaehlen. */
 export function countWords(markdown: string): number {
-  const plain = markdown
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/\[\[([^[\]|]+)(?:\|([^[\]]*))?\]\]/g, (_whole, target: string, label?: string) => label || target)
-    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/[#>*_`~-]/g, ' ');
-
-  const words = plain.match(/[\p{L}\p{N}'’-]+/gu);
+  const words = stripMarkdown(markdown).match(/[\p{L}\p{N}'\u2019-]+/gu);
   return words ? words.length : 0;
+}
+
+/**
+ * Erste Zeilen einer Notiz als Klartext, fuer die Kurzinfo-Karte.
+ * Bricht an einer Wortgrenze ab und haengt ein Auslassungszeichen an.
+ */
+export function textPreview(markdown: string, maxChars = 220): string {
+  const plain = stripMarkdown(markdown).replace(/\s+/g, ' ').trim();
+  if (plain.length <= maxChars) return plain;
+
+  const cut = plain.slice(0, maxChars);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > maxChars * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()} …`;
 }
