@@ -52,6 +52,7 @@ npm run dist:win  # Windows-Installer und portable exe nach release/
 | Verlinkte Notiz öffnen | Strg (bzw. Cmd) halten und auf den Link klicken |
 | Kurzinfo ansehen | Mit der Maus über den Link fahren |
 | Speichern | Strg+S, oder Autosave laufen lassen |
+| Zwischen Fundstellen springen | F3 und Umschalt+F3, oder die Pfeile über dem Editor |
 | Kampagne sichern | „Als ZIP sichern" in der Kopfzeile |
 
 Links in einer anderen Farbe zeigen auf eine Notiz, die es noch nicht gibt.
@@ -118,8 +119,10 @@ Umgesetzt (MVP):
 - Kampagnen anlegen, umbenennen, löschen, als ZIP sichern
 - Notiztypen Charakter, Ort, Fraktion, Ereignis mit eigenen Feldern
 - Rich-Text-Editor auf TipTap, gespeichert als Markdown
-- `[[Wiki-Links]]` mit Autocomplete, Kurzinfo-Karte, offenen Links
-- Aliase, Tags, Volltextsuche, Wortzähler
+- `[[Wiki-Links]]` mit Autocomplete, Kurzinfo-Karte samt Textanfang, offenen Links
+- Aliase, Tags, Wortzähler
+- Volltextsuche mit hervorgehobener Fundstelle in der Liste und im Text,
+  Sprung zwischen den Fundstellen per F3 und Umschalt+F3
 - Gerichtete Beziehungen und Backlinks
 - Autosave (abschaltbar) und Strg+S
 

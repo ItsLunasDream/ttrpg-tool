@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes} = entry;
+const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown} = entry;
 
 function note(overrides) {
   return {
@@ -92,6 +92,52 @@ test('unresolvedLinks meldet nur Links ohne Notiz', () => {
   assert.deepEqual(unresolvedLinks(index, target), ['Tante Ilva']);
 });
 
+test('findOccurrences findet alle Vorkommen ohne Ruecksicht auf Grossschreibung', () => {
+  const hits = findOccurrences('Mira traf mira und MIRA.', 'mira');
+  assert.equal(hits.length, 3);
+  assert.deepEqual(hits[0], { from: 0, to: 4 });
+  assert.deepEqual(hits[2], { from: 19, to: 23 });
+});
+
+test('findOccurrences ueberlappt sich nicht und kommt mit leerem Begriff klar', () => {
+  assert.deepEqual(findOccurrences('aaaa', 'aa'), [{ from: 0, to: 2 }, { from: 2, to: 4 }]);
+  assert.deepEqual(findOccurrences('irgendwas', ''), []);
+});
+
+test('Suchtreffer liefern Fundstellen fuer die Hervorhebung', () => {
+  const index = buildIndex([
+    note({ id: '1', title: 'Mira Falkenhand', body: 'Mira ging fort. Später kam Mira zurück.' })
+  ]);
+
+  const [hit] = searchNotes(index, 'mira');
+  assert.equal(hit.field, 'title');
+  assert.deepEqual(hit.matches, [{ from: 0, to: 4 }]);
+  assert.equal(hit.snippet, 'Mira Falkenhand');
+});
+
+test('Rumpftreffer zaehlen alle Fundstellen und markieren im Ausschnitt', () => {
+  const index = buildIndex([
+    note({ id: '1', title: 'Toran', body: 'Die Schmiede stand am Wasser. Die Schmiede brannte.' })
+  ]);
+
+  const [hit] = searchNotes(index, 'schmiede');
+  assert.equal(hit.field, 'body');
+  assert.equal(hit.bodyMatches, 2);
+  assert.ok(hit.matches.length >= 1, 'keine Fundstelle im Ausschnitt');
+
+  for (const match of hit.matches) {
+    assert.equal(hit.snippet.slice(match.from, match.to).toLowerCase(), 'schmiede');
+  }
+});
+
+test('Feldtreffer bekommen die lesbare Feldbezeichnung', () => {
+  const index = buildIndex([note({ id: '1', title: 'Mira', fields: { species: 'Waldelfe' } })]);
+  const [hit] = searchNotes(index, 'waldelfe');
+  assert.equal(hit.field, 'field');
+  assert.equal(hit.label, 'Spezies');
+  assert.equal(hit.snippet, 'Waldelfe');
+});
+
 test('Volltextsuche greift auf Titel, Tags, Felder und Rumpf', () => {
   const index = buildIndex([
     note({ id: '1', title: 'Mira', fields: { species: 'Waldelfe' } }),
@@ -101,4 +147,33 @@ test('Volltextsuche greift auf Titel, Tags, Felder und Rumpf', () => {
   assert.deepEqual(searchNotes(index, 'waldelfe').map((hit) => hit.noteId), ['1']);
   assert.deepEqual(searchNotes(index, 'hafen').map((hit) => hit.noteId), ['2']);
   assert.deepEqual(searchNotes(index, 'schmiede').map((hit) => hit.noteId), ['3']);
+});
+
+test('stripMarkdown entfernt Syntax und behaelt den Anzeigetext', () => {
+  const markdown = '## Kindheit\n\n- **Sie** kannte [[Mira Falkenhand|die Jägerin]]\n\n> Ein Zitat\n\n`code`';
+  const plain = stripMarkdown(markdown);
+  assert.match(plain, /Kindheit/);
+  assert.match(plain, /die Jägerin/);
+  assert.match(plain, /Ein Zitat/);
+  assert.ok(!plain.includes('#'), 'Überschriftenzeichen übrig');
+  assert.ok(!plain.includes('**'), 'Fettauszeichnung übrig');
+  assert.ok(!plain.includes('[['), 'Wiki-Klammern übrig');
+  assert.ok(!plain.includes('`'), 'Code-Auszeichnung übrig');
+});
+
+test('textPreview kuerzt an der Wortgrenze', () => {
+  const markdown = 'Ein '.repeat(200);
+  const preview = textPreview(markdown, 50);
+  assert.ok(preview.length <= 52, `zu lang: ${preview.length}`);
+  assert.ok(preview.endsWith(' …'), 'kein Auslassungszeichen');
+  assert.ok(!preview.includes('  '), 'doppelte Leerzeichen');
+});
+
+test('textPreview laesst kurzen Text unveraendert', () => {
+  assert.equal(textPreview('Sie wuchs am [[Hafen]] auf.', 220), 'Sie wuchs am Hafen auf.');
+});
+
+test('textPreview liefert bei leerem Rumpf einen leeren String', () => {
+  assert.equal(textPreview(''), '');
+  assert.equal(textPreview('   \n\n  '), '');
 });

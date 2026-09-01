@@ -1,5 +1,6 @@
 import { findWikiLinks, normalizeName } from '../shared/wikilinks';
-import type { Note, NoteType, SearchHit } from '../shared/types';
+import { noteTypeDef } from '../shared/noteTypes';
+import type { Note, NoteType, SearchHit, SnippetMatch } from '../shared/types';
 
 export interface NoteIndex {
   notes: Note[];
@@ -95,9 +96,35 @@ export function filterNotes(index: NoteIndex, filters: SearchFilters): Note[] {
   });
 }
 
+/**
+ * Alle Fundstellen eines Suchbegriffs, ohne Ruecksicht auf Gross- und
+ * Kleinschreibung. Wird sowohl fuer die Trefferliste als auch fuer die
+ * Hervorhebung im Editor benutzt.
+ */
+export function findOccurrences(haystack: string, needle: string): SnippetMatch[] {
+  if (!needle) return [];
+
+  // Kleinschreibung kann in Sonderfaellen die Laenge aendern (etwa das
+  // tuerkische I). Dann waeren die Positionen verschoben, also lieber
+  // Gross- und Kleinschreibung beachten als falsch markieren.
+  const lowerHaystack = haystack.toLowerCase();
+  const lowerNeedle = needle.toLowerCase();
+  const safe = lowerHaystack.length === haystack.length && lowerNeedle.length === needle.length;
+  const source = safe ? lowerHaystack : haystack;
+  const target = safe ? lowerNeedle : needle;
+
+  const matches: SnippetMatch[] = [];
+  let position = source.indexOf(target);
+  while (position !== -1) {
+    matches.push({ from: position, to: position + target.length });
+    position = source.indexOf(target, position + target.length);
+  }
+  return matches;
+}
+
 /** Volltextsuche ueber Titel, Aliase, Tags, Felder und Rumpf. */
 export function searchNotes(index: NoteIndex, query: string): SearchHit[] {
-  const needle = query.trim().toLocaleLowerCase('de-DE');
+  const needle = query.trim();
   if (!needle) return [];
 
   return index.notes.flatMap((note) => {
@@ -109,26 +136,52 @@ export function searchNotes(index: NoteIndex, query: string): SearchHit[] {
 function matchNote(note: Note, needle: string): SearchHit | null {
   const base = { noteId: note.id, title: note.title, type: note.type };
 
-  if (note.title.toLocaleLowerCase('de-DE').includes(needle)) {
-    return { ...base, field: 'title', snippet: note.title };
+  const inTitle = findOccurrences(note.title, needle);
+  if (inTitle.length) {
+    return { ...base, field: 'title', label: null, snippet: note.title, matches: inTitle, bodyMatches: 0 };
   }
 
-  const alias = note.aliases.find((entry) => entry.toLocaleLowerCase('de-DE').includes(needle));
-  if (alias) return { ...base, field: 'alias', snippet: `Alias: ${alias}` };
-
-  const tag = note.tags.find((entry) => entry.toLocaleLowerCase('de-DE').includes(needle));
-  if (tag) return { ...base, field: 'tag', snippet: `Tag: ${tag}` };
-
-  for (const [key, value] of Object.entries(note.fields)) {
-    if (value.toLocaleLowerCase('de-DE').includes(needle)) {
-      return { ...base, field: 'field', snippet: `${key}: ${value}` };
+  for (const alias of note.aliases) {
+    const matches = findOccurrences(alias, needle);
+    if (matches.length) {
+      return { ...base, field: 'alias', label: 'Alias', snippet: alias, matches, bodyMatches: 0 };
     }
   }
 
-  const position = note.body.toLocaleLowerCase('de-DE').indexOf(needle);
-  if (position !== -1) {
-    return { ...base, field: 'body', snippet: contextAround(note.body, position, position + needle.length) };
+  for (const tag of note.tags) {
+    const matches = findOccurrences(tag, needle);
+    if (matches.length) {
+      return { ...base, field: 'tag', label: 'Tag', snippet: tag, matches, bodyMatches: 0 };
+    }
+  }
+
+  for (const [key, value] of Object.entries(note.fields)) {
+    const matches = findOccurrences(value, needle);
+    if (matches.length) {
+      return { ...base, field: 'field', label: fieldLabel(note.type, key), snippet: value, matches, bodyMatches: 0 };
+    }
+  }
+
+  const inBody = findOccurrences(note.body, needle);
+  if (inBody.length) {
+    const first = inBody[0];
+    const snippet = contextAround(note.body, first.from, first.to);
+    // Der Ausschnitt ist gekuerzt und normalisiert, die Positionen muessen
+    // deshalb darin neu gesucht werden.
+    return {
+      ...base,
+      field: 'body',
+      label: null,
+      snippet,
+      matches: findOccurrences(snippet, needle),
+      bodyMatches: inBody.length
+    };
   }
 
   return null;
 }
+
+function fieldLabel(type: NoteType, key: string): string {
+  return noteTypeDef(type).fields.find((field) => field.key === key)?.label ?? key;
+}
+

@@ -22,6 +22,8 @@ interface Props {
   onCreateNote: (title: string) => void;
   onHoverNote: (note: Note | null, rect: DOMRect | null) => void;
   onOpenExternal: (url: string) => void;
+  /** Suchbegriff aus der Seitenleiste, fuer die Hervorhebung im Text. */
+  searchQuery: string;
 }
 
 export function NoteEditor(props: Props) {
@@ -65,6 +67,7 @@ export function NoteEditor(props: Props) {
             noteId={note.id}
             markdown={note.body}
             index={index}
+            searchQuery={props.searchQuery}
             onChange={(body) => onPatch({ body })}
             onOpenNote={props.onOpenNote}
             onCreateNote={props.onCreateNote}
