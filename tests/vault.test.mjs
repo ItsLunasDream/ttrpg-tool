@@ -565,3 +565,67 @@ test('Beim Umbenennen wird der Titel zuletzt gesetzt', async () => {
     }
   });
 });
+
+test('Auswahllisten behalten ihre Werte', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const types = campaign.noteTypes.map((def) =>
+      def.id === 'character'
+        ? {
+            ...def,
+            fields: [
+              ...def.fields,
+              { key: 'gesinnung', label: 'Gesinnung', type: 'select', options: ['Rechtschaffen', 'Neutral', 'Chaotisch'] },
+              { key: 'lebt', label: 'Lebt noch', type: 'checkbox' },
+              { key: 'geburtstag', label: 'Geburtstag', type: 'date' }
+            ]
+          }
+        : def
+    );
+
+    const updated = await vault.updateNoteTypes(campaign.id, types);
+    const character = updated.noteTypes.find((def) => def.id === 'character');
+    assert.deepEqual(
+      character.fields.find((field) => field.key === 'gesinnung').options,
+      ['Rechtschaffen', 'Neutral', 'Chaotisch']
+    );
+    assert.equal(character.fields.find((field) => field.key === 'lebt').type, 'checkbox');
+    assert.equal(character.fields.find((field) => field.key === 'geburtstag').type, 'date');
+
+    // Nach dem erneuten Lesen von der Platte muss alles noch da sein
+    const [reloaded] = await vault.listCampaigns();
+    assert.equal(
+      reloaded.noteTypes.find((def) => def.id === 'character').fields.find((field) => field.key === 'gesinnung')
+        .options.length,
+      3
+    );
+  });
+});
+
+test('Eine Auswahlliste ohne Werte wird abgelehnt', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    await assert.rejects(
+      () =>
+        vault.updateNoteTypes(campaign.id, [
+          { id: 'a', label: 'A', plural: 'A', fields: [{ key: 'x', label: 'Auswahl', type: 'select', options: [] }] }
+        ]),
+      { key: 'error.selectNeedsOptions' }
+    );
+  });
+});
+
+test('Eine von Hand kaputt gemachte Auswahlliste wird zu Text', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const file = path.join(root, 'campaigns', campaign.id, 'campaign.json');
+    const stored = JSON.parse(await readFile(file, 'utf8'));
+    stored.noteTypes = [
+      { id: 'a', label: 'A', plural: 'A', fields: [{ key: 'x', label: 'Auswahl', type: 'select' }] }
+    ];
+    await writeFile(file, JSON.stringify(stored));
+
+    const [reloaded] = await vault.listCampaigns();
+    assert.equal(reloaded.noteTypes[0].fields[0].type, 'text', 'kaputte Auswahlliste blieb unbedienbar');
+  });
+});

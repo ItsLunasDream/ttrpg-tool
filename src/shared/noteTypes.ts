@@ -58,7 +58,19 @@ export const DEFAULT_NOTE_TYPES: NoteTypeDef[] = [
   }
 ];
 
-export const FIELD_TYPES: FieldDef['type'][] = ['text', 'textarea', 'number', 'url', 'image'];
+export const FIELD_TYPES: FieldDef['type'][] = [
+  'text',
+  'textarea',
+  'number',
+  'url',
+  'image',
+  'select',
+  'date',
+  'checkbox'
+];
+
+/** Ein Ankreuzfeld ist gesetzt, wenn hier etwas anderes als leer steht. */
+export const CHECKED = 'ja';
 
 /**
  * Notiztyp aus der Kampagne. Ist der Typ unbekannt, etwa weil er geloescht

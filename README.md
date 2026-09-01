@@ -100,7 +100,8 @@ Kampagne und ist nur innerhalb dieser verlinkbar.
 **Notiztypen** sind gleichberechtigt und schema-getrieben. Das Schema ist
 kein Code, sondern gehört der Kampagne: es liegt in `campaign.json` und wird
 über „Notiztypen" in der Kopfzeile bearbeitet. Typen und Felder lassen sich
-anlegen, umbenennen, umsortieren und entfernen.
+anlegen, umbenennen, umsortieren und entfernen. Feldarten sind Text,
+mehrzeilig, Zahl, Link, Bild, Auswahlliste, Datum und Ankreuzfeld.
 `src/shared/noteTypes.ts` liefert nur noch die Vorlage für neue Kampagnen.
 
 Zwei Regeln schützen dabei bestehende Daten. Der Schlüssel eines Felds bleibt

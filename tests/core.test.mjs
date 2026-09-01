@@ -289,7 +289,9 @@ const EXPORT_LABELS = {
   relations: 'Beziehungen',
   mentionedBy: 'Erwähnt von',
   aliases: 'Aliase',
-  tags: 'Tags'
+  tags: 'Tags',
+  yes: 'Ja',
+  no: 'Nein'
 };
 
 test('Markdown-Export schreibt Steckbrief, Text und Beziehungen aus', () => {
@@ -529,4 +531,23 @@ test('Die Rundenzahl sinkt bei vielen Knoten, damit nichts blockiert', () => {
   assert.equal(nodes.length, 600);
   assert.ok(duration < 8000, `Anordnung dauerte ${duration} ms`);
   assert.ok(nodes.every((node) => Number.isFinite(node.x) && Number.isFinite(node.y)));
+});
+
+test('Ankreuzfelder erscheinen im Export als Ja oder Nein', () => {
+  const types = [
+    {
+      id: 'character',
+      label: 'Charakter',
+      plural: 'Charaktere',
+      fields: [
+        { key: 'lebt', label: 'Lebt noch', type: 'checkbox' },
+        { key: 'tot', label: 'Verstorben', type: 'checkbox' }
+      ]
+    }
+  ];
+  const entry = note({ id: '1', title: 'Mira', fields: { lebt: 'ja', tot: '' } });
+  const markdown = renderNoteMarkdown(entry, types, [entry], EXPORT_LABELS);
+
+  assert.match(markdown, /\*\*Lebt noch:\*\* Ja/);
+  assert.match(markdown, /\*\*Verstorben:\*\* Nein/, 'ein nicht gesetztes Ankreuzfeld fehlt im Export');
 });

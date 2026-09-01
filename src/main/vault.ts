@@ -644,7 +644,7 @@ function normalizeNote(noteId: string, data: Record<string, unknown>, body: stri
   };
 }
 
-const FIELD_TYPES: FieldDef['type'][] = ['text', 'textarea', 'number', 'url', 'image'];
+const FIELD_TYPES: FieldDef['type'][] = ['text', 'textarea', 'number', 'url', 'image', 'select', 'date', 'checkbox'];
 
 /**
  * Prueft Notiztypen aus der Oberflaeche, bevor sie geschrieben werden.
@@ -680,7 +680,14 @@ function validateNoteTypes(types: NoteTypeDef[]): NoteTypeDef[] {
         type: FIELD_TYPES.includes(field.type) ? field.type : 'text'
       };
       const placeholder = String(field.placeholder ?? '').trim();
-      return placeholder ? { ...normalized, placeholder } : normalized;
+      if (placeholder) normalized.placeholder = placeholder;
+
+      const options = asStringArray(field.options);
+      if (normalized.type === 'select') {
+        if (options.length === 0) throw new VaultError('error.selectNeedsOptions', { label: fieldLabel });
+        normalized.options = options;
+      }
+      return normalized;
     });
 
     return { id, label, plural: String(def.plural ?? '').trim() || label, fields };
@@ -710,7 +717,15 @@ function normalizeNoteTypes(types: NoteTypeDef[]): NoteTypeDef[] {
         type: FIELD_TYPES.includes(field.type) ? field.type : 'text'
       };
       const placeholder = String(field.placeholder ?? '').trim();
-      return [placeholder ? { ...result, placeholder } : result];
+      if (placeholder) result.placeholder = placeholder;
+
+      const options = asStringArray(field.options);
+      if (result.type === 'select') {
+        // Eine Auswahlliste ohne Werte waere unbedienbar, dann lieber Text.
+        if (options.length === 0) result.type = 'text';
+        else result.options = options;
+      }
+      return [result];
     });
 
     return [{ id, label, plural: String(def.plural ?? '').trim() || label, fields }];

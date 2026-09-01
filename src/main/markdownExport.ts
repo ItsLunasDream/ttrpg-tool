@@ -8,6 +8,14 @@ export interface ExportLabels {
   mentionedBy: string;
   aliases: string;
   tags: string;
+  yes: string;
+  no: string;
+}
+
+/** Ein Ankreuzfeld als Ja oder Nein statt als Rohwert. */
+export function formatFieldValue(type: string, value: string, labels: ExportLabels): string {
+  if (type === 'checkbox') return value ? labels.yes : labels.no;
+  return value;
 }
 
 /**
@@ -27,11 +35,17 @@ export function renderNoteMarkdown(
   const def = findNoteType(types, note.type);
   const parts: string[] = [`# ${note.title}`, '', `*${def.label}*`, ''];
 
-  const filled = def.fields.filter((field) => note.fields[field.key]?.trim());
+  // Ein nicht gesetztes Ankreuzfeld ist eine Aussage und gehoert mit in den
+  // Export, ein leeres Textfeld nicht.
+  const filled = def.fields.filter((field) => note.fields[field.key]?.trim() || field.type === 'checkbox');
   if (filled.length) {
     for (const field of filled) {
       const value = note.fields[field.key];
-      parts.push(field.type === 'image' ? `- **${field.label}:** ![](${value})` : `- **${field.label}:** ${value}`);
+      parts.push(
+        field.type === 'image'
+          ? `- **${field.label}:** ![](${value})`
+          : `- **${field.label}:** ${formatFieldValue(field.type, value, labels)}`
+      );
     }
     parts.push('');
   }

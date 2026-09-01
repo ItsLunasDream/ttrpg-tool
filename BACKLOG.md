@@ -11,12 +11,6 @@ Bilder werden derzeit in voller Breite bis maximal zur Textbreite angezeigt.
 Eine Möglichkeit, ein Bild kleiner zu setzen oder neben den Text zu stellen,
 wäre nützlich, ist aber im Markdown nicht ohne Weiteres abbildbar.
 
-### Weitere Feldarten im Steckbrief
-
-Aktuell gibt es Text, mehrzeilig, Zahl und Link. Denkbar wären Auswahllisten
-mit festen Werten, Datumsfelder oder Ankreuzfelder. Erst umsetzen, wenn ein
-konkreter Bedarf da ist.
-
 ### Assistent mit Gesprächsverlauf
 
 Jede Anfrage steht für sich. Eine Rückfrage zur letzten Antwort ist nicht
@@ -313,3 +307,16 @@ Größe; das Ergebnis wird gröber, bleibt aber brauchbar.
 
 **Ein kaputter Bildverweis brach den PDF-Export ab.** Jetzt wird der
 betroffene Verweis übersprungen statt der ganze Export.
+
+### Weitere Feldarten im Steckbrief
+
+Neben Text, mehrzeilig, Zahl, Link und Bild gibt es jetzt Auswahlliste,
+Datum und Ankreuzfeld.
+
+Die Werte einer Auswahlliste stehen im Notiztypen-Dialog, einer je Zeile.
+Eine Liste ohne Werte wird abgelehnt, sie wäre unbedienbar; eine von Hand
+kaputt gemachte wird beim Lesen zu einem Textfeld.
+
+Ankreuzfelder erscheinen im Export und in der Kurzinfo als Ja oder Nein, und
+zwar auch dann, wenn sie nicht gesetzt sind: bei einem Ankreuzfeld ist das
+eine Aussage, bei einem leeren Textfeld nicht.

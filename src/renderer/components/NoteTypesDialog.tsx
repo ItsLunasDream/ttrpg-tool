@@ -19,7 +19,10 @@ const FIELD_TYPE_KEYS: Record<FieldDef['type'], MessageKey> = {
   textarea: 'fieldType.textarea',
   number: 'fieldType.number',
   url: 'fieldType.url',
-  image: 'fieldType.image'
+  image: 'fieldType.image',
+  select: 'fieldType.select',
+  date: 'fieldType.date',
+  checkbox: 'fieldType.checkbox'
 };
 
 /**
@@ -109,6 +112,15 @@ export function NoteTypesDialog({ types, notes, otherCampaigns, onSave, onClose 
     );
     if (emptyField) {
       setError(t('types.fieldNeedsLabel', { label: emptyField.def.label }));
+      return;
+    }
+
+    // Eine Auswahlliste ohne Werte waere unbedienbar.
+    const emptySelect = draft
+      .flatMap((def) => def.fields)
+      .find((field) => field.type === 'select' && (field.options ?? []).length === 0);
+    if (emptySelect) {
+      setError(t('error.selectNeedsOptions', { label: emptySelect.label }));
       return;
     }
     onSave(draft);
@@ -217,13 +229,28 @@ export function NoteTypesDialog({ types, notes, otherCampaigns, onSave, onClose 
                       ×
                     </button>
                   </div>
-                  <input
-                    className="type-editor__placeholder"
-                    value={field.placeholder ?? ''}
-                    placeholder={t('types.example')}
-                    onChange={(event) => updateField(field.key, { placeholder: event.target.value })}
-                    aria-label={t('types.exampleLabel')}
-                  />
+                  {field.type === 'select' ? (
+                    <textarea
+                      className="type-editor__placeholder"
+                      rows={3}
+                      value={(field.options ?? []).join('\n')}
+                      placeholder={t('types.options')}
+                      aria-label={t('types.options')}
+                      onChange={(event) =>
+                        updateField(field.key, {
+                          options: event.target.value.split('\n').map((entry) => entry.trim()).filter(Boolean)
+                        })
+                      }
+                    />
+                  ) : (
+                    <input
+                      className="type-editor__placeholder"
+                      value={field.placeholder ?? ''}
+                      placeholder={t('types.example')}
+                      onChange={(event) => updateField(field.key, { placeholder: event.target.value })}
+                      aria-label={t('types.exampleLabel')}
+                    />
+                  )}
                   <span className="type-editor__key">{t('types.key', { key: field.key })}</span>
                 </li>
               ))}

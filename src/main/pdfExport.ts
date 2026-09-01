@@ -7,7 +7,7 @@ import { BrowserWindow } from 'electron';
 import { marked } from 'marked';
 import { findNoteType } from '../shared/noteTypes';
 import type { Note, NoteTypeDef } from '../shared/types';
-import type { ExportLabels } from './markdownExport';
+import { formatFieldValue, type ExportLabels } from './markdownExport';
 
 /** Absoluter Dateipfad als URL, damit das Druckfenster Bilder laden kann. */
 function fileUrl(absolutePath: string): string {
@@ -72,11 +72,14 @@ function renderNote(note: Note, context: PdfContext): string {
   parts.push(`<h1>${escapeHtml(note.title)}</h1>`);
   parts.push(`<p class="note__type">${escapeHtml(def.label)}</p>`);
 
-  const filled = def.fields.filter((field) => field.type !== 'image' && note.fields[field.key]?.trim());
+  const filled = def.fields.filter(
+    (field) => field.type !== 'image' && (note.fields[field.key]?.trim() || field.type === 'checkbox')
+  );
   if (filled.length || note.aliases.length || note.tags.length) {
     parts.push('<dl class="profile">');
     for (const field of filled) {
-      parts.push(`<div><dt>${escapeHtml(field.label)}:</dt> <dd>${escapeHtml(note.fields[field.key])}</dd></div>`);
+      const value = formatFieldValue(field.type, note.fields[field.key] ?? '', context.labels);
+      parts.push(`<div><dt>${escapeHtml(field.label)}:</dt> <dd>${escapeHtml(value)}</dd></div>`);
     }
     if (note.aliases.length) {
       parts.push(`<div><dt>${escapeHtml(context.labels.aliases)}:</dt> <dd>${escapeHtml(note.aliases.join(', '))}</dd></div>`);
