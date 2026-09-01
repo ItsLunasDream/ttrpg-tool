@@ -23,9 +23,13 @@ export function createProvider(settings: AppSettings, apiKey: string): AiProvide
   }
 }
 
-export async function askProvider(provider: AiProvider, request: AiRequest): Promise<string> {
+export async function askProvider(
+  provider: AiProvider,
+  request: AiRequest,
+  onChunk: (text: string) => void
+): Promise<string> {
   const language = request.language === 'en' ? 'en' : 'de';
-  return provider.ask(request, systemPrompt(language), userPrompt(request));
+  return provider.ask(request, systemPrompt(language), userPrompt(request), onChunk);
 }
 
 /**

@@ -11,7 +11,8 @@ export interface AiStatus {
 
 interface Props {
   status: AiStatus | null;
-  onAsk: (task: AiTask) => Promise<string | null>;
+  /** `onChunk` wird waehrend der Antwort mehrfach mit Teiltexten gerufen. */
+  onAsk: (task: AiTask, onChunk: (text: string) => void) => Promise<string | null>;
 }
 
 const TASKS: { task: AiTask; key: 'ai.questions' | 'ai.consistency' | 'ai.style' }[] = [
@@ -33,9 +34,12 @@ export function AssistantPanel({ status, onAsk }: Props) {
 
   async function ask(task: AiTask) {
     setBusy(true);
-    setAnswer(null);
+    setAnswer('');
     try {
-      setAnswer(await onAsk(task));
+      // Waehrend die Antwort eintrifft, waechst der Text mit. Am Ende
+      // gewinnt das vollstaendige Ergebnis, damit nichts fehlt.
+      const complete = await onAsk(task, (chunk) => setAnswer((previous) => (previous ?? '') + chunk));
+      setAnswer(complete);
     } finally {
       setBusy(false);
     }
@@ -61,14 +65,16 @@ export function AssistantPanel({ status, onAsk }: Props) {
             ))}
           </div>
 
-          {busy ? <p className="panel__hint">{t('ai.thinking')}</p> : null}
+          {busy && !answer ? <p className="panel__hint">{t('ai.thinking')}</p> : null}
 
           {answer ? (
             <>
-              <div className="assistant__answer">{answer}</div>
-              <button type="button" className="link-button" onClick={() => setAnswer(null)}>
-                {t('ai.clear')}
-              </button>
+              <div className={`assistant__answer${busy ? ' is-streaming' : ''}`}>{answer}</div>
+              {busy ? null : (
+                <button type="button" className="link-button" onClick={() => setAnswer(null)}>
+                  {t('ai.clear')}
+                </button>
+              )}
             </>
           ) : null}
 

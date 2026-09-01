@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import type { IpcMainInvokeEvent } from 'electron';
 import { Vault, VaultError, writeSettings } from './vault';
 import { translate } from '../shared/i18n';
 import { zipDirectory } from './export';
@@ -42,9 +43,32 @@ function makeHandler(context: IpcContext) {
   };
 }
 
+/** Wie makeHandler, reicht aber das IPC-Ereignis durch, etwa fuer Teilantworten. */
+function makeEventHandler(context: IpcContext) {
+  return function handle<Args extends unknown[], Result>(
+    channel: string,
+    fn: (event: IpcMainInvokeEvent, ...args: Args) => Promise<Result>
+  ): void {
+    ipcMain.handle(channel, async (event, ...args) => {
+      try {
+        return { ok: true as const, value: await fn(event, ...(args as Args)) };
+      } catch (error) {
+        const language = context.settings.language;
+        const message =
+          error instanceof VaultError
+            ? translate(language, error.key, error.params)
+            : translate(language, 'error.unexpected', { detail: String(error) });
+        if (!(error instanceof VaultError)) console.error(`[ipc] ${channel}`, error);
+        return { ok: false as const, error: message };
+      }
+    });
+  };
+}
+
 export function registerIpc(context: IpcContext): void {
   const { vault } = context;
   const handle = makeHandler(context);
+  const handleWithEvent = makeEventHandler(context);
 
   handle<[], AppSettings>('settings:get', async () => context.settings);
 
@@ -163,7 +187,7 @@ export function registerIpc(context: IpcContext): void {
     return context.settings;
   });
 
-  handle<[string, string, AiTask], string>('ai:ask', async (campaignId, noteId, task) => {
+  handleWithEvent<[string, string, AiTask, string], string>('ai:ask', async (event, campaignId, noteId, task, streamId) => {
     const provider = createProvider(context.settings, decryptSecret(context.settings.claudeApiKeyEncrypted));
     if (!provider) throw new VaultError('error.noAiProvider');
 
@@ -173,12 +197,20 @@ export function registerIpc(context: IpcContext): void {
     if (!note) throw new VaultError('error.noteMissing');
 
     try {
-      return await askProvider(provider, {
-        task,
-        language: context.settings.language,
-        note: describeNote(note, campaign.noteTypes),
-        context: describeLinkedNotes(note, notes, campaign.noteTypes)
-      });
+      return await askProvider(
+        provider,
+        {
+          task,
+          language: context.settings.language,
+          note: describeNote(note, campaign.noteTypes),
+          context: describeLinkedNotes(note, notes, campaign.noteTypes)
+        },
+        // Teiltexte gehen als eigenes Ereignis an genau das Fenster, das
+        // gefragt hat. Die Kennung ordnet sie der laufenden Anfrage zu.
+        (chunk) => {
+          if (!event.sender.isDestroyed()) event.sender.send('ai:chunk', streamId, chunk);
+        }
+      );
     } catch (error) {
       if (error instanceof AiError) throw new VaultError(error.key, error.params);
       throw error;

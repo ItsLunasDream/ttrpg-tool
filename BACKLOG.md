@@ -17,12 +17,6 @@ Aktuell gibt es Text, mehrzeilig, Zahl und Link. Denkbar wären Auswahllisten
 mit festen Werten, Datumsfelder oder Ankreuzfelder. Erst umsetzen, wenn ein
 konkreter Bedarf da ist.
 
-### Antworten des Assistenten strömen lassen
-
-Der Assistent wartet aktuell auf die vollständige Antwort. Bei langen
-Antworten wirkt das wie ein Hänger. Beide Anbieter können strömen, das
-Interface müsste dafür einen Rückkanal bekommen.
-
 ### Assistent mit Gesprächsverlauf
 
 Jede Anfrage steht für sich. Eine Rückfrage zur letzten Antwort ist nicht
@@ -265,3 +259,21 @@ Anordnung nimmt, damit die verbleibenden Knoten den ganzen Platz bekommen.
 
 Beschriftungen bekommen einen Umriss in Hintergrundfarbe und bleiben dadurch
 über Kanten und anderen Knoten lesbar.
+
+### Antworten des Assistenten strömen lassen
+
+Die Antwort erscheint jetzt, während sie geschrieben wird, mit blinkendem
+Cursor. Beide Anbieter strömen: Ollama liefert JSON-Zeilen, Claude über den
+Stream des SDK.
+
+Teiltexte gehen als eigenes Ereignis an genau das Fenster, das gefragt hat,
+mit einer Kennung je Anfrage. Ohne die Kennung könnten Teiltexte einer
+abgebrochenen Anfrage in einer neuen Antwort landen. Am Ende gewinnt das
+vollständige Ergebnis, damit nichts fehlt.
+
+Der Renderer bekommt weiterhin kein `ipcRenderer`, nur eine Anmeldefunktion,
+die eine Abmeldung zurückgibt.
+
+Getestet ist das Zerlegen des Datenstroms gegen ein gefälschtes `fetch`,
+inklusive einer über zwei Pakete verteilten Zeile. Gegen ein echtes Modell
+lief es mangels Zugang nicht.

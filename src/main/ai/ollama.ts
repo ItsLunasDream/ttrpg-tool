@@ -46,16 +46,21 @@ export class OllamaProvider implements AiProvider {
     }
   }
 
-  async ask(_request: AiRequest, systemPrompt: string, userPrompt: string): Promise<string> {
+  async ask(
+    _request: AiRequest,
+    systemPrompt: string,
+    userPrompt: string,
+    onChunk: (text: string) => void
+  ): Promise<string> {
     let response: Response;
     try {
       response = await fetch(this.url('/api/chat'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        signal: AbortSignal.timeout(180_000),
+        signal: AbortSignal.timeout(600_000),
         body: JSON.stringify({
           model: this.options.model,
-          stream: false,
+          stream: true,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
@@ -68,11 +73,47 @@ export class OllamaProvider implements AiProvider {
     }
 
     if (!response.ok) throw new AiError('error.aiHttp', { status: response.status });
+    if (!response.body) throw new AiError('error.aiEmpty');
 
-    const data = (await response.json()) as { message?: { content?: string } };
-    const text = data.message?.content?.trim();
-    if (!text) throw new AiError('error.aiEmpty');
-    return text;
+    // Ollama schickt eine JSON-Zeile je Teilstueck. Eine Zeile kann ueber
+    // zwei Pakete verteilt ankommen, deshalb der Zwischenpuffer.
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let text = '';
+
+    try {
+      for await (const part of response.body as unknown as AsyncIterable<Uint8Array>) {
+        buffer += decoder.decode(part, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let parsed: { message?: { content?: string }; error?: string };
+          try {
+            parsed = JSON.parse(line);
+          } catch {
+            continue; // Unvollstaendige Zeile, kommt beim naechsten Paket.
+          }
+          if (parsed.error) throw new AiError('error.aiOther', { detail: parsed.error });
+
+          const chunk = parsed.message?.content;
+          if (chunk) {
+            text += chunk;
+            onChunk(chunk);
+          }
+        }
+      }
+    } catch (error) {
+      if (error instanceof AiError) throw error;
+      const { key, params } = classify(error);
+      throw new AiError(key, params);
+    }
+
+    const trimmed = text.trim();
+    if (!trimmed) throw new AiError('error.aiEmpty');
+    return trimmed;
   }
 }
 
