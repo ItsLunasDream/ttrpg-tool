@@ -64,8 +64,9 @@ function renderNote(note: Note, context: PdfContext): string {
   const parts: string[] = ['<article class="note">'];
 
   const portrait = def.fields.find((field) => field.type === 'image' && note.fields[field.key]?.trim());
-  if (portrait) {
-    parts.push(`<img class="portrait" src="${fileUrl(context.resolveAsset(note.fields[portrait.key]))}" alt="">`);
+  const portraitPath = portrait ? context.resolveAsset(note.fields[portrait.key]) : '';
+  if (portraitPath) {
+    parts.push(`<img class="portrait" src="${fileUrl(portraitPath)}" alt="">`);
   }
 
   parts.push(`<h1>${escapeHtml(note.title)}</h1>`);
@@ -89,9 +90,10 @@ function renderNote(note: Note, context: PdfContext): string {
   // Wiki-Links werden zu ihrem Anzeigetext: im PDF ist nichts klickbar.
   const body = note.body
     .replace(/\[\[([^[\]|]+)(?:\|([^[\]]*))?\]\]/g, (_whole, target: string, label?: string) => label || target)
-    .replace(/!\[([^\]]*)\]\((assets\/[^)\s]+)\)/g, (_whole, alt: string, target: string) =>
-      `![${alt}](${fileUrl(context.resolveAsset(target))})`
-    );
+    .replace(/!\[([^\]]*)\]\((assets\/[^)\s]+)\)/g, (whole, alt: string, target: string) => {
+      const resolved = context.resolveAsset(target);
+      return resolved ? `![${alt}](${fileUrl(resolved)})` : whole;
+    });
   parts.push(marked.parse(body, { async: false }) as string);
 
   const byId = new Map(context.allNotes.map((entry) => [entry.id, entry]));

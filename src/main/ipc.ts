@@ -313,7 +313,15 @@ export function registerIpc(context: IpcContext): void {
           aliases: translate(language, 'export.aliases'),
           tags: translate(language, 'export.tags')
         },
-        resolveAsset: (relativePath) => vault.assetFile(campaignId, relativePath.replace(/^assets\//, ''))
+        // Ein einzelner kaputter Verweis darf den ganzen Export nicht
+        // abbrechen. Ein leerer Pfad ergibt nur ein fehlendes Bild.
+        resolveAsset: (relativePath) => {
+          try {
+            return vault.assetFile(campaignId, relativePath.replace(/^assets\//, ''));
+          } catch {
+            return '';
+          }
+        }
       },
       chosen.filePath
     );

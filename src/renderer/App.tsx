@@ -136,6 +136,12 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const reloadNotes = useCallback(
     async (campaignId: string) => {
       const list = await call(api.notes.list(campaignId));
+      // Auch die Referenz sofort setzen. Sonst arbeitet der noch laufende
+      // Ablauf mit dem alten Stand weiter, denn die Referenz wird erst beim
+      // naechsten Rendern nachgezogen. Nach einem Umbenennen haette der
+      // Editor dann den Text von vor dem Link-Rewrite gezeigt und beim
+      // Speichern wieder zurueckgeschrieben.
+      notesRef.current = list;
       setNotes(list);
       return list;
     },
@@ -184,7 +190,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         }
       } else {
         saved = await call(api.notes.save(campaignId, current));
-        setNotes((previous) => previous.map((note) => (note.id === saved.id ? saved : note)));
+        notesRef.current = notesRef.current.map((note) => (note.id === saved.id ? saved : note));
+        setNotes(notesRef.current);
       }
 
       setDraft((previous) => (previous && previous.id === saved.id ? saved : previous));
