@@ -1,0 +1,97 @@
+{
+  "name": "backstory-creator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop-Tool zum Schreiben von D&D-Charakter-Backstorys",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build:renderer && npm run build:main",
+    "build:renderer": "vite build",
+    "build:main": "node scripts/build-main.mjs",
+    "start": "npm run build && electron .",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "node scripts/build-tests.mjs && node --test tests/*.test.mjs",
+    "smoke": "npm run build && xvfb-run -a electron scripts/smoke.cjs --no-sandbox",
+    "icon": "node scripts/make-icon.mjs",
+    "dist:win": "npm run build && electron-builder --win --publish never",
+    "dist:linux": "npm run build && electron-builder --linux --publish never"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@tiptap/extension-placeholder": "^2.11.5",
+    "@tiptap/pm": "^2.11.5",
+    "@tiptap/react": "^2.11.5",
+    "@tiptap/starter-kit": "^2.11.5",
+    "@types/archiver": "^6.0.3",
+    "@types/js-yaml": "^4.0.9",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/turndown": "^5.0.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.24.0",
+    "marked": "^12.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "turndown": "^7.2.0",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
+  },
+  "author": {
+    "name": "ItsLunasDream"
+  },
+  "license": "MIT",
+  "build": {
+    "appId": "de.itslunasdream.backstorycreator",
+    "productName": "Backstory Creator",
+    "copyright": "Copyright \u00a9 ItsLunasDream",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Backstory Creator",
+      "artifactName": "BackstoryCreator-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "BackstoryCreator-portable-${version}.${ext}"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Office",
+      "target": [
+        "AppImage"
+      ]
+    }
+  }
+}
