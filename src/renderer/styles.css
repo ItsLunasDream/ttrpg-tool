@@ -1062,6 +1062,39 @@ mark {
   opacity: 0.2;
 }
 
+.assistant__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.assistant__actions button {
+  font-size: 12px;
+}
+
+.assistant__answer {
+  background: var(--bg-input);
+  border-radius: var(--radius);
+  font-size: 12px;
+  line-height: 1.55;
+  margin-bottom: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 9px;
+  white-space: pre-wrap;
+}
+
+.assistant__warning {
+  color: var(--link-missing);
+}
+
+.assistant__note {
+  border-top: 1px solid var(--border);
+  margin: 10px 0 0;
+  padding-top: 8px;
+}
+
 /* --- Notiztyp-Editor --- */
 
 .type-editor {

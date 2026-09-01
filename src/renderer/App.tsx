@@ -19,6 +19,8 @@ import { NoteTypesDialog } from './components/NoteTypesDialog';
 import { HistoryDialog } from './components/HistoryDialog';
 import { PromptsDialog } from './components/PromptsDialog';
 import { GraphView } from './components/GraphView';
+import type { AiStatus } from './components/AssistantPanel';
+import type { AiTask } from '../main/ai/provider';
 
 type Dialog =
   | { kind: 'none' }
@@ -63,6 +65,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const [reloadKey, setReloadKey] = useState(0);
   const [prompts, setPrompts] = useState<PromptCategory[] | null>(null);
   const [showGraph, setShowGraph] = useState(false);
+  const [aiStatus, setAiStatus] = useState<AiStatus | null>(null);
 
   const draftRef = useRef<Note | null>(null);
   draftRef.current = draft;
@@ -107,6 +110,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       const loaded = await call(api.settings.get());
       setSettings(loaded);
       onLanguageChange(loaded.language);
+      // Der Status haengt an einem Netzaufruf, deshalb nebenlaeufig.
+      void call(api.ai.status()).then(setAiStatus, () => setAiStatus(null));
 
       const list = await call(api.campaigns.list());
       setCampaigns(list);
@@ -318,6 +323,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         const updated = await call(api.settings.update(patch));
         setSettings(updated);
         onLanguageChange(updated.language);
+        void call(api.ai.status()).then(setAiStatus, () => setAiStatus(null));
       });
     },
     [guard, onLanguageChange]
@@ -402,6 +408,13 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 onRename={() => void save()}
                 onDelete={() => setDialog({ kind: 'deleteNote', note: draft })}
                 onOpenHistory={() => void openHistory(draft)}
+                aiStatus={aiStatus}
+                onAsk={async (task: AiTask) => {
+                  const campaignId = activeCampaignId;
+                  if (!campaignId) return null;
+                  await persist();
+                  return guard(() => call(api.ai.ask(campaignId, draft.id, task)));
+                }}
                 onOpenPrompts={() => {
                   setDialog({ kind: 'prompts' });
                   if (!prompts) void guard(async () => setPrompts(await call(api.prompts.get())));
@@ -525,6 +538,13 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       {dialog.kind === 'settings' ? (
         <SettingsDialog
           settings={settings}
+          hasApiKey={aiStatus?.hasKey ?? false}
+          onSaveApiKey={(apiKey) =>
+            void guard(async () => {
+              setSettings(await call(api.ai.setApiKey(apiKey)));
+              setAiStatus(await call(api.ai.status()));
+            })
+          }
           onChange={updateSettings}
           onChooseVaultRoot={() =>
             void guard(async () => {

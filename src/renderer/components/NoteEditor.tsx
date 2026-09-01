@@ -8,6 +8,8 @@ import { RelationsPanel } from './RelationsPanel';
 import { BacklinksPanel } from './BacklinksPanel';
 import { TokenInput } from './TokenInput';
 import { ImageField } from './ImageField';
+import { AssistantPanel, type AiStatus } from './AssistantPanel';
+import type { AiTask } from '../../main/ai/provider';
 import { useT } from '../i18n';
 
 interface Props {
@@ -22,6 +24,8 @@ interface Props {
   onDelete: () => void;
   onOpenHistory: () => void;
   onOpenPrompts: () => void;
+  aiStatus: AiStatus | null;
+  onAsk: (task: AiTask) => Promise<string | null>;
   onExportMarkdown: () => void;
   onExportPdf: () => void;
   onOpenNote: (noteId: string) => void;
@@ -162,6 +166,8 @@ export function NoteEditor(props: Props) {
             onChange={(relations: Relation[]) => onPatch({ relations })}
             onOpenNote={props.onOpenNote}
           />
+
+          <AssistantPanel status={props.aiStatus} onAsk={props.onAsk} />
 
           <BacklinksPanel
             backlinks={backlinks}

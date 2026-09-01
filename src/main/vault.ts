@@ -631,6 +631,11 @@ export function defaultSettings(vaultRoot: string): AppSettings {
     autosaveDelayMs: 1500,
     historyEnabled: true,
     historyMaxVersions: 50,
+    aiProvider: 'none',
+    ollamaBaseUrl: 'http://127.0.0.1:11434',
+    ollamaModel: 'llama3.1',
+    claudeModel: 'claude-opus-5',
+    claudeApiKeyEncrypted: '',
     lastCampaignId: null
   };
 }

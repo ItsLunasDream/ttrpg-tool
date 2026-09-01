@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion } from '../shared/types';
 import type { PromptCategory } from '../shared/writingPrompts';
+import type { AiTask } from '../main/ai/provider';
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -19,6 +20,12 @@ const api = {
   },
   vault: {
     reveal: () => invoke<void>('vault:reveal')
+  },
+  ai: {
+    status: () => invoke<{ provider: string; ready: boolean; detail: string; hasKey: boolean }>('ai:status'),
+    setApiKey: (apiKey: string) => invoke<AppSettings>('ai:setApiKey', apiKey),
+    ask: (campaignId: string, noteId: string, task: AiTask) =>
+      invoke<string>('ai:ask', campaignId, noteId, task)
   },
   prompts: {
     get: () => invoke<PromptCategory[]>('prompts:get'),
