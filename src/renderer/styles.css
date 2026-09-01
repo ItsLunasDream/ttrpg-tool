@@ -350,6 +350,11 @@ mark {
   padding: 5px 14px;
 }
 
+.note-editor__warning--danger {
+  background: rgba(209, 99, 92, 0.16);
+  color: var(--danger);
+}
+
 .note-editor__columns {
   display: grid;
   flex: 1;
@@ -701,6 +706,20 @@ mark {
   color: var(--link-missing);
   flex: 1;
   font-size: 12px;
+}
+
+.relation__reverse {
+  align-items: baseline;
+  color: var(--text-muted);
+  display: flex;
+  font-size: 11px;
+  gap: 6px;
+  justify-content: space-between;
+}
+
+.relation__reverse .link-button {
+  flex-shrink: 0;
+  font-size: 11px;
 }
 
 .relations__add {

@@ -9,6 +9,8 @@ interface Props {
   index: NoteIndex;
   onChange: (relations: Relation[]) => void;
   onOpenNote: (noteId: string) => void;
+  /** Legt bei der Zielnotiz eine Beziehung zurueck auf diese an. */
+  onAddReverse: (targetId: string) => void;
 }
 
 /**
@@ -16,7 +18,7 @@ interface Props {
  * Textstelle. Der Fliesstext bleibt dadurch frei von Beziehungssyntax, und
  * dieselbe Beziehung wird nur einmal gepflegt.
  */
-export function RelationsPanel({ note, index, onChange, onOpenNote }: Props) {
+export function RelationsPanel({ note, index, onChange, onOpenNote, onAddReverse }: Props) {
   const t = useT();
   const [targetId, setTargetId] = useState('');
 
@@ -79,6 +81,17 @@ export function RelationsPanel({ note, index, onChange, onOpenNote }: Props) {
                 value={relation.note}
                 onChange={(event) => update(relation.id, { note: event.target.value })}
               />
+
+              {/* Beziehungen sind gerichtet. Fehlt die Gegenrichtung, ist das
+                  oft Absicht, manchmal aber nur vergessen. */}
+              {target && !target.relations.some((entry) => entry.targetId === note.id) ? (
+                <div className="relation__reverse">
+                  <span>{t('relations.addReverseHint', { title: target.title })}</span>
+                  <button type="button" className="link-button" onClick={() => onAddReverse(target.id)}>
+                    {t('relations.addReverse')}
+                  </button>
+                </div>
+              ) : null}
             </li>
           );
         })}

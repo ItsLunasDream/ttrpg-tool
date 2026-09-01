@@ -4,6 +4,7 @@ import { mkdtemp, rm, readFile, writeFile, readdir, rename } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { promises as fs } from 'node:fs';
 import entry from '../dist/tests/entry.cjs';
 
 const {Vault, zipDirectory} = entry;
@@ -514,5 +515,53 @@ test('Loeschen laesst keinen Ausbruch aus dem Bildverzeichnis zu', async () => {
   await withVault(async (vault) => {
     const campaign = await vault.createCampaign('Sturmkueste');
     await assert.rejects(() => vault.deleteAssets(campaign.id, ['../campaign.json']), { key: 'error.invalidAsset' });
+  });
+});
+
+test('Umbenennen zieht auch einen Selbstverweis mit', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    await vault.saveNote(campaign.id, { ...mira, body: 'Ich, [[Mira]], schreibe das.' });
+
+    await vault.renameNote(campaign.id, mira.id, 'Mira Falkenhand');
+
+    const updated = await vault.getNote(campaign.id, mira.id);
+    assert.equal(updated.title, 'Mira Falkenhand');
+    assert.match(updated.body, /\[\[Mira Falkenhand\]\]/);
+    assert.ok(!/\[\[Mira\]\]/.test(updated.body), 'der alte Name steht noch im eigenen Text');
+  });
+});
+
+test('Beim Umbenennen wird der Titel zuletzt gesetzt', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+    await vault.saveNote(campaign.id, { ...toran, body: 'Er kennt [[Mira]].' });
+
+    // Schreiben der anderen Notiz scheitern lassen, um einen Abbruch mitten
+    // im Umbenennen nachzustellen
+    const original = fs.rename;
+    let broken = true;
+    fs.rename = async (from, to) => {
+      if (broken && String(to).endsWith(`${toran.id}.md`)) throw new Error('Schreiben fehlgeschlagen');
+      return original(from, to);
+    };
+
+    try {
+      await assert.rejects(() => vault.renameNote(campaign.id, mira.id, 'Mira Falkenhand'));
+
+      // Die Notiz muss noch den alten Titel tragen, sonst waere der Zustand
+      // nicht mehr durch erneutes Umbenennen zu reparieren
+      const afterCrash = await vault.getNote(campaign.id, mira.id);
+      assert.equal(afterCrash.title, 'Mira', 'der Titel wurde vor den Verweisen gesetzt');
+
+      broken = false;
+      await vault.renameNote(campaign.id, mira.id, 'Mira Falkenhand');
+      assert.match((await vault.getNote(campaign.id, toran.id)).body, /\[\[Mira Falkenhand\]\]/);
+    } finally {
+      fs.rename = original;
+    }
   });
 });

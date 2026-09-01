@@ -477,6 +477,31 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 onImportImage={importImage}
                 onPickImage={pickImage}
                 onReport={report}
+                onAddReverseRelation={(targetId) =>
+                  void guard(async () => {
+                    const campaignId = activeCampaignId;
+                    if (!campaignId) return;
+
+                    // Erst den eigenen Stand sichern, sonst ginge er beim
+                    // Neuladen nach dem Speichern der anderen Notiz verloren.
+                    await persist();
+
+                    const target = notesRef.current.find((entry) => entry.id === targetId);
+                    if (!target || target.relations.some((entry) => entry.targetId === draft.id)) return;
+
+                    await call(
+                      api.notes.save(campaignId, {
+                        ...target,
+                        relations: [
+                          ...target.relations,
+                          { id: crypto.randomUUID(), targetId: draft.id, type: '', note: '' }
+                        ]
+                      })
+                    );
+                    await reloadNotes(campaignId);
+                    report(t('relations.reverseAdded', { title: target.title }));
+                  })
+                }
               />
             ) : (
               <div className="placeholder">

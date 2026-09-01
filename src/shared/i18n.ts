@@ -50,6 +50,8 @@ const de = {
   'editor.saved': 'Gespeichert',
   'editor.words': '{count} Wörter',
   'editor.autosaveOffHint': 'Autosave ist aus. Strg+S speichert.',
+  'editor.ambiguous':
+    'Der Name „{name}" wird von mehreren Notizen benutzt. Links darauf treffen immer dieselbe, das ist womöglich nicht die gemeinte. Vergib einen eindeutigen Titel oder Alias.',
   'editor.placeholder': 'Schreib los. Mit [[ verlinkst du andere Notizen.',
   'editor.profile': 'Steckbrief',
   'editor.aliases': 'Aliase',
@@ -89,6 +91,9 @@ const de = {
   'relations.missing': 'Notiz gelöscht',
   'relations.needsSecondNote': 'Beziehungen brauchen eine zweite Notiz in dieser Kampagne. Leg links eine an.',
   'relations.allLinked': 'Zu allen anderen Notizen dieser Kampagne besteht bereits eine Beziehung.',
+  'relations.addReverse': 'Gegenrichtung anlegen',
+  'relations.addReverseHint': '{title} hat noch keine Beziehung zurück zu dieser Notiz.',
+  'relations.reverseAdded': 'Gegenrichtung bei {title} angelegt. Trag dort ein, wie sie es sieht.',
 
   'backlinks.title': 'Erwähnt von',
   'backlinks.empty': 'Noch keine andere Notiz verlinkt hierher.',
@@ -355,6 +360,8 @@ const en: Partial<Record<MessageKey, string>> = {
   'editor.saved': 'Saved',
   'editor.words': '{count} words',
   'editor.autosaveOffHint': 'Autosave is off. Ctrl+S saves.',
+  'editor.ambiguous':
+    'The name “{name}” is used by more than one note. Links to it always hit the same one, which may not be the one you meant. Give it a unique title or alias.',
   'editor.placeholder': 'Start writing. Type [[ to link another note.',
   'editor.profile': 'Profile',
   'editor.aliases': 'Aliases',
@@ -394,6 +401,9 @@ const en: Partial<Record<MessageKey, string>> = {
   'relations.missing': 'Note deleted',
   'relations.needsSecondNote': 'Relationships need a second note in this campaign. Create one on the left.',
   'relations.allLinked': 'You already have a relationship to every other note in this campaign.',
+  'relations.addReverse': 'Add the other direction',
+  'relations.addReverseHint': '{title} has no relationship back to this note yet.',
+  'relations.reverseAdded': 'Added the other direction on {title}. Fill in there how they see it.',
 
   'backlinks.title': 'Mentioned by',
   'backlinks.empty': 'No other note links here yet.',
