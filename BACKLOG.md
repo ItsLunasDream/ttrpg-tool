@@ -17,35 +17,6 @@ Aktuell gibt es Text, mehrzeilig, Zahl und Link. Denkbar wären Auswahllisten
 mit festen Werten, Datumsfelder oder Ankreuzfelder. Erst umsetzen, wenn ein
 konkreter Bedarf da ist.
 
-### Notiztypen zwischen Kampagnen übernehmen
-
-Angepasste Notiztypen gelten nur für eine Kampagne. Beim Anlegen einer neuen
-Kampagne startet man wieder bei der Vorlage. Sinnvoll wäre, die Typen einer
-bestehenden Kampagne übernehmen zu können.
-
-### Weitere Feldarten im Steckbrief
-
-Aktuell gibt es Text, mehrzeilig, Zahl und Link. Denkbar wären Auswahllisten
-mit festen Werten, Datumsfelder oder Ankreuzfelder. Erst umsetzen, wenn ein
-konkreter Bedarf da ist.
-
-### Notiztypen zwischen Kampagnen übernehmen
-
-Angepasste Notiztypen gelten nur für eine Kampagne. Beim Anlegen einer neuen
-Kampagne startet man wieder bei der Vorlage. Sinnvoll wäre, die Typen einer
-bestehenden Kampagne übernehmen zu können.
-
-### Eigene Suchleiste im Editor
-
-Die Markierung im Editor folgt derzeit dem Suchbegriff aus der Seitenleiste.
-VS Code hat zusätzlich eine eigene Suche im Dokument (Strg+F), die unabhängig
-davon funktioniert und auch Ersetzen anbietet.
-
-Zu entscheiden: wird das gebraucht, oder reicht die gekoppelte Variante?
-Ersetzen wäre ein eigener Punkt.
-
-## Geplante Phasen
-
 ### Antworten des Assistenten strömen lassen
 
 Der Assistent wartet aktuell auf die vollständige Antwort. Bei langen
@@ -79,8 +50,6 @@ alle Sprachen erweitert werden.
   Index statt Volllast
 - Umbenennen einer Notiz schreibt alle betroffenen Dateien einzeln. Ein
   Absturz mittendrin könnte einen Teil der Links auf dem alten Namen lassen
-- Notiztypen gelten je Kampagne. Anpassungen müssen in einer neuen Kampagne
-  wiederholt werden
 - Mehrdeutige Namen, also zwei Notizen mit gleichem Titel oder Alias, werden
   im Index erfasst (`NoteIndex.ambiguous`), in der Oberfläche aber nicht
   angezeigt. Beim Verlinken gewinnt stillschweigend die erste Notiz
@@ -271,3 +240,13 @@ Escape schließt.
 Ist die eigene Suche offen, gilt ihr Begriff; sonst weiterhin der aus der
 Seitenleiste. Ersetzen läuft in einer Transaktion, ein Rückgängig holt also
 alles zusammen zurück.
+
+### Notiztypen zwischen Kampagnen übernehmen
+
+Im Notiztypen-Dialog lassen sich die Typen einer anderen Kampagne übernehmen.
+
+Bewusst nur ergänzend: fehlende Typen kommen dazu, bei bekannten Typen
+fehlende Felder. Nichts wird ersetzt oder entfernt. Ein hier gelöschter Typ
+würde bestehende Notizen typlos machen, und eine überschriebene Beschriftung
+wäre eine stille Änderung an eigener Arbeit. Die Rückmeldung nennt, wie viele
+Typen und Felder dazugekommen sind.

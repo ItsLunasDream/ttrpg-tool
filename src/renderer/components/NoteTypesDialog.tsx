@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react';
-import { FIELD_TYPES as FIELD_TYPE_IDS, toKey } from '../../shared/noteTypes';
+import { FIELD_TYPES as FIELD_TYPE_IDS, countMergeChanges, mergeNoteTypes, toKey } from '../../shared/noteTypes';
 import type { MessageKey } from '../../shared/i18n';
 import { useT } from '../i18n';
-import type { FieldDef, Note, NoteTypeDef } from '../../shared/types';
+import type { Campaign, FieldDef, Note, NoteTypeDef } from '../../shared/types';
 import { Modal } from './Modal';
 
 interface Props {
   types: NoteTypeDef[];
   notes: Note[];
+  /** Andere Kampagnen, aus denen sich Typen uebernehmen lassen. */
+  otherCampaigns: Campaign[];
   onSave: (types: NoteTypeDef[]) => void;
   onClose: () => void;
 }
@@ -28,11 +30,13 @@ const FIELD_TYPE_KEYS: Record<FieldDef['type'], MessageKey> = {
  * Ein entferntes Feld loescht keine Werte: sie stehen weiter in der Datei und
  * tauchen wieder auf, wenn das Feld zurueckgeholt wird.
  */
-export function NoteTypesDialog({ types, notes, onSave, onClose }: Props) {
+export function NoteTypesDialog({ types, notes, otherCampaigns, onSave, onClose }: Props) {
   const t = useT();
   const [draft, setDraft] = useState<NoteTypeDef[]>(() => structuredClone(types));
   const [selectedId, setSelectedId] = useState(types[0]?.id ?? '');
   const [error, setError] = useState<string | null>(null);
+  const [sourceId, setSourceId] = useState('');
+  const [note, setNote] = useState<string | null>(null);
 
   const selected = draft.find((def) => def.id === selectedId) ?? draft[0] ?? null;
 
@@ -235,6 +239,45 @@ export function NoteTypesDialog({ types, notes, onSave, onClose }: Props) {
             </div>
           </div>
         ) : null}
+      </div>
+
+      <div className="type-editor__copy">
+        <span className="field__label">{t('types.copyFrom')}</span>
+        {otherCampaigns.length === 0 ? (
+          <p className="panel__empty">{t('types.copyFromNone')}</p>
+        ) : (
+          <div className="relations__add">
+            <select value={sourceId} onChange={(event) => setSourceId(event.target.value)}>
+              <option value="">{t('types.copyFromChoose')}</option>
+              {otherCampaigns.map((campaign) => (
+                <option value={campaign.id} key={campaign.id}>
+                  {campaign.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={!sourceId}
+              onClick={() => {
+                const source = otherCampaigns.find((campaign) => campaign.id === sourceId);
+                if (!source) return;
+
+                const changes = countMergeChanges(draft, source.noteTypes);
+                setDraft(mergeNoteTypes(draft, source.noteTypes));
+                setError(null);
+                setNote(
+                  changes.types === 0 && changes.fields === 0
+                    ? t('types.copyFromNothing')
+                    : t('types.copyFromResult', { types: changes.types, fields: changes.fields })
+                );
+              }}
+            >
+              {t('types.copyFromApply')}
+            </button>
+          </div>
+        )}
+        <p className="modal__hint">{t('types.copyFromHint')}</p>
+        {note ? <p className="type-editor__note">{note}</p> : null}
       </div>
 
       {error ? <p className="type-editor__error">{error}</p> : null}

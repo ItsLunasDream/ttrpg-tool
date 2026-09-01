@@ -502,6 +502,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         <NoteTypesDialog
           types={noteTypes}
           notes={notes}
+          otherCampaigns={campaigns.filter((campaign) => campaign.id !== activeCampaign.id)}
           onClose={() => setDialog({ kind: 'none' })}
           onSave={(types) =>
             void guard(async () => {

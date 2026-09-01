@@ -1241,6 +1241,18 @@ mark {
   justify-content: space-between;
 }
 
+.type-editor__copy {
+  border-top: 1px solid var(--border);
+  margin-top: 14px;
+  padding-top: 12px;
+}
+
+.type-editor__note {
+  color: var(--accent);
+  font-size: 12px;
+  margin: 6px 0 0;
+}
+
 .type-editor__error {
   color: var(--danger);
   font-size: 12px;
