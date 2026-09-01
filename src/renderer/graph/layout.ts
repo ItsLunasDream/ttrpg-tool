@@ -43,7 +43,11 @@ export function layoutGraph(
   edges: GraphEdge[],
   options: LayoutOptions
 ): GraphNode[] {
-  const { width, height, iterations = 300, seed = 42 } = options;
+  // Jede Runde vergleicht alle Knotenpaare. Bei vielen Notizen waere das mit
+  // fester Rundenzahl eine spuerbare Blockade, deshalb sinkt sie mit der
+  // Groesse. Das Ergebnis wird gröber, bleibt aber brauchbar.
+  const defaultIterations = Math.round(Math.min(300, Math.max(60, 30000 / Math.max(1, ids.length))));
+  const { width, height, iterations = defaultIterations, seed = 42 } = options;
   const random = makeRandom(seed);
 
   // Startaufstellung auf einem Kreis, damit nichts exakt aufeinanderliegt.

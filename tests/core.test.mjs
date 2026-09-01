@@ -518,3 +518,15 @@ test('countMergeChanges zaehlt Typen und Felder', () => {
   assert.deepEqual(countMergeChanges([TYPE_A], [TYPE_B]), { types: 1, fields: 1 });
   assert.deepEqual(countMergeChanges([TYPE_A], [TYPE_A]), { types: 0, fields: 0 });
 });
+
+test('Die Rundenzahl sinkt bei vielen Knoten, damit nichts blockiert', () => {
+  const many = Array.from({ length: 600 }, (_, index) => ({ id: `n${index}`, degree: 0 }));
+
+  const started = Date.now();
+  const nodes = layoutGraph(many, [], { width: 1200, height: 780 });
+  const duration = Date.now() - started;
+
+  assert.equal(nodes.length, 600);
+  assert.ok(duration < 8000, `Anordnung dauerte ${duration} ms`);
+  assert.ok(nodes.every((node) => Number.isFinite(node.x) && Number.isFinite(node.y)));
+});

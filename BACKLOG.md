@@ -297,3 +297,19 @@ Beziehungen bleiben gerichtet, das ist gewollt. Fehlt die Gegenrichtung, wird
 sie jetzt aber angeboten: ein Klick legt bei der Zielnotiz eine Beziehung
 zurück an, ohne Typ, damit dort eingetragen werden kann, wie es von der
 anderen Seite aussieht.
+
+### Drei stille Fehler beim Durchsehen gefunden
+
+**Veralteter Stand nach dem Umbenennen.** Die Notizliste wurde nur über den
+React-Zustand nachgezogen, die parallel geführte Referenz erst beim nächsten
+Rendern. Ein noch laufender Ablauf arbeitete deshalb mit dem alten Stand
+weiter: nach einem Umbenennen konnte der Editor den Text von vor dem
+Link-Rewrite zeigen und ihn beim Speichern wieder zurückschreiben.
+
+**Graph blockiert bei vielen Notizen.** Jede Runde der Anordnung vergleicht
+alle Knotenpaare. Bei 600 Notizen hätte das mit fester Rundenzahl die
+Oberfläche für viele Sekunden eingefroren. Die Rundenzahl sinkt jetzt mit der
+Größe; das Ergebnis wird gröber, bleibt aber brauchbar.
+
+**Ein kaputter Bildverweis brach den PDF-Export ab.** Jetzt wird der
+betroffene Verweis übersprungen statt der ganze Export.
