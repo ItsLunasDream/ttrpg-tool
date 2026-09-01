@@ -152,7 +152,7 @@ erst im fertigen Installationspaket, sieht er das nicht. Dafuer gibt es
 prueft, dass sie ohne fehlende Module hochkommt.
 
 ```bash
-npx electron-builder --linux dir --publish never
+npm run dist:linux:dir
 xvfb-run -a npm run verify:package -- "$PWD/release/linux-unpacked/backstory-creator"
 ```
 

@@ -34,7 +34,7 @@ jobs:
       - run: npm ci
       - run: npm run icon
       - name: Linux-Paket bauen
-        run: npx electron-builder --linux dir --publish never
+        run: npm run dist:linux:dir
       # Faengt fehlende Abhaengigkeiten im asar-Paket ab. Die Tests oben
       # laufen gegen die Quelle und koennen das nicht sehen.
       - name: Gepackte Anwendung starten
