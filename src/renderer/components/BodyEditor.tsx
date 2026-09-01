@@ -3,6 +3,7 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { createWikiLinkExtension, type SuggestionState } from '../editor/wikiLinkExtension';
+import { createSearchHighlightExtension, selectMatch } from '../editor/searchHighlight';
 import { htmlToMarkdown, markdownToHtml } from '../editor/markdown';
 import { normalizeName } from '../../shared/wikilinks';
 import type { NoteIndex } from '../noteIndex';
@@ -14,6 +15,8 @@ interface Props {
   noteId: string;
   markdown: string;
   index: NoteIndex;
+  /** Aktueller Suchbegriff aus der Seitenleiste, leer wenn nicht gesucht wird. */
+  searchQuery: string;
   onChange: (markdown: string) => void;
   onOpenNote: (noteId: string) => void;
   onCreateNote: (title: string) => void;
@@ -22,9 +25,11 @@ interface Props {
 
 const MAX_SUGGESTIONS = 8;
 
-export function BodyEditor({ noteId, markdown, index, onChange, onOpenNote, onCreateNote, onHoverNote }: Props) {
+export function BodyEditor({ noteId, markdown, index, searchQuery, onChange, onOpenNote, onCreateNote, onHoverNote }: Props) {
   const [suggestion, setSuggestion] = useState<SuggestionState | null>(null);
   const [highlight, setHighlight] = useState(0);
+  const [matchCount, setMatchCount] = useState(0);
+  const [activeMatch, setActiveMatch] = useState(-1);
 
   // Handler laufen in ProseMirror-Plugins, die nur einmal erzeugt werden.
   // Ueber diese Ref sehen sie trotzdem immer den aktuellen Index.
@@ -33,6 +38,21 @@ export function BodyEditor({ noteId, markdown, index, onChange, onOpenNote, onCr
 
   const handlersRef = useRef({ onOpenNote, onHoverNote });
   handlersRef.current = { onOpenNote, onHoverNote };
+
+  const queryRef = useRef(searchQuery);
+  queryRef.current = searchQuery;
+  const activeMatchRef = useRef(activeMatch);
+  activeMatchRef.current = activeMatch;
+
+  const searchHighlight = useMemo(
+    () =>
+      createSearchHighlightExtension({
+        getQuery: () => queryRef.current,
+        getActiveIndex: () => activeMatchRef.current,
+        onMatchesChanged: setMatchCount
+      }),
+    []
+  );
 
   const wikiLink = useMemo(
     () =>
@@ -58,7 +78,8 @@ export function BodyEditor({ noteId, markdown, index, onChange, onOpenNote, onCr
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Placeholder.configure({ placeholder: 'Schreib los. Mit [[ verlinkst du andere Notizen.' }),
-      wikiLink
+      wikiLink,
+      searchHighlight
     ],
     content: markdownToHtml(markdown),
     onUpdate: ({ editor: instance }) => onChange(htmlToMarkdown(instance.getHTML()))
@@ -71,6 +92,40 @@ export function BodyEditor({ noteId, markdown, index, onChange, onOpenNote, onCr
     loadedNoteId.current = noteId;
     editor.commands.setContent(markdownToHtml(markdown), false);
   }, [editor, noteId, markdown]);
+
+  // Suchbegriff oder Notiz gewechselt: Dekorationen neu berechnen lassen und
+  // die Auswahl der aktiven Fundstelle zuruecksetzen.
+  useEffect(() => {
+    setActiveMatch(-1);
+    if (editor) editor.view.dispatch(editor.state.tr);
+  }, [editor, searchQuery, noteId]);
+
+  const goToMatch = useCallback(
+    (direction: 1 | -1) => {
+      if (!editor || matchCount === 0) return;
+      const next = activeMatch === -1
+        ? (direction === 1 ? 0 : matchCount - 1)
+        : (activeMatch + direction + matchCount) % matchCount;
+      setActiveMatch(next);
+      selectMatch(editor.view, next, searchQuery);
+    },
+    [editor, matchCount, activeMatch, searchQuery]
+  );
+
+  // F3 und Umschalt+F3 springen zwischen den Fundstellen, wie in einem
+  // Code-Editor. Ohne Suchbegriff passiert nichts.
+  useEffect(() => {
+    if (!searchQuery.trim() || matchCount === 0) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'F3') return;
+      event.preventDefault();
+      goToMatch(event.shiftKey ? -1 : 1);
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [searchQuery, matchCount, goToMatch]);
 
   const candidates = useMemo(() => {
     if (!suggestion) return [];
@@ -131,6 +186,23 @@ export function BodyEditor({ noteId, markdown, index, onChange, onOpenNote, onCr
 
   return (
     <div className="body-editor">
+      {searchQuery.trim() ? (
+        <div className="search-bar">
+          <span className="search-bar__term">„{searchQuery.trim()}"</span>
+          <span className="search-bar__count">
+            {matchCount === 0
+              ? 'keine Fundstelle'
+              : `${activeMatch === -1 ? '–' : activeMatch + 1} von ${matchCount}`}
+          </span>
+          <button type="button" title="Vorherige Fundstelle (Umschalt+F3)" disabled={matchCount === 0} onClick={() => goToMatch(-1)}>
+            ‹
+          </button>
+          <button type="button" title="Nächste Fundstelle (F3)" disabled={matchCount === 0} onClick={() => goToMatch(1)}>
+            ›
+          </button>
+        </div>
+      ) : null}
+
       <Toolbar editor={editor} />
       <EditorContent className="body-editor__surface" editor={editor} />
 

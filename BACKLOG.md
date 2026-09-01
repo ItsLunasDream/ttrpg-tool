@@ -5,57 +5,6 @@ eines Abschnitts ist keine Priorisierung.
 
 ## Offene Wünsche
 
-### Textanfang in der Kurzinfo-Karte zeigen
-
-Beim Überfahren eines `[[Links]]` zeigt die Kurzinfo aktuell nur Titel, Typ,
-Aliase, Steckbrieffelder und Tags. Zusätzlich soll der Anfang des Textes zu
-sehen sein, damit man ohne Notizwechsel einschätzen kann, worum es geht.
-
-Betrifft `src/renderer/components/InfoCard.tsx`. Der Rumpf liegt bereits im
-Notizobjekt vor, es fehlt nur die Darstellung.
-
-Zu klären beim Umsetzen:
-- Länge des Ausschnitts, Vorschlag: erste zwei bis drei Zeilen, hart begrenzt
-  auf etwa 200 Zeichen mit Auslassungszeichen
-- Markdown-Syntax im Ausschnitt entfernen, sonst stehen `##` und `[[` in der
-  Karte. `countWords` in `src/renderer/editor/markdown.ts` macht so eine
-  Bereinigung bereits, die Logik lässt sich herausziehen
-- Karte darf dadurch nicht unbegrenzt wachsen, sie ist auf 300 px Breite fest
-
-### Fundstelle in der Suche farblich markieren
-
-Die Volltextsuche filtert die Notizliste, zeigt aber nur die Titel. Die
-gefundene Textstelle soll sichtbar und farblich hervorgehoben sein, in der
-Trefferliste **und** im Editor, wenn man den Treffer öffnet. Vorbild ist die
-Suche in VS Code: alle Vorkommen markiert, mit Sprungmöglichkeit zwischen
-ihnen.
-
-Die Datenseite ist für die Trefferliste bereits da: `searchNotes` in
-`src/renderer/noteIndex.ts` liefert pro Treffer einen `SearchHit` mit
-`snippet` und `field` (Titel, Alias, Tag, Feld oder Rumpf). Die Notizliste
-benutzt bislang nur `filterNotes` und wirft diese Information weg.
-
-Teil 1, Trefferliste:
-- `NoteList` auf `searchNotes` umstellen, sobald ein Suchbegriff eingegeben
-  ist, und den Ausschnitt unter dem Titel anzeigen
-- Hervorhebung nicht per `dangerouslySetInnerHTML`, sondern den Ausschnitt in
-  Textstücke zerlegen und den Treffer in ein `<mark>` setzen
-- Mehrere Fundstellen pro Notiz: `matchNote` liefert aktuell nur den ersten
-  Treffer und muss dafür erweitert werden
-
-Teil 2, Markierung im Editor:
-- Als ProseMirror-Dekoration umsetzbar, dieselbe Technik wie bei den
-  Wiki-Links in `src/renderer/editor/wikiLinkExtension.ts`. Der Suchbegriff
-  kommt als veränderliche Referenz herein, wie dort der Notizindex
-- Zusätzlich zur reinen Markierung braucht es für das VS-Code-Gefühl eine
-  aktive Fundstelle mit eigener Farbe, Sprung zur nächsten und vorherigen
-  (F3 bzw. Umschalt+F3), Trefferzähler und Scrollen zur Fundstelle
-- Offen: reicht die Markierung des Begriffs aus der Seitenleiste, oder soll
-  es eine eigene Suchleiste im Editor geben (Strg+F), die unabhängig von der
-  Notizsuche funktioniert. VS Code hat beides getrennt. Vorschlag: mit der
-  Markierung aus der Seitenleiste anfangen, die eigene Suchleiste erst
-  danach entscheiden
-
 ### Freier Notiztyp ohne feste Felder
 
 Neben Charakter, Ort, Fraktion und Ereignis soll es einen generischen Typ
@@ -117,6 +66,15 @@ Zu klären beim Umsetzen:
   Kleinschreibung `toLocaleLowerCase('de-DE')`. Das sollte der eingestellten
   Sprache folgen
 
+### Eigene Suchleiste im Editor
+
+Die Markierung im Editor folgt derzeit dem Suchbegriff aus der Seitenleiste.
+VS Code hat zusätzlich eine eigene Suche im Dokument (Strg+F), die unabhängig
+davon funktioniert und auch Ersetzen anbietet.
+
+Zu entscheiden: wird das gebraucht, oder reicht die gekoppelte Variante?
+Ersetzen wäre ein eigener Punkt.
+
 ## Geplante Phasen
 
 ### Phase 2
@@ -155,3 +113,22 @@ Zu klären beim Umsetzen:
 - Die Windows-Anwendung ist nicht signiert, Windows zeigt beim ersten Start
   eine SmartScreen-Warnung. Eine Signatur bräuchte ein kostenpflichtiges
   Zertifikat
+
+## Erledigt
+
+### Textanfang in der Kurzinfo-Karte
+
+Die Kurzinfo beim Überfahren eines `[[Links]]` zeigt jetzt zusätzlich den
+Anfang des Textes. Die Markdown-Bereinigung steckt in `stripMarkdown` und
+`textPreview` in `src/renderer/editor/markdown.ts`, der Ausschnitt bricht an
+einer Wortgrenze ab.
+
+### Fundstelle in der Suche farblich markieren
+
+In der Trefferliste steht unter dem Titel ein Ausschnitt mit hervorgehobener
+Fundstelle, bei mehreren Vorkommen im Text mit Zähler. Im Editor sind alle
+Fundstellen eingefärbt, die aktive zusätzlich. Eine Leiste über dem Editor
+zeigt „x von y" und erlaubt das Springen, auch per F3 und Umschalt+F3.
+
+Offen geblieben: eine eigene Suchleiste im Editor mit Strg+F, unabhängig von
+der Suche in der Seitenleiste. Siehe eigenen Punkt oben.

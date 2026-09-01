@@ -1,5 +1,7 @@
 :root {
   --bg: #16141c;
+  --hit: rgba(196, 163, 90, 0.28);
+  --hit-active: #c4a35a;
   --bg-raised: #1f1c28;
   --bg-input: #14121a;
   --border: #322d40;
@@ -271,6 +273,31 @@ button:focus-visible {
   font-size: 11px;
 }
 
+.note-list__snippet {
+  color: var(--text-muted);
+  display: block;
+  font-size: 11px;
+  line-height: 1.45;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.note-list__snippet-label {
+  color: var(--accent);
+}
+
+.note-list__more {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+mark {
+  background: var(--hit);
+  border-radius: 2px;
+  color: var(--text);
+  padding: 0 1px;
+}
+
 .note-list__total,
 .note-list__empty {
   color: var(--text-muted);
@@ -441,6 +468,46 @@ button:focus-visible {
 
 .wikilink--unresolved {
   color: var(--link-missing);
+}
+
+.search-hit {
+  background: var(--hit);
+  border-radius: 2px;
+}
+
+.search-hit--active {
+  background: var(--hit-active);
+  color: #201a10;
+}
+
+.search-bar {
+  align-items: center;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  padding: 5px 14px;
+}
+
+.search-bar__term {
+  color: var(--accent);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-bar__count {
+  color: var(--text-muted);
+  flex: 1;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.search-bar button {
+  line-height: 1;
+  min-width: 26px;
+  padding: 2px 7px;
 }
 
 /* --- Autocomplete --- */
@@ -694,6 +761,15 @@ button:focus-visible {
   font-size: 12px;
   margin: 0;
   word-break: break-word;
+}
+
+.info-card__preview {
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 8px;
+  padding-top: 8px;
 }
 
 .info-card__tags {

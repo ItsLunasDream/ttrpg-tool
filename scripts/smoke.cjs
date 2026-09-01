@@ -61,6 +61,40 @@ async function fillDialog(window, value, confirmLabel) {
   await sleep(500);
 }
 
+/** Waehlt eine Notiz ueber die Liste in der Seitenleiste aus. */
+async function selectNote(window, title) {
+  await run(
+    window,
+    `const entry = [...document.querySelectorAll('.note-list li button')]
+       .find((b) => b.textContent.includes(${JSON.stringify(title)}));
+     if (!entry) throw new Error('Notiz nicht in der Liste: ' + ${JSON.stringify(title)});
+     entry.click();
+     return true;`
+  );
+  await sleep(700);
+}
+
+/** Setzt ein Steckbrieffeld ueber seine Beschriftung. */
+async function setField(window, label, value) {
+  await run(
+    window,
+    `const field = [...document.querySelectorAll('.note-editor__side .field')]
+       .find((f) => f.textContent.startsWith(${JSON.stringify(label)}));
+     if (!field) throw new Error('Feld nicht gefunden: ' + ${JSON.stringify(label)});
+     setValue(field.querySelector('input'), ${JSON.stringify(value)});
+     return true;`
+  );
+  await sleep(250);
+}
+
+async function save(window) {
+  await run(
+    window,
+    `window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true })); return true;`
+  );
+  await sleep(1200);
+}
+
 app.whenReady().then(async () => {
   try {
     const window = await waitForWindow();
@@ -96,17 +130,17 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelectorAll('.note-list li').length === 2;`),
       'Notizliste zeigt nicht beide Charaktere');
 
-    // 3. Steckbrieffeld fuellen
-    await run(
-      window,
-      `const field = [...document.querySelectorAll('.note-editor__side .field')]
-         .find((f) => f.textContent.startsWith('Spezies'));
-       setValue(field.querySelector('input'), 'Waldelfe');
-       return true;`
-    );
+    // 3. Mira bekommt Steckbrieffeld und Text, damit die Kurzinfo etwas zeigt
+    await selectNote(window, 'Mira Falkenhand');
+    await setField(window, 'Spezies', 'Waldelfe');
+    await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
     await sleep(200);
+    window.webContents.insertText('Sie wuchs im Hafen von Baldurs Tor auf.');
+    await sleep(600);
+    await save(window);
 
-    // 4. Text mit Wiki-Link tippen
+    // 4. Text mit Wiki-Link in Torans Notiz tippen
+    await selectNote(window, 'Toran');
     await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
     await sleep(200);
     window.webContents.insertText('Er schuldet [[Mira Falkenhand]] noch Gold.');
@@ -119,26 +153,57 @@ app.whenReady().then(async () => {
     check(await run(window, `return /\\d+ Wörter/.test(document.querySelector('.note-editor__words').textContent);`),
       'Wortzaehler fehlt');
 
-    // 5. Speichern per Strg+S
+    // 5. Kurzinfo-Karte muss den Textanfang zeigen
     await run(
       window,
-      `window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true })); return true;`
+      `const link = document.querySelector('.ProseMirror .wikilink');
+       link.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+       return true;`
     );
-    await sleep(1200);
+    await sleep(500);
+    check(await run(window, `return Boolean(document.querySelector('.info-card'));`), 'Kurzinfo-Karte erscheint nicht');
+    check(await run(window, `return document.querySelector('.info-card')?.textContent.includes('Waldelfe') === true;`),
+      'Steckbrieffeld fehlt in der Kurzinfo');
+    check(await run(window, `return document.querySelector('.info-card__preview')?.textContent.includes('Sie wuchs im Hafen') === true;`),
+      'Textanfang fehlt in der Kurzinfo');
+    await run(window, `document.querySelector('.ProseMirror').dispatchEvent(new MouseEvent('mouseleave', { bubbles: true })); return true;`);
+    await sleep(300);
 
-    // 6. Backlink muss jetzt bei Mira auftauchen
+    // 6. Speichern per Strg+S
+    await save(window);
+
+    // 7. Suche: Treffer markiert in Liste und im Editor
     await run(
       window,
-      `const entry = [...document.querySelectorAll('.note-list li button')]
-         .find((b) => b.textContent.includes('Mira Falkenhand'));
-       entry.click();
+      `setValue(document.querySelector('.note-list__search input'), 'gold');
        return true;`
     );
     await sleep(700);
+    check(await run(window, `return document.querySelectorAll('.note-list__snippet mark').length >= 1;`),
+      'Suchtreffer in der Liste nicht hervorgehoben');
+    check(await run(window, `return document.querySelectorAll('.ProseMirror .search-hit').length >= 1;`),
+      'Suchtreffer im Editor nicht hervorgehoben');
+    check(await run(window, `return Boolean(document.querySelector('.search-bar'));`),
+      'Navigationsleiste für Fundstellen fehlt');
+
+    await clickButton(window, '›', "document.querySelector('.search-bar')");
+    await sleep(400);
+    check(await run(window, `return document.querySelectorAll('.ProseMirror .search-hit--active').length === 1;`),
+      'Aktive Fundstelle wird nicht hervorgehoben');
+    check(await run(window, `return /1 von 1/.test(document.querySelector('.search-bar__count').textContent);`),
+      'Trefferzähler stimmt nicht');
+
+    await run(window, `setValue(document.querySelector('.note-list__search input'), ''); return true;`);
+    await sleep(500);
+    check(await run(window, `return document.querySelectorAll('.ProseMirror .search-hit').length === 0;`),
+      'Hervorhebung bleibt nach Leeren der Suche stehen');
+
+    // 8. Backlink muss jetzt bei Mira auftauchen
+    await selectNote(window, 'Mira Falkenhand');
     check(await run(window, `return document.querySelector('.backlinks')?.textContent.includes('Toran') === true;`),
       'Backlink von Toran fehlt bei Mira');
 
-    // 7. Datei auf der Platte pruefen
+    // 9. Datei auf der Platte pruefen
     const campaignsDir = path.join(userData, 'vault', 'campaigns');
     const campaignId = fs.readdirSync(campaignsDir)[0];
     const notesDir = path.join(campaignsDir, campaignId, 'notes');
@@ -150,7 +215,7 @@ app.whenReady().then(async () => {
     check(files.every((raw) => !raw.includes('\\[')), 'Klammern wurden beim Speichern maskiert');
     check(files.some((raw) => raw.includes('schemaVersion: 1')), 'schemaVersion fehlt');
 
-    // 8. Umbenennen muss die Links mitziehen
+    // 10. Umbenennen muss die Links mitziehen
     await run(
       window,
       `const title = document.querySelector('.note-editor__title');

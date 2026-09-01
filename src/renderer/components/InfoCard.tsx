@@ -1,4 +1,5 @@
 import { noteTypeDef } from '../../shared/noteTypes';
+import { textPreview } from '../editor/markdown';
 import type { Note } from '../../shared/types';
 
 interface Props {
@@ -13,6 +14,7 @@ const CARD_WIDTH = 300;
 export function InfoCard({ note, rect, onOpen }: Props) {
   const def = noteTypeDef(note.type);
   const filled = def.fields.filter((field) => note.fields[field.key]?.trim());
+  const preview = textPreview(note.body);
 
   const left = Math.max(8, Math.min(rect.left, window.innerWidth - CARD_WIDTH - 8));
   const placeAbove = rect.bottom + 220 > window.innerHeight;
@@ -38,8 +40,12 @@ export function InfoCard({ note, rect, onOpen }: Props) {
             </div>
           ))}
         </dl>
+      ) : null}
+
+      {preview ? (
+        <p className="info-card__preview">{preview}</p>
       ) : (
-        <p className="info-card__empty">Noch keine Felder gefüllt.</p>
+        <p className="info-card__empty">Noch kein Text geschrieben.</p>
       )}
 
       {note.tags.length ? (

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, call } from './api';
-import { buildIndex, filterNotes, type SearchFilters } from './noteIndex';
+import { buildIndex, filterNotes, searchNotes, type SearchFilters } from './noteIndex';
 import { normalizeName } from '../shared/wikilinks';
 import { NOTE_TYPES } from '../shared/noteTypes';
-import type { AppSettings, Campaign, Note, NoteType } from '../shared/types';
+import type { AppSettings, Campaign, Note, NoteType, SearchHit } from '../shared/types';
 import { CampaignBar } from './components/CampaignBar';
 import { NoteList } from './components/NoteList';
 import { NoteEditor } from './components/NoteEditor';
@@ -46,6 +46,13 @@ export function App() {
 
   const index = useMemo(() => buildIndex(notes), [notes]);
   const visibleNotes = useMemo(() => filterNotes(index, filters), [index, filters]);
+
+  // Treffer der Volltextsuche, damit die Liste Ausschnitt und Fundstelle
+  // zeigen kann. Ohne Suchbegriff bleibt die Zuordnung leer.
+  const searchHits = useMemo(() => {
+    if (!filters.query.trim()) return new Map<string, SearchHit>();
+    return new Map(searchNotes(index, filters.query).map((hit) => [hit.noteId, hit]));
+  }, [index, filters.query]);
   const activeCampaign = campaigns.find((campaign) => campaign.id === activeCampaignId) ?? null;
 
   const report = useCallback((text: string, tone: 'info' | 'error' = 'info') => {
@@ -277,6 +284,7 @@ export function App() {
             <NoteList
               index={index}
               notes={visibleNotes}
+              hits={searchHits}
               activeNoteId={draft?.id ?? null}
               filters={filters}
               onFiltersChange={setFilters}
@@ -301,6 +309,7 @@ export function App() {
                 onCreateNote={createNoteFromLink}
                 onHoverNote={(note, rect) => setHover(note && rect ? { note, rect } : null)}
                 onOpenExternal={(url) => void guard(() => call(api.openExternal(url)))}
+                searchQuery={filters.query}
               />
             ) : (
               <div className="placeholder">

@@ -61,11 +61,23 @@ export interface AppSettings {
   lastCampaignId: string | null;
 }
 
+/** Fundstelle innerhalb eines Textausschnitts, fuer die Hervorhebung. */
+export interface SnippetMatch {
+  from: number;
+  to: number;
+}
+
 export interface SearchHit {
   noteId: string;
   title: string;
   type: NoteType;
+  field: 'title' | 'alias' | 'tag' | 'body' | 'field';
+  /** Vorangestellte Bezeichnung, z.B. "Alias" oder der Feldname. */
+  label: string | null;
   /** Textausschnitt rund um den Treffer. */
   snippet: string;
-  field: 'title' | 'alias' | 'tag' | 'body' | 'field';
+  /** Fundstellen innerhalb von `snippet`. */
+  matches: SnippetMatch[];
+  /** Anzahl Fundstellen im gesamten Rumpf, unabhaengig vom Ausschnitt. */
+  bodyMatches: number;
 }
