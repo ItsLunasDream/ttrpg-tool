@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import entry from '../dist/tests/entry.cjs';
@@ -106,5 +106,113 @@ test('Leere Namen werden abgelehnt', async () => {
     await assert.rejects(() => vault.createCampaign('   '), /Namen/);
     const campaign = await vault.createCampaign('Sturmkueste');
     await assert.rejects(() => vault.createNote(campaign.id, 'character', '  '), /Titel/);
+  });
+});
+
+test('Neue Kampagnen bekommen die Standard-Notiztypen', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    assert.ok(campaign.noteTypes.length >= 5);
+    assert.ok(campaign.noteTypes.some((def) => def.id === 'character'));
+    assert.ok(campaign.noteTypes.some((def) => def.id === 'note' && def.fields.length === 0));
+  });
+});
+
+test('Kampagne ohne Notiztypen wird beim Lesen migriert und zurueckgeschrieben', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const file = path.join(root, 'campaigns', campaign.id, 'campaign.json');
+
+    // Zustand einer aelteren Version herstellen
+    await writeFile(file, JSON.stringify({ id: campaign.id, name: 'Sturmkueste', createdAt: campaign.createdAt }));
+
+    const [migrated] = await vault.listCampaigns();
+    assert.ok(migrated.noteTypes.length >= 5, 'Notiztypen nicht ergaenzt');
+
+    const onDisk = JSON.parse(await readFile(file, 'utf8'));
+    assert.ok(Array.isArray(onDisk.noteTypes), 'Migration wurde nicht gespeichert');
+  });
+});
+
+test('Notiztypen lassen sich anpassen', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const types = campaign.noteTypes.map((def) =>
+      def.id === 'character'
+        ? { ...def, label: 'Person', fields: [...def.fields, { key: 'heimat', label: 'Heimat', type: 'text' }] }
+        : def
+    );
+
+    const updated = await vault.updateNoteTypes(campaign.id, types);
+    const character = updated.noteTypes.find((def) => def.id === 'character');
+    assert.equal(character.label, 'Person');
+    assert.ok(character.fields.some((field) => field.key === 'heimat'));
+
+    const [reloaded] = await vault.listCampaigns();
+    assert.equal(reloaded.noteTypes.find((def) => def.id === 'character').label, 'Person');
+  });
+});
+
+test('Entferntes Feld loescht keinen bereits eingetragenen Wert', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    await vault.saveNote(campaign.id, { ...note, fields: { species: 'Waldelfe' } });
+
+    const types = campaign.noteTypes.map((def) =>
+      def.id === 'character' ? { ...def, fields: def.fields.filter((field) => field.key !== 'species') } : def
+    );
+    await vault.updateNoteTypes(campaign.id, types);
+
+    const reloaded = await vault.getNote(campaign.id, note.id);
+    assert.equal(reloaded.fields.species, 'Waldelfe', 'Wert wurde verworfen');
+  });
+});
+
+test('Ungueltige Notiztypen werden abgelehnt', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    await assert.rejects(() => vault.updateNoteTypes(campaign.id, []), /mindestens ein Notiztyp/);
+    await assert.rejects(
+      () => vault.updateNoteTypes(campaign.id, [{ id: 'a', label: '', plural: '', fields: [] }]),
+      /Bezeichnung/
+    );
+    await assert.rejects(
+      () => vault.updateNoteTypes(campaign.id, [
+        { id: 'a', label: 'A', plural: 'A', fields: [{ key: 'x', label: 'X', type: 'text' }, { key: 'x', label: 'Y', type: 'text' }] }
+      ]),
+      /doppelt/
+    );
+    await assert.rejects(
+      () => vault.updateNoteTypes(campaign.id, [
+        { id: 'a', label: 'A', plural: 'A', fields: [] },
+        { id: 'a', label: 'B', plural: 'B', fields: [] }
+      ]),
+      /doppelt/
+    );
+  });
+});
+
+test('Notizen mit unbekanntem Typ bleiben lesbar', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+
+    // Typ entfernen, als haette die Nutzerin ihn geloescht
+    await vault.updateNoteTypes(
+      campaign.id,
+      campaign.noteTypes.filter((def) => def.id !== 'character')
+    );
+
+    const reloaded = await vault.getNote(campaign.id, note.id);
+    assert.equal(reloaded.type, 'character');
+    assert.equal(reloaded.title, 'Mira');
+  });
+});
+
+test('Notizen mit unbekanntem Typ koennen nicht angelegt werden', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    await assert.rejects(() => vault.createNote(campaign.id, 'gibtesnicht', 'Mira'), /Unbekannter Notiztyp/);
   });
 });

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { Vault, VaultError, writeSettings } from './vault';
 import { zipDirectory } from './export';
-import type { AppSettings, Campaign, Note, NoteType } from '../shared/types';
+import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef } from '../shared/types';
 
 export interface IpcContext {
   vault: Vault;
@@ -65,6 +65,10 @@ export function registerIpc(context: IpcContext): void {
   handle<[string], Campaign>('campaign:create', (name) => vault.createCampaign(name));
   handle<[string, string], Campaign>('campaign:rename', (id, name) => vault.renameCampaign(id, name));
   handle<[string], void>('campaign:delete', (id) => vault.deleteCampaign(id));
+  handle<[string], Campaign>('campaign:get', (id) => vault.getCampaign(id));
+  handle<[string, NoteTypeDef[]], Campaign>('campaign:updateNoteTypes', (id, types) =>
+    vault.updateNoteTypes(id, types)
+  );
 
   handle<[string], Note[]>('note:list', (campaignId) => vault.listNotes(campaignId));
   handle<[string, NoteType, string], Note>('note:create', (campaignId, type, title) =>

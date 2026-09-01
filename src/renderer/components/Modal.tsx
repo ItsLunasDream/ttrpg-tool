@@ -5,9 +5,11 @@ interface Props {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  /** Breitere Variante fuer Dialoge mit zwei Spalten. */
+  wide?: boolean;
 }
 
-export function Modal({ title, onClose, children, footer }: Props) {
+export function Modal({ title, onClose, children, footer, wide = false }: Props) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') onClose();
@@ -18,7 +20,7 @@ export function Modal({ title, onClose, children, footer }: Props) {
 
   return (
     <div className="modal__backdrop" onMouseDown={onClose}>
-      <div className="modal" role="dialog" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
+      <div className={wide ? 'modal modal--wide' : 'modal'} role="dialog" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
         <header className="modal__header">
           <h2>{title}</h2>
           <button type="button" className="icon-button" onClick={onClose} aria-label="Schließen">

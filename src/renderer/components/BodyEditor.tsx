@@ -8,7 +8,7 @@ import { htmlToMarkdown, markdownToHtml } from '../editor/markdown';
 import { normalizeName } from '../../shared/wikilinks';
 import type { NoteIndex } from '../noteIndex';
 import type { Note } from '../../shared/types';
-import { noteTypeDef } from '../../shared/noteTypes';
+import { findNoteType } from '../../shared/noteTypes';
 import { Toolbar } from './Toolbar';
 
 interface Props {
@@ -219,7 +219,7 @@ export function BodyEditor({ noteId, markdown, index, searchQuery, onChange, onO
                 }}
               >
                 <span>{note.title}</span>
-                <span className="suggestions__type">{noteTypeDef(note.type).label}</span>
+                <span className="suggestions__type">{findNoteType(index.types, note.type).label}</span>
               </button>
             </li>
           ))}

@@ -1,14 +1,16 @@
-import { noteTypeDef } from '../../shared/noteTypes';
+import { findNoteType } from '../../shared/noteTypes';
+import type { NoteTypeDef } from '../../shared/types';
 import type { Backlink } from '../noteIndex';
 
 interface Props {
   backlinks: Backlink[];
+  types: NoteTypeDef[];
   unresolved: string[];
   onOpenNote: (noteId: string) => void;
   onCreateNote: (title: string) => void;
 }
 
-export function BacklinksPanel({ backlinks, unresolved, onOpenNote, onCreateNote }: Props) {
+export function BacklinksPanel({ backlinks, types, unresolved, onOpenNote, onCreateNote }: Props) {
   return (
     <>
       <section className="panel">
@@ -24,7 +26,7 @@ export function BacklinksPanel({ backlinks, unresolved, onOpenNote, onCreateNote
                 <button type="button" className="link-button" onClick={() => onOpenNote(note.id)}>
                   {note.title}
                 </button>
-                <span className="badge">{noteTypeDef(note.type).label}</span>
+                <span className="badge">{findNoteType(types, note.type).label}</span>
                 <p className="backlinks__context">{context}</p>
               </li>
             ))}

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { noteTypeDef } from '../../shared/noteTypes';
+import { findNoteType } from '../../shared/noteTypes';
 import type { Note, Relation } from '../../shared/types';
 import { backlinksFor, unresolvedLinks, type NoteIndex } from '../noteIndex';
 import { countWords } from '../editor/markdown';
@@ -28,7 +28,7 @@ interface Props {
 
 export function NoteEditor(props: Props) {
   const { note, index, dirty, saving, autosaveEnabled, onPatch, onSave, onRename, onDelete } = props;
-  const def = noteTypeDef(note.type);
+  const def = findNoteType(index.types, note.type);
 
   const backlinks = useMemo(() => backlinksFor(index, note.id), [index, note.id]);
   const unresolved = useMemo(() => unresolvedLinks(index, note), [index, note]);
@@ -124,6 +124,7 @@ export function NoteEditor(props: Props) {
 
           <BacklinksPanel
             backlinks={backlinks}
+            types={index.types}
             unresolved={unresolved}
             onOpenNote={props.onOpenNote}
             onCreateNote={props.onCreateNote}

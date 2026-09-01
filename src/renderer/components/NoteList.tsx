@@ -1,4 +1,4 @@
-import { NOTE_TYPES, noteTypeDef } from '../../shared/noteTypes';
+import { findNoteType } from '../../shared/noteTypes';
 import type { Note, NoteType, SearchHit } from '../../shared/types';
 import type { NoteIndex, SearchFilters } from '../noteIndex';
 import { HighlightedText } from './HighlightedText';
@@ -16,10 +16,15 @@ interface Props {
 }
 
 export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersChange, onSelect, onCreate }: Props) {
-  const grouped = NOTE_TYPES.map((def) => ({
-    def,
-    entries: notes.filter((note) => note.type === def.type)
-  })).filter((group) => group.entries.length > 0);
+  const grouped = index.types
+    .map((def) => ({ def, entries: notes.filter((note) => note.type === def.id) }))
+    .filter((group) => group.entries.length > 0);
+
+  // Notizen, deren Typ geloescht wurde, wuerden sonst unsichtbar werden.
+  const orphans = notes.filter((note) => !index.types.some((def) => def.id === note.type));
+  if (orphans.length) {
+    grouped.push({ def: { id: '__orphan', label: 'Ohne Typ', plural: 'Ohne Typ', fields: [] }, entries: orphans });
+  }
 
   return (
     <div className="note-list">
@@ -38,8 +43,8 @@ export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersC
           onChange={(event) => onFiltersChange({ ...filters, type: event.target.value as NoteType | 'all' })}
         >
           <option value="all">Alle Typen</option>
-          {NOTE_TYPES.map((def) => (
-            <option value={def.type} key={def.type}>
+          {index.types.map((def) => (
+            <option value={def.id} key={def.id}>
               {def.plural}
             </option>
           ))}
@@ -58,8 +63,8 @@ export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersC
       </div>
 
       <div className="note-list__new">
-        {NOTE_TYPES.map((def) => (
-          <button type="button" key={def.type} onClick={() => onCreate(def.type)} title={`Neue Notiz: ${def.label}`}>
+        {index.types.map((def) => (
+          <button type="button" key={def.id} onClick={() => onCreate(def.id)} title={`Neue Notiz: ${def.label}`}>
             + {def.label}
           </button>
         ))}
@@ -70,7 +75,7 @@ export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersC
           <p className="note-list__empty">Keine Notiz passt zum Filter.</p>
         ) : (
           grouped.map(({ def, entries }) => (
-            <section key={def.type}>
+            <section key={def.id}>
               <h4 className="note-list__group">{def.plural}</h4>
               <ul>
                 {entries.map((note) => {
@@ -113,7 +118,7 @@ export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersC
 
       <p className="note-list__total">
         {index.notes.length} Notizen · {notes.length} sichtbar
-        {filters.type !== 'all' ? ` · ${noteTypeDef(filters.type).plural}` : ''}
+        {filters.type !== 'all' ? ` · ${findNoteType(index.types, filters.type).plural}` : ''}
       </p>
     </div>
   );

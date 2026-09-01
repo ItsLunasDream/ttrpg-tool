@@ -215,7 +215,95 @@ app.whenReady().then(async () => {
     check(files.every((raw) => !raw.includes('\\[')), 'Klammern wurden beim Speichern maskiert');
     check(files.some((raw) => raw.includes('schemaVersion: 1')), 'schemaVersion fehlt');
 
-    // 10. Umbenennen muss die Links mitziehen
+    // 10. Notiztyp anpassen: Feld umbenennen und neues Feld anlegen
+    await clickButton(window, 'Notiztypen');
+    await sleep(500);
+    check(await run(window, `return Boolean(document.querySelector('.type-editor'));`), 'Notiztyp-Editor öffnet nicht');
+
+    await run(
+      window,
+      `const entry = [...document.querySelectorAll('.type-editor__list button')]
+         .find((b) => b.textContent.includes('Charakter'));
+       entry.click();
+       return true;`
+    );
+    await sleep(300);
+
+    // Beschriftung aendern, der Schluessel muss stabil bleiben
+    await run(
+      window,
+      `const row = [...document.querySelectorAll('.type-editor__fields li')]
+         .find((li) => li.querySelector('.type-editor__field-label').value === 'Spezies');
+       if (!row) throw new Error('Feld Spezies nicht gefunden');
+       setValue(row.querySelector('.type-editor__field-label'), 'Volk');
+       return true;`
+    );
+    await sleep(250);
+
+    await clickButton(window, '+ Feld', "document.querySelector('.type-editor')");
+    await sleep(300);
+    await run(
+      window,
+      `const rows = [...document.querySelectorAll('.type-editor__fields li')];
+       setValue(rows[rows.length - 1].querySelector('.type-editor__field-label'), 'Heimat');
+       return true;`
+    );
+    await sleep(250);
+
+    await clickButton(window, 'Übernehmen', "document.querySelector('.modal')");
+    await sleep(900);
+
+    check(await run(window, `return document.querySelector('.type-editor') === null;`), 'Dialog bleibt offen');
+    check(
+      await run(
+        window,
+        `const labels = [...document.querySelectorAll('.note-editor__side .field__label')].map((s) => s.textContent);
+         return labels.includes('Volk') && labels.includes('Heimat') && !labels.includes('Spezies');`
+      ),
+      'Steckbrief übernimmt die Änderungen nicht'
+    );
+    check(
+      await run(
+        window,
+        `const field = [...document.querySelectorAll('.note-editor__side .field')]
+           .find((f) => f.textContent.startsWith('Volk'));
+         return field.querySelector('input').value === 'Waldelfe';`
+      ),
+      'Wert ging beim Umbenennen der Beschriftung verloren'
+    );
+
+    // Neuen Typ anlegen und benutzen
+    await clickButton(window, 'Notiztypen');
+    await sleep(500);
+    await clickButton(window, '+ Typ', "document.querySelector('.type-editor')");
+    await sleep(300);
+    await run(
+      window,
+      `const detail = document.querySelector('.type-editor__detail');
+       const inputs = detail.querySelectorAll('.field input');
+       setValue(inputs[0], 'Gegenstand');
+       setValue(inputs[1], 'Gegenstände');
+       return true;`
+    );
+    await sleep(250);
+    await clickButton(window, 'Übernehmen', "document.querySelector('.modal')");
+    await sleep(900);
+
+    check(
+      await run(window, `return [...document.querySelectorAll('.note-list__new button')].some((b) => b.textContent.includes('Gegenstand'));`),
+      'Neuer Notiztyp fehlt in der Seitenleiste'
+    );
+
+    await clickButton(window, '+ Gegenstand');
+    await sleep(300);
+    await fillDialog(window, 'Miras Bogen', 'Anlegen');
+    check(
+      await run(window, `return document.querySelector('.note-editor .badge')?.textContent === 'Gegenstand';`),
+      'Notiz bekam nicht den neuen Typ'
+    );
+
+    // 11. Umbenennen muss die Links mitziehen
+    await selectNote(window, 'Mira Falkenhand');
     await run(
       window,
       `const title = document.querySelector('.note-editor__title');

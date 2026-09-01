@@ -5,46 +5,6 @@ eines Abschnitts ist keine Priorisierung.
 
 ## Offene Wünsche
 
-### Freier Notiztyp ohne feste Felder
-
-Neben Charakter, Ort, Fraktion und Ereignis soll es einen generischen Typ
-geben, für alles, was in keine der vier Schubladen passt.
-
-Hängt eng mit dem nächsten Punkt zusammen: sobald der Steckbrief frei
-anpassbar ist, ist ein generischer Typ schlicht ein Typ, der ohne Felder
-startet. Beide Punkte sollten deshalb zusammen umgesetzt werden, sonst baut
-man zweimal am selben Mechanismus.
-
-### Steckbrief anpassbar machen
-
-Felder sollen sich weglassen, umbenennen und ergänzen lassen. Aktuell stehen
-sie fest in `src/shared/noteTypes.ts`.
-
-Die Oberfläche rendert das Formular bereits aus dem Schema, das ist die
-halbe Miete. Fehlt: das Schema muss vom Code in die Daten wandern.
-
-Zu klären beim Umsetzen:
-- **Ebene der Anpassung.** Pro Kampagne oder global über alle Kampagnen
-  hinweg? Pro Kampagne passt besser zum Container-Modell, bedeutet aber, dass
-  man Anpassungen bei einer neuen Kampagne wiederholt. Vorschlag: pro
-  Kampagne, mit der Möglichkeit, das Schema einer anderen Kampagne zu
-  übernehmen
-- **Ablageort.** Naheliegend in `campaign.json`, damit das Schema mit der
-  Kampagne gesichert und exportiert wird
-- **Umbenennen von Feldern.** Ein Feld hat einen Schlüssel (`species`) und
-  eine Beschriftung (`Spezies`). Umbenannt werden darf nur die Beschriftung,
-  der Schlüssel muss stabil bleiben, sonst gehen bestehende Werte verloren.
-  Neue Felder brauchen einen automatisch erzeugten, stabilen Schlüssel
-- **Löschen von Feldern.** Was passiert mit bereits eingetragenen Werten?
-  Vorschlag: Wert bleibt in der Datei stehen und taucht wieder auf, wenn das
-  Feld zurückgeholt wird. Verlustfrei und einfach. Alternativ Warnung und
-  echtes Löschen
-- **Migration.** Bestehende Notizen wurden mit dem festen Schema angelegt.
-  Beim ersten Start mit der neuen Version muss das aktuelle Schema in die
-  Kampagne geschrieben werden. Dafür ist die `schemaVersion` in jeder Datei da
-- Feldtypen bleiben zunächst wie gehabt (Text, mehrzeilig, Zahl, URL), ohne
-  eigene Auswahllisten. Das wäre eine eigene Ausbaustufe
-
 ### Oberfläche auf Englisch umstellbar
 
 Das Tool soll zwischen Deutsch und Englisch umschaltbar sein.
@@ -65,6 +25,18 @@ Zu klären beim Umsetzen:
 - Sortierungen benutzen aktuell `localeCompare(..., 'de-DE')` und die
   Kleinschreibung `toLocaleLowerCase('de-DE')`. Das sollte der eingestellten
   Sprache folgen
+
+### Weitere Feldarten im Steckbrief
+
+Aktuell gibt es Text, mehrzeilig, Zahl und Link. Denkbar wären Auswahllisten
+mit festen Werten, Datumsfelder oder Ankreuzfelder. Erst umsetzen, wenn ein
+konkreter Bedarf da ist.
+
+### Notiztypen zwischen Kampagnen übernehmen
+
+Angepasste Notiztypen gelten nur für eine Kampagne. Beim Anlegen einer neuen
+Kampagne startet man wieder bei der Vorlage. Sinnvoll wäre, die Typen einer
+bestehenden Kampagne übernehmen zu können.
 
 ### Eigene Suchleiste im Editor
 
@@ -107,6 +79,8 @@ Ersetzen wäre ein eigener Punkt.
   Index statt Volllast
 - Umbenennen einer Notiz schreibt alle betroffenen Dateien einzeln. Ein
   Absturz mittendrin könnte einen Teil der Links auf dem alten Namen lassen
+- Notiztypen gelten je Kampagne. Anpassungen müssen in einer neuen Kampagne
+  wiederholt werden
 - Mehrdeutige Namen, also zwei Notizen mit gleichem Titel oder Alias, werden
   im Index erfasst (`NoteIndex.ambiguous`), in der Oberfläche aber nicht
   angezeigt. Beim Verlinken gewinnt stillschweigend die erste Notiz
@@ -132,3 +106,18 @@ zeigt „x von y" und erlaubt das Springen, auch per F3 und Umschalt+F3.
 
 Offen geblieben: eine eigene Suchleiste im Editor mit Strg+F, unabhängig von
 der Suche in der Seitenleiste. Siehe eigenen Punkt oben.
+
+### Freier Notiztyp und anpassbarer Steckbrief
+
+Notiztypen sind keine feste Aufzählung mehr, sondern Daten. Sie liegen pro
+Kampagne in `campaign.json` und lassen sich über „Notiztypen" in der Kopfzeile
+bearbeiten: Typen anlegen, umbenennen und löschen, Felder ergänzen,
+umbenennen, umsortieren und entfernen.
+
+Der neue Typ „Notiz" ist der freie Typ ohne Felder.
+
+Umgesetzt wie im Backlog vorgeschlagen:
+- Feldschlüssel bleiben beim Umbenennen der Beschriftung stabil
+- ein entferntes Feld löscht keine Werte, sie bleiben in der Datei
+- ein Typ lässt sich nur löschen, wenn keine Notiz ihn benutzt
+- bestehende Kampagnen bekommen die Vorlage beim ersten Lesen eingetragen
