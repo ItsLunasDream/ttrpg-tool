@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion } from '../shared/types';
+import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion, OrphanedAsset } from '../shared/types';
 import type { PromptCategory } from '../shared/writingPrompts';
 import type { AiTask } from '../main/ai/provider';
 
@@ -59,7 +59,11 @@ const api = {
     pick: (campaignId: string) => invoke<string | null>('asset:pick', campaignId),
     /** Bild aus Zwischenablage oder Ziehen und Ablegen uebernehmen. */
     save: (campaignId: string, name: string, data: Uint8Array) =>
-      invoke<string>('asset:save', campaignId, name, data)
+      invoke<string>('asset:save', campaignId, name, data),
+    /** Bilder, auf die keine Notiz und keine gesicherte Fassung mehr verweist. */
+    orphans: (campaignId: string) => invoke<OrphanedAsset[]>('asset:orphans', campaignId),
+    deleteMany: (campaignId: string, names: string[]) =>
+      invoke<number>('asset:deleteMany', campaignId, names)
   },
   exportCampaignZip: (campaignId: string, campaignName: string) =>
     invoke<string | null>('export:campaignZip', campaignId, campaignName),

@@ -5,16 +5,6 @@ eines Abschnitts ist keine Priorisierung.
 
 ## Offene Wünsche
 
-### Verwaiste Bilder aufräumen
-
-Wird ein Bild aus dem Text oder aus dem Portrait-Feld entfernt, bleibt die
-Datei in `assets/` liegen. Das ist absichtlich so, weil Rückgängigmachen sonst
-ins Leere liefe, sammelt aber mit der Zeit Datenmüll an.
-
-Denkbar: ein Aufräumen-Knopf, der alle Dateien auflistet, auf die keine Notiz
-mehr verweist, und sie nach Rückfrage löscht. Erst dann löschen, nie
-automatisch beim Entfernen aus dem Text.
-
 ### Bildgröße im Text einstellen
 
 Bilder werden derzeit in voller Breite bis maximal zur Textbreite angezeigt.
@@ -82,7 +72,6 @@ alle Sprachen erweitert werden.
 - Mehrdeutige Namen, also zwei Notizen mit gleichem Titel oder Alias, werden
   im Index erfasst (`NoteIndex.ambiguous`), in der Oberfläche aber nicht
   angezeigt. Beim Verlinken gewinnt stillschweigend die erste Notiz
-- Aus dem Text entfernte Bilder bleiben als Datei in `assets/` liegen
 - Der Versionsverlauf wächst mit und landet auch in der ZIP-Sicherung. Bei
   vielen Notizen und hoher Höchstzahl kann das spürbar werden
 - Der PDF-Export bietet keine Auswahl von Schriftart, Rand oder Seitengröße
@@ -248,3 +237,14 @@ Entscheidungen dabei:
   besser zu werden
 - Fehlermeldungen der Anbieter tragen Schlüssel statt fertiger Texte, sonst
   wären sie bei englischer Oberfläche weiterhin deutsch
+
+### Verwaiste Bilder aufräumen
+
+„Aufräumen" in der Kopfzeile zeigt Bilddateien, auf die nichts mehr verweist,
+mit Vorschau und Größe. Ausgewählte lassen sich löschen, automatisch passiert
+nichts.
+
+Wichtig dabei: der Versionsverlauf wird mitgelesen. Ein Bild, das eine
+gesicherte Fassung noch braucht, gilt nicht als verwaist, sonst würde das
+Wiederherstellen ein kaputtes Bild ergeben. Wer aggressiver aufräumen will,
+schaltet den Verlauf ab.

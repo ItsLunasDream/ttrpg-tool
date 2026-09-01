@@ -7,7 +7,17 @@ import { DEFAULT_NOTE_TYPES, isKnownNoteType, toKey } from '../shared/noteTypes'
 import { defaultPrompts } from '../shared/writingPrompts';
 import type { PromptCategory } from '../shared/writingPrompts';
 import { SCHEMA_VERSION } from '../shared/types';
-import type { AppSettings, Campaign, FieldDef, Note, NoteType, NoteTypeDef, NoteVersion, Relation } from '../shared/types';
+import type {
+  AppSettings,
+  Campaign,
+  FieldDef,
+  Note,
+  NoteType,
+  NoteTypeDef,
+  NoteVersion,
+  OrphanedAsset,
+  Relation
+} from '../shared/types';
 import { DEFAULT_LANGUAGE, isLanguage } from '../shared/i18n';
 import type { Language } from '../shared/i18n';
 import type { MessageKey, MessageParams } from '../shared/i18n';
@@ -119,6 +129,87 @@ export class Vault {
     const fileName = `${randomUUID()}${extension}`;
     await writeAtomic(path.join(dir, fileName), Buffer.from(data));
     return `${ASSETS_DIR}/${fileName}`;
+  }
+
+  /**
+   * Bilddateien, auf die keine Notiz mehr verweist.
+   *
+   * Der Versionsverlauf wird mitgelesen: eine alte Fassung darf nicht auf ein
+   * geloeschtes Bild zeigen, sonst zerreisst das Wiederherstellen. Wer
+   * aggressiver aufraeumen will, schaltet den Verlauf ab.
+   */
+  async listOrphanedAssets(campaignId: string): Promise<OrphanedAsset[]> {
+    const dir = this.assetsDir(campaignId);
+
+    let files: string[];
+    try {
+      files = (await fs.readdir(dir, { withFileTypes: true }))
+        .filter((entry) => entry.isFile())
+        .map((entry) => entry.name);
+    } catch {
+      return [];
+    }
+    if (files.length === 0) return [];
+
+    const used = new Set<string>();
+    for (const note of await this.listNotes(campaignId)) {
+      for (const reference of collectAssetReferences(note.fields, note.body)) used.add(reference);
+    }
+    for (const reference of await this.assetsUsedInHistory(campaignId)) used.add(reference);
+
+    const orphans: OrphanedAsset[] = [];
+    for (const name of files) {
+      if (used.has(name)) continue;
+      try {
+        orphans.push({ name, bytes: (await fs.stat(path.join(dir, name))).size });
+      } catch {
+        // Datei ist zwischenzeitlich verschwunden, dann gibt es nichts zu tun.
+      }
+    }
+    return orphans.sort((a, b) => b.bytes - a.bytes);
+  }
+
+  /** Bildverweise aus allen gesicherten Fassungen aller Notizen. */
+  private async assetsUsedInHistory(campaignId: string): Promise<Set<string>> {
+    const used = new Set<string>();
+    const root = path.join(this.campaignDir(campaignId), HISTORY_DIR);
+
+    let noteDirs: string[];
+    try {
+      noteDirs = (await fs.readdir(root, { withFileTypes: true }))
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name);
+    } catch {
+      return used;
+    }
+
+    for (const noteId of noteDirs) {
+      for (const fileName of await this.listVersionFiles(campaignId, noteId)) {
+        try {
+          const raw = await fs.readFile(path.join(root, noteId, fileName), 'utf8');
+          const { data, body } = parseFrontmatter(raw);
+          for (const reference of collectAssetReferences(asStringRecord(data.fields), body)) used.add(reference);
+        } catch {
+          // Beschaedigte Fassung uebergehen, lieber ein Bild zu viel behalten.
+        }
+      }
+    }
+    return used;
+  }
+
+  /** Loescht die genannten Bilddateien. Ergibt die Anzahl geloeschter Dateien. */
+  async deleteAssets(campaignId: string, names: string[]): Promise<number> {
+    let removed = 0;
+    for (const name of names) {
+      const file = this.assetFile(campaignId, name);
+      try {
+        await fs.rm(file);
+        removed += 1;
+      } catch {
+        // Bereits geloescht, das ist kein Fehler.
+      }
+    }
+    return removed;
   }
 
   private noteFile(campaignId: string, noteId: string): string {
@@ -451,6 +542,21 @@ function assertSafeId(id: string): void {
   if (!/^[A-Za-z0-9_-]+$/.test(id)) {
     throw new VaultError('error.invalidId', { id });
   }
+}
+
+/**
+ * Bildverweise einer Notiz, unabhaengig vom Feldtyp. Bewusst grosszuegig:
+ * lieber ein Bild zu viel behalten als eines loeschen, das noch gebraucht wird.
+ */
+function collectAssetReferences(fields: Record<string, string>, body: string): Set<string> {
+  const found = new Set<string>();
+
+  for (const match of body.matchAll(/assets\/([A-Za-z0-9_-]+\.[A-Za-z0-9]+)/g)) found.add(match[1]);
+  for (const value of Object.values(fields)) {
+    const match = /^assets\/([A-Za-z0-9_-]+\.[A-Za-z0-9]+)$/.exec(value.trim());
+    if (match) found.add(match[1]);
+  }
+  return found;
 }
 
 /** Zeitstempel aus dem Dateinamen einer Version. */

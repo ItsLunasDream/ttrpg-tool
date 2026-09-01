@@ -58,6 +58,7 @@ npm run dist:win  # Windows-Installer und portable exe nach release/
 | Sprache wechseln | Einstellungen → Sprache |
 | Bild einfügen | Knopf ▣ in der Werkzeugleiste, oder Bild in den Text ziehen bzw. einfügen |
 | Assistent fragen | Sidebar im Editor, Einstellungen → Assistent |
+| Ungenutzte Bilder löschen | „Aufräumen" in der Kopfzeile |
 | Beziehungsnetz ansehen | „Graph" in der Kopfzeile |
 | Vorschläge zum Weiterschreiben | „Schreibhilfe" in der Kopfzeile des Editors |
 | Notiz exportieren | „MD" oder „PDF" in der Kopfzeile des Editors |

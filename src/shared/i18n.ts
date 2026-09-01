@@ -281,7 +281,20 @@ const de = {
   'settings.apiKeyClear': 'Schlüssel löschen',
   'settings.apiKeyHint':
     'Der Schlüssel wird mit dem Schlüsselbund des Systems verschlüsselt und verlässt den Hauptprozess nicht. Die Claude API rechnet nach Verbrauch ab.',
-  'settings.aiCheck': 'Verbindung prüfen'
+  'settings.aiCheck': 'Verbindung prüfen',
+
+  'cleanup.open': 'Aufräumen',
+  'cleanup.title': 'Ungenutzte Bilder',
+  'cleanup.none': 'Alle Bilder werden noch benutzt. Nichts aufzuräumen.',
+  'cleanup.found': '{count} Bilder ohne Verweis, zusammen {size}.',
+  'cleanup.foundOne': 'Ein Bild ohne Verweis, {size}.',
+  'cleanup.delete': 'Ausgewählte löschen',
+  'cleanup.selectAll': 'Alle auswählen',
+  'cleanup.deselectAll': 'Auswahl aufheben',
+  'cleanup.deleted': '{count} Bilder gelöscht.',
+  'cleanup.deletedOne': 'Ein Bild gelöscht.',
+  'cleanup.hint':
+    'Gezählt wird auch, was gesicherte Fassungen im Versionsverlauf noch brauchen. Ein Bild taucht hier also erst auf, wenn wirklich nichts mehr darauf zeigt. Löschen lässt sich nicht rückgängig machen.'
 } as const;
 
 export type MessageKey = keyof typeof de;
@@ -550,7 +563,20 @@ const en: Partial<Record<MessageKey, string>> = {
   'settings.apiKeyClear': 'Delete key',
   'settings.apiKeyHint':
     'The key is encrypted with the system keychain and never leaves the main process. The Claude API bills by usage.',
-  'settings.aiCheck': 'Check connection'
+  'settings.aiCheck': 'Check connection',
+
+  'cleanup.open': 'Clean up',
+  'cleanup.title': 'Unused images',
+  'cleanup.none': 'Every image is still in use. Nothing to clean up.',
+  'cleanup.found': '{count} images with no reference, {size} in total.',
+  'cleanup.foundOne': 'One image with no reference, {size}.',
+  'cleanup.delete': 'Delete selected',
+  'cleanup.selectAll': 'Select all',
+  'cleanup.deselectAll': 'Clear selection',
+  'cleanup.deleted': 'Deleted {count} images.',
+  'cleanup.deletedOne': 'Deleted one image.',
+  'cleanup.hint':
+    'What saved versions in the history still need is counted too. An image only shows up here once nothing points to it any more. Deleting cannot be undone.'
 };
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { de, en };

@@ -13,6 +13,7 @@ interface Props {
   onExportMarkdown: () => void;
   onExportPdf: () => void;
   onToggleGraph: () => void;
+  onCleanup: () => void;
   graphOpen: boolean;
   onEditNoteTypes: () => void;
   onOpenSettings: () => void;
@@ -53,6 +54,9 @@ export function CampaignBar(props: Props) {
       </button>
       <button type="button" onClick={props.onEditNoteTypes} disabled={!activeCampaignId}>
         {t('bar.noteTypes')}
+      </button>
+      <button type="button" onClick={props.onCleanup} disabled={!activeCampaignId}>
+        {t('cleanup.open')}
       </button>
       <button type="button" onClick={props.onExport} disabled={!activeCampaignId}>
         {t('bar.exportZip')}
