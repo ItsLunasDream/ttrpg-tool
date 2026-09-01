@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath} = entry;
+const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName} = entry;
 
 /** Baut einen Index mit den Standardtypen. */
 function makeIndex(notes) {
@@ -220,6 +220,7 @@ const ALLOWED_SAME = new Set([
   'card.alias',
   'dialog.ok',
   'editor.tags',
+  'export.tags',
   'fieldType.text',
   'fieldType.url',
   'toolbar.code'
@@ -279,4 +280,75 @@ test('Standard-Charakter hat ein Portrait-Feld', () => {
   const portrait = character.fields.find((field) => field.type === 'image');
   assert.ok(portrait, 'kein Bildfeld vorhanden');
   assert.equal(portrait.key, 'portrait');
+});
+
+const EXPORT_LABELS = {
+  type: 'Typ',
+  relations: 'Beziehungen',
+  mentionedBy: 'Erwähnt von',
+  aliases: 'Aliase',
+  tags: 'Tags'
+};
+
+test('Markdown-Export schreibt Steckbrief, Text und Beziehungen aus', () => {
+  const mira = note({
+    id: '1',
+    title: 'Mira Falkenhand',
+    aliases: ['Die Jägerin'],
+    tags: ['Kapitel 1'],
+    fields: { species: 'Waldelfe', portrait: 'assets/p.png' },
+    body: 'Sie wuchs im [[Hafen]] auf.',
+    relations: [{ id: 'r1', targetId: '2', type: 'Mentorin', note: 'Bringt ihr das Bogenschießen bei.' }]
+  });
+  const toran = note({ id: '2', title: 'Toran', body: 'Er schuldet [[Mira Falkenhand]] Gold.' });
+
+  const markdown = renderNoteMarkdown(mira, DEFAULT_NOTE_TYPES, [mira, toran], EXPORT_LABELS);
+
+  assert.match(markdown, /^# Mira Falkenhand/);
+  assert.match(markdown, /\*Charakter\*/);
+  assert.match(markdown, /\*\*Spezies:\*\* Waldelfe/);
+  assert.match(markdown, /\*\*Portrait:\*\* !\[\]\(assets\/p\.png\)/);
+  assert.match(markdown, /\*\*Aliase:\*\* Die Jägerin/);
+  assert.match(markdown, /Sie wuchs im \[\[Hafen\]\] auf\./);
+  assert.match(markdown, /## Beziehungen/);
+  assert.match(markdown, /\*\*Mentorin\*\* \[\[Toran\]\] — Bringt ihr das Bogenschießen bei\./);
+  assert.match(markdown, /## Erwähnt von/);
+  assert.match(markdown, /- \[\[Toran\]\]/);
+  assert.ok(!markdown.includes('---\nid:'), 'YAML-Kopf im Export');
+});
+
+test('Markdown-Export laesst leere Abschnitte weg', () => {
+  const solo = note({ id: '1', title: 'Allein', body: 'Nur Text.' });
+  const markdown = renderNoteMarkdown(solo, DEFAULT_NOTE_TYPES, [solo], EXPORT_LABELS);
+
+  assert.ok(!markdown.includes('## Beziehungen'), 'leerer Beziehungsabschnitt');
+  assert.ok(!markdown.includes('## Erwähnt von'), 'leerer Erwähnungsabschnitt');
+  assert.ok(!markdown.includes('Aliase'), 'leerer Aliasabschnitt');
+});
+
+test('Beziehungen auf geloeschte Notizen tauchen im Export nicht auf', () => {
+  const solo = note({
+    id: '1',
+    title: 'Allein',
+    relations: [{ id: 'r1', targetId: 'weg', type: 'Feindin', note: '' }]
+  });
+  assert.ok(!renderNoteMarkdown(solo, DEFAULT_NOTE_TYPES, [solo], EXPORT_LABELS).includes('Beziehungen'));
+});
+
+test('referencedAssets findet Bilder aus Text und Steckbrief', () => {
+  const withImages = note({
+    id: '1',
+    title: 'Mira',
+    fields: { portrait: 'assets/p.png' },
+    body: 'Text ![Szene](assets/s.png) und nochmal ![](assets/s.png), dazu ![extern](https://x/y.png)'
+  });
+  const assets = referencedAssets(withImages, DEFAULT_NOTE_TYPES).sort();
+  assert.deepEqual(assets, ['assets/p.png', 'assets/s.png']);
+});
+
+test('toFileName entfernt kritische Zeichen und weicht bei Kollision aus', () => {
+  assert.equal(toFileName('Mira: die Jägerin'), 'Mira die Jägerin.md');
+  assert.equal(toFileName('A/B\\C'), 'ABC.md');
+  assert.equal(toFileName('Mira', ['Mira.md']), 'Mira 2.md');
+  assert.equal(toFileName('   '), 'Notiz.md');
 });

@@ -15,3 +15,4 @@ export {
 } from '../src/renderer/noteIndex';
 export { Vault } from '../src/main/vault';
 export { zipDirectory } from '../src/main/export';
+export { renderNoteMarkdown, referencedAssets, toFileName } from '../src/main/markdownExport';

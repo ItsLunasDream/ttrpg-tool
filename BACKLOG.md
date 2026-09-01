@@ -46,8 +46,6 @@ Ersetzen wäre ein eigener Punkt.
 
 ### Phase 2
 
-- Export als PDF
-- Export als Markdown
 - Schreibhilfe ohne KI: konkrete Options-Listen als Startpunkt, zum Beispiel
   Herkunftsort und Berufung. Das ist überwiegend Inhaltsarbeit, generierte
   Listen werden schnell generisch
@@ -87,6 +85,7 @@ alle Sprachen erweitert werden.
 - Aus dem Text entfernte Bilder bleiben als Datei in `assets/` liegen
 - Der Versionsverlauf wächst mit und landet auch in der ZIP-Sicherung. Bei
   vielen Notizen und hoher Höchstzahl kann das spürbar werden
+- Der PDF-Export bietet keine Auswahl von Schriftart, Rand oder Seitengröße
 - Beziehungen kennen keine Gegenrichtung: legst du eine an, entsteht in der
   Zielnotiz nichts. Das ist so gewollt, weil die Sichten unterschiedlich sein
   sollen, könnte aber einen Vorschlag vertragen
@@ -178,3 +177,18 @@ Zwei Entscheidungen dabei:
   Zurückholen ist also selbst umkehrbar
 
 Abschaltbar in den Einstellungen, Höchstzahl je Notiz dort einstellbar.
+
+### Export als Markdown und PDF
+
+Beides gibt es für eine einzelne Notiz und für die ganze Kampagne.
+
+**Markdown** schreibt in einen gewählten Ordner: je Notiz eine Datei mit
+ausgeschriebenem Steckbrief statt YAML-Kopf, dazu Beziehungen und
+Erwähnungen. `[[Wiki-Links]]` bleiben stehen, in einem Ordner voller
+exportierter Notizen sind sie in Obsidian weiterhin klickbar. Benutzte Bilder
+werden mitkopiert, der Export steht also für sich.
+
+**PDF** rendert über ein unsichtbares Druckfenster, mit eigenem Drucklayout:
+heller Grund, Serifenschrift, Portrait als umflossenes Bild, Seitenumbruch je
+Notiz. Wiki-Links werden zu ihrem Anzeigetext, im PDF ist ohnehin nichts
+klickbar.

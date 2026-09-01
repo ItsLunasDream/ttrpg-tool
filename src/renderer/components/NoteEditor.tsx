@@ -21,6 +21,8 @@ interface Props {
   onRename: (title: string) => void;
   onDelete: () => void;
   onOpenHistory: () => void;
+  onExportMarkdown: () => void;
+  onExportPdf: () => void;
   onOpenNote: (noteId: string) => void;
   onCreateNote: (title: string) => void;
   onHoverNote: (note: Note | null, rect: DOMRect | null) => void;
@@ -63,6 +65,12 @@ export function NoteEditor(props: Props) {
         </button>
         <button type="button" onClick={props.onOpenHistory}>
           {t('history.open')}
+        </button>
+        <button type="button" onClick={props.onExportMarkdown} title={t('export.markdownNote')}>
+          MD
+        </button>
+        <button type="button" onClick={props.onExportPdf} title={t('export.pdfNote')}>
+          PDF
         </button>
         <button type="button" className="danger" onClick={onDelete}>
           {t('editor.delete')}

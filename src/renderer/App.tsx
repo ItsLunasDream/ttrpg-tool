@@ -338,6 +338,20 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
             if (target) report(t('msg.exported', { path: target }));
           })
         }
+        onExportMarkdown={() =>
+          activeCampaign &&
+          void guard(async () => {
+            const result = await call(api.exportMarkdown.campaign(activeCampaign.id));
+            if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
+          })
+        }
+        onExportPdf={() =>
+          activeCampaign &&
+          void guard(async () => {
+            const result = await call(api.exportPdf.campaign(activeCampaign.id, activeCampaign.name));
+            if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
+          })
+        }
         onOpenSettings={() => setDialog({ kind: 'settings' })}
         onEditNoteTypes={() => setDialog({ kind: 'noteTypes' })}
       />
@@ -370,6 +384,24 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 onRename={() => void save()}
                 onDelete={() => setDialog({ kind: 'deleteNote', note: draft })}
                 onOpenHistory={() => void openHistory(draft)}
+                onExportMarkdown={() =>
+                  void guard(async () => {
+                    const campaignId = activeCampaignId;
+                    if (!campaignId) return;
+                    await persist();
+                    const result = await call(api.exportMarkdown.note(campaignId, draft.id));
+                    if (result) report(t('export.done', { path: result.path }));
+                  })
+                }
+                onExportPdf={() =>
+                  void guard(async () => {
+                    const campaignId = activeCampaignId;
+                    if (!campaignId) return;
+                    await persist();
+                    const result = await call(api.exportPdf.note(campaignId, draft.id, draft.title));
+                    if (result) report(t('export.done', { path: result.path }));
+                  })
+                }
                 onOpenNote={openNote}
                 onCreateNote={createNoteFromLink}
                 onHoverNote={(note, rect) => setHover(note && rect ? { note, rect } : null)}

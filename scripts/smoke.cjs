@@ -3,7 +3,7 @@
  * tippt einen Wiki-Link, speichert und prueft die Datei auf der Platte.
  * Aufruf: xvfb-run -a npx electron scripts/smoke.cjs --no-sandbox
  */
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, dialog } = require('electron');
 const path = require('node:path');
 const os = require('node:os');
 const fs = require('node:fs');
@@ -93,6 +93,21 @@ async function save(window) {
     `window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true })); return true;`
   );
   await sleep(1200);
+}
+
+/**
+ * Dateidialoge blockieren einen automatischen Durchlauf. Fuer den Rauchtest
+ * werden sie durch feste Antworten ersetzt.
+ */
+function stubDialogs(exportDir) {
+  fs.mkdirSync(exportDir, { recursive: true });
+
+  dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [exportDir] });
+  dialog.showSaveDialog = async (...args) => {
+    const options = args.length > 1 ? args[1] : args[0];
+    const name = path.basename(options?.defaultPath || 'ausgabe');
+    return { canceled: false, filePath: path.join(exportDir, name) };
+  };
 }
 
 app.whenReady().then(async () => {
@@ -445,7 +460,48 @@ app.whenReady().then(async () => {
     const afterRename = fs.readdirSync(notesDir).map((name) => fs.readFileSync(path.join(notesDir, name), 'utf8'));
     check(afterRename.some((raw) => raw.includes('[[Mira Sturmhand]]')), 'Umbenennen hat den Link nicht mitgezogen');
     check(afterRename.every((raw) => !raw.includes('[[Mira Falkenhand]]')), 'Alter Linkname blieb stehen');
-    // 15. Versionsverlauf: alten Stand wiederherstellen
+    // 15. Export als Markdown und PDF
+    {
+      const exportDir = path.join(userData, 'export');
+      stubDialogs(exportDir);
+
+      // Die Notiz wurde in Abschnitt 14 umbenannt
+      await selectNote(window, 'Mira Sturmhand');
+      await clickButton(window, 'Kampagne als Markdown');
+      await sleep(2500);
+
+      const campaignDir = fs.readdirSync(exportDir).map((name) => path.join(exportDir, name)).find((entry) => fs.statSync(entry).isDirectory());
+      check(Boolean(campaignDir), 'Markdown-Export hat keinen Ordner angelegt');
+
+      if (campaignDir) {
+        const files = fs.readdirSync(campaignDir);
+        check(files.some((name) => name.startsWith('Mira Sturmhand')), `Notizdatei fehlt: ${files.join(', ')}`);
+        check(files.includes('assets'), 'Bilder wurden nicht mitkopiert');
+
+        const miraFile = files.find((name) => name.startsWith('Mira Sturmhand'));
+        const content = fs.readFileSync(path.join(campaignDir, miraFile), 'utf8');
+        check(content.startsWith('# Mira'), 'Export beginnt nicht mit der Überschrift');
+        check(!content.includes('schemaVersion'), 'YAML-Kopf steht im Export');
+        check(/\*\*Volk:\*\*\s*Waldelfe/.test(content), 'Steckbrieffeld fehlt im Export');
+        check(content.includes('## Beziehungen'), 'Beziehungen fehlen im Export');
+
+        const assets = fs.readdirSync(path.join(campaignDir, 'assets'));
+        check(assets.length >= 1, 'keine Bilder im Export');
+      }
+
+      await clickButton(window, 'Kampagne als PDF');
+      await sleep(4000);
+
+      const pdf = fs.readdirSync(exportDir).find((name) => name.endsWith('.pdf'));
+      check(Boolean(pdf), `PDF wurde nicht geschrieben: ${fs.readdirSync(exportDir).join(', ')}`);
+      if (pdf) {
+        const bytes = fs.readFileSync(path.join(exportDir, pdf));
+        check(bytes.subarray(0, 4).toString() === '%PDF', 'Datei ist kein PDF');
+        check(bytes.length > 1000, `PDF ist verdächtig klein: ${bytes.length} Bytes`);
+      }
+    }
+
+    // 16. Versionsverlauf: alten Stand wiederherstellen
     await selectNote(window, 'Toran');
     await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
     await sleep(200);

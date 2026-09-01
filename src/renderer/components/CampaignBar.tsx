@@ -10,6 +10,8 @@ interface Props {
   onRename: () => void;
   onDelete: () => void;
   onExport: () => void;
+  onExportMarkdown: () => void;
+  onExportPdf: () => void;
   onEditNoteTypes: () => void;
   onOpenSettings: () => void;
 }
@@ -44,6 +46,12 @@ export function CampaignBar(props: Props) {
       </button>
       <button type="button" onClick={props.onExport} disabled={!activeCampaignId}>
         {t('bar.exportZip')}
+      </button>
+      <button type="button" onClick={props.onExportMarkdown} disabled={!activeCampaignId}>
+        {t('export.markdownCampaign')}
+      </button>
+      <button type="button" onClick={props.onExportPdf} disabled={!activeCampaignId}>
+        {t('export.pdfCampaign')}
       </button>
       <button type="button" className="danger" onClick={props.onDelete} disabled={!activeCampaignId}>
         {t('bar.deleteCampaign')}
