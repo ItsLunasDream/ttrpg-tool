@@ -1065,6 +1065,31 @@ mark {
   text-anchor: middle;
 }
 
+/* Umriss in Hintergrundfarbe, damit Beschriftungen über Kanten lesbar bleiben. */
+.graph__label {
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-linejoin: round;
+  stroke-width: 3px;
+}
+
+.graph__swatch {
+  border-radius: 50%;
+  display: inline-block;
+  height: 8px;
+  margin-right: 5px;
+  vertical-align: baseline;
+  width: 8px;
+}
+
+.graph__canvas {
+  cursor: grab;
+}
+
+.graph__canvas:active {
+  cursor: grabbing;
+}
+
 .graph__node.is-dimmed {
   opacity: 0.2;
 }
