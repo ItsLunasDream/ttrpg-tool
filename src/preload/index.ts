@@ -51,6 +51,18 @@ const api = {
   },
   exportCampaignZip: (campaignId: string, campaignName: string) =>
     invoke<string | null>('export:campaignZip', campaignId, campaignName),
+  exportPdf: {
+    campaign: (campaignId: string, name: string) =>
+      invoke<{ path: string; count: number } | null>('export:campaignPdf', campaignId, name),
+    note: (campaignId: string, noteId: string, title: string) =>
+      invoke<{ path: string; count: number } | null>('export:notePdf', campaignId, noteId, title)
+  },
+  exportMarkdown: {
+    campaign: (campaignId: string) =>
+      invoke<{ path: string; count: number } | null>('export:campaignMarkdown', campaignId),
+    note: (campaignId: string, noteId: string) =>
+      invoke<{ path: string; count: number } | null>('export:noteMarkdown', campaignId, noteId)
+  },
   openExternal: (url: string) => invoke<void>('shell:openExternal', url)
 };
 

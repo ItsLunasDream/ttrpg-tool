@@ -5,6 +5,8 @@ import { Vault, VaultError, writeSettings } from './vault';
 import { translate } from '../shared/i18n';
 import { zipDirectory } from './export';
 import { ALLOWED_IMAGE_EXTENSIONS } from './vault';
+import { referencedAssets, renderNoteMarkdown, toFileName } from './markdownExport';
+import { exportNotesToPdf } from './pdfExport';
 import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion } from '../shared/types';
 
 export interface IpcContext {
@@ -128,6 +130,110 @@ export function registerIpc(context: IpcContext): void {
     await shell.openExternal(parsed.toString());
   });
 
+  /**
+   * Schreibt Notizen als lesbares Markdown in einen gewaehlten Ordner. Die
+   * benutzten Bilder werden mitkopiert, damit der Export fuer sich steht.
+   */
+  async function exportMarkdown(campaignId: string, noteIds: string[] | null): Promise<{ path: string; count: number } | null> {
+    const window = BrowserWindow.getFocusedWindow();
+    const options = { properties: ['openDirectory' as const, 'createDirectory' as const] };
+    const chosen = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options);
+    if (chosen.canceled || !chosen.filePaths[0]) return null;
+
+    const campaign = await vault.getCampaign(campaignId);
+    const allNotes = await vault.listNotes(campaignId);
+    const selected = noteIds ? allNotes.filter((note) => noteIds.includes(note.id)) : allNotes;
+
+    const targetDir = path.join(chosen.filePaths[0], sanitizeDirName(campaign.name));
+    await fs.mkdir(targetDir, { recursive: true });
+
+    const language = context.settings.language;
+    const labels = {
+      type: translate(language, 'export.type'),
+      relations: translate(language, 'export.relations'),
+      mentionedBy: translate(language, 'export.mentionedBy'),
+      aliases: translate(language, 'export.aliases'),
+      tags: translate(language, 'export.tags')
+    };
+
+    const usedNames = new Set<string>();
+    const usedAssets = new Set<string>();
+
+    for (const note of selected) {
+      const fileName = toFileName(note.title, usedNames);
+      usedNames.add(fileName);
+      await fs.writeFile(
+        path.join(targetDir, fileName),
+        renderNoteMarkdown(note, campaign.noteTypes, allNotes, labels),
+        'utf8'
+      );
+      for (const asset of referencedAssets(note, campaign.noteTypes)) usedAssets.add(asset);
+    }
+
+    if (usedAssets.size) {
+      await fs.mkdir(path.join(targetDir, 'assets'), { recursive: true });
+      for (const asset of usedAssets) {
+        const fileName = asset.replace(/^assets\//, '');
+        try {
+          await fs.copyFile(vault.assetFile(campaignId, fileName), path.join(targetDir, 'assets', fileName));
+        } catch {
+          // Fehlendes Bild darf den Export nicht abbrechen.
+        }
+      }
+    }
+
+    return { path: targetDir, count: selected.length };
+  }
+
+  /** Notizen als PDF ausgeben, ueber ein unsichtbares Druckfenster. */
+  async function exportPdf(campaignId: string, noteIds: string[] | null, suggestedName: string) {
+    const window = BrowserWindow.getFocusedWindow();
+    const options = {
+      defaultPath: `${slug(suggestedName)}.pdf`,
+      filters: [{ name: 'PDF', extensions: ['pdf'] }]
+    };
+    const chosen = window ? await dialog.showSaveDialog(window, options) : await dialog.showSaveDialog(options);
+    if (chosen.canceled || !chosen.filePath) return null;
+
+    const campaign = await vault.getCampaign(campaignId);
+    const allNotes = await vault.listNotes(campaignId);
+    const selected = noteIds ? allNotes.filter((note) => noteIds.includes(note.id)) : allNotes;
+
+    const language = context.settings.language;
+    await exportNotesToPdf(
+      selected,
+      {
+        types: campaign.noteTypes,
+        allNotes,
+        labels: {
+          type: translate(language, 'export.type'),
+          relations: translate(language, 'export.relations'),
+          mentionedBy: translate(language, 'export.mentionedBy'),
+          aliases: translate(language, 'export.aliases'),
+          tags: translate(language, 'export.tags')
+        },
+        resolveAsset: (relativePath) => vault.assetFile(campaignId, relativePath.replace(/^assets\//, ''))
+      },
+      chosen.filePath
+    );
+
+    return { path: chosen.filePath, count: selected.length };
+  }
+
+  handle<[string, string], { path: string; count: number } | null>('export:campaignPdf', (campaignId, name) =>
+    exportPdf(campaignId, null, name)
+  );
+  handle<[string, string, string], { path: string; count: number } | null>('export:notePdf', (campaignId, noteId, title) =>
+    exportPdf(campaignId, [noteId], title)
+  );
+
+  handle<[string], { path: string; count: number } | null>('export:campaignMarkdown', (campaignId) =>
+    exportMarkdown(campaignId, null)
+  );
+  handle<[string, string], { path: string; count: number } | null>('export:noteMarkdown', (campaignId, noteId) =>
+    exportMarkdown(campaignId, [noteId])
+  );
+
   handle<[string, string], string | null>('export:campaignZip', async (campaignId, campaignName) => {
     const window = BrowserWindow.getFocusedWindow();
     const suggested = `${slug(campaignName)}-${new Date().toISOString().slice(0, 10)}.zip`;
@@ -139,6 +245,11 @@ export function registerIpc(context: IpcContext): void {
     await zipDirectory(sourceDir, result.filePath);
     return result.filePath;
   });
+}
+
+/** Ordnername aus dem Kampagnennamen, ohne Zeichen, die Dateisysteme stoeren. */
+function sanitizeDirName(name: string): string {
+  return name.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Kampagne';
 }
 
 function slug(name: string): string {

@@ -204,7 +204,19 @@ const de = {
     'Beim Wiederherstellen wird der aktuelle Stand vorher gesichert. Du kannst also auch das wieder rückgängig machen.',
 
   'settings.history': 'Versionsverlauf führen',
-  'settings.historyMax': 'Höchstzahl gesicherter Fassungen je Notiz'
+  'settings.historyMax': 'Höchstzahl gesicherter Fassungen je Notiz',
+
+  'export.markdownNote': 'Notiz als Markdown',
+  'export.markdownCampaign': 'Kampagne als Markdown',
+  'export.done': 'Exportiert nach {path}',
+  'export.doneCount': '{count} Notizen exportiert nach {path}',
+  'export.relations': 'Beziehungen',
+  'export.mentionedBy': 'Erwähnt von',
+  'export.aliases': 'Aliase',
+  'export.tags': 'Tags',
+  'export.type': 'Typ',
+  'export.pdfNote': 'Notiz als PDF',
+  'export.pdfCampaign': 'Kampagne als PDF'
 } as const;
 
 export type MessageKey = keyof typeof de;
@@ -396,7 +408,19 @@ const en: Partial<Record<MessageKey, string>> = {
     'Restoring saves the current state first, so you can undo the restore as well.',
 
   'settings.history': 'Keep version history',
-  'settings.historyMax': 'Maximum versions kept per note'
+  'settings.historyMax': 'Maximum versions kept per note',
+
+  'export.markdownNote': 'Note as Markdown',
+  'export.markdownCampaign': 'Campaign as Markdown',
+  'export.done': 'Exported to {path}',
+  'export.doneCount': 'Exported {count} notes to {path}',
+  'export.relations': 'Relationships',
+  'export.mentionedBy': 'Mentioned by',
+  'export.aliases': 'Aliases',
+  'export.tags': 'Tags',
+  'export.type': 'Type',
+  'export.pdfNote': 'Note as PDF',
+  'export.pdfCampaign': 'Campaign as PDF'
 };
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { de, en };

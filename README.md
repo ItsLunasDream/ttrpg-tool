@@ -57,6 +57,8 @@ npm run dist:win  # Windows-Installer und portable exe nach release/
 | Steckbrief anpassen | „Notiztypen" in der Kopfzeile |
 | Sprache wechseln | Einstellungen → Sprache |
 | Bild einfügen | Knopf ▣ in der Werkzeugleiste, oder Bild in den Text ziehen bzw. einfügen |
+| Notiz exportieren | „MD" oder „PDF" in der Kopfzeile des Editors |
+| Kampagne exportieren | „Kampagne als Markdown" bzw. „als PDF" in der Kopfzeile |
 | Alten Stand zurückholen | „Verlauf" in der Kopfzeile des Editors |
 | Portrait setzen | Bild auf das Portrait-Feld im Steckbrief ziehen, oder „Bild wählen" |
 
@@ -159,9 +161,10 @@ Umgesetzt (MVP):
 - Gerichtete Beziehungen und Backlinks
 - Oberfläche auf Deutsch oder Englisch, umschaltbar ohne Neustart
 - Versionsverlauf mit Vorschau und Wiederherstellen, abschaltbar
+- Export als Markdown und als PDF, je Notiz oder für die ganze Kampagne
 - Autosave (abschaltbar) und Strg+S
 
-Phase 2: Export als PDF und Markdown, Options-Listen als Schreibhilfe ohne KI.
+Phase 2: Options-Listen als Schreibhilfe ohne KI.
 
 Phase 3: Graph-Ansicht des Beziehungsnetzes.
 
