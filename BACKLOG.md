@@ -29,12 +29,17 @@ Jede Anfrage steht für sich. Eine Rückfrage zur letzten Antwort ist nicht
 möglich. Wäre nützlich, kostet aber bei der Claude API mehr, weil der Verlauf
 mitgeschickt wird.
 
-### Graph verfeinern
+### Graph: Beschriftungen bei dichten Netzen
 
-Die Anordnung ist statisch: sie wird einmal berechnet, danach lassen sich
-Knoten nur von Hand verschieben. Denkbar wären eine laufende Simulation beim
-Ziehen, Zoomen und Verschieben der ganzen Fläche sowie ein Filter nach
-Notiztyp. Beschriftungen überlappen sich bei dichten Netzen.
+Kantenbeschriftungen überlappen sich, wenn viele Verbindungen dicht
+beieinander liegen. Denkbar: Beschriftungen erst ab einer Zoomstufe zeigen,
+oder nur die der hervorgehobenen Nachbarschaft.
+
+### Graph: laufende Simulation beim Ziehen
+
+Die Anordnung wird einmal berechnet. Zieht man einen Knoten, folgen die
+anderen nicht nach. Eine weiterlaufende Simulation wäre schöner, kostet aber
+Rechenzeit und macht die Ansicht unruhig.
 
 ### Weitere Sprachen
 
@@ -250,3 +255,13 @@ fehlende Felder. Nichts wird ersetzt oder entfernt. Ein hier gelöschter Typ
 würde bestehende Notizen typlos machen, und eine überschriebene Beschriftung
 wäre eine stille Änderung an eigener Arbeit. Die Rückmeldung nennt, wie viele
 Typen und Felder dazugekommen sind.
+
+### Graph verfeinern
+
+Zoomen mit dem Mausrad oder den Knöpfen, Verschieben der Fläche mit gedrückter
+Maustaste auf freiem Grund, Zurücksetzen der Ansicht. Dazu ein Filter nach
+Notiztyp mit Farbmarken, der ausgeblendete Typen samt ihrer Kanten aus der
+Anordnung nimmt, damit die verbleibenden Knoten den ganzen Platz bekommen.
+
+Beschriftungen bekommen einen Umriss in Hintergrundfarbe und bleiben dadurch
+über Kanten und anderen Knoten lesbar.
