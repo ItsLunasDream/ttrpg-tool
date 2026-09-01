@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import Image from '@tiptap/extension-image';
 import { createWikiLinkExtension, type SuggestionState } from '../editor/wikiLinkExtension';
 import { createSearchHighlightExtension, selectMatch } from '../editor/searchHighlight';
 import { htmlToMarkdown, markdownToHtml } from '../editor/markdown';
+import { assetPath, assetUrl, isImageFile } from '../editor/assets';
 import { normalizeName } from '../../shared/wikilinks';
 import type { NoteIndex } from '../noteIndex';
 import type { Note } from '../../shared/types';
@@ -18,6 +20,11 @@ interface Props {
   index: NoteIndex;
   /** Aktueller Suchbegriff aus der Seitenleiste, leer wenn nicht gesucht wird. */
   searchQuery: string;
+  campaignId: string;
+  /** Legt ein Bild in der Kampagne ab und liefert den relativen Verweis. */
+  onImportImage: (file: File) => Promise<string | null>;
+  /** Oeffnet den Dateidialog und liefert den relativen Verweis. */
+  onPickImage: () => Promise<string | null>;
   onChange: (markdown: string) => void;
   onOpenNote: (noteId: string) => void;
   onCreateNote: (title: string) => void;
@@ -26,7 +33,19 @@ interface Props {
 
 const MAX_SUGGESTIONS = 8;
 
-export function BodyEditor({ noteId, markdown, index, searchQuery, onChange, onOpenNote, onCreateNote, onHoverNote }: Props) {
+export function BodyEditor({
+  noteId,
+  markdown,
+  index,
+  searchQuery,
+  campaignId,
+  onChange,
+  onOpenNote,
+  onCreateNote,
+  onHoverNote,
+  onImportImage,
+  onPickImage
+}: Props) {
   const t = useT();
   const [suggestion, setSuggestion] = useState<SuggestionState | null>(null);
   const [highlight, setHighlight] = useState(0);
@@ -45,6 +64,36 @@ export function BodyEditor({ noteId, markdown, index, searchQuery, onChange, onO
   queryRef.current = searchQuery;
   const activeMatchRef = useRef(activeMatch);
   activeMatchRef.current = activeMatch;
+
+  // Die ProseMirror-Handler entstehen einmal und brauchen deshalb Referenzen
+  // auf die jeweils aktuellen Werte.
+  const editorRef = useRef<ReturnType<typeof useEditor>>(null);
+  const importRef = useRef({ campaignId, onImportImage });
+  importRef.current = { campaignId, onImportImage };
+
+  /**
+   * Nimmt Bilder aus Zwischenablage oder Ziehen und Ablegen entgegen. Der
+   * Import laeuft asynchron, deshalb wird das Ereignis sofort geschluckt und
+   * das Bild nachtraeglich eingefuegt.
+   */
+  function importFromDataTransfer(transfer: DataTransfer | null): boolean {
+    const files = [...(transfer?.files ?? [])].filter(isImageFile);
+    if (files.length === 0) return false;
+
+    void (async () => {
+      for (const file of files) {
+        const relativePath = await importRef.current.onImportImage(file);
+        if (!relativePath) continue;
+        editorRef.current
+          ?.chain()
+          .focus()
+          .setImage({ src: assetUrl(importRef.current.campaignId, relativePath) })
+          .run();
+      }
+    })();
+
+    return true;
+  }
 
   const searchHighlight = useMemo(
     () =>
@@ -81,19 +130,36 @@ export function BodyEditor({ noteId, markdown, index, searchQuery, onChange, onO
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Placeholder.configure({ placeholder: t('editor.placeholder') }),
       wikiLink,
-      searchHighlight
+      searchHighlight,
+      Image.configure({ inline: false, allowBase64: false })
     ],
-    content: markdownToHtml(markdown),
-    onUpdate: ({ editor: instance }) => onChange(htmlToMarkdown(instance.getHTML()))
+    content: markdownToHtml(markdown, (target) => assetUrl(campaignId, target)),
+    onUpdate: ({ editor: instance }) => onChange(htmlToMarkdown(instance.getHTML(), assetPath)),
+
+    editorProps: {
+      // Bilder aus der Zwischenablage oder per Ziehen und Ablegen werden in
+      // die Kampagne kopiert, nicht als Base64 in den Text geschrieben.
+      handlePaste: (_view, event) => importFromDataTransfer(event.clipboardData),
+      handleDrop: (_view, event) => importFromDataTransfer((event as DragEvent).dataTransfer)
+    }
   });
+
+  editorRef.current = editor;
 
   // Inhalt nur beim Notizwechsel neu setzen, sonst springt der Cursor.
   const loadedNoteId = useRef(noteId);
   useEffect(() => {
     if (!editor || loadedNoteId.current === noteId) return;
     loadedNoteId.current = noteId;
-    editor.commands.setContent(markdownToHtml(markdown), false);
-  }, [editor, noteId, markdown]);
+    editor.commands.setContent(markdownToHtml(markdown, (target) => assetUrl(campaignId, target)), false);
+  }, [editor, noteId, markdown, campaignId]);
+
+  const insertImage = useCallback(
+    (relativePath: string) => {
+      editorRef.current?.chain().focus().setImage({ src: assetUrl(campaignId, relativePath) }).run();
+    },
+    [campaignId]
+  );
 
   // Suchbegriff oder Notiz gewechselt: Dekorationen neu berechnen lassen und
   // die Auswahl der aktiven Fundstelle zuruecksetzen.
@@ -205,8 +271,36 @@ export function BodyEditor({ noteId, markdown, index, searchQuery, onChange, onO
         </div>
       ) : null}
 
-      <Toolbar editor={editor} />
-      <EditorContent className="body-editor__surface" editor={editor} />
+      <Toolbar
+        editor={editor}
+        onInsertImage={() =>
+          void onPickImage().then((relativePath) => {
+            if (relativePath) insertImage(relativePath);
+          })
+        }
+      />
+      {/*
+        ProseMirror faengt Drop und Einfuegen nur innerhalb des Textbereichs ab.
+        Faellt ein Bild daneben, etwa in den Rand unterhalb des Textes, greift
+        dieser Handler. Hat ProseMirror das Ereignis schon behandelt, ist
+        defaultPrevented gesetzt und hier passiert nichts mehr.
+      */}
+      <div
+        className="body-editor__surface"
+        onDragOver={(event) => {
+          if ([...event.dataTransfer.items].some((item) => item.kind === 'file')) event.preventDefault();
+        }}
+        onDrop={(event) => {
+          if (event.defaultPrevented) return;
+          if (importFromDataTransfer(event.dataTransfer)) event.preventDefault();
+        }}
+        onPaste={(event) => {
+          if (event.defaultPrevented) return;
+          if (importFromDataTransfer(event.clipboardData)) event.preventDefault();
+        }}
+      >
+        <EditorContent editor={editor} />
+      </div>
 
       {suggestion && optionCount > 0 ? (
         <ul className="suggestions" style={{ left: suggestion.left, top: suggestion.top + 4 }}>

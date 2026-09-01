@@ -37,6 +37,13 @@ const api = {
       invoke<{ note: Note; rewritten: number }>('note:rename', campaignId, noteId, title),
     remove: (campaignId: string, noteId: string) => invoke<void>('note:delete', campaignId, noteId)
   },
+  assets: {
+    /** Bild ueber einen Dateidialog waehlen. Liefert den relativen Verweis. */
+    pick: (campaignId: string) => invoke<string | null>('asset:pick', campaignId),
+    /** Bild aus Zwischenablage oder Ziehen und Ablegen uebernehmen. */
+    save: (campaignId: string, name: string, data: Uint8Array) =>
+      invoke<string>('asset:save', campaignId, name, data)
+  },
   exportCampaignZip: (campaignId: string, campaignName: string) =>
     invoke<string | null>('export:campaignZip', campaignId, campaignName),
   openExternal: (url: string) => invoke<void>('shell:openExternal', url)

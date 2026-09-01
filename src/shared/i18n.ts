@@ -117,6 +117,7 @@ const de = {
   'fieldType.textarea': 'Mehrzeilig',
   'fieldType.number': 'Zahl',
   'fieldType.url': 'Link',
+  'fieldType.image': 'Bild',
 
   'settings.title': 'Einstellungen',
   'settings.language': 'Sprache',
@@ -177,7 +178,16 @@ const de = {
   'error.fieldWithoutKey': 'Ein Feld in „{label}" hat keinen Schlüssel.',
   'error.fieldNeedsLabel': 'Ein Feld in „{label}" braucht eine Bezeichnung.',
   'error.duplicateField': 'Das Feld „{key}" kommt in „{label}" doppelt vor.',
-  'error.unexpected': 'Unerwarteter Fehler: {detail}'
+  'error.unexpected': 'Unerwarteter Fehler: {detail}',
+  'error.invalidAsset': 'Ungültiger Dateiname: {name}',
+  'error.unsupportedImage': 'Dieses Bildformat wird nicht unterstützt: {extension}',
+  'error.imageTooLarge': 'Das Bild ist größer als {limit} MB.',
+
+  'image.insert': 'Bild einfügen',
+  'image.choose': 'Bild wählen …',
+  'image.remove': 'Bild entfernen',
+  'image.alt': 'Bild',
+  'image.dropHint': 'Bild hierher ziehen oder einfügen'
 } as const;
 
 export type MessageKey = keyof typeof de;
@@ -282,6 +292,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'fieldType.textarea': 'Multiline',
   'fieldType.number': 'Number',
   'fieldType.url': 'Link',
+  'fieldType.image': 'Image',
 
   'settings.title': 'Settings',
   'settings.language': 'Language',
@@ -342,7 +353,16 @@ const en: Partial<Record<MessageKey, string>> = {
   'error.fieldWithoutKey': 'A field in “{label}” has no key.',
   'error.fieldNeedsLabel': 'A field in “{label}” needs a label.',
   'error.duplicateField': 'The field “{key}” appears twice in “{label}”.',
-  'error.unexpected': 'Unexpected error: {detail}'
+  'error.unexpected': 'Unexpected error: {detail}',
+  'error.invalidAsset': 'Invalid file name: {name}',
+  'error.unsupportedImage': 'This image format is not supported: {extension}',
+  'error.imageTooLarge': 'The image is larger than {limit} MB.',
+
+  'image.insert': 'Insert image',
+  'image.choose': 'Choose image …',
+  'image.remove': 'Remove image',
+  'image.alt': 'Image',
+  'image.dropHint': 'Drop or paste an image here'
 };
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { de, en };

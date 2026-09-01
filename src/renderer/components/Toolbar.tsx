@@ -3,6 +3,7 @@ import { useT, type Translate } from '../i18n';
 
 interface Props {
   editor: Editor | null;
+  onInsertImage: () => void;
 }
 
 interface Action {
@@ -26,7 +27,7 @@ const ACTIONS: Action[] = [
   { label: '―', title: (t) => t('toolbar.rule'), run: (e) => e.chain().focus().setHorizontalRule().run() }
 ];
 
-export function Toolbar({ editor }: Props) {
+export function Toolbar({ editor, onInsertImage }: Props) {
   const t = useT();
   if (!editor) return <div className="toolbar" />;
 
@@ -46,6 +47,17 @@ export function Toolbar({ editor }: Props) {
           {action.label}
         </button>
       ))}
+      <button
+        type="button"
+        title={t('image.insert')}
+        onMouseDown={(event) => {
+          event.preventDefault();
+          onInsertImage();
+        }}
+      >
+        ▣
+      </button>
+
       <span className="toolbar__spacer" />
       <button type="button" title={t('toolbar.undo')} onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().undo().run(); }}>
         ↶

@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import entry from '../dist/tests/entry.cjs';
 
-const {Vault} = entry;
+const {Vault, zipDirectory} = entry;
 
 async function withVault(run) {
   const root = await mkdtemp(path.join(tmpdir(), 'backstory-'));
@@ -214,5 +215,57 @@ test('Notizen mit unbekanntem Typ koennen nicht angelegt werden', async () => {
   await withVault(async (vault) => {
     const campaign = await vault.createCampaign('Sturmkueste');
     await assert.rejects(() => vault.createNote(campaign.id, 'gibtesnicht', 'Mira'), { key: 'error.unknownNoteType' });
+  });
+});
+
+test('Bilder werden in die Kampagne kopiert und bekommen einen neuen Namen', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const data = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
+
+    const first = await vault.saveAsset(campaign.id, 'portrait.png', data);
+    const second = await vault.saveAsset(campaign.id, 'portrait.png', data);
+
+    assert.match(first, /^assets\/[0-9a-f-]+\.png$/);
+    assert.notEqual(first, second, 'gleichnamige Bilder ueberschreiben sich');
+
+    const stored = await readFile(path.join(root, 'campaigns', campaign.id, first), null);
+    assert.deepEqual([...stored], [...data]);
+  });
+});
+
+test('Nur bekannte Bildformate werden angenommen', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    await assert.rejects(
+      () => vault.saveAsset(campaign.id, 'schadcode.exe', new Uint8Array([1])),
+      { key: 'error.unsupportedImage' }
+    );
+    await assert.rejects(
+      () => vault.saveAsset(campaign.id, 'ohne-endung', new Uint8Array([1])),
+      { key: 'error.unsupportedImage' }
+    );
+  });
+});
+
+test('assetFile laesst keinen Ausbruch aus dem Bildverzeichnis zu', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    assert.throws(() => vault.assetFile(campaign.id, '../../campaign.json'), { key: 'error.invalidAsset' });
+    assert.throws(() => vault.assetFile(campaign.id, 'unter/ordner.png'), { key: 'error.invalidAsset' });
+    assert.ok(vault.assetFile(campaign.id, 'abc-123.png').endsWith('abc-123.png'));
+  });
+});
+
+test('Bilder landen in der ZIP-Sicherung', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const relative = await vault.saveAsset(campaign.id, 'portrait.png', new Uint8Array([1, 2, 3]));
+
+    const target = path.join(root, 'sicherung.zip');
+    await zipDirectory(path.join(root, 'campaigns', campaign.id), target);
+
+    const listing = execFileSync('unzip', ['-Z1', target], { encoding: 'utf8' });
+    assert.match(listing, new RegExp(relative.replace('assets/', 'assets/')));
   });
 });

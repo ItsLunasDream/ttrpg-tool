@@ -302,7 +302,76 @@ app.whenReady().then(async () => {
       'Notiz bekam nicht den neuen Typ'
     );
 
-    // 11. Sprache auf Englisch und wieder zurueck
+    // 11. Bild ins Portrait-Feld ziehen und im Fliesstext einfuegen
+    await selectNote(window, 'Mira Falkenhand');
+
+    // Ein winziges PNG, das im Renderer als Datei uebergeben wird
+    const pngBase64 =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+    await run(
+      window,
+      `const bytes = Uint8Array.from(atob(${JSON.stringify(pngBase64)}), (c) => c.charCodeAt(0));
+       const file = new File([bytes], 'portrait.png', { type: 'image/png' });
+       const transfer = new DataTransfer();
+       transfer.items.add(file);
+       const target = document.querySelector('.image-field');
+       if (!target) throw new Error('Portrait-Feld fehlt');
+       target.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer: transfer }));
+       return true;`
+    );
+    await sleep(1200);
+
+    check(await run(window, `return Boolean(document.querySelector('.image-field__preview'));`),
+      'Portrait wurde nicht übernommen');
+    check(
+      await run(window, `return document.querySelector('.image-field__preview').src.startsWith('backstory-asset://');`),
+      'Portrait benutzt nicht das Bildprotokoll'
+    );
+    // Wird das Bild tatsaechlich geladen, oder ist es nur ein toter Verweis?
+    check(
+      await run(window, `const img = document.querySelector('.image-field__preview');
+         return img.complete && img.naturalWidth > 0;`),
+      'Portrait-Bild wird nicht geladen'
+    );
+
+    // Bild in den Fliesstext ziehen
+    await run(
+      window,
+      `const bytes = Uint8Array.from(atob(${JSON.stringify(pngBase64)}), (c) => c.charCodeAt(0));
+       const file = new File([bytes], 'szene.png', { type: 'image/png' });
+       const transfer = new DataTransfer();
+       transfer.items.add(file);
+       const surface = document.querySelector('.ProseMirror');
+       surface.focus();
+       surface.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+       return true;`
+    );
+    await sleep(1500);
+    check(await run(window, `return document.querySelectorAll('.ProseMirror img').length === 1;`),
+      'Bild wurde nicht in den Text eingefügt');
+
+    await save(window);
+
+    // Im Markdown muss ein relativer Verweis stehen, kein Protokoll und kein Base64
+    {
+      const campaignsDir = path.join(userData, 'vault', 'campaigns');
+      const campaignId = fs.readdirSync(campaignsDir)[0];
+      const notesDir = path.join(campaignsDir, campaignId, 'notes');
+      const files = fs.readdirSync(notesDir).map((name) => fs.readFileSync(path.join(notesDir, name), 'utf8'));
+
+      check(files.some((raw) => /!\[[^\]]*\]\(assets\/[^)]+\.png\)/.test(raw)),
+        'Bild steht nicht als relativer Verweis im Markdown');
+      check(files.every((raw) => !raw.includes('backstory-asset://')),
+        'Protokoll-URL wurde ins Markdown geschrieben');
+      check(files.every((raw) => !raw.includes('data:image')), 'Bild wurde als Base64 eingebettet');
+      check(files.some((raw) => /portrait: assets\//.test(raw)), 'Portrait-Verweis fehlt im Steckbrief');
+
+      const assets = fs.readdirSync(path.join(campaignsDir, campaignId, 'assets'));
+      check(assets.length === 2, `erwartet zwei Bilddateien, gefunden ${assets.length}`);
+    }
+
+    // 12. Sprache auf Englisch und wieder zurueck
     await clickButton(window, 'Einstellungen');
     await sleep(500);
     await run(
@@ -338,7 +407,7 @@ app.whenReady().then(async () => {
     await clickButton(window, '×', "document.querySelector('.modal__header')");
     await sleep(400);
 
-    // 12. Umbenennen muss die Links mitziehen
+    // 13. Umbenennen muss die Links mitziehen
     await selectNote(window, 'Mira Falkenhand');
     await run(
       window,

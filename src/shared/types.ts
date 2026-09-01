@@ -9,7 +9,7 @@ export const SCHEMA_VERSION = 1;
  */
 export type NoteType = string;
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'url';
+export type FieldType = 'text' | 'textarea' | 'number' | 'url' | 'image';
 
 export interface FieldDef {
   /** Stabiler Schluessel, unter dem der Wert in der Notiz steht. Wird nie geaendert. */

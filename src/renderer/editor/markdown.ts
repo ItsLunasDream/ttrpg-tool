@@ -16,12 +16,33 @@ turndown.escape = (text: string) => escapeText(text).replace(/\\([[\]])/g, '$1')
 
 marked.setOptions({ gfm: true, breaks: false });
 
-export function markdownToHtml(markdown: string): string {
-  return marked.parse(markdown, { async: false }) as string;
+/**
+ * Bildverweise stehen im Markdown relativ als assets/x.png. Das haelt die
+ * Dateien portabel, etwa fuer Obsidian. Zum Anzeigen im Editor muessen sie in
+ * eine ladbare URL uebersetzt werden, beim Speichern wieder zurueck.
+ */
+export type AssetResolver = (relativePath: string) => string;
+
+const ASSET_MARKDOWN = /(!\[[^\]]*\]\()(assets\/[^)\s]+)(\))/g;
+
+export function markdownToHtml(markdown: string, resolveAsset?: AssetResolver): string {
+  const prepared = resolveAsset
+    ? markdown.replace(ASSET_MARKDOWN, (_whole, prefix: string, target: string, suffix: string) =>
+        `${prefix}${resolveAsset(target)}${suffix}`
+      )
+    : markdown;
+
+  return marked.parse(prepared, { async: false }) as string;
 }
 
-export function htmlToMarkdown(html: string): string {
-  return turndown.turndown(html).trim();
+export function htmlToMarkdown(html: string, toRelative?: (url: string) => string | null): string {
+  const markdown = turndown.turndown(html).trim();
+  if (!toRelative) return markdown;
+
+  return markdown.replace(/(!\[[^\]]*\]\()([^)\s]+)(\))/g, (whole, prefix: string, url: string, suffix: string) => {
+    const relative = toRelative(url);
+    return relative ? `${prefix}${relative}${suffix}` : whole;
+  });
 }
 
 /**
