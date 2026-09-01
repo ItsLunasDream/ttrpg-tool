@@ -7,6 +7,7 @@ import { BodyEditor } from './BodyEditor';
 import { RelationsPanel } from './RelationsPanel';
 import { BacklinksPanel } from './BacklinksPanel';
 import { TokenInput } from './TokenInput';
+import { ImageField } from './ImageField';
 import { useT } from '../i18n';
 
 interface Props {
@@ -25,6 +26,9 @@ interface Props {
   onOpenExternal: (url: string) => void;
   /** Suchbegriff aus der Seitenleiste, fuer die Hervorhebung im Text. */
   searchQuery: string;
+  campaignId: string;
+  onImportImage: (file: File) => Promise<string | null>;
+  onPickImage: () => Promise<string | null>;
 }
 
 export function NoteEditor(props: Props) {
@@ -70,6 +74,9 @@ export function NoteEditor(props: Props) {
             markdown={note.body}
             index={index}
             searchQuery={props.searchQuery}
+            campaignId={props.campaignId}
+            onImportImage={props.onImportImage}
+            onPickImage={props.onPickImage}
             onChange={(body) => onPatch({ body })}
             onOpenNote={props.onOpenNote}
             onCreateNote={props.onCreateNote}
@@ -87,7 +94,15 @@ export function NoteEditor(props: Props) {
               return (
                 <label className="field" key={field.key}>
                   <span className="field__label">{field.label}</span>
-                  {field.type === 'textarea' ? (
+                  {field.type === 'image' ? (
+                    <ImageField
+                      campaignId={props.campaignId}
+                      value={value}
+                      onChange={setValue}
+                      onPickImage={props.onPickImage}
+                      onImportImage={props.onImportImage}
+                    />
+                  ) : field.type === 'textarea' ? (
                     <textarea rows={3} value={value} placeholder={field.placeholder} onChange={(e) => setValue(e.target.value)} />
                   ) : (
                     <span className="field__row">

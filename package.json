@@ -21,6 +21,7 @@
   },
   "dependencies": {},
   "devDependencies": {
+    "@tiptap/extension-image": "^2.27.2",
     "@tiptap/extension-placeholder": "^2.11.5",
     "@tiptap/pm": "^2.11.5",
     "@tiptap/react": "^2.11.5",
@@ -50,7 +51,7 @@
   "build": {
     "appId": "de.itslunasdream.backstorycreator",
     "productName": "Backstory Creator",
-    "copyright": "Copyright \u00a9 ItsLunasDream",
+    "copyright": "Copyright © ItsLunasDream",
     "directories": {
       "output": "release",
       "buildResources": "build"

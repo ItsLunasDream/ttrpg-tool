@@ -16,7 +16,8 @@ const FIELD_TYPE_KEYS: Record<FieldDef['type'], MessageKey> = {
   text: 'fieldType.text',
   textarea: 'fieldType.textarea',
   number: 'fieldType.number',
-  url: 'fieldType.url'
+  url: 'fieldType.url',
+  image: 'fieldType.image'
 };
 
 /**

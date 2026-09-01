@@ -10,6 +10,7 @@ export const DEFAULT_NOTE_TYPES: NoteTypeDef[] = [
     label: 'Charakter',
     plural: 'Charaktere',
     fields: [
+      { key: 'portrait', label: 'Portrait', type: 'image' },
       { key: 'age', label: 'Alter', type: 'text', placeholder: 'z.B. 132' },
       { key: 'pronouns', label: 'Pronomen', type: 'text', placeholder: 'z.B. sie/ihr' },
       { key: 'species', label: 'Spezies', type: 'text', placeholder: 'z.B. Waldelfe' },
@@ -57,7 +58,7 @@ export const DEFAULT_NOTE_TYPES: NoteTypeDef[] = [
   }
 ];
 
-export const FIELD_TYPES: FieldDef['type'][] = ['text', 'textarea', 'number', 'url'];
+export const FIELD_TYPES: FieldDef['type'][] = ['text', 'textarea', 'number', 'url', 'image'];
 
 /**
  * Notiztyp aus der Kampagne. Ist der Typ unbekannt, etwa weil er geloescht

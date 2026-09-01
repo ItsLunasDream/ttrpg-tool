@@ -202,6 +202,24 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
 
   // --- Aktionen ------------------------------------------------------------
 
+  /** Bild in die Kampagne kopieren. Liefert den relativen Verweis oder null. */
+  const importImage = useCallback(
+    async (file: File): Promise<string | null> => {
+      const campaignId = activeCampaignId;
+      if (!campaignId) return null;
+      return guard(async () =>
+        call(api.assets.save(campaignId, file.name, new Uint8Array(await file.arrayBuffer())))
+      );
+    },
+    [activeCampaignId, guard]
+  );
+
+  const pickImage = useCallback(async (): Promise<string | null> => {
+    const campaignId = activeCampaignId;
+    if (!campaignId) return null;
+    return (await guard(() => call(api.assets.pick(campaignId)))) ?? null;
+  }, [activeCampaignId, guard]);
+
   const patchDraft = useCallback((patch: Partial<Note>) => {
     setDraft((previous) => (previous ? { ...previous, ...patch } : previous));
     setDirty(true);
@@ -333,6 +351,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 onHoverNote={(note, rect) => setHover(note && rect ? { note, rect } : null)}
                 onOpenExternal={(url) => void guard(() => call(api.openExternal(url)))}
                 searchQuery={filters.query}
+                campaignId={activeCampaignId}
+                onImportImage={importImage}
+                onPickImage={pickImage}
               />
             ) : (
               <div className="placeholder">
@@ -351,7 +372,15 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         </div>
       )}
 
-      {hover ? <InfoCard note={hover.note} types={noteTypes} rect={hover.rect} onOpen={openNote} /> : null}
+      {hover && activeCampaignId ? (
+        <InfoCard
+          note={hover.note}
+          types={noteTypes}
+          campaignId={activeCampaignId}
+          rect={hover.rect}
+          onOpen={openNote}
+        />
+      ) : null}
 
       {message ? <div className={`toast toast--${message.tone}`}>{message.text}</div> : null}
 

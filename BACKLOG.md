@@ -5,6 +5,22 @@ eines Abschnitts ist keine Priorisierung.
 
 ## Offene Wünsche
 
+### Verwaiste Bilder aufräumen
+
+Wird ein Bild aus dem Text oder aus dem Portrait-Feld entfernt, bleibt die
+Datei in `assets/` liegen. Das ist absichtlich so, weil Rückgängigmachen sonst
+ins Leere liefe, sammelt aber mit der Zeit Datenmüll an.
+
+Denkbar: ein Aufräumen-Knopf, der alle Dateien auflistet, auf die keine Notiz
+mehr verweist, und sie nach Rückfrage löscht. Erst dann löschen, nie
+automatisch beim Entfernen aus dem Text.
+
+### Bildgröße im Text einstellen
+
+Bilder werden derzeit in voller Breite bis maximal zur Textbreite angezeigt.
+Eine Möglichkeit, ein Bild kleiner zu setzen oder neben den Text zu stellen,
+wäre nützlich, ist aber im Markdown nicht ohne Weiteres abbildbar.
+
 ### Weitere Feldarten im Steckbrief
 
 Aktuell gibt es Text, mehrzeilig, Zahl und Link. Denkbar wären Auswahllisten
@@ -30,7 +46,6 @@ Ersetzen wäre ein eigener Punkt.
 
 ### Phase 2
 
-- Referenzbilder pro Notiz, Ablage im bereits angelegten `assets`-Verzeichnis
 - Versionsverlauf, alte Textstände wiederherstellbar
 - Export als PDF
 - Export als Markdown
@@ -70,6 +85,7 @@ alle Sprachen erweitert werden.
 - Mehrdeutige Namen, also zwei Notizen mit gleichem Titel oder Alias, werden
   im Index erfasst (`NoteIndex.ambiguous`), in der Oberfläche aber nicht
   angezeigt. Beim Verlinken gewinnt stillschweigend die erste Notiz
+- Aus dem Text entfernte Bilder bleiben als Datei in `assets/` liegen
 - Die Windows-Anwendung ist nicht signiert, Windows zeigt beim ersten Start
   eine SmartScreen-Warnung. Eine Signatur bräuchte ein kostenpflichtiges
   Zertifikat
@@ -123,3 +139,22 @@ Sortierungen folgen der eingestellten Sprache über `Intl.Collator`.
 Wie im Backlog vorgeschlagen bleiben selbst vergebene Bezeichnungen
 unverändert, also eigene Notiztypen und Feldnamen. Ein Test stellt sicher,
 dass kein Schlüssel ohne englische Fassung bleibt.
+
+### Bilder
+
+Bilder lassen sich im Fließtext und als Portrait im Steckbrief einfügen. Wie
+besprochen werden sie in die Kampagne kopiert, nicht verlinkt: `assets/` der
+Kampagne, mit neu vergebenem Dateinamen, damit gleichnamige Bilder sich nicht
+überschreiben. Damit bleibt die ZIP-Sicherung vollständig.
+
+Wege ins Dokument: Knopf in der Werkzeugleiste, Ziehen und Ablegen, Einfügen
+aus der Zwischenablage. Beim Portrait zusätzlich per Ziehen auf das Feld.
+
+Im Markdown steht ein relativer Verweis `![](assets/x.png)`, damit die Dateien
+in Obsidian oder einem Texteditor lesbar bleiben. Angezeigt werden Bilder über
+ein eigenes Protokoll `backstory-asset://`, das nur aus dem `assets`-Ordner
+der jeweiligen Kampagne liefert. Der Renderer bekommt weiterhin keinen
+direkten Dateizugriff.
+
+Bildfelder sind eine neue Feldart im Steckbrief, lassen sich also über den
+Notiztypen-Dialog auch bei anderen Typen ergänzen.

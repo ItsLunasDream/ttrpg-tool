@@ -779,6 +779,59 @@ mark {
   margin-bottom: 8px;
 }
 
+.image-field {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+
+.image-field__preview {
+  border-radius: var(--radius);
+  display: block;
+  margin-bottom: 8px;
+  max-height: 260px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.image-field__empty {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.image-field__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.image-field__actions button {
+  flex: 1;
+  font-size: 12px;
+}
+
+.info-card__portrait {
+  border-radius: var(--radius);
+  display: block;
+  margin-bottom: 8px;
+  max-height: 180px;
+  object-fit: cover;
+  width: 100%;
+}
+
+.body-editor__surface img {
+  border-radius: var(--radius);
+  display: block;
+  height: auto;
+  margin: 12px 0;
+  max-width: 100%;
+}
+
+.body-editor__surface img.ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+}
+
 /* --- Notiztyp-Editor --- */
 
 .type-editor {

@@ -56,6 +56,8 @@ npm run dist:win  # Windows-Installer und portable exe nach release/
 | Kampagne sichern | „Als ZIP sichern" in der Kopfzeile |
 | Steckbrief anpassen | „Notiztypen" in der Kopfzeile |
 | Sprache wechseln | Einstellungen → Sprache |
+| Bild einfügen | Knopf ▣ in der Werkzeugleiste, oder Bild in den Text ziehen bzw. einfügen |
+| Portrait setzen | Bild auf das Portrait-Feld im Steckbrief ziehen, oder „Bild wählen" |
 
 Links in einer anderen Farbe zeigen auf eine Notiz, die es noch nicht gibt.
 Sie stehen zusätzlich im Panel „Offene Links".
@@ -71,7 +73,7 @@ Einstellungen → Speicherort.
     <campaignId>/
       campaign.json
       notes/<noteId>.md      YAML-Frontmatter + Markdown
-      assets/                Bilder (Phase 2)
+      assets/                Bilder der Kampagne
 ```
 
 Notizen sind gewöhnliches Markdown mit YAML-Kopf. Sie lassen sich mit jedem
@@ -99,6 +101,13 @@ Notizdatei und erscheinen wieder, wenn das Feld zurückgeholt wird.
 **Wiki-Links** stehen als `[[Titel]]` bzw. `[[Titel|Anzeigetext]]` im Klartext.
 Beim Umbenennen einer Notiz werden alle Vorkommen in der Kampagne mitgezogen,
 Links gehen also durch Umbenennen nicht verloren.
+
+**Bilder** werden in den `assets`-Ordner der Kampagne kopiert, nicht
+verlinkt. Damit bleibt eine Kampagne vollständig und als ZIP sicherbar. Im
+Markdown steht ein relativer Verweis `![](assets/x.png)`, damit die Dateien
+auch außerhalb des Tools lesbar bleiben. Angezeigt werden sie über ein eigenes
+Protokoll `backstory-asset://`, das ausschließlich aus dem `assets`-Ordner der
+jeweiligen Kampagne liefert; der Renderer behält keinen direkten Dateizugriff.
 
 **Sprache** ist umschaltbar zwischen Deutsch und Englisch. Alle festen Texte
 liegen in `src/shared/i18n.ts`, auch die Fehlermeldungen des Hauptprozesses:
@@ -135,6 +144,7 @@ Umgesetzt (MVP):
   jeweils mit eigenen Steckbrieffeldern, in der App anpassbar
 - Rich-Text-Editor auf TipTap, gespeichert als Markdown
 - `[[Wiki-Links]]` mit Autocomplete, Kurzinfo-Karte samt Textanfang, offenen Links
+- Bilder im Fließtext und als Portrait im Steckbrief, in die Kampagne kopiert
 - Aliase, Tags, Wortzähler
 - Volltextsuche mit hervorgehobener Fundstelle in der Liste und im Text,
   Sprung zwischen den Fundstellen per F3 und Umschalt+F3
@@ -142,8 +152,8 @@ Umgesetzt (MVP):
 - Oberfläche auf Deutsch oder Englisch, umschaltbar ohne Neustart
 - Autosave (abschaltbar) und Strg+S
 
-Phase 2: Bilder pro Notiz, Versionsverlauf, Export als PDF und Markdown,
-Options-Listen als Schreibhilfe ohne KI.
+Phase 2: Versionsverlauf, Export als PDF und Markdown, Options-Listen als
+Schreibhilfe ohne KI.
 
 Phase 3: Graph-Ansicht des Beziehungsnetzes.
 

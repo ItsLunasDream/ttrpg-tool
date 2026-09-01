@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS} = entry;
+const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath} = entry;
 
 /** Baut einen Index mit den Standardtypen. */
 function makeIndex(notes) {
@@ -246,4 +246,37 @@ test('isLanguage erkennt nur bekannte Sprachen', () => {
 
 test('LANGUAGES enthaelt Deutsch und Englisch', () => {
   assert.deepEqual(LANGUAGES.map((entry) => entry.id).sort(), ['de', 'en']);
+});
+
+test('Bildverweise ueberstehen den Rundlauf durch den Editor', () => {
+  const markdown = 'Ein Portrait:\n\n![Mira](assets/abc.png)';
+  const html = markdownToHtml(markdown, (target) => assetUrl('kampagne-1', target));
+
+  assert.match(html, /backstory-asset:\/\/kampagne-1\/abc\.png/);
+  assert.ok(!html.includes('assets/abc.png'), 'relativer Pfad blieb im HTML stehen');
+
+  const back = htmlToMarkdown(html, assetPath);
+  assert.match(back, /!\[Mira\]\(assets\/abc\.png\)/);
+});
+
+test('Fremde Bild-URLs bleiben beim Speichern unveraendert', () => {
+  const html = '<p><img src="https://example.org/bild.png" alt="Fremd"></p>';
+  assert.match(htmlToMarkdown(html, assetPath), /https:\/\/example\.org\/bild\.png/);
+});
+
+test('assetPath erkennt nur das eigene Schema', () => {
+  assert.equal(assetPath('backstory-asset://k1/abc.png'), 'assets/abc.png');
+  assert.equal(assetPath('https://example.org/x.png'), null);
+  assert.equal(assetPath('assets/x.png'), null);
+});
+
+test('assetUrl kodiert den Dateinamen', () => {
+  assert.equal(assetUrl('k1', 'assets/a b.png'), 'backstory-asset://k1/a%20b.png');
+});
+
+test('Standard-Charakter hat ein Portrait-Feld', () => {
+  const character = DEFAULT_NOTE_TYPES.find((def) => def.id === 'character');
+  const portrait = character.fields.find((field) => field.type === 'image');
+  assert.ok(portrait, 'kein Bildfeld vorhanden');
+  assert.equal(portrait.key, 'portrait');
 });

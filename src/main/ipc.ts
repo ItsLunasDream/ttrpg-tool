@@ -4,6 +4,7 @@ import { BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { Vault, VaultError, writeSettings } from './vault';
 import { translate } from '../shared/i18n';
 import { zipDirectory } from './export';
+import { ALLOWED_IMAGE_EXTENSIONS } from './vault';
 import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef } from '../shared/types';
 
 export interface IpcContext {
@@ -87,6 +88,25 @@ export function registerIpc(context: IpcContext): void {
     vault.renameNote(campaignId, noteId, title)
   );
   handle<[string, string], void>('note:delete', (campaignId, noteId) => vault.deleteNote(campaignId, noteId));
+
+  /** Bild ueber einen Dateidialog waehlen und in die Kampagne kopieren. */
+  handle<[string], string | null>('asset:pick', async (campaignId) => {
+    const window = BrowserWindow.getFocusedWindow();
+    const options = {
+      properties: ['openFile' as const],
+      filters: [{ name: 'Bilder', extensions: ALLOWED_IMAGE_EXTENSIONS.map((entry) => entry.slice(1)) }]
+    };
+    const result = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options);
+    if (result.canceled || !result.filePaths[0]) return null;
+
+    const source = result.filePaths[0];
+    return vault.saveAsset(campaignId, path.basename(source), await fs.readFile(source));
+  });
+
+  /** Bild aus Zwischenablage oder Ziehen und Ablegen uebernehmen. */
+  handle<[string, string, Uint8Array], string>('asset:save', (campaignId, name, data) =>
+    vault.saveAsset(campaignId, name, data)
+  );
 
   handle<[string], void>('shell:openExternal', async (url) => {
     // Nur http(s) oeffnen, damit ein Link im Text keine beliebigen Handler startet.

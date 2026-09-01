@@ -14,6 +14,11 @@ const NOTES_DIR = 'notes';
 const ASSETS_DIR = 'assets';
 const CAMPAIGN_FILE = 'campaign.json';
 
+export const ALLOWED_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif'];
+const MAX_ASSET_BYTES = 25 * 1024 * 1024;
+/** Nur Dateinamen ohne Pfadanteile, damit nichts aus assets/ ausbrechen kann. */
+const SAFE_ASSET_NAME = /^[A-Za-z0-9_-]+\.[A-Za-z0-9]+$/;
+
 /**
  * Fehler mit uebersetzbarem Text. Der Hauptprozess kennt die eingestellte
  * Sprache nicht an jeder Stelle, deshalb wird nur der Schluessel geworfen und
@@ -53,6 +58,42 @@ export class Vault {
   private campaignDir(campaignId: string): string {
     assertSafeId(campaignId);
     return path.join(this.root, CAMPAIGNS_DIR, campaignId);
+  }
+
+  /**
+   * Verzeichnis der Bilder einer Kampagne. Bilder werden hineinkopiert, damit
+   * die Kampagne vollstaendig bleibt und sich als ZIP sichern laesst.
+   */
+  assetsDir(campaignId: string): string {
+    return path.join(this.campaignDir(campaignId), ASSETS_DIR);
+  }
+
+  /** Vollstaendiger Pfad einer Bilddatei, mit Pruefung des Dateinamens. */
+  assetFile(campaignId: string, fileName: string): string {
+    if (!SAFE_ASSET_NAME.test(fileName)) throw new VaultError('error.invalidAsset', { name: fileName });
+    return path.join(this.assetsDir(campaignId), fileName);
+  }
+
+  /**
+   * Legt ein Bild in der Kampagne ab und liefert den relativen Verweis, so
+   * wie er im Markdown steht. Der Dateiname wird neu vergeben, damit zwei
+   * gleichnamige Bilder sich nicht gegenseitig ueberschreiben.
+   */
+  async saveAsset(campaignId: string, originalName: string, data: Uint8Array): Promise<string> {
+    const extension = path.extname(originalName).toLowerCase();
+    if (!ALLOWED_IMAGE_EXTENSIONS.includes(extension)) {
+      throw new VaultError('error.unsupportedImage', { extension: extension || originalName });
+    }
+    if (data.byteLength > MAX_ASSET_BYTES) {
+      throw new VaultError('error.imageTooLarge', { limit: Math.round(MAX_ASSET_BYTES / 1024 / 1024) });
+    }
+
+    const dir = this.assetsDir(campaignId);
+    await fs.mkdir(dir, { recursive: true });
+
+    const fileName = `${randomUUID()}${extension}`;
+    await writeAtomic(path.join(dir, fileName), Buffer.from(data));
+    return `${ASSETS_DIR}/${fileName}`;
   }
 
   private noteFile(campaignId: string, noteId: string): string {
@@ -270,9 +311,9 @@ function assertSafeId(id: string): void {
   }
 }
 
-async function writeAtomic(file: string, content: string): Promise<void> {
+async function writeAtomic(file: string, content: string | Buffer): Promise<void> {
   const tmp = `${file}.tmp-${process.pid}`;
-  await fs.writeFile(tmp, content, 'utf8');
+  await fs.writeFile(tmp, content);
   await fs.rename(tmp, file);
 }
 
@@ -335,7 +376,7 @@ function normalizeNote(noteId: string, data: Record<string, unknown>, body: stri
   };
 }
 
-const FIELD_TYPES: FieldDef['type'][] = ['text', 'textarea', 'number', 'url'];
+const FIELD_TYPES: FieldDef['type'][] = ['text', 'textarea', 'number', 'url', 'image'];
 
 /**
  * Prueft Notiztypen aus der Oberflaeche, bevor sie geschrieben werden.
