@@ -1,9 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { Vault } from '../dist/tests/entry.mjs';
+import { execFileSync } from 'node:child_process';
+import entry from '../dist/tests/entry.cjs';
+
+const {Vault, zipDirectory} = entry;
 
 async function withVault(run) {
   const root = await mkdtemp(path.join(tmpdir(), 'backstory-'));
@@ -95,14 +98,174 @@ test('Notizdatei bleibt lesbares Markdown mit YAML-Kopf', async () => {
 
 test('Ungueltige IDs koennen nicht aus dem Vault ausbrechen', async () => {
   await withVault(async (vault) => {
-    await assert.rejects(() => vault.listNotes('../../etc'), /Ungültige ID/);
+    await assert.rejects(() => vault.listNotes('../../etc'), { key: 'error.invalidId' });
   });
 });
 
 test('Leere Namen werden abgelehnt', async () => {
   await withVault(async (vault) => {
-    await assert.rejects(() => vault.createCampaign('   '), /Namen/);
+    await assert.rejects(() => vault.createCampaign('   '), { key: 'error.campaignName' });
     const campaign = await vault.createCampaign('Sturmkueste');
-    await assert.rejects(() => vault.createNote(campaign.id, 'character', '  '), /Titel/);
+    await assert.rejects(() => vault.createNote(campaign.id, 'character', '  '), { key: 'error.noteTitle' });
+  });
+});
+
+test('Neue Kampagnen bekommen die Standard-Notiztypen', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    assert.ok(campaign.noteTypes.length >= 5);
+    assert.ok(campaign.noteTypes.some((def) => def.id === 'character'));
+    assert.ok(campaign.noteTypes.some((def) => def.id === 'note' && def.fields.length === 0));
+  });
+});
+
+test('Kampagne ohne Notiztypen wird beim Lesen migriert und zurueckgeschrieben', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const file = path.join(root, 'campaigns', campaign.id, 'campaign.json');
+
+    // Zustand einer aelteren Version herstellen
+    await writeFile(file, JSON.stringify({ id: campaign.id, name: 'Sturmkueste', createdAt: campaign.createdAt }));
+
+    const [migrated] = await vault.listCampaigns();
+    assert.ok(migrated.noteTypes.length >= 5, 'Notiztypen nicht ergaenzt');
+
+    const onDisk = JSON.parse(await readFile(file, 'utf8'));
+    assert.ok(Array.isArray(onDisk.noteTypes), 'Migration wurde nicht gespeichert');
+  });
+});
+
+test('Notiztypen lassen sich anpassen', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const types = campaign.noteTypes.map((def) =>
+      def.id === 'character'
+        ? { ...def, label: 'Person', fields: [...def.fields, { key: 'heimat', label: 'Heimat', type: 'text' }] }
+        : def
+    );
+
+    const updated = await vault.updateNoteTypes(campaign.id, types);
+    const character = updated.noteTypes.find((def) => def.id === 'character');
+    assert.equal(character.label, 'Person');
+    assert.ok(character.fields.some((field) => field.key === 'heimat'));
+
+    const [reloaded] = await vault.listCampaigns();
+    assert.equal(reloaded.noteTypes.find((def) => def.id === 'character').label, 'Person');
+  });
+});
+
+test('Entferntes Feld loescht keinen bereits eingetragenen Wert', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    await vault.saveNote(campaign.id, { ...note, fields: { species: 'Waldelfe' } });
+
+    const types = campaign.noteTypes.map((def) =>
+      def.id === 'character' ? { ...def, fields: def.fields.filter((field) => field.key !== 'species') } : def
+    );
+    await vault.updateNoteTypes(campaign.id, types);
+
+    const reloaded = await vault.getNote(campaign.id, note.id);
+    assert.equal(reloaded.fields.species, 'Waldelfe', 'Wert wurde verworfen');
+  });
+});
+
+test('Ungueltige Notiztypen werden abgelehnt', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    await assert.rejects(() => vault.updateNoteTypes(campaign.id, []), { key: 'error.needsOneType' });
+    await assert.rejects(
+      () => vault.updateNoteTypes(campaign.id, [{ id: 'a', label: '', plural: '', fields: [] }]),
+      { key: 'error.typeNeedsLabel' }
+    );
+    await assert.rejects(
+      () => vault.updateNoteTypes(campaign.id, [
+        { id: 'a', label: 'A', plural: 'A', fields: [{ key: 'x', label: 'X', type: 'text' }, { key: 'x', label: 'Y', type: 'text' }] }
+      ]),
+      { key: 'error.duplicateField' }
+    );
+    await assert.rejects(
+      () => vault.updateNoteTypes(campaign.id, [
+        { id: 'a', label: 'A', plural: 'A', fields: [] },
+        { id: 'a', label: 'B', plural: 'B', fields: [] }
+      ]),
+      { key: 'error.duplicateType' }
+    );
+  });
+});
+
+test('Notizen mit unbekanntem Typ bleiben lesbar', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+
+    // Typ entfernen, als haette die Nutzerin ihn geloescht
+    await vault.updateNoteTypes(
+      campaign.id,
+      campaign.noteTypes.filter((def) => def.id !== 'character')
+    );
+
+    const reloaded = await vault.getNote(campaign.id, note.id);
+    assert.equal(reloaded.type, 'character');
+    assert.equal(reloaded.title, 'Mira');
+  });
+});
+
+test('Notizen mit unbekanntem Typ koennen nicht angelegt werden', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    await assert.rejects(() => vault.createNote(campaign.id, 'gibtesnicht', 'Mira'), { key: 'error.unknownNoteType' });
+  });
+});
+
+test('Bilder werden in die Kampagne kopiert und bekommen einen neuen Namen', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const data = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
+
+    const first = await vault.saveAsset(campaign.id, 'portrait.png', data);
+    const second = await vault.saveAsset(campaign.id, 'portrait.png', data);
+
+    assert.match(first, /^assets\/[0-9a-f-]+\.png$/);
+    assert.notEqual(first, second, 'gleichnamige Bilder ueberschreiben sich');
+
+    const stored = await readFile(path.join(root, 'campaigns', campaign.id, first), null);
+    assert.deepEqual([...stored], [...data]);
+  });
+});
+
+test('Nur bekannte Bildformate werden angenommen', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    await assert.rejects(
+      () => vault.saveAsset(campaign.id, 'schadcode.exe', new Uint8Array([1])),
+      { key: 'error.unsupportedImage' }
+    );
+    await assert.rejects(
+      () => vault.saveAsset(campaign.id, 'ohne-endung', new Uint8Array([1])),
+      { key: 'error.unsupportedImage' }
+    );
+  });
+});
+
+test('assetFile laesst keinen Ausbruch aus dem Bildverzeichnis zu', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    assert.throws(() => vault.assetFile(campaign.id, '../../campaign.json'), { key: 'error.invalidAsset' });
+    assert.throws(() => vault.assetFile(campaign.id, 'unter/ordner.png'), { key: 'error.invalidAsset' });
+    assert.ok(vault.assetFile(campaign.id, 'abc-123.png').endsWith('abc-123.png'));
+  });
+});
+
+test('Bilder landen in der ZIP-Sicherung', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const relative = await vault.saveAsset(campaign.id, 'portrait.png', new Uint8Array([1, 2, 3]));
+
+    const target = path.join(root, 'sicherung.zip');
+    await zipDirectory(path.join(root, 'campaigns', campaign.id), target);
+
+    const listing = execFileSync('unzip', ['-Z1', target], { encoding: 'utf8' });
+    assert.match(listing, new RegExp(relative.replace('assets/', 'assets/')));
   });
 });

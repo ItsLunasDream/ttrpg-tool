@@ -52,7 +52,12 @@ npm run dist:win  # Windows-Installer und portable exe nach release/
 | Verlinkte Notiz öffnen | Strg (bzw. Cmd) halten und auf den Link klicken |
 | Kurzinfo ansehen | Mit der Maus über den Link fahren |
 | Speichern | Strg+S, oder Autosave laufen lassen |
+| Zwischen Fundstellen springen | F3 und Umschalt+F3, oder die Pfeile über dem Editor |
 | Kampagne sichern | „Als ZIP sichern" in der Kopfzeile |
+| Steckbrief anpassen | „Notiztypen" in der Kopfzeile |
+| Sprache wechseln | Einstellungen → Sprache |
+| Bild einfügen | Knopf ▣ in der Werkzeugleiste, oder Bild in den Text ziehen bzw. einfügen |
+| Portrait setzen | Bild auf das Portrait-Feld im Steckbrief ziehen, oder „Bild wählen" |
 
 Links in einer anderen Farbe zeigen auf eine Notiz, die es noch nicht gibt.
 Sie stehen zusätzlich im Panel „Offene Links".
@@ -68,7 +73,7 @@ Einstellungen → Speicherort.
     <campaignId>/
       campaign.json
       notes/<noteId>.md      YAML-Frontmatter + Markdown
-      assets/                Bilder (Phase 2)
+      assets/                Bilder der Kampagne
 ```
 
 Notizen sind gewöhnliches Markdown mit YAML-Kopf. Sie lassen sich mit jedem
@@ -82,14 +87,33 @@ werden können.
 **Kampagne** ist ein echter Container. Eine Notiz gehört zu genau einer
 Kampagne und ist nur innerhalb dieser verlinkbar.
 
-**Notiztypen** (Charakter, Ort, Fraktion, Ereignis) sind gleichberechtigt und
-schema-getrieben: die Feldlisten stehen in `src/shared/noteTypes.ts`, das
-Formular wird daraus gerendert. Ein neues Feld ist ein Listeneintrag, keine
-Komponentenänderung.
+**Notiztypen** sind gleichberechtigt und schema-getrieben. Das Schema ist
+kein Code, sondern gehört der Kampagne: es liegt in `campaign.json` und wird
+über „Notiztypen" in der Kopfzeile bearbeitet. Typen und Felder lassen sich
+anlegen, umbenennen, umsortieren und entfernen.
+`src/shared/noteTypes.ts` liefert nur noch die Vorlage für neue Kampagnen.
+
+Zwei Regeln schützen dabei bestehende Daten. Der Schlüssel eines Felds bleibt
+beim Umbenennen der Beschriftung unverändert, sonst gingen eingetragene Werte
+verloren. Und ein entferntes Feld löscht keine Werte: sie bleiben in der
+Notizdatei und erscheinen wieder, wenn das Feld zurückgeholt wird.
 
 **Wiki-Links** stehen als `[[Titel]]` bzw. `[[Titel|Anzeigetext]]` im Klartext.
 Beim Umbenennen einer Notiz werden alle Vorkommen in der Kampagne mitgezogen,
 Links gehen also durch Umbenennen nicht verloren.
+
+**Bilder** werden in den `assets`-Ordner der Kampagne kopiert, nicht
+verlinkt. Damit bleibt eine Kampagne vollständig und als ZIP sicherbar. Im
+Markdown steht ein relativer Verweis `![](assets/x.png)`, damit die Dateien
+auch außerhalb des Tools lesbar bleiben. Angezeigt werden sie über ein eigenes
+Protokoll `backstory-asset://`, das ausschließlich aus dem `assets`-Ordner der
+jeweiligen Kampagne liefert; der Renderer behält keinen direkten Dateizugriff.
+
+**Sprache** ist umschaltbar zwischen Deutsch und Englisch. Alle festen Texte
+liegen in `src/shared/i18n.ts`, auch die Fehlermeldungen des Hauptprozesses:
+`VaultError` trägt einen Schlüssel, übersetzt wird erst in der IPC-Schicht.
+Selbst vergebene Bezeichnungen wie eigene Notiztypen und Feldnamen bleiben
+unverändert, die kann das Programm nicht übersetzen.
 
 **Beziehungen** hängen am Notizpaar, nicht an der einzelnen Textstelle, und
 sind gerichtet: A sieht B als Mentorin, B sieht A als Bedrohung. Sie werden im
@@ -101,7 +125,7 @@ die Graph-Ansicht in Phase 3.
 ## Aufbau
 
 ```
-src/shared/     Datenmodell, Notiztyp-Schemata, Wiki-Link-Parsing
+src/shared/     Datenmodell, Notiztyp-Vorlage, Wiki-Link-Parsing, Texte
 src/main/       Electron-Hauptprozess: Dateisystem, IPC, ZIP-Export
 src/preload/    Einzige Brücke zum Renderer (contextIsolation aktiv)
 src/renderer/   React-Oberfläche, TipTap-Editor, Notizindex
@@ -116,21 +140,31 @@ die typisierten IPC-Kanäle in `src/preload/index.ts`.
 Umgesetzt (MVP):
 
 - Kampagnen anlegen, umbenennen, löschen, als ZIP sichern
-- Notiztypen Charakter, Ort, Fraktion, Ereignis mit eigenen Feldern
+- Notiztypen Charakter, Ort, Fraktion, Ereignis und ein freier Typ „Notiz",
+  jeweils mit eigenen Steckbrieffeldern, in der App anpassbar
 - Rich-Text-Editor auf TipTap, gespeichert als Markdown
-- `[[Wiki-Links]]` mit Autocomplete, Kurzinfo-Karte, offenen Links
-- Aliase, Tags, Volltextsuche, Wortzähler
+- `[[Wiki-Links]]` mit Autocomplete, Kurzinfo-Karte samt Textanfang, offenen Links
+- Bilder im Fließtext und als Portrait im Steckbrief, in die Kampagne kopiert
+- Aliase, Tags, Wortzähler
+- Volltextsuche mit hervorgehobener Fundstelle in der Liste und im Text,
+  Sprung zwischen den Fundstellen per F3 und Umschalt+F3
 - Gerichtete Beziehungen und Backlinks
+- Oberfläche auf Deutsch oder Englisch, umschaltbar ohne Neustart
 - Autosave (abschaltbar) und Strg+S
 
-Phase 2: Bilder pro Notiz, Versionsverlauf, Export als PDF und Markdown,
-Options-Listen als Schreibhilfe ohne KI.
+Phase 2: Versionsverlauf, Export als PDF und Markdown, Options-Listen als
+Schreibhilfe ohne KI.
 
 Phase 3: Graph-Ansicht des Beziehungsnetzes.
 
 Phase 4: KI-Sidebar hinter einem austauschbaren Provider-Interface
 (Ollama lokal oder Claude API), als Rückfrage- und Konsistenzhilfe, nicht als
 Textgenerator.
+
+## Backlog
+
+Offene Aufgaben, geplante Phasen und bekannte Grenzen stehen in
+[BACKLOG.md](BACKLOG.md).
 
 ## Bekannte Grenzen
 
@@ -143,6 +177,30 @@ Textgenerator.
   schadet nicht.
 - Mehrdeutige Namen (zwei Notizen mit gleichem Titel oder Alias) werden im
   Index erfasst, in der Oberfläche aber noch nicht gesondert angezeigt.
+
+## Tests der Paketierung
+
+Der Rauchtest unten laeuft gegen die ungepackte App. Fehlt eine Abhaengigkeit
+erst im fertigen Installationspaket, sieht er das nicht. Dafuer gibt es
+`scripts/verify-package.mjs`: das Skript startet die **gepackte** Anwendung und
+prueft, dass sie ohne fehlende Module hochkommt.
+
+```bash
+npm run dist:linux:dir
+xvfb-run -a npm run verify:package -- "$PWD/release/linux-unpacked/backstory-creator"
+```
+
+Unter Windows nach `npm run dist:win`:
+
+```bash
+npm run verify:package -- "release\win-unpacked\Backstory Creator.exe"
+```
+
+Beide Prüfungen laufen in der CI, bevor die Windows-Anwendung hochgeladen wird.
+
+Hauptprozess und Preload werden komplett gebündelt (esbuild, nur `electron`
+bleibt extern). Das Paket enthält deshalb gar kein `node_modules`, und es kann
+keine Abhängigkeit mehr fehlen.
 
 ## Rauchtest
 

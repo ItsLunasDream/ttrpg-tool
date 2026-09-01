@@ -1,8 +1,13 @@
-import { noteTypeDef } from '../../shared/noteTypes';
-import type { Note } from '../../shared/types';
+import { findNoteType } from '../../shared/noteTypes';
+import { textPreview } from '../editor/markdown';
+import { assetUrl } from '../editor/assets';
+import type { Note, NoteTypeDef } from '../../shared/types';
+import { useT } from '../i18n';
 
 interface Props {
   note: Note;
+  types: NoteTypeDef[];
+  campaignId: string;
   rect: DOMRect;
   onOpen: (noteId: string) => void;
 }
@@ -10,9 +15,12 @@ interface Props {
 const CARD_WIDTH = 300;
 
 /** Kurzinfo beim Ueberfahren eines Wiki-Links. Kein Seitenwechsel. */
-export function InfoCard({ note, rect, onOpen }: Props) {
-  const def = noteTypeDef(note.type);
-  const filled = def.fields.filter((field) => note.fields[field.key]?.trim());
+export function InfoCard({ note, types, campaignId, rect, onOpen }: Props) {
+  const t = useT();
+  const def = findNoteType(types, note.type);
+  const portraitField = def.fields.find((field) => field.type === 'image' && note.fields[field.key]?.trim());
+  const filled = def.fields.filter((field) => field.type !== 'image' && note.fields[field.key]?.trim());
+  const preview = textPreview(note.body);
 
   const left = Math.max(8, Math.min(rect.left, window.innerWidth - CARD_WIDTH - 8));
   const placeAbove = rect.bottom + 220 > window.innerHeight;
@@ -27,7 +35,17 @@ export function InfoCard({ note, rect, onOpen }: Props) {
         <span className="badge">{def.label}</span>
       </div>
 
-      {note.aliases.length ? <p className="info-card__aliases">alias {note.aliases.join(', ')}</p> : null}
+      {portraitField ? (
+        <img
+          className="info-card__portrait"
+          src={assetUrl(campaignId, note.fields[portraitField.key])}
+          alt={portraitField.label}
+        />
+      ) : null}
+
+      {note.aliases.length ? (
+        <p className="info-card__aliases">{t('card.alias', { names: note.aliases.join(', ') })}</p>
+      ) : null}
 
       {filled.length ? (
         <dl className="info-card__fields">
@@ -38,8 +56,12 @@ export function InfoCard({ note, rect, onOpen }: Props) {
             </div>
           ))}
         </dl>
+      ) : null}
+
+      {preview ? (
+        <p className="info-card__preview">{preview}</p>
       ) : (
-        <p className="info-card__empty">Noch keine Felder gefüllt.</p>
+        <p className="info-card__empty">{t('card.noText')}</p>
       )}
 
       {note.tags.length ? (
@@ -53,7 +75,7 @@ export function InfoCard({ note, rect, onOpen }: Props) {
       ) : null}
 
       <button type="button" className="link-button" onClick={() => onOpen(note.id)}>
-        Notiz öffnen
+        {t('card.openNote')}
       </button>
     </div>
   );

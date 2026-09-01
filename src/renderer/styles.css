@@ -1,5 +1,7 @@
 :root {
   --bg: #16141c;
+  --hit: rgba(196, 163, 90, 0.28);
+  --hit-active: #c4a35a;
   --bg-raised: #1f1c28;
   --bg-input: #14121a;
   --border: #322d40;
@@ -271,6 +273,31 @@ button:focus-visible {
   font-size: 11px;
 }
 
+.note-list__snippet {
+  color: var(--text-muted);
+  display: block;
+  font-size: 11px;
+  line-height: 1.45;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.note-list__snippet-label {
+  color: var(--accent);
+}
+
+.note-list__more {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+mark {
+  background: var(--hit);
+  border-radius: 2px;
+  color: var(--text);
+  padding: 0 1px;
+}
+
 .note-list__total,
 .note-list__empty {
   color: var(--text-muted);
@@ -441,6 +468,46 @@ button:focus-visible {
 
 .wikilink--unresolved {
   color: var(--link-missing);
+}
+
+.search-hit {
+  background: var(--hit);
+  border-radius: 2px;
+}
+
+.search-hit--active {
+  background: var(--hit-active);
+  color: #201a10;
+}
+
+.search-bar {
+  align-items: center;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  padding: 5px 14px;
+}
+
+.search-bar__term {
+  color: var(--accent);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-bar__count {
+  color: var(--text-muted);
+  flex: 1;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.search-bar button {
+  line-height: 1;
+  min-width: 26px;
+  padding: 2px 7px;
 }
 
 /* --- Autocomplete --- */
@@ -696,11 +763,174 @@ button:focus-visible {
   word-break: break-word;
 }
 
+.info-card__preview {
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 8px;
+  padding-top: 8px;
+}
+
 .info-card__tags {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   margin-bottom: 8px;
+}
+
+.image-field {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+
+.image-field__preview {
+  border-radius: var(--radius);
+  display: block;
+  margin-bottom: 8px;
+  max-height: 260px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.image-field__empty {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.image-field__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.image-field__actions button {
+  flex: 1;
+  font-size: 12px;
+}
+
+.info-card__portrait {
+  border-radius: var(--radius);
+  display: block;
+  margin-bottom: 8px;
+  max-height: 180px;
+  object-fit: cover;
+  width: 100%;
+}
+
+.body-editor__surface img {
+  border-radius: var(--radius);
+  display: block;
+  height: auto;
+  margin: 12px 0;
+  max-width: 100%;
+}
+
+.body-editor__surface img.ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+}
+
+/* --- Notiztyp-Editor --- */
+
+.type-editor {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 150px 1fr;
+}
+
+.type-editor__list ul {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.type-editor__list li button {
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+  padding: 5px 8px;
+  width: 100%;
+}
+
+.type-editor__list li button:hover {
+  background: var(--bg-input);
+}
+
+.type-editor__list li button.is-active {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+
+.type-editor__count {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.type-editor__heading {
+  color: var(--text-muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  margin: 14px 0 6px;
+  text-transform: uppercase;
+}
+
+.type-editor__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.type-editor__fields li {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+
+.type-editor__field-row {
+  align-items: center;
+  display: flex;
+  gap: 5px;
+}
+
+.type-editor__field-label {
+  flex: 1;
+}
+
+.type-editor__field-row select {
+  width: auto;
+}
+
+.type-editor__placeholder {
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.type-editor__key {
+  color: var(--text-muted);
+  display: block;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  margin-top: 4px;
+}
+
+.type-editor__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.type-editor__error {
+  color: var(--danger);
+  font-size: 12px;
+  margin: 12px 0 0;
 }
 
 /* --- Modal und Toast --- */
@@ -722,6 +952,10 @@ button:focus-visible {
   max-height: 82vh;
   overflow-y: auto;
   width: min(460px, 92vw);
+}
+
+.modal--wide {
+  width: min(760px, 94vw);
 }
 
 .modal__header {

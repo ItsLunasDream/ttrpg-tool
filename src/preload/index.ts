@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppSettings, Campaign, Note, NoteType } from '../shared/types';
+import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef } from '../shared/types';
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -23,7 +23,10 @@ const api = {
     list: () => invoke<Campaign[]>('campaign:list'),
     create: (name: string) => invoke<Campaign>('campaign:create', name),
     rename: (id: string, name: string) => invoke<Campaign>('campaign:rename', id, name),
-    remove: (id: string) => invoke<void>('campaign:delete', id)
+    remove: (id: string) => invoke<void>('campaign:delete', id),
+    get: (id: string) => invoke<Campaign>('campaign:get', id),
+    updateNoteTypes: (id: string, types: NoteTypeDef[]) =>
+      invoke<Campaign>('campaign:updateNoteTypes', id, types)
   },
   notes: {
     list: (campaignId: string) => invoke<Note[]>('note:list', campaignId),
@@ -33,6 +36,13 @@ const api = {
     rename: (campaignId: string, noteId: string, title: string) =>
       invoke<{ note: Note; rewritten: number }>('note:rename', campaignId, noteId, title),
     remove: (campaignId: string, noteId: string) => invoke<void>('note:delete', campaignId, noteId)
+  },
+  assets: {
+    /** Bild ueber einen Dateidialog waehlen. Liefert den relativen Verweis. */
+    pick: (campaignId: string) => invoke<string | null>('asset:pick', campaignId),
+    /** Bild aus Zwischenablage oder Ziehen und Ablegen uebernehmen. */
+    save: (campaignId: string, name: string, data: Uint8Array) =>
+      invoke<string>('asset:save', campaignId, name, data)
   },
   exportCampaignZip: (campaignId: string, campaignName: string) =>
     invoke<string | null>('export:campaignZip', campaignId, campaignName),

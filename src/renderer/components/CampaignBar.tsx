@@ -1,4 +1,5 @@
 import type { AppSettings, Campaign } from '../../shared/types';
+import { useT } from '../i18n';
 
 interface Props {
   campaigns: Campaign[];
@@ -9,10 +10,12 @@ interface Props {
   onRename: () => void;
   onDelete: () => void;
   onExport: () => void;
+  onEditNoteTypes: () => void;
   onOpenSettings: () => void;
 }
 
 export function CampaignBar(props: Props) {
+  const t = useT();
   const { campaigns, activeCampaignId, settings } = props;
 
   return (
@@ -21,7 +24,7 @@ export function CampaignBar(props: Props) {
 
       <select value={activeCampaignId ?? ''} onChange={(event) => props.onSelect(event.target.value)}>
         <option value="" disabled>
-          Kampagne wählen …
+          {t('bar.chooseCampaign')}
         </option>
         {campaigns.map((campaign) => (
           <option value={campaign.id} key={campaign.id}>
@@ -31,23 +34,26 @@ export function CampaignBar(props: Props) {
       </select>
 
       <button type="button" onClick={props.onCreate}>
-        Neue Kampagne
+        {t('bar.newCampaign')}
       </button>
       <button type="button" onClick={props.onRename} disabled={!activeCampaignId}>
-        Umbenennen
+        {t('bar.rename')}
+      </button>
+      <button type="button" onClick={props.onEditNoteTypes} disabled={!activeCampaignId}>
+        {t('bar.noteTypes')}
       </button>
       <button type="button" onClick={props.onExport} disabled={!activeCampaignId}>
-        Als ZIP sichern
+        {t('bar.exportZip')}
       </button>
       <button type="button" className="danger" onClick={props.onDelete} disabled={!activeCampaignId}>
-        Kampagne löschen
+        {t('bar.deleteCampaign')}
       </button>
 
       <span className="campaign-bar__spacer" />
 
-      <span className="campaign-bar__autosave">Autosave {settings.autosaveEnabled ? 'an' : 'aus'}</span>
+      <span className="campaign-bar__autosave">{t(settings.autosaveEnabled ? 'bar.autosaveOn' : 'bar.autosaveOff')}</span>
       <button type="button" onClick={props.onOpenSettings}>
-        Einstellungen
+        {t('bar.settings')}
       </button>
     </header>
   );
