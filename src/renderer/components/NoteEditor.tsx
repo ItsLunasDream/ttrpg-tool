@@ -21,6 +21,7 @@ interface Props {
   onRename: (title: string) => void;
   onDelete: () => void;
   onOpenHistory: () => void;
+  onOpenPrompts: () => void;
   onExportMarkdown: () => void;
   onExportPdf: () => void;
   onOpenNote: (noteId: string) => void;
@@ -62,6 +63,9 @@ export function NoteEditor(props: Props) {
         <span className="note-editor__words">{t('editor.words', { count: words })}</span>
         <button type="button" onClick={onSave} disabled={!dirty || saving}>
           {t('editor.save')}
+        </button>
+        <button type="button" onClick={props.onOpenPrompts}>
+          {t('prompts.open')}
         </button>
         <button type="button" onClick={props.onOpenHistory}>
           {t('history.open')}

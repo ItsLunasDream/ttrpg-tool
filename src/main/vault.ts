@@ -4,9 +4,12 @@ import { randomUUID } from 'node:crypto';
 import { parseFrontmatter, stringifyFrontmatter } from './frontmatter';
 import { rewriteWikiLinks } from '../shared/wikilinks';
 import { DEFAULT_NOTE_TYPES, isKnownNoteType, toKey } from '../shared/noteTypes';
+import { defaultPrompts } from '../shared/writingPrompts';
+import type { PromptCategory } from '../shared/writingPrompts';
 import { SCHEMA_VERSION } from '../shared/types';
 import type { AppSettings, Campaign, FieldDef, Note, NoteType, NoteTypeDef, NoteVersion, Relation } from '../shared/types';
 import { DEFAULT_LANGUAGE, isLanguage } from '../shared/i18n';
+import type { Language } from '../shared/i18n';
 import type { MessageKey, MessageParams } from '../shared/i18n';
 
 const CAMPAIGNS_DIR = 'campaigns';
@@ -14,6 +17,7 @@ const NOTES_DIR = 'notes';
 const ASSETS_DIR = 'assets';
 const CAMPAIGN_FILE = 'campaign.json';
 const HISTORY_DIR = 'history';
+const PROMPTS_FILE = 'writing-prompts.json';
 
 /**
  * Mindestabstand zwischen zwei Versionen derselben Notiz. Ohne diese Sperre
@@ -124,6 +128,30 @@ export class Vault {
 
   async init(): Promise<void> {
     await fs.mkdir(path.join(this.root, CAMPAIGNS_DIR), { recursive: true });
+  }
+
+  /**
+   * Schreibhilfe-Listen. Beim ersten Start werden die Vorschlaege als Datei
+   * angelegt und sind danach Nutzerdatei: eigene Eintraege lassen sich dort
+   * ergaenzen oder die Vorlage komplett ersetzen.
+   */
+  async readPrompts(language: Language): Promise<PromptCategory[]> {
+    const file = path.join(this.root, PROMPTS_FILE);
+    try {
+      const parsed = JSON.parse(await fs.readFile(file, 'utf8')) as unknown;
+      const normalized = normalizePrompts(parsed);
+      if (normalized.length) return normalized;
+    } catch {
+      // Datei fehlt oder ist unlesbar, unten wird die Vorlage geschrieben.
+    }
+
+    const seeded = defaultPrompts(language);
+    await writeJson(file, seeded);
+    return seeded;
+  }
+
+  promptsFile(): string {
+    return path.join(this.root, PROMPTS_FILE);
   }
 
   // --- Kampagnen -----------------------------------------------------------
@@ -571,6 +599,25 @@ function normalizeNoteTypes(types: NoteTypeDef[]): NoteTypeDef[] {
   });
 
   return normalized.length ? normalized : structuredClone(DEFAULT_NOTE_TYPES);
+}
+
+/** Repariert eine von Hand bearbeitete Datei, statt an ihr zu scheitern. */
+function normalizePrompts(value: unknown): PromptCategory[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') return [];
+    const record = entry as Record<string, unknown>;
+
+    const label = typeof record.label === 'string' ? record.label.trim() : '';
+    const options = Array.isArray(record.options)
+      ? record.options.filter((option): option is string => typeof option === 'string' && option.trim().length > 0)
+      : [];
+    if (!label || options.length === 0) return [];
+
+    const id = typeof record.id === 'string' && record.id.trim() ? record.id.trim() : toKey(label);
+    return [{ id, label, options: options.map((option) => option.trim()) }];
+  });
 }
 
 // --- Einstellungen ---------------------------------------------------------

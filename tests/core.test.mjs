@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName} = entry;
+const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts} = entry;
 
 /** Baut einen Index mit den Standardtypen. */
 function makeIndex(notes) {
@@ -351,4 +351,37 @@ test('toFileName entfernt kritische Zeichen und weicht bei Kollision aus', () =>
   assert.equal(toFileName('A/B\\C'), 'ABC.md');
   assert.equal(toFileName('Mira', ['Mira.md']), 'Mira 2.md');
   assert.equal(toFileName('   '), 'Notiz.md');
+});
+
+test('Schreibhilfe liefert in beiden Sprachen dieselben Kategorien', () => {
+  const german = defaultPrompts('de');
+  const english = defaultPrompts('en');
+
+  assert.ok(german.length >= 5, 'zu wenige Kategorien');
+  assert.deepEqual(
+    german.map((category) => category.id),
+    english.map((category) => category.id),
+    'Kategorien unterscheiden sich zwischen den Sprachen'
+  );
+});
+
+test('Jede Kategorie hat genug und eindeutige Vorschläge', () => {
+  for (const category of defaultPrompts('de')) {
+    assert.ok(category.options.length >= 20, `${category.id} hat nur ${category.options.length} Einträge`);
+    assert.equal(
+      new Set(category.options).size,
+      category.options.length,
+      `${category.id} enthält Dubletten`
+    );
+    assert.ok(
+      category.options.every((option) => option.trim().length > 10),
+      `${category.id} enthält zu kurze Einträge`
+    );
+  }
+});
+
+test('defaultPrompts liefert eine Kopie, kein geteiltes Objekt', () => {
+  const first = defaultPrompts('de');
+  first[0].options.push('Testeintrag');
+  assert.ok(!defaultPrompts('de')[0].options.includes('Testeintrag'), 'Vorlage wurde verändert');
 });

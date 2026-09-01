@@ -44,12 +44,6 @@ Ersetzen wäre ein eigener Punkt.
 
 ## Geplante Phasen
 
-### Phase 2
-
-- Schreibhilfe ohne KI: konkrete Options-Listen als Startpunkt, zum Beispiel
-  Herkunftsort und Berufung. Das ist überwiegend Inhaltsarbeit, generierte
-  Listen werden schnell generisch
-
 ### Phase 3
 
 - Graph-Ansicht des Beziehungsnetzes, je Kampagne. Die Datenbasis liegt
@@ -192,3 +186,16 @@ werden mitkopiert, der Export steht also für sich.
 heller Grund, Serifenschrift, Portrait als umflossenes Bild, Seitenumbruch je
 Notiz. Wiki-Links werden zu ihrem Anzeigetext, im PDF ist ohnehin nichts
 klickbar.
+
+### Schreibhilfe ohne KI
+
+Sechs Kategorien (Herkunftsort, Früheres Leben, Wendepunkt, Geheimnis,
+Bindung, Ziel) mit je 24 Vorschlägen, aufrufbar über „Schreibhilfe" in der
+Kopfzeile des Editors. Oben vier zufällige Vorschläge zum Würfeln, darunter
+die vollständige Liste. Ein Klick hängt den Vorschlag an den Text an.
+
+Wie im Backlog angemerkt: die Vorschläge sind von mir geschrieben und damit
+das schwächste Glied. Deshalb liegen sie als `writing-prompts.json` im
+Speicherort und sind mit jedem Texteditor zu ändern. Eigene Kategorien lassen
+sich ergänzen, die Vorlage komplett ersetzen. Eine kaputte Datei fällt auf die
+Vorlage zurück, unbrauchbare Einzeleinträge werden übersprungen.

@@ -4,6 +4,7 @@ import { buildIndex, filterNotes, searchNotes, type SearchFilters } from './note
 import { normalizeName } from '../shared/wikilinks';
 import { DEFAULT_NOTE_TYPES } from '../shared/noteTypes';
 import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion, SearchHit } from '../shared/types';
+import type { PromptCategory } from '../shared/writingPrompts';
 import { CampaignBar } from './components/CampaignBar';
 import { NoteList } from './components/NoteList';
 import { NoteEditor } from './components/NoteEditor';
@@ -16,6 +17,7 @@ import { DEFAULT_LANGUAGE } from '../shared/i18n';
 import type { Language } from '../shared/i18n';
 import { NoteTypesDialog } from './components/NoteTypesDialog';
 import { HistoryDialog } from './components/HistoryDialog';
+import { PromptsDialog } from './components/PromptsDialog';
 
 type Dialog =
   | { kind: 'none' }
@@ -26,7 +28,8 @@ type Dialog =
   | { kind: 'newNote'; type: NoteType }
   | { kind: 'deleteNote'; note: Note }
   | { kind: 'noteTypes' }
-  | { kind: 'history'; note: Note };
+  | { kind: 'history'; note: Note }
+  | { kind: 'prompts' };
 
 const EMPTY_FILTERS: SearchFilters = { query: '', type: 'all', tag: null };
 
@@ -57,6 +60,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   // Wird hochgezaehlt, wenn der Text einer offenen Notiz von aussen ersetzt
   // wurde. Ohne dieses Signal zeigte der Editor weiter den alten Stand.
   const [reloadKey, setReloadKey] = useState(0);
+  const [prompts, setPrompts] = useState<PromptCategory[] | null>(null);
 
   const draftRef = useRef<Note | null>(null);
   draftRef.current = draft;
@@ -384,6 +388,10 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 onRename={() => void save()}
                 onDelete={() => setDialog({ kind: 'deleteNote', note: draft })}
                 onOpenHistory={() => void openHistory(draft)}
+                onOpenPrompts={() => {
+                  setDialog({ kind: 'prompts' });
+                  if (!prompts) void guard(async () => setPrompts(await call(api.prompts.get())));
+                }}
                 onExportMarkdown={() =>
                   void guard(async () => {
                     const campaignId = activeCampaignId;
@@ -454,6 +462,22 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               report(t('types.saved'));
             })
           }
+        />
+      ) : null}
+
+      {dialog.kind === 'prompts' ? (
+        <PromptsDialog
+          categories={prompts}
+          onClose={() => setDialog({ kind: 'none' })}
+          onEditFile={() => void guard(() => call(api.prompts.reveal()))}
+          onInsert={(text) => {
+            // An den Text anhaengen statt einzufuegen: der Vorschlag ist ein
+            // Startpunkt, kein Baustein mitten im Satz.
+            if (!draft) return;
+            patchDraft({ body: draft.body.trimEnd() ? `${draft.body.trimEnd()}\n\n${text}` : text });
+            setReloadKey((previous) => previous + 1);
+            setDialog({ kind: 'none' });
+          }}
         />
       ) : null}
 

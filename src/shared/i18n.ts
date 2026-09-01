@@ -216,7 +216,17 @@ const de = {
   'export.tags': 'Tags',
   'export.type': 'Typ',
   'export.pdfNote': 'Notiz als PDF',
-  'export.pdfCampaign': 'Kampagne als PDF'
+  'export.pdfCampaign': 'Kampagne als PDF',
+
+  'prompts.title': 'Schreibhilfe',
+  'prompts.open': 'Schreibhilfe',
+  'prompts.roll': 'Neu würfeln',
+  'prompts.insert': 'In den Text übernehmen',
+  'prompts.all': 'Alle Vorschläge',
+  'prompts.empty': 'Keine Vorschläge vorhanden.',
+  'prompts.editFile': 'Liste bearbeiten',
+  'prompts.hint':
+    'Das sind Startpunkte, keine Vorgaben. Die Vorschläge stehen als writing-prompts.json im Speicherort und lassen sich dort mit einem Texteditor ergänzen oder komplett ersetzen.'
 } as const;
 
 export type MessageKey = keyof typeof de;
@@ -420,7 +430,17 @@ const en: Partial<Record<MessageKey, string>> = {
   'export.tags': 'Tags',
   'export.type': 'Type',
   'export.pdfNote': 'Note as PDF',
-  'export.pdfCampaign': 'Campaign as PDF'
+  'export.pdfCampaign': 'Campaign as PDF',
+
+  'prompts.title': 'Writing prompts',
+  'prompts.open': 'Prompts',
+  'prompts.roll': 'Roll again',
+  'prompts.insert': 'Insert into the text',
+  'prompts.all': 'All suggestions',
+  'prompts.empty': 'No suggestions available.',
+  'prompts.editFile': 'Edit the list',
+  'prompts.hint':
+    'These are starting points, not rules. The suggestions live in writing-prompts.json in your storage location and can be extended or replaced there with a text editor.'
 };
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { de, en };

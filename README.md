@@ -57,6 +57,7 @@ npm run dist:win  # Windows-Installer und portable exe nach release/
 | Steckbrief anpassen | „Notiztypen" in der Kopfzeile |
 | Sprache wechseln | Einstellungen → Sprache |
 | Bild einfügen | Knopf ▣ in der Werkzeugleiste, oder Bild in den Text ziehen bzw. einfügen |
+| Vorschläge zum Weiterschreiben | „Schreibhilfe" in der Kopfzeile des Editors |
 | Notiz exportieren | „MD" oder „PDF" in der Kopfzeile des Editors |
 | Kampagne exportieren | „Kampagne als Markdown" bzw. „als PDF" in der Kopfzeile |
 | Alten Stand zurückholen | „Verlauf" in der Kopfzeile des Editors |
@@ -78,6 +79,7 @@ Einstellungen → Speicherort.
       notes/<noteId>.md      YAML-Frontmatter + Markdown
       assets/                Bilder der Kampagne
       history/<noteId>/      Frühere Stände der Notiz, gleiches Format
+  writing-prompts.json     Vorschläge der Schreibhilfe, frei bearbeitbar
 ```
 
 Notizen sind gewöhnliches Markdown mit YAML-Kopf. Sie lassen sich mit jedem
@@ -162,9 +164,8 @@ Umgesetzt (MVP):
 - Oberfläche auf Deutsch oder Englisch, umschaltbar ohne Neustart
 - Versionsverlauf mit Vorschau und Wiederherstellen, abschaltbar
 - Export als Markdown und als PDF, je Notiz oder für die ganze Kampagne
+- Schreibhilfe mit Vorschlagslisten, ohne KI und frei bearbeitbar
 - Autosave (abschaltbar) und Strg+S
-
-Phase 2: Options-Listen als Schreibhilfe ohne KI.
 
 Phase 3: Graph-Ansicht des Beziehungsnetzes.
 
