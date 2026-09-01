@@ -97,15 +97,15 @@ test('Notizdatei bleibt lesbares Markdown mit YAML-Kopf', async () => {
 
 test('Ungueltige IDs koennen nicht aus dem Vault ausbrechen', async () => {
   await withVault(async (vault) => {
-    await assert.rejects(() => vault.listNotes('../../etc'), /Ungültige ID/);
+    await assert.rejects(() => vault.listNotes('../../etc'), { key: 'error.invalidId' });
   });
 });
 
 test('Leere Namen werden abgelehnt', async () => {
   await withVault(async (vault) => {
-    await assert.rejects(() => vault.createCampaign('   '), /Namen/);
+    await assert.rejects(() => vault.createCampaign('   '), { key: 'error.campaignName' });
     const campaign = await vault.createCampaign('Sturmkueste');
-    await assert.rejects(() => vault.createNote(campaign.id, 'character', '  '), /Titel/);
+    await assert.rejects(() => vault.createNote(campaign.id, 'character', '  '), { key: 'error.noteTitle' });
   });
 });
 
@@ -172,23 +172,23 @@ test('Entferntes Feld loescht keinen bereits eingetragenen Wert', async () => {
 test('Ungueltige Notiztypen werden abgelehnt', async () => {
   await withVault(async (vault) => {
     const campaign = await vault.createCampaign('Sturmkueste');
-    await assert.rejects(() => vault.updateNoteTypes(campaign.id, []), /mindestens ein Notiztyp/);
+    await assert.rejects(() => vault.updateNoteTypes(campaign.id, []), { key: 'error.needsOneType' });
     await assert.rejects(
       () => vault.updateNoteTypes(campaign.id, [{ id: 'a', label: '', plural: '', fields: [] }]),
-      /Bezeichnung/
+      { key: 'error.typeNeedsLabel' }
     );
     await assert.rejects(
       () => vault.updateNoteTypes(campaign.id, [
         { id: 'a', label: 'A', plural: 'A', fields: [{ key: 'x', label: 'X', type: 'text' }, { key: 'x', label: 'Y', type: 'text' }] }
       ]),
-      /doppelt/
+      { key: 'error.duplicateField' }
     );
     await assert.rejects(
       () => vault.updateNoteTypes(campaign.id, [
         { id: 'a', label: 'A', plural: 'A', fields: [] },
         { id: 'a', label: 'B', plural: 'B', fields: [] }
       ]),
-      /doppelt/
+      { key: 'error.duplicateType' }
     );
   });
 });
@@ -213,6 +213,6 @@ test('Notizen mit unbekanntem Typ bleiben lesbar', async () => {
 test('Notizen mit unbekanntem Typ koennen nicht angelegt werden', async () => {
   await withVault(async (vault) => {
     const campaign = await vault.createCampaign('Sturmkueste');
-    await assert.rejects(() => vault.createNote(campaign.id, 'gibtesnicht', 'Mira'), /Unbekannter Notiztyp/);
+    await assert.rejects(() => vault.createNote(campaign.id, 'gibtesnicht', 'Mira'), { key: 'error.unknownNoteType' });
   });
 });

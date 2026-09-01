@@ -5,27 +5,6 @@ eines Abschnitts ist keine Priorisierung.
 
 ## Offene Wünsche
 
-### Oberfläche auf Englisch umstellbar
-
-Das Tool soll zwischen Deutsch und Englisch umschaltbar sein.
-
-Zu klären beim Umsetzen:
-- Alle sichtbaren Texte sind derzeit hart in den Komponenten verdrahtet. Sie
-  müssen erst in eine Textdatei je Sprache herausgezogen werden. Das betrifft
-  auch den Hauptprozess, dort stehen Fehlermeldungen wie „Die Notiz braucht
-  einen Titel"
-- Umschaltung in den Einstellungen, Wert in `AppSettings`, ohne Neustart
-- Bibliothek oder Eigenbau? Für zwei Sprachen ohne Pluralregeln und ohne
-  Datumsformate reicht ein einfaches Wörterbuch mit Nachschlagefunktion.
-  Vorschlag: erst Eigenbau, eine Bibliothek nur bei Bedarf
-- **Konflikt mit den anpassbaren Feldern:** sobald Feldbeschriftungen von der
-  Nutzerin stammen, lassen sie sich nicht übersetzen. Gleiches gilt für
-  selbst angelegte Notiztypen. Vorschlag: nur die fest eingebauten Texte
-  übersetzen, selbst vergebene Beschriftungen bleiben wie eingegeben
-- Sortierungen benutzen aktuell `localeCompare(..., 'de-DE')` und die
-  Kleinschreibung `toLocaleLowerCase('de-DE')`. Das sollte der eingestellten
-  Sprache folgen
-
 ### Weitere Feldarten im Steckbrief
 
 Aktuell gibt es Text, mehrzeilig, Zahl und Link. Denkbar wären Auswahllisten
@@ -71,6 +50,13 @@ Ersetzen wäre ein eigener Punkt.
   gegen verlinkte Notizen, Stilfeedback. Ausdrücklich kein Textgenerator
 - Das `AIProvider`-Interface wird bewusst erst zusammen mit dem ersten echten
   Provider entworfen. Ein Interface ohne Implementierung ist geraten
+
+### Weitere Sprachen
+
+Deutsch und Englisch sind umgesetzt. Eine weitere Sprache ist ein Eintrag in
+`LANGUAGES` und ein Wörterbuch in `src/shared/i18n.ts`, sonst nichts. Der Test
+„jeder deutsche Schlüssel hat eine englische Entsprechung" müsste dann auf
+alle Sprachen erweitert werden.
 
 ## Bekannte Grenzen
 
@@ -121,3 +107,19 @@ Umgesetzt wie im Backlog vorgeschlagen:
 - ein entferntes Feld löscht keine Werte, sie bleiben in der Datei
 - ein Typ lässt sich nur löschen, wenn keine Notiz ihn benutzt
 - bestehende Kampagnen bekommen die Vorlage beim ersten Lesen eingetragen
+
+### Oberfläche auf Englisch umstellbar
+
+Umschaltbar in den Einstellungen, ohne Neustart. Alle festen Texte liegen in
+`src/shared/i18n.ts`, der Zugriff läuft über den Hook `useT` in
+`src/renderer/i18n.tsx`.
+
+Fehlermeldungen aus dem Hauptprozess sind mit übersetzt: `VaultError` trägt
+einen Schlüssel statt eines fertigen Textes, übersetzt wird erst in der
+IPC-Schicht, wo die eingestellte Sprache bekannt ist.
+
+Sortierungen folgen der eingestellten Sprache über `Intl.Collator`.
+
+Wie im Backlog vorgeschlagen bleiben selbst vergebene Bezeichnungen
+unverändert, also eigene Notiztypen und Feldnamen. Ein Test stellt sicher,
+dass kein Schlüssel ohne englische Fassung bleibt.

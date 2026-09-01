@@ -1,6 +1,7 @@
 import { findNoteType } from '../../shared/noteTypes';
 import { textPreview } from '../editor/markdown';
 import type { Note, NoteTypeDef } from '../../shared/types';
+import { useT } from '../i18n';
 
 interface Props {
   note: Note;
@@ -13,6 +14,7 @@ const CARD_WIDTH = 300;
 
 /** Kurzinfo beim Ueberfahren eines Wiki-Links. Kein Seitenwechsel. */
 export function InfoCard({ note, types, rect, onOpen }: Props) {
+  const t = useT();
   const def = findNoteType(types, note.type);
   const filled = def.fields.filter((field) => note.fields[field.key]?.trim());
   const preview = textPreview(note.body);
@@ -30,7 +32,9 @@ export function InfoCard({ note, types, rect, onOpen }: Props) {
         <span className="badge">{def.label}</span>
       </div>
 
-      {note.aliases.length ? <p className="info-card__aliases">alias {note.aliases.join(', ')}</p> : null}
+      {note.aliases.length ? (
+        <p className="info-card__aliases">{t('card.alias', { names: note.aliases.join(', ') })}</p>
+      ) : null}
 
       {filled.length ? (
         <dl className="info-card__fields">
@@ -46,7 +50,7 @@ export function InfoCard({ note, types, rect, onOpen }: Props) {
       {preview ? (
         <p className="info-card__preview">{preview}</p>
       ) : (
-        <p className="info-card__empty">Noch kein Text geschrieben.</p>
+        <p className="info-card__empty">{t('card.noText')}</p>
       )}
 
       {note.tags.length ? (
@@ -60,7 +64,7 @@ export function InfoCard({ note, types, rect, onOpen }: Props) {
       ) : null}
 
       <button type="button" className="link-button" onClick={() => onOpen(note.id)}>
-        Notiz öffnen
+        {t('card.openNote')}
       </button>
     </div>
   );

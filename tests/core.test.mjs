@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey} = entry;
+const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS} = entry;
 
 /** Baut einen Index mit den Standardtypen. */
 function makeIndex(notes) {
@@ -205,4 +205,45 @@ test('Standardtypen enthalten einen freien Typ ohne Felder', () => {
 test('fieldLabel faellt auf den Schluessel zurueck', () => {
   assert.equal(fieldLabel(DEFAULT_NOTE_TYPES, 'character', 'species'), 'Spezies');
   assert.equal(fieldLabel(DEFAULT_NOTE_TYPES, 'character', 'unbekannt'), 'unbekannt');
+});
+
+test('translate setzt Platzhalter ein und faellt auf Deutsch zurueck', () => {
+  assert.equal(translate('de', 'editor.words', { count: 42 }), '42 Wörter');
+  assert.equal(translate('en', 'editor.words', { count: 42 }), '42 words');
+  assert.equal(translate('en', 'error.unknownNoteType', { type: 'x' }), 'Unknown note type: x');
+  // Unbekannter Platzhalter bleibt stehen, statt "undefined" zu schreiben
+  assert.equal(translate('de', 'editor.words', {}), '{count} Wörter');
+});
+
+// Wenige Texte sind in beiden Sprachen gleich, das ist kein Fehler.
+const ALLOWED_SAME = new Set([
+  'card.alias',
+  'dialog.ok',
+  'editor.tags',
+  'fieldType.text',
+  'fieldType.url',
+  'toolbar.code'
+]);
+
+test('jeder deutsche Schluessel hat eine englische Entsprechung', () => {
+  const missing = [];
+  // Fehlt ein Schluessel im Englischen, faellt translate auf Deutsch zurueck.
+  // Genau das soll hier auffallen.
+  for (const key of MESSAGE_KEYS) {
+    const german = translate('de', key);
+    const english = translate('en', key);
+    if (german === english && !ALLOWED_SAME.has(key)) missing.push(key);
+  }
+  assert.deepEqual(missing, [], `ohne englische Fassung: ${missing.join(', ')}`);
+});
+
+test('isLanguage erkennt nur bekannte Sprachen', () => {
+  assert.ok(isLanguage('de'));
+  assert.ok(isLanguage('en'));
+  assert.ok(!isLanguage('fr'));
+  assert.ok(!isLanguage(undefined));
+});
+
+test('LANGUAGES enthaelt Deutsch und Englisch', () => {
+  assert.deepEqual(LANGUAGES.map((entry) => entry.id).sort(), ['de', 'en']);
 });

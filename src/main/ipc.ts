@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { Vault, VaultError, writeSettings } from './vault';
+import { translate } from '../shared/i18n';
 import { zipDirectory } from './export';
 import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef } from '../shared/types';
 
@@ -12,23 +13,30 @@ export interface IpcContext {
 }
 
 /** Fehler aus dem Main-Prozess kommen im Renderer als lesbare Meldung an. */
-function handle<Args extends unknown[], Result>(
-  channel: string,
-  fn: (...args: Args) => Promise<Result>
-): void {
-  ipcMain.handle(channel, async (_event, ...args) => {
-    try {
-      return { ok: true as const, value: await fn(...(args as Args)) };
-    } catch (error) {
-      const message = error instanceof VaultError ? error.message : `Unerwarteter Fehler: ${String(error)}`;
-      if (!(error instanceof VaultError)) console.error(`[ipc] ${channel}`, error);
-      return { ok: false as const, error: message };
-    }
-  });
+function makeHandler(context: IpcContext) {
+  return function handle<Args extends unknown[], Result>(
+    channel: string,
+    fn: (...args: Args) => Promise<Result>
+  ): void {
+    ipcMain.handle(channel, async (_event, ...args) => {
+      try {
+        return { ok: true as const, value: await fn(...(args as Args)) };
+      } catch (error) {
+        const language = context.settings.language;
+        const message =
+          error instanceof VaultError
+            ? translate(language, error.key, error.params)
+            : translate(language, 'error.unexpected', { detail: String(error) });
+        if (!(error instanceof VaultError)) console.error(`[ipc] ${channel}`, error);
+        return { ok: false as const, error: message };
+      }
+    });
+  };
 }
 
 export function registerIpc(context: IpcContext): void {
   const { vault } = context;
+  const handle = makeHandler(context);
 
   handle<[], AppSettings>('settings:get', async () => context.settings);
 
@@ -84,7 +92,7 @@ export function registerIpc(context: IpcContext): void {
     // Nur http(s) oeffnen, damit ein Link im Text keine beliebigen Handler startet.
     const parsed = new URL(url);
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      throw new VaultError('Nur http- und https-Links können geöffnet werden.');
+      throw new VaultError('error.externalProtocol');
     }
     await shell.openExternal(parsed.toString());
   });

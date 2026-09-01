@@ -55,6 +55,7 @@ npm run dist:win  # Windows-Installer und portable exe nach release/
 | Zwischen Fundstellen springen | F3 und Umschalt+F3, oder die Pfeile über dem Editor |
 | Kampagne sichern | „Als ZIP sichern" in der Kopfzeile |
 | Steckbrief anpassen | „Notiztypen" in der Kopfzeile |
+| Sprache wechseln | Einstellungen → Sprache |
 
 Links in einer anderen Farbe zeigen auf eine Notiz, die es noch nicht gibt.
 Sie stehen zusätzlich im Panel „Offene Links".
@@ -99,6 +100,12 @@ Notizdatei und erscheinen wieder, wenn das Feld zurückgeholt wird.
 Beim Umbenennen einer Notiz werden alle Vorkommen in der Kampagne mitgezogen,
 Links gehen also durch Umbenennen nicht verloren.
 
+**Sprache** ist umschaltbar zwischen Deutsch und Englisch. Alle festen Texte
+liegen in `src/shared/i18n.ts`, auch die Fehlermeldungen des Hauptprozesses:
+`VaultError` trägt einen Schlüssel, übersetzt wird erst in der IPC-Schicht.
+Selbst vergebene Bezeichnungen wie eigene Notiztypen und Feldnamen bleiben
+unverändert, die kann das Programm nicht übersetzen.
+
 **Beziehungen** hängen am Notizpaar, nicht an der einzelnen Textstelle, und
 sind gerichtet: A sieht B als Mentorin, B sieht A als Bedrohung. Sie werden im
 Beziehungs-Panel gepflegt, nicht in der Link-Syntax. Der Fließtext bleibt so
@@ -109,7 +116,7 @@ die Graph-Ansicht in Phase 3.
 ## Aufbau
 
 ```
-src/shared/     Datenmodell, Notiztyp-Schemata, Wiki-Link-Parsing
+src/shared/     Datenmodell, Notiztyp-Vorlage, Wiki-Link-Parsing, Texte
 src/main/       Electron-Hauptprozess: Dateisystem, IPC, ZIP-Export
 src/preload/    Einzige Brücke zum Renderer (contextIsolation aktiv)
 src/renderer/   React-Oberfläche, TipTap-Editor, Notizindex
@@ -132,6 +139,7 @@ Umgesetzt (MVP):
 - Volltextsuche mit hervorgehobener Fundstelle in der Liste und im Text,
   Sprung zwischen den Fundstellen per F3 und Umschalt+F3
 - Gerichtete Beziehungen und Backlinks
+- Oberfläche auf Deutsch oder Englisch, umschaltbar ohne Neustart
 - Autosave (abschaltbar) und Strg+S
 
 Phase 2: Bilder pro Notiz, Versionsverlauf, Export als PDF und Markdown,

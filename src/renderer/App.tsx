@@ -11,6 +11,9 @@ import { InfoCard } from './components/InfoCard';
 import { SettingsDialog } from './components/SettingsDialog';
 import { PromptDialog } from './components/PromptDialog';
 import { ConfirmDialog } from './components/ConfirmDialog';
+import { LanguageProvider, useLanguage, useT } from './i18n';
+import { DEFAULT_LANGUAGE } from '../shared/i18n';
+import type { Language } from '../shared/i18n';
 import { NoteTypesDialog } from './components/NoteTypesDialog';
 
 type Dialog =
@@ -26,6 +29,17 @@ type Dialog =
 const EMPTY_FILTERS: SearchFilters = { query: '', type: 'all', tag: null };
 
 export function App() {
+  const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
+
+  return (
+    <LanguageProvider language={language}>
+      <Workspace onLanguageChange={setLanguage} />
+    </LanguageProvider>
+  );
+}
+
+function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language) => void }) {
+  const { t, compare } = useLanguage();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
@@ -48,7 +62,7 @@ export function App() {
 
   const activeCampaign = campaigns.find((campaign) => campaign.id === activeCampaignId) ?? null;
   const noteTypes: NoteTypeDef[] = activeCampaign?.noteTypes ?? DEFAULT_NOTE_TYPES;
-  const index = useMemo(() => buildIndex(notes, noteTypes), [notes, noteTypes]);
+  const index = useMemo(() => buildIndex(notes, noteTypes, compare), [notes, noteTypes, compare]);
   const visibleNotes = useMemo(() => filterNotes(index, filters), [index, filters]);
 
   // Treffer der Volltextsuche, damit die Liste Ausschnitt und Fundstelle
@@ -80,6 +94,7 @@ export function App() {
     void guard(async () => {
       const loaded = await call(api.settings.get());
       setSettings(loaded);
+      onLanguageChange(loaded.language);
 
       const list = await call(api.campaigns.list());
       setCampaigns(list);
@@ -135,7 +150,7 @@ export function App() {
         saved = result.note;
         await reloadNotes(campaignId);
         if (result.rewritten > 0) {
-          report(`Umbenannt, ${result.rewritten} Notiz${result.rewritten === 1 ? '' : 'en'} mit Links angepasst.`);
+          report(result.rewritten === 1 ? t('msg.renamedOne') : t('msg.renamed', { count: result.rewritten }));
         }
       } else {
         saved = await call(api.notes.save(campaignId, current));
@@ -227,7 +242,7 @@ export function App() {
   const createNoteFromLink = useCallback(
     (title: string) => {
       if (index.byName.has(normalizeName(title))) {
-        report(`„${title}“ existiert bereits.`);
+        report(t('msg.alreadyExists', { title }));
         return;
       }
       setDialog({ kind: 'newNote', type: 'character' });
@@ -252,13 +267,17 @@ export function App() {
 
   const updateSettings = useCallback(
     (patch: Partial<AppSettings>) => {
-      void guard(async () => setSettings(await call(api.settings.update(patch))));
+      void guard(async () => {
+        const updated = await call(api.settings.update(patch));
+        setSettings(updated);
+        onLanguageChange(updated.language);
+      });
     },
-    [guard]
+    [guard, onLanguageChange]
   );
 
   if (!settings) {
-    return <div className="boot">Lädt …</div>;
+    return <div className="boot">{t('app.loading')}</div>;
   }
 
   return (
@@ -275,7 +294,7 @@ export function App() {
           activeCampaign &&
           void guard(async () => {
             const target = await call(api.exportCampaignZip(activeCampaign.id, activeCampaign.name));
-            if (target) report(`Sicherung geschrieben: ${target}`);
+            if (target) report(t('msg.exported', { path: target }));
           })
         }
         onOpenSettings={() => setDialog({ kind: 'settings' })}
@@ -317,17 +336,17 @@ export function App() {
               />
             ) : (
               <div className="placeholder">
-                <p>Noch keine Notiz in dieser Kampagne.</p>
-                <p>Leg links eine an, zum Beispiel einen Charakter.</p>
+                <p>{t('app.noNotes')}</p>
+                <p>{t('app.noNotesHint')}</p>
               </div>
             )}
           </section>
         </main>
       ) : (
         <div className="placeholder">
-          <p>Keine Kampagne vorhanden.</p>
+          <p>{t('app.noCampaign')}</p>
           <button type="button" className="primary" onClick={() => setDialog({ kind: 'newCampaign' })}>
-            Erste Kampagne anlegen
+            {t('app.createFirstCampaign')}
           </button>
         </div>
       )}
@@ -346,7 +365,7 @@ export function App() {
               const updated = await call(api.campaigns.updateNoteTypes(activeCampaign.id, types));
               setCampaigns((previous) => previous.map((entry) => (entry.id === updated.id ? updated : entry)));
               setDialog({ kind: 'none' });
-              report('Notiztypen gespeichert.');
+              report(t('types.saved'));
             })
           }
         />
@@ -374,9 +393,9 @@ export function App() {
 
       {dialog.kind === 'newCampaign' ? (
         <PromptDialog
-          title="Neue Kampagne"
-          label="Name der Kampagne"
-          confirmLabel="Anlegen"
+          title={t('dialog.newCampaign')}
+          label={t('dialog.campaignName')}
+          confirmLabel={t('dialog.create')}
           onClose={() => setDialog({ kind: 'none' })}
           onConfirm={(name) =>
             void guard(async () => {
@@ -391,9 +410,9 @@ export function App() {
 
       {dialog.kind === 'renameCampaign' ? (
         <PromptDialog
-          title="Kampagne umbenennen"
-          label="Neuer Name"
-          confirmLabel="Umbenennen"
+          title={t('dialog.renameCampaign')}
+          label={t('dialog.newName')}
+          confirmLabel={t('dialog.rename')}
           initialValue={dialog.campaign.name}
           onClose={() => setDialog({ kind: 'none' })}
           onConfirm={(name) =>
@@ -408,8 +427,8 @@ export function App() {
 
       {dialog.kind === 'deleteCampaign' ? (
         <ConfirmDialog
-          title="Kampagne löschen"
-          message={`„${dialog.campaign.name}“ mit allen Notizen unwiderruflich löschen? Sichere sie vorher als ZIP, wenn du unsicher bist.`}
+          title={t('dialog.deleteCampaign')}
+          message={t('dialog.deleteCampaignText', { name: dialog.campaign.name })}
           onClose={() => setDialog({ kind: 'none' })}
           onConfirm={() =>
             void guard(async () => {
@@ -442,8 +461,8 @@ export function App() {
 
       {dialog.kind === 'deleteNote' ? (
         <ConfirmDialog
-          title="Notiz löschen"
-          message={`„${dialog.note.title}“ löschen? Beziehungen anderer Notizen auf diese werden mit entfernt, [[Links]] im Text bleiben stehen.`}
+          title={t('dialog.deleteNote')}
+          message={t('dialog.deleteNoteText', { title: dialog.note.title })}
           onClose={() => setDialog({ kind: 'none' })}
           onConfirm={() =>
             void guard(async () => {
@@ -472,19 +491,20 @@ interface NewNoteDialogProps {
 
 /** Titel und Typ in einem Schritt, damit ein offener [[Link]] direkt zur Notiz wird. */
 function NewNoteDialog({ types, initialType, initialTitle, onConfirm, onClose }: NewNoteDialogProps) {
+  const t = useT();
   const [type, setType] = useState<NoteType>(initialType);
 
   return (
     <PromptDialog
-      title="Neue Notiz"
-      label="Titel"
-      confirmLabel="Anlegen"
+      title={t('dialog.newNote')}
+      label={t('editor.title')}
+      confirmLabel={t('dialog.create')}
       initialValue={initialTitle}
       onClose={onClose}
       onConfirm={(value) => onConfirm(type, value)}
     >
       <label className="field">
-        <span className="field__label">Typ</span>
+        <span className="field__label">{t('dialog.type')}</span>
         <select value={type} onChange={(event) => setType(event.target.value)}>
           {types.map((def) => (
             <option value={def.id} key={def.id}>

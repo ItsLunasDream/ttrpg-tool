@@ -10,6 +10,7 @@ import type { NoteIndex } from '../noteIndex';
 import type { Note } from '../../shared/types';
 import { findNoteType } from '../../shared/noteTypes';
 import { Toolbar } from './Toolbar';
+import { useT } from '../i18n';
 
 interface Props {
   noteId: string;
@@ -26,6 +27,7 @@ interface Props {
 const MAX_SUGGESTIONS = 8;
 
 export function BodyEditor({ noteId, markdown, index, searchQuery, onChange, onOpenNote, onCreateNote, onHoverNote }: Props) {
+  const t = useT();
   const [suggestion, setSuggestion] = useState<SuggestionState | null>(null);
   const [highlight, setHighlight] = useState(0);
   const [matchCount, setMatchCount] = useState(0);
@@ -77,7 +79,7 @@ export function BodyEditor({ noteId, markdown, index, searchQuery, onChange, onO
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
-      Placeholder.configure({ placeholder: 'Schreib los. Mit [[ verlinkst du andere Notizen.' }),
+      Placeholder.configure({ placeholder: t('editor.placeholder') }),
       wikiLink,
       searchHighlight
     ],
@@ -191,13 +193,13 @@ export function BodyEditor({ noteId, markdown, index, searchQuery, onChange, onO
           <span className="search-bar__term">„{searchQuery.trim()}"</span>
           <span className="search-bar__count">
             {matchCount === 0
-              ? 'keine Fundstelle'
-              : `${activeMatch === -1 ? '–' : activeMatch + 1} von ${matchCount}`}
+              ? t('search.noHit')
+              : t('search.position', { current: activeMatch === -1 ? '–' : activeMatch + 1, total: matchCount })}
           </span>
-          <button type="button" title="Vorherige Fundstelle (Umschalt+F3)" disabled={matchCount === 0} onClick={() => goToMatch(-1)}>
+          <button type="button" title={t('search.previous')} disabled={matchCount === 0} onClick={() => goToMatch(-1)}>
             ‹
           </button>
-          <button type="button" title="Nächste Fundstelle (F3)" disabled={matchCount === 0} onClick={() => goToMatch(1)}>
+          <button type="button" title={t('search.next')} disabled={matchCount === 0} onClick={() => goToMatch(1)}>
             ›
           </button>
         </div>
@@ -235,8 +237,8 @@ export function BodyEditor({ noteId, markdown, index, searchQuery, onChange, onO
                   onCreateNote(title);
                 }}
               >
-                <span>„{suggestion.query.trim()}“ neu anlegen</span>
-                <span className="suggestions__type">neu</span>
+                <span>{t('suggest.createNew', { title: suggestion.query.trim() })}</span>
+                <span className="suggestions__type">{t('suggest.new')}</span>
               </button>
             </li>
           ) : null}

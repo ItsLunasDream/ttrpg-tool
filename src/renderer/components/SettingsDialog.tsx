@@ -1,5 +1,7 @@
 import type { AppSettings } from '../../shared/types';
+import { LANGUAGES } from '../../shared/i18n';
 import { Modal } from './Modal';
+import { useT } from '../i18n';
 
 interface Props {
   settings: AppSettings;
@@ -10,19 +12,35 @@ interface Props {
 }
 
 export function SettingsDialog({ settings, onChange, onChooseVaultRoot, onRevealVault, onClose }: Props) {
+  const t = useT();
+
   return (
-    <Modal title="Einstellungen" onClose={onClose}>
+    <Modal title={t('settings.title')} onClose={onClose}>
+      <label className="field">
+        <span className="field__label">{t('settings.language')}</span>
+        <select
+          value={settings.language}
+          onChange={(event) => onChange({ language: event.target.value as typeof settings.language })}
+        >
+          {LANGUAGES.map((entry) => (
+            <option value={entry.id} key={entry.id}>
+              {entry.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
       <label className="field field--inline">
         <input
           type="checkbox"
           checked={settings.autosaveEnabled}
           onChange={(event) => onChange({ autosaveEnabled: event.target.checked })}
         />
-        <span>Autosave aktiv</span>
+        <span>{t('settings.autosave')}</span>
       </label>
 
       <label className="field">
-        <span className="field__label">Verzögerung bis zum Autosave (ms)</span>
+        <span className="field__label">{t('settings.autosaveDelay')}</span>
         <input
           type="number"
           min={300}
@@ -35,23 +53,20 @@ export function SettingsDialog({ settings, onChange, onChooseVaultRoot, onReveal
       </label>
 
       <label className="field">
-        <span className="field__label">Speicherort</span>
+        <span className="field__label">{t('settings.location')}</span>
         <code className="field__path">{settings.vaultRoot}</code>
       </label>
 
       <div className="modal__actions">
         <button type="button" onClick={onChooseVaultRoot}>
-          Anderen Ordner wählen …
+          {t('settings.chooseFolder')}
         </button>
         <button type="button" onClick={onRevealVault}>
-          Ordner öffnen
+          {t('settings.openFolder')}
         </button>
       </div>
 
-      <p className="modal__hint">
-        Kampagnen und Notizen liegen als Markdown-Dateien mit YAML-Frontmatter im Speicherort. Du kannst sie jederzeit mit
-        einem Texteditor oder Obsidian öffnen.
-      </p>
+      <p className="modal__hint">{t('settings.hint')}</p>
     </Modal>
   );
 }

@@ -7,6 +7,7 @@ import { BodyEditor } from './BodyEditor';
 import { RelationsPanel } from './RelationsPanel';
 import { BacklinksPanel } from './BacklinksPanel';
 import { TokenInput } from './TokenInput';
+import { useT } from '../i18n';
 
 interface Props {
   note: Note;
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export function NoteEditor(props: Props) {
+  const t = useT();
   const { note, index, dirty, saving, autosaveEnabled, onPatch, onSave, onRename, onDelete } = props;
   const def = findNoteType(index.types, note.type);
 
@@ -34,7 +36,7 @@ export function NoteEditor(props: Props) {
   const unresolved = useMemo(() => unresolvedLinks(index, note), [index, note]);
   const words = useMemo(() => countWords(note.body), [note.body]);
 
-  const status = saving ? 'Speichert …' : dirty ? 'Nicht gespeichert' : 'Gespeichert';
+  const status = t(saving ? 'editor.saving' : dirty ? 'editor.unsaved' : 'editor.saved');
 
   return (
     <div className="note-editor">
@@ -44,21 +46,21 @@ export function NoteEditor(props: Props) {
           value={note.title}
           onChange={(event) => onPatch({ title: event.target.value })}
           onBlur={(event) => onRename(event.target.value)}
-          aria-label="Titel"
+          aria-label={t('editor.title')}
         />
         <span className="badge">{def.label}</span>
         <span className={`status status--${dirty ? 'dirty' : 'clean'}`}>{status}</span>
-        <span className="note-editor__words">{words} Wörter</span>
+        <span className="note-editor__words">{t('editor.words', { count: words })}</span>
         <button type="button" onClick={onSave} disabled={!dirty || saving}>
-          Speichern
+          {t('editor.save')}
         </button>
         <button type="button" className="danger" onClick={onDelete}>
-          Löschen
+          {t('editor.delete')}
         </button>
       </header>
 
       {!autosaveEnabled && dirty ? (
-        <p className="note-editor__warning">Autosave ist aus. Strg+S speichert.</p>
+        <p className="note-editor__warning">{t('editor.autosaveOffHint')}</p>
       ) : null}
 
       <div className="note-editor__columns">
@@ -77,7 +79,7 @@ export function NoteEditor(props: Props) {
 
         <aside className="note-editor__side">
           <section className="panel">
-            <h3 className="panel__title">Steckbrief</h3>
+            <h3 className="panel__title">{t('editor.profile')}</h3>
             {def.fields.map((field) => {
               const value = note.fields[field.key] ?? '';
               const setValue = (next: string) => onPatch({ fields: { ...note.fields, [field.key]: next } });
@@ -97,7 +99,7 @@ export function NoteEditor(props: Props) {
                       />
                       {field.type === 'url' && value.trim() ? (
                         <button type="button" className="link-button" onClick={() => props.onOpenExternal(value.trim())}>
-                          öffnen
+                          {t('editor.open')}
                         </button>
                       ) : null}
                     </span>
@@ -107,12 +109,17 @@ export function NoteEditor(props: Props) {
             })}
 
             <TokenInput
-              label="Aliase"
+              label={t('editor.aliases')}
               values={note.aliases}
-              placeholder="Spitzname, Titel …"
+              placeholder={t('editor.aliasesHint')}
               onChange={(aliases) => onPatch({ aliases })}
             />
-            <TokenInput label="Tags" values={note.tags} placeholder="Kampagnenrolle, Thema …" onChange={(tags) => onPatch({ tags })} />
+            <TokenInput
+              label={t('editor.tags')}
+              values={note.tags}
+              placeholder={t('editor.tagsHint')}
+              onChange={(tags) => onPatch({ tags })}
+            />
           </section>
 
           <RelationsPanel

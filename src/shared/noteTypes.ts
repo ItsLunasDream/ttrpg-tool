@@ -57,12 +57,7 @@ export const DEFAULT_NOTE_TYPES: NoteTypeDef[] = [
   }
 ];
 
-export const FIELD_TYPE_LABELS: Record<FieldDef['type'], string> = {
-  text: 'Text',
-  textarea: 'Mehrzeilig',
-  number: 'Zahl',
-  url: 'Link'
-};
+export const FIELD_TYPES: FieldDef['type'][] = ['text', 'textarea', 'number', 'url'];
 
 /**
  * Notiztyp aus der Kampagne. Ist der Typ unbekannt, etwa weil er geloescht

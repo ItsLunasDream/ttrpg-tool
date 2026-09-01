@@ -6,13 +6,25 @@ import { rewriteWikiLinks } from '../shared/wikilinks';
 import { DEFAULT_NOTE_TYPES, isKnownNoteType, toKey } from '../shared/noteTypes';
 import { SCHEMA_VERSION } from '../shared/types';
 import type { AppSettings, Campaign, FieldDef, Note, NoteType, NoteTypeDef, Relation } from '../shared/types';
+import { DEFAULT_LANGUAGE, isLanguage } from '../shared/i18n';
+import type { MessageKey, MessageParams } from '../shared/i18n';
 
 const CAMPAIGNS_DIR = 'campaigns';
 const NOTES_DIR = 'notes';
 const ASSETS_DIR = 'assets';
 const CAMPAIGN_FILE = 'campaign.json';
 
-export class VaultError extends Error {}
+/**
+ * Fehler mit uebersetzbarem Text. Der Hauptprozess kennt die eingestellte
+ * Sprache nicht an jeder Stelle, deshalb wird nur der Schluessel geworfen und
+ * erst in der IPC-Schicht uebersetzt.
+ */
+export class VaultError extends Error {
+  constructor(readonly key: MessageKey, readonly params?: MessageParams) {
+    super(key);
+    this.name = 'VaultError';
+  }
+}
 
 /**
  * Ablage auf der Platte:
@@ -107,7 +119,7 @@ export class Vault {
 
   async createCampaign(name: string): Promise<Campaign> {
     const trimmed = name.trim();
-    if (!trimmed) throw new VaultError('Die Kampagne braucht einen Namen.');
+    if (!trimmed) throw new VaultError('error.campaignName');
 
     const campaign: Campaign = {
       id: randomUUID(),
@@ -125,7 +137,7 @@ export class Vault {
 
   async renameCampaign(campaignId: string, name: string): Promise<Campaign> {
     const trimmed = name.trim();
-    if (!trimmed) throw new VaultError('Die Kampagne braucht einen Namen.');
+    if (!trimmed) throw new VaultError('error.campaignName');
 
     const campaign = await this.readCampaign(campaignId);
     const updated: Campaign = { ...campaign, name: trimmed };
@@ -165,11 +177,11 @@ export class Vault {
 
   async createNote(campaignId: string, type: NoteType, title: string): Promise<Note> {
     const trimmed = title.trim();
-    if (!trimmed) throw new VaultError('Die Notiz braucht einen Titel.');
+    if (!trimmed) throw new VaultError('error.noteTitle');
 
     const campaign = await this.readCampaign(campaignId);
     if (!isKnownNoteType(campaign.noteTypes, type)) {
-      throw new VaultError(`Unbekannter Notiztyp: ${type}`);
+      throw new VaultError('error.unknownNoteType', { type });
     }
 
     const now = new Date().toISOString();
@@ -192,7 +204,7 @@ export class Vault {
 
   async saveNote(campaignId: string, note: Note): Promise<Note> {
     const trimmed = note.title.trim();
-    if (!trimmed) throw new VaultError('Die Notiz braucht einen Titel.');
+    if (!trimmed) throw new VaultError('error.noteTitle');
 
     const updated: Note = {
       ...note,
@@ -210,7 +222,7 @@ export class Vault {
    */
   async renameNote(campaignId: string, noteId: string, newTitle: string): Promise<{ note: Note; rewritten: number }> {
     const trimmed = newTitle.trim();
-    if (!trimmed) throw new VaultError('Die Notiz braucht einen Titel.');
+    if (!trimmed) throw new VaultError('error.noteTitle');
 
     const note = await this.getNote(campaignId, noteId);
     if (note.title === trimmed) return { note, rewritten: 0 };
@@ -254,7 +266,7 @@ export class Vault {
 /** Verhindert, dass eine manipulierte ID aus dem Vault-Verzeichnis ausbricht. */
 function assertSafeId(id: string): void {
   if (!/^[A-Za-z0-9_-]+$/.test(id)) {
-    throw new VaultError(`Ungültige ID: ${id}`);
+    throw new VaultError('error.invalidId', { id });
   }
 }
 
@@ -332,25 +344,25 @@ const FIELD_TYPES: FieldDef['type'][] = ['text', 'textarea', 'number', 'url'];
  */
 function validateNoteTypes(types: NoteTypeDef[]): NoteTypeDef[] {
   if (!Array.isArray(types) || types.length === 0) {
-    throw new VaultError('Es muss mindestens ein Notiztyp übrig bleiben.');
+    throw new VaultError('error.needsOneType');
   }
 
   const seenTypes = new Set<string>();
   return types.map((def) => {
     const id = String(def.id ?? '').trim();
     const label = String(def.label ?? '').trim();
-    if (!id) throw new VaultError('Ein Notiztyp ohne Kennung ist nicht möglich.');
-    if (!label) throw new VaultError(`Der Notiztyp „${id}" braucht eine Bezeichnung.`);
-    if (seenTypes.has(id)) throw new VaultError(`Der Notiztyp „${id}" kommt doppelt vor.`);
+    if (!id) throw new VaultError('error.typeWithoutId');
+    if (!label) throw new VaultError('error.typeNeedsLabel', { id });
+    if (seenTypes.has(id)) throw new VaultError('error.duplicateType', { id });
     seenTypes.add(id);
 
     const seenFields = new Set<string>();
     const fields = (Array.isArray(def.fields) ? def.fields : []).map((field) => {
       const key = String(field.key ?? '').trim();
       const fieldLabel = String(field.label ?? '').trim();
-      if (!key) throw new VaultError(`Ein Feld in „${label}" hat keinen Schlüssel.`);
-      if (!fieldLabel) throw new VaultError(`Ein Feld in „${label}" braucht eine Bezeichnung.`);
-      if (seenFields.has(key)) throw new VaultError(`Das Feld „${key}" kommt in „${label}" doppelt vor.`);
+      if (!key) throw new VaultError('error.fieldWithoutKey', { label });
+      if (!fieldLabel) throw new VaultError('error.fieldNeedsLabel', { label });
+      if (seenFields.has(key)) throw new VaultError('error.duplicateField', { key, label });
       seenFields.add(key);
 
       const normalized: FieldDef = {
@@ -404,6 +416,7 @@ export function defaultSettings(vaultRoot: string): AppSettings {
   return {
     schemaVersion: SCHEMA_VERSION,
     vaultRoot,
+    language: DEFAULT_LANGUAGE,
     autosaveEnabled: true,
     autosaveDelayMs: 1500,
     lastCampaignId: null
@@ -419,7 +432,8 @@ export async function readSettings(file: string, fallbackRoot: string): Promise<
       ...parsed,
       schemaVersion: SCHEMA_VERSION,
       vaultRoot: typeof parsed.vaultRoot === 'string' && parsed.vaultRoot ? parsed.vaultRoot : defaults.vaultRoot,
-      autosaveDelayMs: clampDelay(parsed.autosaveDelayMs ?? defaults.autosaveDelayMs)
+      autosaveDelayMs: clampDelay(parsed.autosaveDelayMs ?? defaults.autosaveDelayMs),
+      language: isLanguage(parsed.language) ? parsed.language : defaults.language
     };
   } catch {
     return defaults;
