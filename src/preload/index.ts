@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion } from '../shared/types';
+import type { PromptCategory } from '../shared/writingPrompts';
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -18,6 +19,10 @@ const api = {
   },
   vault: {
     reveal: () => invoke<void>('vault:reveal')
+  },
+  prompts: {
+    get: () => invoke<PromptCategory[]>('prompts:get'),
+    reveal: () => invoke<void>('prompts:reveal')
   },
   campaigns: {
     list: () => invoke<Campaign[]>('campaign:list'),

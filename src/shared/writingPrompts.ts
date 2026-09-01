@@ -1,0 +1,388 @@
+import type { Language } from './i18n';
+
+export interface PromptCategory {
+  id: string;
+  label: string;
+  options: string[];
+}
+
+/**
+ * Startpunkte fuers Schreiben, ohne KI. Die Liste wird beim ersten Start als
+ * writing-prompts.json in den Speicherort geschrieben und ist danach
+ * Nutzerdatei: eigene Eintraege lassen sich dort ergaenzen oder die
+ * Vorschlaege komplett ersetzen.
+ *
+ * Die Eintraege sind bewusst konkret statt allgemein. Ein Vorschlag soll eine
+ * Frage aufwerfen, nicht eine Schublade benennen.
+ */
+const de: PromptCategory[] = [
+  {
+    id: 'origin',
+    label: 'Herkunftsort',
+    options: [
+      'Eine Hafenstadt, in der jeder jeden beim Vornamen kennt',
+      'Ein Bergdorf, das im Winter vier Monate abgeschnitten ist',
+      'Ein Wanderlager, das nie zweimal am selben Ort stand',
+      'Ein Kloster auf einer Klippe, weit weg von allem',
+      'Die Unterstadt einer Metropole, wo nie Tageslicht hinkommt',
+      'Ein Grenzposten, der dreimal die Fahne gewechselt hat',
+      'Eine Insel, von der aus man das Festland nur bei klarem Wetter sieht',
+      'Ein abgebranntes Dorf, das nie wieder aufgebaut wurde',
+      'Ein Handelsknotenpunkt, an dem sieben Sprachen gesprochen werden',
+      'Eine Mine, in der ganze Familien unter Tage lebten',
+      'Ein Leuchtturm mit genau drei Bewohnern',
+      'Ein Gutshof, dessen Herrschaft nie vor Ort war',
+      'Eine Karawanserei mitten in der Wüste',
+      'Ein Flusskahn, der ständig unterwegs war',
+      'Ein Waldlager von Holzfällern, das jedes Jahr weiterzog',
+      'Die Ruinen einer Stadt, in denen Leute wieder einzogen',
+      'Ein Fischerdorf, das vom Meer langsam verschluckt wird',
+      'Eine Festung, die nie belagert wurde und trotzdem verfiel',
+      'Ein Badeort, der nur im Sommer existiert',
+      'Ein Bauernhof, drei Tagesreisen von der nächsten Straße',
+      'Eine schwimmende Siedlung aus vertäuten Booten',
+      'Ein Bergwerksdorf, das seit der Schließung leersteht',
+      'Ein Tempelbezirk, in dem Gläubige mehrerer Götter nebeneinander leben',
+      'Ein Waisenhaus, das mehr Kinder aufnahm als es tragen konnte'
+    ]
+  },
+  {
+    id: 'calling',
+    label: 'Früheres Leben',
+    options: [
+      'Botengänger, kannte jede Abkürzung der Stadt',
+      'Gehilfin einer Kräuterkundigen',
+      'Kesselflicker, unterwegs von Dorf zu Dorf',
+      'Schreiberin für Leute, die nicht schreiben konnten',
+      'Stallbursche in einem Gasthaus an der Hauptstraße',
+      'Netzflickerin im Hafen',
+      'Vorleser für eine erblindete Adlige',
+      'Grabpfleger auf einem Friedhof außerhalb der Mauern',
+      'Sängerin in einer Schenke, gegen Kost und Logis',
+      'Lehrling einer Glasbläserei',
+      'Wachposten an einem Tor, an dem nie etwas passierte',
+      'Kartografin, die nie weiter als bis zum Nachbartal kam',
+      'Söldner in einem Krieg, dessen Anlass sie nie verstand',
+      'Köchin auf einem Handelsschiff',
+      'Bergführer für zahlende Reisende',
+      'Ausbesserer von Straßen und Brücken',
+      'Vorsängerin bei Begräbnissen',
+      'Hundeführer bei der Jagd einer Adelsfamilie',
+      'Buchhalterin einer Handelsgesellschaft',
+      'Aufseherin über eine Zisterne',
+      'Läuferin, die Nachrichten zwischen zwei Städten trug',
+      'Türsteher eines Spielhauses',
+      'Imker mit dreißig Völkern',
+      'Übersetzerin am Markt, für Reisende'
+    ]
+  },
+  {
+    id: 'turning',
+    label: 'Wendepunkt',
+    options: [
+      'Ein Brief kam an, der für jemand anderen bestimmt war',
+      'Sie sagte einmal die Wahrheit, als eine Lüge einfacher gewesen wäre',
+      'Der Winter kam zwei Monate zu früh',
+      'Jemand, dem sie vertraute, verschwand ohne ein Wort',
+      'Sie erbte etwas, das sie nicht haben wollte',
+      'Ein Fremder erkannte sie und nannte einen falschen Namen',
+      'Sie überlebte, während alle anderen es nicht taten',
+      'Ein Versprechen wurde eingefordert, das sie längst vergessen hatte',
+      'Sie fand heraus, wofür ihre Eltern das Geld genommen hatten',
+      'Eine Tür, die immer verschlossen war, stand offen',
+      'Sie wurde für etwas bestraft, das sie nicht getan hatte',
+      'Der Fluss verlegte sein Bett und nahm die Felder mit',
+      'Ein Kind vertraute ihr etwas an, das zu groß für sie war',
+      'Sie erkannte die Handschrift auf einem alten Dokument',
+      'Jemand bot ihr Geld für etwas, das sie umsonst getan hätte',
+      'Sie sollte eine Schuld eintreiben und tat es nicht',
+      'Die Ernte war zum dritten Mal in Folge zu klein',
+      'Sie wurde gebeten zu gehen, ohne Begründung',
+      'Ein Feuer vernichtete genau das, was sie nicht ersetzen konnte',
+      'Sie sah, wie jemand starb, den sie hätte retten können',
+      'Ein Fremder kannte den Namen ihrer Großmutter',
+      'Sie las etwas, das sie nicht hätte lesen dürfen',
+      'Der Krieg endete, bevor sie ankam',
+      'Man hielt sie für tot, und sie ließ es dabei'
+    ]
+  },
+  {
+    id: 'secret',
+    label: 'Geheimnis',
+    options: [
+      'Sie kann nicht lesen und hat es nie zugegeben',
+      'Der Name, unter dem sie bekannt ist, gehört jemand anderem',
+      'Sie hat einmal jemanden im Stich gelassen und sagt es niemandem',
+      'Sie schuldet jemandem einen Gefallen, der noch eingefordert wird',
+      'Sie weiß, wer den Brand gelegt hat',
+      'Sie war einmal reich und hat alles verspielt',
+      'Sie hat eine Familie, von der niemand weiß',
+      'Sie fürchtet sich vor etwas Alltäglichem',
+      'Sie hat einen Eid gebrochen, den niemand kontrolliert',
+      'Ihre wichtigste Fertigkeit hat sie durch Betrug erworben',
+      'Sie besitzt etwas Gestohlenes und hat es nie zurückgegeben',
+      'Sie kann sich an ein ganzes Jahr nicht erinnern',
+      'Sie hat einen Ruf, den sie nicht verdient',
+      'Sie hat einen Bruder, der auf der anderen Seite steht',
+      'Sie hat eine Nachricht überbracht, die jemanden das Leben kostete',
+      'Sie stammt nicht von dort, wo sie behauptet',
+      'Sie hat ein Kind weggegeben',
+      'Sie hat einen Mord gedeckt',
+      'Sie versteht eine Sprache, von der niemand weiß',
+      'Sie hat einmal für die Gegenseite gearbeitet',
+      'Sie hat sich einen Titel erschlichen',
+      'Sie hat eine Krankheit, die noch nicht sichtbar ist',
+      'Sie hat einen Fund verschwiegen',
+      'Sie hat eine Schuld beglichen, indem sie jemanden verriet'
+    ]
+  },
+  {
+    id: 'bond',
+    label: 'Bindung',
+    options: [
+      'Die Wirtin, die ihr Essen gab, als sie nichts hatte',
+      'Ein Geschwister, mit dem sie seit Jahren im Streit liegt',
+      'Der Lehrmeister, den sie enttäuscht hat',
+      'Ein Kind, das sie großgezogen hat, obwohl es nicht ihres war',
+      'Eine Freundin, die sie nie wiedergesehen hat',
+      'Der Mann, dessen Leben sie gerettet hat und der sie dafür hasst',
+      'Eine Rivalin, die sie insgeheim bewundert',
+      'Ein Hund, der ihr seit Jahren folgt',
+      'Die Person, der sie ein Versprechen schuldet',
+      'Ein Gläubiger, der geduldiger ist als er müsste',
+      'Eine alte Frau, die ihr Geschichten erzählte',
+      'Der Priester, der ihre Beichte hörte und schwieg',
+      'Ein Reisegefährte, der sich als jemand anderes herausstellte',
+      'Die Schwester, die geblieben ist, als sie ging',
+      'Jemand, den sie sucht und nicht findet',
+      'Ein Vorgesetzter, der sie unterschätzt hat',
+      'Die Person, die sie zuletzt hat weinen sehen',
+      'Ein Gläubiger ihres Vaters, der sie in Ruhe lässt',
+      'Eine Nachbarin, die immer wusste, was los war',
+      'Der Fremde, der ihr einmal das Leben rettete',
+      'Ein Feind, mit dem sie mehr gemeinsam hat als mit Freunden',
+      'Jemand, der ihretwegen im Gefängnis sitzt',
+      'Die Person, die ihr ihren Namen gab',
+      'Ein Mensch, den sie belogen hat und der es nie merkte'
+    ]
+  },
+  {
+    id: 'goal',
+    label: 'Ziel',
+    options: [
+      'Eine Schuld zurückzahlen, die nicht ihre eigene ist',
+      'Herausfinden, wer den Befehl gegeben hat',
+      'Ein Grab finden, um endlich davorstehen zu können',
+      'Einen Namen reinwaschen, der nicht ihrer ist',
+      'Genug Geld für einen Winter ohne Angst',
+      'Jemanden wiederfinden, der nicht gefunden werden will',
+      'Beweisen, dass sie es kann',
+      'Ein Haus, das ihr niemand nehmen kann',
+      'Ein Versprechen einlösen, das sie als Kind gab',
+      'Vergessen werden',
+      'Zurückkehren, ohne sich schämen zu müssen',
+      'Etwas zu Ende bringen, das jemand anderes angefangen hat',
+      'Verhindern, dass sich etwas wiederholt',
+      'Einen Ort sehen, von dem sie nur gelesen hat',
+      'Sich für etwas rächen, das sie nicht beweisen kann',
+      'Jemandem etwas zurückgeben, das sie genommen hat',
+      'Erfahren, ob die Geschichte über ihre Familie stimmt',
+      'Einen Menschen aus einer Sache herausholen',
+      'Aufhören, davonzulaufen',
+      'Ein Handwerk lernen, für das sie zu alt ist',
+      'Eine Frage beantworten, die niemand sonst stellt',
+      'Für einmal Recht behalten',
+      'Jemanden dazu bringen, ihr zu glauben',
+      'Sterben, wo sie geboren wurde'
+    ]
+  }
+];
+
+const en: PromptCategory[] = [
+  {
+    id: 'origin',
+    label: 'Place of origin',
+    options: [
+      'A harbour town where everyone knows everyone by first name',
+      'A mountain village cut off for four months every winter',
+      'A travelling camp that never stood in the same place twice',
+      'A monastery on a cliff, far from everything',
+      'The lower city of a metropolis, where daylight never reaches',
+      'A border post that has changed flags three times',
+      'An island from which the mainland is visible only in clear weather',
+      'A burnt-down village that was never rebuilt',
+      'A trading hub where seven languages are spoken',
+      'A mine where whole families lived underground',
+      'A lighthouse with exactly three inhabitants',
+      'An estate whose owners were never there',
+      'A caravanserai in the middle of the desert',
+      'A river barge that was always on the move',
+      'A logging camp that moved on every year',
+      'The ruins of a city that people moved back into',
+      'A fishing village slowly being swallowed by the sea',
+      'A fortress never besieged that decayed anyway',
+      'A seaside resort that only exists in summer',
+      'A farm three days from the nearest road',
+      'A floating settlement of moored boats',
+      'A mining village empty since the pit closed',
+      'A temple district where believers of several gods live side by side',
+      'An orphanage that took in more children than it could carry'
+    ]
+  },
+  {
+    id: 'calling',
+    label: 'Earlier life',
+    options: [
+      'Errand runner who knew every shortcut in the city',
+      'Assistant to a herbalist',
+      'Tinker travelling from village to village',
+      'Scribe for people who could not write',
+      'Stable hand at an inn on the main road',
+      'Net mender at the harbour',
+      'Reader for a blind noblewoman',
+      'Grave keeper at a cemetery outside the walls',
+      'Singer in a tavern, for board and lodging',
+      'Apprentice at a glassworks',
+      'Guard at a gate where nothing ever happened',
+      'Cartographer who never got past the next valley',
+      'Mercenary in a war whose cause she never understood',
+      'Cook on a trading ship',
+      'Mountain guide for paying travellers',
+      'Repairer of roads and bridges',
+      'Lead singer at funerals',
+      'Houndsman for a noble family',
+      'Bookkeeper of a trading company',
+      'Warden of a cistern',
+      'Runner carrying messages between two cities',
+      'Doorman at a gambling house',
+      'Beekeeper with thirty colonies',
+      'Translator at the market, for travellers'
+    ]
+  },
+  {
+    id: 'turning',
+    label: 'Turning point',
+    options: [
+      'A letter arrived that was meant for someone else',
+      'She told the truth once, when a lie would have been easier',
+      'Winter came two months early',
+      'Someone she trusted disappeared without a word',
+      'She inherited something she did not want',
+      'A stranger recognised her and used the wrong name',
+      'She survived while everyone else did not',
+      'A promise she had long forgotten was called in',
+      'She found out what her parents had taken the money for',
+      'A door that was always locked stood open',
+      'She was punished for something she had not done',
+      'The river changed its bed and took the fields with it',
+      'A child confided something too big for her',
+      'She recognised the handwriting on an old document',
+      'Someone offered her money for something she would have done for free',
+      'She was sent to collect a debt and did not',
+      'The harvest failed for the third year running',
+      'She was asked to leave, with no reason given',
+      'A fire destroyed exactly what she could not replace',
+      'She watched someone die whom she could have saved',
+      'A stranger knew her grandmother’s name',
+      'She read something she was not meant to read',
+      'The war ended before she arrived',
+      'She was believed dead, and she left it at that'
+    ]
+  },
+  {
+    id: 'secret',
+    label: 'Secret',
+    options: [
+      'She cannot read and has never admitted it',
+      'The name she is known by belongs to someone else',
+      'She once abandoned someone and tells no one',
+      'She owes someone a favour that is still to be called in',
+      'She knows who started the fire',
+      'She was once wealthy and gambled it all away',
+      'She has a family nobody knows about',
+      'She is afraid of something entirely ordinary',
+      'She broke an oath that nobody checks',
+      'Her most important skill was acquired by cheating',
+      'She owns something stolen and never gave it back',
+      'She cannot remember an entire year',
+      'She has a reputation she does not deserve',
+      'She has a brother on the other side',
+      'She delivered a message that cost someone their life',
+      'She is not from where she claims to be',
+      'She gave away a child',
+      'She covered up a killing',
+      'She understands a language nobody knows about',
+      'She once worked for the other side',
+      'She obtained a title by deception',
+      'She has an illness that is not yet visible',
+      'She kept quiet about a find',
+      'She settled a debt by betraying someone'
+    ]
+  },
+  {
+    id: 'bond',
+    label: 'Bond',
+    options: [
+      'The innkeeper who fed her when she had nothing',
+      'A sibling she has been at odds with for years',
+      'The teacher she disappointed',
+      'A child she raised although it was not hers',
+      'A friend she never saw again',
+      'The man whose life she saved and who hates her for it',
+      'A rival she secretly admires',
+      'A dog that has followed her for years',
+      'The person she owes a promise to',
+      'A creditor more patient than he needs to be',
+      'An old woman who told her stories',
+      'The priest who heard her confession and said nothing',
+      'A travelling companion who turned out to be someone else',
+      'The sister who stayed when she left',
+      'Someone she is looking for and cannot find',
+      'A superior who underestimated her',
+      'The person who last saw her cry',
+      'A creditor of her father who leaves her alone',
+      'A neighbour who always knew what was going on',
+      'The stranger who once saved her life',
+      'An enemy she has more in common with than with friends',
+      'Someone in prison because of her',
+      'The person who gave her her name',
+      'Someone she lied to who never noticed'
+    ]
+  },
+  {
+    id: 'goal',
+    label: 'Goal',
+    options: [
+      'Repay a debt that is not her own',
+      'Find out who gave the order',
+      'Find a grave so she can finally stand before it',
+      'Clear a name that is not hers',
+      'Enough money for one winter without fear',
+      'Find someone again who does not want to be found',
+      'Prove that she can do it',
+      'A house nobody can take from her',
+      'Keep a promise she made as a child',
+      'Be forgotten',
+      'Return without having to feel ashamed',
+      'Finish something someone else started',
+      'Make sure it does not happen again',
+      'See a place she has only read about',
+      'Take revenge for something she cannot prove',
+      'Give back something she took',
+      'Learn whether the story about her family is true',
+      'Get a person out of something',
+      'Stop running',
+      'Learn a craft she is too old for',
+      'Answer a question nobody else asks',
+      'Be right for once',
+      'Make someone believe her',
+      'Die where she was born'
+    ]
+  }
+];
+
+const BY_LANGUAGE: Record<Language, PromptCategory[]> = { de, en };
+
+export function defaultPrompts(language: Language): PromptCategory[] {
+  return structuredClone(BY_LANGUAGE[language] ?? de);
+}

@@ -395,3 +395,39 @@ test('Unbekannte Fassung wird abgelehnt', async () => {
     });
   });
 });
+
+test('Schreibhilfe wird beim ersten Lesen als Datei angelegt', async () => {
+  await withVault(async (vault, root) => {
+    const prompts = await vault.readPrompts('de');
+    assert.ok(prompts.length >= 5);
+
+    const raw = JSON.parse(await readFile(path.join(root, 'writing-prompts.json'), 'utf8'));
+    assert.equal(raw.length, prompts.length, 'Datei wurde nicht geschrieben');
+  });
+});
+
+test('Eigene Schreibhilfe-Datei wird benutzt und repariert', async () => {
+  await withVault(async (vault, root) => {
+    await writeFile(
+      path.join(root, 'writing-prompts.json'),
+      JSON.stringify([
+        { id: 'eigene', label: 'Eigene Liste', options: ['Erster Eintrag', '  ', 42] },
+        { label: '', options: ['wird verworfen'] },
+        { label: 'Ohne Einträge', options: [] },
+        'kaputt'
+      ])
+    );
+
+    const prompts = await vault.readPrompts('de');
+    assert.equal(prompts.length, 1, 'unbrauchbare Einträge wurden nicht aussortiert');
+    assert.equal(prompts[0].label, 'Eigene Liste');
+    assert.deepEqual(prompts[0].options, ['Erster Eintrag']);
+  });
+});
+
+test('Unlesbare Schreibhilfe-Datei faellt auf die Vorlage zurueck', async () => {
+  await withVault(async (vault, root) => {
+    await writeFile(path.join(root, 'writing-prompts.json'), 'kein json');
+    assert.ok((await vault.readPrompts('de')).length >= 5);
+  });
+});

@@ -501,7 +501,36 @@ app.whenReady().then(async () => {
       }
     }
 
-    // 16. Versionsverlauf: alten Stand wiederherstellen
+    // 16. Schreibhilfe: Vorschlag in den Text uebernehmen
+    await selectNote(window, 'Toran');
+    await clickButton(window, 'Schreibhilfe');
+    await sleep(1200);
+    check(await run(window, `return Boolean(document.querySelector('.prompts__categories'));`),
+      'Schreibhilfe öffnet nicht');
+    check(await run(window, `return document.querySelectorAll('.prompts__option').length === 4;`),
+      'Es werden nicht vier Vorschläge gewürfelt');
+
+    const suggestion = await run(
+      window,
+      `const option = document.querySelector('.prompts__option');
+       const text = option.querySelector('span').textContent;
+       option.querySelector('button').click();
+       return text;`
+    );
+    await sleep(900);
+    check(await run(window, `return document.querySelector('.modal') === null;`), 'Schreibhilfe bleibt offen');
+    check(
+      await run(window, `return document.querySelector('.ProseMirror').textContent.includes(${JSON.stringify('')} + ${JSON.stringify(suggestion)});`),
+      'Vorschlag steht nicht im Text'
+    );
+
+    await save(window);
+
+    // Die Vorschlagsdatei muss im Speicherort liegen und bearbeitbar sein
+    check(fs.existsSync(path.join(userData, 'vault', 'writing-prompts.json')),
+      'writing-prompts.json wurde nicht angelegt');
+
+    // 17. Versionsverlauf: alten Stand wiederherstellen
     await selectNote(window, 'Toran');
     await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
     await sleep(200);

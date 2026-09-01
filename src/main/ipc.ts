@@ -7,6 +7,7 @@ import { zipDirectory } from './export';
 import { ALLOWED_IMAGE_EXTENSIONS } from './vault';
 import { referencedAssets, renderNoteMarkdown, toFileName } from './markdownExport';
 import { exportNotesToPdf } from './pdfExport';
+import type { PromptCategory } from '../shared/writingPrompts';
 import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion } from '../shared/types';
 
 export interface IpcContext {
@@ -69,6 +70,13 @@ export function registerIpc(context: IpcContext): void {
       lastCampaignId: null
     });
     return context.settings;
+  });
+
+  handle<[], PromptCategory[]>('prompts:get', () => vault.readPrompts(context.settings.language));
+
+  handle<[], void>('prompts:reveal', async () => {
+    await vault.readPrompts(context.settings.language);
+    await shell.showItemInFolder(vault.promptsFile());
   });
 
   handle<[], void>('vault:reveal', async () => {
