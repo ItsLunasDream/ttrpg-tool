@@ -302,7 +302,43 @@ app.whenReady().then(async () => {
       'Notiz bekam nicht den neuen Typ'
     );
 
-    // 11. Umbenennen muss die Links mitziehen
+    // 11. Sprache auf Englisch und wieder zurueck
+    await clickButton(window, 'Einstellungen');
+    await sleep(500);
+    await run(
+      window,
+      `const select = document.querySelector('.modal select');
+       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, 'en');
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;`
+    );
+    await sleep(900);
+
+    check(await run(window, `return document.querySelector('.modal__header h2').textContent === 'Settings';`),
+      'Dialog bleibt nach dem Sprachwechsel deutsch');
+    check(await run(window, `return [...document.querySelectorAll('.campaign-bar button')].some((b) => b.textContent === 'New campaign');`),
+      'Kopfzeile bleibt nach dem Sprachwechsel deutsch');
+
+    // Selbst vergebene Bezeichnungen bleiben unveraendert, die kann das
+    // Programm nicht uebersetzen
+    check(await run(window, `return [...document.querySelectorAll('.note-list__new button')].some((b) => b.textContent.includes('Gegenstand'));`),
+      'Eigener Notiztyp wurde faelschlich veraendert');
+
+    await run(
+      window,
+      `const select = document.querySelector('.modal select');
+       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, 'de');
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;`
+    );
+    await sleep(900);
+    check(await run(window, `return document.querySelector('.modal__header h2').textContent === 'Einstellungen';`),
+      'Rückwechsel auf Deutsch hat nicht gewirkt');
+
+    await clickButton(window, '×', "document.querySelector('.modal__header')");
+    await sleep(400);
+
+    // 12. Umbenennen muss die Links mitziehen
     await selectNote(window, 'Mira Falkenhand');
     await run(
       window,

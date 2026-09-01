@@ -2,6 +2,7 @@ import { findNoteType } from '../../shared/noteTypes';
 import type { Note, NoteType, SearchHit } from '../../shared/types';
 import type { NoteIndex, SearchFilters } from '../noteIndex';
 import { HighlightedText } from './HighlightedText';
+import { useT } from '../i18n';
 
 interface Props {
   index: NoteIndex;
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersChange, onSelect, onCreate }: Props) {
+  const t = useT();
   const grouped = index.types
     .map((def) => ({ def, entries: notes.filter((note) => note.type === def.id) }))
     .filter((group) => group.entries.length > 0);
@@ -23,7 +25,7 @@ export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersC
   // Notizen, deren Typ geloescht wurde, wuerden sonst unsichtbar werden.
   const orphans = notes.filter((note) => !index.types.some((def) => def.id === note.type));
   if (orphans.length) {
-    grouped.push({ def: { id: '__orphan', label: 'Ohne Typ', plural: 'Ohne Typ', fields: [] }, entries: orphans });
+    grouped.push({ def: { id: '__orphan', label: t('list.withoutType'), plural: t('list.withoutType'), fields: [] }, entries: orphans });
   }
 
   return (
@@ -32,7 +34,7 @@ export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersC
         <input
           type="search"
           value={filters.query}
-          placeholder="Volltextsuche …"
+          placeholder={t('list.search')}
           onChange={(event) => onFiltersChange({ ...filters, query: event.target.value })}
         />
       </div>
@@ -42,7 +44,7 @@ export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersC
           value={filters.type}
           onChange={(event) => onFiltersChange({ ...filters, type: event.target.value as NoteType | 'all' })}
         >
-          <option value="all">Alle Typen</option>
+          <option value="all">{t('list.allTypes')}</option>
           {index.types.map((def) => (
             <option value={def.id} key={def.id}>
               {def.plural}
@@ -53,7 +55,7 @@ export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersC
           value={filters.tag ?? ''}
           onChange={(event) => onFiltersChange({ ...filters, tag: event.target.value || null })}
         >
-          <option value="">Alle Tags</option>
+          <option value="">{t('list.allTags')}</option>
           {index.tags.map((tag) => (
             <option value={tag} key={tag}>
               {tag}
@@ -64,7 +66,7 @@ export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersC
 
       <div className="note-list__new">
         {index.types.map((def) => (
-          <button type="button" key={def.id} onClick={() => onCreate(def.id)} title={`Neue Notiz: ${def.label}`}>
+          <button type="button" key={def.id} onClick={() => onCreate(def.id)} title={t('list.newNoteOf', { label: def.label })}>
             + {def.label}
           </button>
         ))}
@@ -72,7 +74,7 @@ export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersC
 
       <div className="note-list__scroll">
         {grouped.length === 0 ? (
-          <p className="note-list__empty">Keine Notiz passt zum Filter.</p>
+          <p className="note-list__empty">{t('list.noMatch')}</p>
         ) : (
           grouped.map(({ def, entries }) => (
             <section key={def.id}>
@@ -117,7 +119,7 @@ export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersC
       </div>
 
       <p className="note-list__total">
-        {index.notes.length} Notizen · {notes.length} sichtbar
+        {t('list.total', { total: index.notes.length, visible: notes.length })}
         {filters.type !== 'all' ? ` · ${findNoteType(index.types, filters.type).plural}` : ''}
       </p>
     </div>

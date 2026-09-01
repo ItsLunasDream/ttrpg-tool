@@ -1,3 +1,5 @@
+import type { Language } from './i18n';
+
 /** Wird in jede Notiz- und Kampagnendatei geschrieben, damit spaetere Migrationen moeglich sind. */
 export const SCHEMA_VERSION = 1;
 
@@ -64,6 +66,7 @@ export interface Campaign {
 export interface AppSettings {
   schemaVersion: number;
   vaultRoot: string;
+  language: Language;
   autosaveEnabled: boolean;
   autosaveDelayMs: number;
   lastCampaignId: string | null;

@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Modal } from './Modal';
+import { useT } from '../i18n';
 
 interface Props {
   title: string;
@@ -12,7 +13,8 @@ interface Props {
   onClose: () => void;
 }
 
-export function PromptDialog({ title, label, initialValue = '', confirmLabel = 'OK', children, onConfirm, onClose }: Props) {
+export function PromptDialog({ title, label, initialValue = '', confirmLabel, children, onConfirm, onClose }: Props) {
+  const t = useT();
   const [value, setValue] = useState(initialValue);
 
   function submit() {
@@ -27,10 +29,10 @@ export function PromptDialog({ title, label, initialValue = '', confirmLabel = '
       footer={
         <>
           <button type="button" onClick={onClose}>
-            Abbrechen
+            {t('dialog.cancel')}
           </button>
           <button type="button" className="primary" onClick={submit} disabled={!value.trim()}>
-            {confirmLabel}
+            {confirmLabel ?? t('dialog.ok')}
           </button>
         </>
       }

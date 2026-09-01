@@ -14,7 +14,12 @@ export interface NoteIndex {
   tags: string[];
 }
 
-export function buildIndex(notes: Note[], types: NoteTypeDef[]): NoteIndex {
+export function buildIndex(
+  notes: Note[],
+  types: NoteTypeDef[],
+  /** Sortierung nach den Regeln der eingestellten Sprache. */
+  compare: (a: string, b: string) => number = (a, b) => a.localeCompare(b)
+): NoteIndex {
   const byId = new Map<string, Note>();
   const byName = new Map<string, Note>();
   const ambiguous = new Set<string>();
@@ -32,7 +37,14 @@ export function buildIndex(notes: Note[], types: NoteTypeDef[]): NoteIndex {
     }
   }
 
-  return { notes, types, byId, byName, ambiguous, tags: [...tags].sort((a, b) => a.localeCompare(b, 'de-DE')) };
+  return {
+    notes: [...notes].sort((a, b) => compare(a.title, b.title)),
+    types,
+    byId,
+    byName,
+    ambiguous,
+    tags: [...tags].sort(compare)
+  };
 }
 
 export function resolveLink(index: NoteIndex, target: string): Note | null {
@@ -60,7 +72,7 @@ export function backlinksFor(index: NoteIndex, noteId: string): Backlink[] {
     results.push({ note, context: contextAround(note.body, hit.from, hit.to) });
   }
 
-  return results.sort((a, b) => a.note.title.localeCompare(b.note.title, 'de-DE'));
+  return results.sort((a, b) => index.notes.indexOf(a.note) - index.notes.indexOf(b.note));
 }
 
 function contextAround(text: string, from: number, to: number, padding = 60): string {

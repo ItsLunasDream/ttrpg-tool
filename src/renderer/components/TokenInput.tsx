@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent } from 'react';
+import { useT } from '../i18n';
 
 interface Props {
   label: string;
@@ -9,6 +10,7 @@ interface Props {
 
 /** Eingabe fuer Tags und Aliase: Enter oder Komma legt einen Eintrag an. */
 export function TokenInput({ label, values, placeholder, onChange }: Props) {
+  const t = useT();
   const [text, setText] = useState('');
 
   function commit(raw: string) {
@@ -34,7 +36,7 @@ export function TokenInput({ label, values, placeholder, onChange }: Props) {
         {values.map((value) => (
           <span className="token" key={value}>
             {value}
-            <button type="button" onClick={() => onChange(values.filter((entry) => entry !== value))} aria-label={`${value} entfernen`}>
+            <button type="button" onClick={() => onChange(values.filter((entry) => entry !== value))} aria-label={t('editor.removeToken', { value })}>
               ×
             </button>
           </span>

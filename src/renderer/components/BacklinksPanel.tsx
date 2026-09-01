@@ -1,6 +1,7 @@
 import { findNoteType } from '../../shared/noteTypes';
 import type { NoteTypeDef } from '../../shared/types';
 import type { Backlink } from '../noteIndex';
+import { useT } from '../i18n';
 
 interface Props {
   backlinks: Backlink[];
@@ -11,14 +12,16 @@ interface Props {
 }
 
 export function BacklinksPanel({ backlinks, types, unresolved, onOpenNote, onCreateNote }: Props) {
+  const t = useT();
+
   return (
     <>
       <section className="panel">
         <h3 className="panel__title">
-          Erwähnt von <span className="panel__count">{backlinks.length}</span>
+          {t('backlinks.title')} <span className="panel__count">{backlinks.length}</span>
         </h3>
         {backlinks.length === 0 ? (
-          <p className="panel__empty">Noch keine andere Notiz verlinkt hierher.</p>
+          <p className="panel__empty">{t('backlinks.empty')}</p>
         ) : (
           <ul className="backlinks">
             {backlinks.map(({ note, context }) => (
@@ -37,15 +40,15 @@ export function BacklinksPanel({ backlinks, types, unresolved, onOpenNote, onCre
       {unresolved.length ? (
         <section className="panel">
           <h3 className="panel__title">
-            Offene Links <span className="panel__count">{unresolved.length}</span>
+            {t('unresolved.title')} <span className="panel__count">{unresolved.length}</span>
           </h3>
-          <p className="panel__hint">Diese Links zeigen noch auf keine Notiz.</p>
+          <p className="panel__hint">{t('unresolved.hint')}</p>
           <ul className="unresolved">
             {unresolved.map((title) => (
               <li key={title}>
                 <span>{title}</span>
                 <button type="button" className="link-button" onClick={() => onCreateNote(title)}>
-                  anlegen
+                  {t('unresolved.create')}
                 </button>
               </li>
             ))}
