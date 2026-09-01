@@ -4,14 +4,43 @@ Desktop-Tool zum Schreiben von D&D-Charakter-Backstorys. Rich-Text-Editor,
 Wiki-Verlinkung zwischen Notizen, strukturierte Steckbrieffelder und gerichtete
 Beziehungen, alles lokal als Markdown auf der eigenen Platte.
 
-## Starten
+## Fertige Anwendung herunterladen
+
+Du brauchst dafür weder Node noch npm.
+
+1. Auf GitHub den Reiter **Actions** öffnen
+2. Den obersten Lauf **Build** anklicken
+3. Unten unter **Artifacts** `backstory-creator-windows` herunterladen
+4. Die ZIP-Datei entpacken. Darin liegen zwei Dateien:
+   - `BackstoryCreator-Setup-<version>.exe` — Installer, legt Startmenü- und
+     Desktopeintrag an
+   - `BackstoryCreator-portable-<version>.exe` — läuft ohne Installation direkt
+
+Windows zeigt beim ersten Start eine SmartScreen-Warnung, weil die Datei nicht
+signiert ist. Über „Weitere Informationen" → „Trotzdem ausführen" startet sie.
+Eine Signatur bräuchte ein kostenpflichtiges Zertifikat.
+
+Artefakte werden 90 Tage aufbewahrt. Wer ein dauerhaftes Download-Ziel will,
+legt auf GitHub ein Release an, dann hängt der Workflow die Dateien dort an.
+
+## Selbst bauen
+
+Nur nötig, wenn du am Code arbeiten willst.
+
+### Starten
+
+**Wichtig:** Alle Befehle müssen im Projektordner laufen, nicht im
+Benutzerordner. Sonst meldet npm `Could not read package.json`. Wechsle vorher
+mit `cd` in den Ordner, in dem diese README liegt.
 
 ```bash
+cd Pfad\zum\Projektordner
 npm install
-npm run dev     # Entwicklungsmodus mit Hot Reload
-npm start       # Produktionsbuild starten
-npm test        # Tests der Kernlogik
+npm run dev       # Entwicklungsmodus mit Hot Reload
+npm start         # Produktionsbuild starten
+npm test          # Tests der Kernlogik
 npm run typecheck
+npm run dist:win  # Windows-Installer und portable exe nach release/
 ```
 
 ## Bedienung
