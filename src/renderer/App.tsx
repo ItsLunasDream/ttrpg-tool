@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, call } from './api';
 import { buildIndex, filterNotes, searchNotes, type SearchFilters } from './noteIndex';
 import { normalizeName } from '../shared/wikilinks';
-import { NOTE_TYPES } from '../shared/noteTypes';
-import type { AppSettings, Campaign, Note, NoteType, SearchHit } from '../shared/types';
+import { DEFAULT_NOTE_TYPES } from '../shared/noteTypes';
+import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, SearchHit } from '../shared/types';
 import { CampaignBar } from './components/CampaignBar';
 import { NoteList } from './components/NoteList';
 import { NoteEditor } from './components/NoteEditor';
@@ -11,6 +11,7 @@ import { InfoCard } from './components/InfoCard';
 import { SettingsDialog } from './components/SettingsDialog';
 import { PromptDialog } from './components/PromptDialog';
 import { ConfirmDialog } from './components/ConfirmDialog';
+import { NoteTypesDialog } from './components/NoteTypesDialog';
 
 type Dialog =
   | { kind: 'none' }
@@ -19,7 +20,8 @@ type Dialog =
   | { kind: 'renameCampaign'; campaign: Campaign }
   | { kind: 'deleteCampaign'; campaign: Campaign }
   | { kind: 'newNote'; type: NoteType }
-  | { kind: 'deleteNote'; note: Note };
+  | { kind: 'deleteNote'; note: Note }
+  | { kind: 'noteTypes' };
 
 const EMPTY_FILTERS: SearchFilters = { query: '', type: 'all', tag: null };
 
@@ -44,7 +46,9 @@ export function App() {
   notesRef.current = notes;
   const savingRef = useRef(false);
 
-  const index = useMemo(() => buildIndex(notes), [notes]);
+  const activeCampaign = campaigns.find((campaign) => campaign.id === activeCampaignId) ?? null;
+  const noteTypes: NoteTypeDef[] = activeCampaign?.noteTypes ?? DEFAULT_NOTE_TYPES;
+  const index = useMemo(() => buildIndex(notes, noteTypes), [notes, noteTypes]);
   const visibleNotes = useMemo(() => filterNotes(index, filters), [index, filters]);
 
   // Treffer der Volltextsuche, damit die Liste Ausschnitt und Fundstelle
@@ -53,7 +57,6 @@ export function App() {
     if (!filters.query.trim()) return new Map<string, SearchHit>();
     return new Map(searchNotes(index, filters.query).map((hit) => [hit.noteId, hit]));
   }, [index, filters.query]);
-  const activeCampaign = campaigns.find((campaign) => campaign.id === activeCampaignId) ?? null;
 
   const report = useCallback((text: string, tone: 'info' | 'error' = 'info') => {
     setMessage({ text, tone });
@@ -276,6 +279,7 @@ export function App() {
           })
         }
         onOpenSettings={() => setDialog({ kind: 'settings' })}
+        onEditNoteTypes={() => setDialog({ kind: 'noteTypes' })}
       />
 
       {activeCampaignId ? (
@@ -328,9 +332,25 @@ export function App() {
         </div>
       )}
 
-      {hover ? <InfoCard note={hover.note} rect={hover.rect} onOpen={openNote} /> : null}
+      {hover ? <InfoCard note={hover.note} types={noteTypes} rect={hover.rect} onOpen={openNote} /> : null}
 
       {message ? <div className={`toast toast--${message.tone}`}>{message.text}</div> : null}
+
+      {dialog.kind === 'noteTypes' && activeCampaign ? (
+        <NoteTypesDialog
+          types={noteTypes}
+          notes={notes}
+          onClose={() => setDialog({ kind: 'none' })}
+          onSave={(types) =>
+            void guard(async () => {
+              const updated = await call(api.campaigns.updateNoteTypes(activeCampaign.id, types));
+              setCampaigns((previous) => previous.map((entry) => (entry.id === updated.id ? updated : entry)));
+              setDialog({ kind: 'none' });
+              report('Notiztypen gespeichert.');
+            })
+          }
+        />
+      ) : null}
 
       {dialog.kind === 'settings' ? (
         <SettingsDialog
@@ -405,6 +425,7 @@ export function App() {
 
       {dialog.kind === 'newNote' ? (
         <NewNoteDialog
+          types={noteTypes}
           initialType={dialog.type}
           initialTitle={pendingLinkTitle ?? ''}
           onClose={() => {
@@ -442,6 +463,7 @@ export function App() {
 }
 
 interface NewNoteDialogProps {
+  types: NoteTypeDef[];
   initialType: NoteType;
   initialTitle: string;
   onConfirm: (type: NoteType, title: string) => void;
@@ -449,7 +471,7 @@ interface NewNoteDialogProps {
 }
 
 /** Titel und Typ in einem Schritt, damit ein offener [[Link]] direkt zur Notiz wird. */
-function NewNoteDialog({ initialType, initialTitle, onConfirm, onClose }: NewNoteDialogProps) {
+function NewNoteDialog({ types, initialType, initialTitle, onConfirm, onClose }: NewNoteDialogProps) {
   const [type, setType] = useState<NoteType>(initialType);
 
   return (
@@ -463,9 +485,9 @@ function NewNoteDialog({ initialType, initialTitle, onConfirm, onClose }: NewNot
     >
       <label className="field">
         <span className="field__label">Typ</span>
-        <select value={type} onChange={(event) => setType(event.target.value as NoteType)}>
-          {NOTE_TYPES.map((def) => (
-            <option value={def.type} key={def.type}>
+        <select value={type} onChange={(event) => setType(event.target.value)}>
+          {types.map((def) => (
+            <option value={def.id} key={def.id}>
               {def.label}
             </option>
           ))}

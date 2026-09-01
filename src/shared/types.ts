@@ -1,11 +1,16 @@
 /** Wird in jede Notiz- und Kampagnendatei geschrieben, damit spaetere Migrationen moeglich sind. */
 export const SCHEMA_VERSION = 1;
 
-export type NoteType = 'character' | 'location' | 'faction' | 'event';
+/**
+ * Notiztypen sind Daten, keine feste Aufzaehlung: sie liegen pro Kampagne in
+ * campaign.json und lassen sich in der Oberflaeche anpassen.
+ */
+export type NoteType = string;
 
 export type FieldType = 'text' | 'textarea' | 'number' | 'url';
 
 export interface FieldDef {
+  /** Stabiler Schluessel, unter dem der Wert in der Notiz steht. Wird nie geaendert. */
   key: string;
   label: string;
   type: FieldType;
@@ -13,8 +18,9 @@ export interface FieldDef {
 }
 
 export interface NoteTypeDef {
-  type: NoteType;
+  id: NoteType;
   label: string;
+  /** Mehrzahl, fuer Ueberschriften und Filter. */
   plural: string;
   fields: FieldDef[];
 }
@@ -51,6 +57,8 @@ export interface Campaign {
   schemaVersion: number;
   name: string;
   createdAt: string;
+  /** Notiztypen dieser Kampagne, samt ihrer Steckbrieffelder. */
+  noteTypes: NoteTypeDef[];
 }
 
 export interface AppSettings {

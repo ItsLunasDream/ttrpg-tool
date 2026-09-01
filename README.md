@@ -54,6 +54,7 @@ npm run dist:win  # Windows-Installer und portable exe nach release/
 | Speichern | Strg+S, oder Autosave laufen lassen |
 | Zwischen Fundstellen springen | F3 und Umschalt+F3, oder die Pfeile über dem Editor |
 | Kampagne sichern | „Als ZIP sichern" in der Kopfzeile |
+| Steckbrief anpassen | „Notiztypen" in der Kopfzeile |
 
 Links in einer anderen Farbe zeigen auf eine Notiz, die es noch nicht gibt.
 Sie stehen zusätzlich im Panel „Offene Links".
@@ -83,10 +84,16 @@ werden können.
 **Kampagne** ist ein echter Container. Eine Notiz gehört zu genau einer
 Kampagne und ist nur innerhalb dieser verlinkbar.
 
-**Notiztypen** (Charakter, Ort, Fraktion, Ereignis) sind gleichberechtigt und
-schema-getrieben: die Feldlisten stehen in `src/shared/noteTypes.ts`, das
-Formular wird daraus gerendert. Ein neues Feld ist ein Listeneintrag, keine
-Komponentenänderung.
+**Notiztypen** sind gleichberechtigt und schema-getrieben. Das Schema ist
+kein Code, sondern gehört der Kampagne: es liegt in `campaign.json` und wird
+über „Notiztypen" in der Kopfzeile bearbeitet. Typen und Felder lassen sich
+anlegen, umbenennen, umsortieren und entfernen.
+`src/shared/noteTypes.ts` liefert nur noch die Vorlage für neue Kampagnen.
+
+Zwei Regeln schützen dabei bestehende Daten. Der Schlüssel eines Felds bleibt
+beim Umbenennen der Beschriftung unverändert, sonst gingen eingetragene Werte
+verloren. Und ein entferntes Feld löscht keine Werte: sie bleiben in der
+Notizdatei und erscheinen wieder, wenn das Feld zurückgeholt wird.
 
 **Wiki-Links** stehen als `[[Titel]]` bzw. `[[Titel|Anzeigetext]]` im Klartext.
 Beim Umbenennen einer Notiz werden alle Vorkommen in der Kampagne mitgezogen,
@@ -117,7 +124,8 @@ die typisierten IPC-Kanäle in `src/preload/index.ts`.
 Umgesetzt (MVP):
 
 - Kampagnen anlegen, umbenennen, löschen, als ZIP sichern
-- Notiztypen Charakter, Ort, Fraktion, Ereignis mit eigenen Feldern
+- Notiztypen Charakter, Ort, Fraktion, Ereignis und ein freier Typ „Notiz",
+  jeweils mit eigenen Steckbrieffeldern, in der App anpassbar
 - Rich-Text-Editor auf TipTap, gespeichert als Markdown
 - `[[Wiki-Links]]` mit Autocomplete, Kurzinfo-Karte samt Textanfang, offenen Links
 - Aliase, Tags, Wortzähler

@@ -1,9 +1,11 @@
 import { findWikiLinks, normalizeName } from '../shared/wikilinks';
-import { noteTypeDef } from '../shared/noteTypes';
-import type { Note, NoteType, SearchHit, SnippetMatch } from '../shared/types';
+import { fieldLabel } from '../shared/noteTypes';
+import type { Note, NoteType, NoteTypeDef, SearchHit, SnippetMatch } from '../shared/types';
 
 export interface NoteIndex {
   notes: Note[];
+  /** Notiztypen der Kampagne, fuer Beschriftungen und Gruppierung. */
+  types: NoteTypeDef[];
   byId: Map<string, Note>;
   /** Titel und Aliase, jeweils normalisiert, auf die Notiz. */
   byName: Map<string, Note>;
@@ -12,7 +14,7 @@ export interface NoteIndex {
   tags: string[];
 }
 
-export function buildIndex(notes: Note[]): NoteIndex {
+export function buildIndex(notes: Note[], types: NoteTypeDef[]): NoteIndex {
   const byId = new Map<string, Note>();
   const byName = new Map<string, Note>();
   const ambiguous = new Set<string>();
@@ -30,7 +32,7 @@ export function buildIndex(notes: Note[]): NoteIndex {
     }
   }
 
-  return { notes, byId, byName, ambiguous, tags: [...tags].sort((a, b) => a.localeCompare(b, 'de-DE')) };
+  return { notes, types, byId, byName, ambiguous, tags: [...tags].sort((a, b) => a.localeCompare(b, 'de-DE')) };
 }
 
 export function resolveLink(index: NoteIndex, target: string): Note | null {
@@ -86,13 +88,13 @@ export interface SearchFilters {
 }
 
 export function filterNotes(index: NoteIndex, filters: SearchFilters): Note[] {
-  const query = filters.query.trim().toLocaleLowerCase('de-DE');
+  const query = filters.query.trim();
 
   return index.notes.filter((note) => {
     if (filters.type !== 'all' && note.type !== filters.type) return false;
     if (filters.tag && !note.tags.includes(filters.tag)) return false;
     if (!query) return true;
-    return matchNote(note, query) !== null;
+    return matchNote(index.types, note, query) !== null;
   });
 }
 
@@ -128,12 +130,12 @@ export function searchNotes(index: NoteIndex, query: string): SearchHit[] {
   if (!needle) return [];
 
   return index.notes.flatMap((note) => {
-    const hit = matchNote(note, needle);
+    const hit = matchNote(index.types, note, needle);
     return hit ? [hit] : [];
   });
 }
 
-function matchNote(note: Note, needle: string): SearchHit | null {
+function matchNote(types: NoteTypeDef[], note: Note, needle: string): SearchHit | null {
   const base = { noteId: note.id, title: note.title, type: note.type };
 
   const inTitle = findOccurrences(note.title, needle);
@@ -158,7 +160,7 @@ function matchNote(note: Note, needle: string): SearchHit | null {
   for (const [key, value] of Object.entries(note.fields)) {
     const matches = findOccurrences(value, needle);
     if (matches.length) {
-      return { ...base, field: 'field', label: fieldLabel(note.type, key), snippet: value, matches, bodyMatches: 0 };
+      return { ...base, field: 'field', label: fieldLabel(types, note.type, key), snippet: value, matches, bodyMatches: 0 };
     }
   }
 
@@ -179,9 +181,5 @@ function matchNote(note: Note, needle: string): SearchHit | null {
   }
 
   return null;
-}
-
-function fieldLabel(type: NoteType, key: string): string {
-  return noteTypeDef(type).fields.find((field) => field.key === key)?.label ?? key;
 }
 

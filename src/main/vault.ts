@@ -3,9 +3,9 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { parseFrontmatter, stringifyFrontmatter } from './frontmatter';
 import { rewriteWikiLinks } from '../shared/wikilinks';
-import { noteTypeDef } from '../shared/noteTypes';
+import { DEFAULT_NOTE_TYPES, isKnownNoteType, toKey } from '../shared/noteTypes';
 import { SCHEMA_VERSION } from '../shared/types';
-import type { AppSettings, Campaign, Note, NoteType, Relation } from '../shared/types';
+import type { AppSettings, Campaign, FieldDef, Note, NoteType, NoteTypeDef, Relation } from '../shared/types';
 
 const CAMPAIGNS_DIR = 'campaigns';
 const NOTES_DIR = 'notes';
@@ -63,19 +63,46 @@ export class Vault {
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       try {
-        const raw = await fs.readFile(path.join(dir, entry.name, CAMPAIGN_FILE), 'utf8');
-        const parsed = JSON.parse(raw) as Partial<Campaign>;
-        campaigns.push({
-          id: entry.name,
-          schemaVersion: parsed.schemaVersion ?? SCHEMA_VERSION,
-          name: parsed.name ?? entry.name,
-          createdAt: parsed.createdAt ?? new Date().toISOString()
-        });
+        campaigns.push(await this.readCampaign(entry.name));
       } catch {
         // Verzeichnis ohne gueltige campaign.json wird ignoriert statt die Liste zu sprengen.
       }
     }
     return campaigns.sort((a, b) => a.name.localeCompare(b.name, 'de-DE'));
+  }
+
+  /**
+   * Liest campaign.json und ergaenzt fehlende Angaben. Kampagnen aus einer
+   * Version ohne eigene Notiztypen bekommen dabei die Vorlage eingetragen
+   * und einmalig zurueckgeschrieben.
+   */
+  private async readCampaign(campaignId: string): Promise<Campaign> {
+    const file = path.join(this.campaignDir(campaignId), CAMPAIGN_FILE);
+    const parsed = JSON.parse(await fs.readFile(file, 'utf8')) as Partial<Campaign>;
+
+    const migrated = !Array.isArray(parsed.noteTypes) || parsed.noteTypes.length === 0;
+    const campaign: Campaign = {
+      id: campaignId,
+      schemaVersion: SCHEMA_VERSION,
+      name: parsed.name ?? campaignId,
+      createdAt: parsed.createdAt ?? new Date().toISOString(),
+      noteTypes: migrated ? structuredClone(DEFAULT_NOTE_TYPES) : normalizeNoteTypes(parsed.noteTypes as NoteTypeDef[])
+    };
+
+    if (migrated) await writeJson(file, campaign);
+    return campaign;
+  }
+
+  async getCampaign(campaignId: string): Promise<Campaign> {
+    return this.readCampaign(campaignId);
+  }
+
+  /** Ersetzt die Notiztypen einer Kampagne, nach Pruefung auf Vollstaendigkeit. */
+  async updateNoteTypes(campaignId: string, noteTypes: NoteTypeDef[]): Promise<Campaign> {
+    const campaign = await this.readCampaign(campaignId);
+    const updated: Campaign = { ...campaign, noteTypes: validateNoteTypes(noteTypes) };
+    await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
+    return updated;
   }
 
   async createCampaign(name: string): Promise<Campaign> {
@@ -86,7 +113,8 @@ export class Vault {
       id: randomUUID(),
       schemaVersion: SCHEMA_VERSION,
       name: trimmed,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      noteTypes: structuredClone(DEFAULT_NOTE_TYPES)
     };
     const dir = this.campaignDir(campaign.id);
     await fs.mkdir(path.join(dir, NOTES_DIR), { recursive: true });
@@ -99,10 +127,9 @@ export class Vault {
     const trimmed = name.trim();
     if (!trimmed) throw new VaultError('Die Kampagne braucht einen Namen.');
 
-    const file = path.join(this.campaignDir(campaignId), CAMPAIGN_FILE);
-    const campaign = JSON.parse(await fs.readFile(file, 'utf8')) as Campaign;
-    const updated: Campaign = { ...campaign, id: campaignId, name: trimmed };
-    await writeJson(file, updated);
+    const campaign = await this.readCampaign(campaignId);
+    const updated: Campaign = { ...campaign, name: trimmed };
+    await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
     return updated;
   }
 
@@ -139,7 +166,11 @@ export class Vault {
   async createNote(campaignId: string, type: NoteType, title: string): Promise<Note> {
     const trimmed = title.trim();
     if (!trimmed) throw new VaultError('Die Notiz braucht einen Titel.');
-    noteTypeDef(type);
+
+    const campaign = await this.readCampaign(campaignId);
+    if (!isKnownNoteType(campaign.noteTypes, type)) {
+      throw new VaultError(`Unbekannter Notiztyp: ${type}`);
+    }
 
     const now = new Date().toISOString();
     const note: Note = {
@@ -268,12 +299,14 @@ function asRelations(value: unknown): Relation[] {
   });
 }
 
-const KNOWN_TYPES: NoteType[] = ['character', 'location', 'faction', 'event'];
-
-/** Macht aus rohem Frontmatter eine vollstaendige Notiz, auch wenn Felder fehlen. */
+/**
+ * Macht aus rohem Frontmatter eine vollstaendige Notiz, auch wenn Felder
+ * fehlen. Der Typ wird nicht gegen die Kampagne geprueft: ein geloeschter Typ
+ * bleibt in der Datei stehen, damit nichts verloren geht.
+ */
 function normalizeNote(noteId: string, data: Record<string, unknown>, body: string): Note {
   const now = new Date().toISOString();
-  const type = KNOWN_TYPES.includes(data.type as NoteType) ? (data.type as NoteType) : 'character';
+  const type = typeof data.type === 'string' && data.type.trim() ? data.type.trim() : 'note';
 
   return {
     id: noteId,
@@ -288,6 +321,81 @@ function normalizeNote(noteId: string, data: Record<string, unknown>, body: stri
     updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : now,
     body
   };
+}
+
+const FIELD_TYPES: FieldDef['type'][] = ['text', 'textarea', 'number', 'url'];
+
+/**
+ * Prueft Notiztypen aus der Oberflaeche, bevor sie geschrieben werden.
+ * Doppelte Schluessel wuerden dazu fuehren, dass zwei Felder denselben Wert
+ * teilen, doppelte Typ-IDs, dass Notizen dem falschen Typ zugeordnet werden.
+ */
+function validateNoteTypes(types: NoteTypeDef[]): NoteTypeDef[] {
+  if (!Array.isArray(types) || types.length === 0) {
+    throw new VaultError('Es muss mindestens ein Notiztyp übrig bleiben.');
+  }
+
+  const seenTypes = new Set<string>();
+  return types.map((def) => {
+    const id = String(def.id ?? '').trim();
+    const label = String(def.label ?? '').trim();
+    if (!id) throw new VaultError('Ein Notiztyp ohne Kennung ist nicht möglich.');
+    if (!label) throw new VaultError(`Der Notiztyp „${id}" braucht eine Bezeichnung.`);
+    if (seenTypes.has(id)) throw new VaultError(`Der Notiztyp „${id}" kommt doppelt vor.`);
+    seenTypes.add(id);
+
+    const seenFields = new Set<string>();
+    const fields = (Array.isArray(def.fields) ? def.fields : []).map((field) => {
+      const key = String(field.key ?? '').trim();
+      const fieldLabel = String(field.label ?? '').trim();
+      if (!key) throw new VaultError(`Ein Feld in „${label}" hat keinen Schlüssel.`);
+      if (!fieldLabel) throw new VaultError(`Ein Feld in „${label}" braucht eine Bezeichnung.`);
+      if (seenFields.has(key)) throw new VaultError(`Das Feld „${key}" kommt in „${label}" doppelt vor.`);
+      seenFields.add(key);
+
+      const normalized: FieldDef = {
+        key,
+        label: fieldLabel,
+        type: FIELD_TYPES.includes(field.type) ? field.type : 'text'
+      };
+      const placeholder = String(field.placeholder ?? '').trim();
+      return placeholder ? { ...normalized, placeholder } : normalized;
+    });
+
+    return { id, label, plural: String(def.plural ?? '').trim() || label, fields };
+  });
+}
+
+/** Wie validateNoteTypes, repariert aber statt zu werfen. Fuer das Lesen von der Platte. */
+function normalizeNoteTypes(types: NoteTypeDef[]): NoteTypeDef[] {
+  const seenTypes = new Set<string>();
+  const normalized = types.flatMap((def) => {
+    const id = String(def?.id ?? '').trim();
+    if (!id || seenTypes.has(id)) return [];
+    seenTypes.add(id);
+
+    const label = String(def.label ?? '').trim() || id;
+    const seenFields = new Set<string>();
+    const fields = (Array.isArray(def.fields) ? def.fields : []).flatMap((field) => {
+      const fieldLabel = String(field?.label ?? '').trim();
+      if (!fieldLabel) return [];
+      const key = String(field.key ?? '').trim() || toKey(fieldLabel, seenFields);
+      if (seenFields.has(key)) return [];
+      seenFields.add(key);
+
+      const result: FieldDef = {
+        key,
+        label: fieldLabel,
+        type: FIELD_TYPES.includes(field.type) ? field.type : 'text'
+      };
+      const placeholder = String(field.placeholder ?? '').trim();
+      return [placeholder ? { ...result, placeholder } : result];
+    });
+
+    return [{ id, label, plural: String(def.plural ?? '').trim() || label, fields }];
+  });
+
+  return normalized.length ? normalized : structuredClone(DEFAULT_NOTE_TYPES);
 }
 
 // --- Einstellungen ---------------------------------------------------------

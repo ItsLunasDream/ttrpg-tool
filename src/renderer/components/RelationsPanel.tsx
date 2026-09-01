@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RELATION_SUGGESTIONS, noteTypeDef } from '../../shared/noteTypes';
+import { RELATION_SUGGESTIONS, findNoteType } from '../../shared/noteTypes';
 import type { Note, Relation } from '../../shared/types';
 import type { NoteIndex } from '../noteIndex';
 
@@ -54,7 +54,7 @@ export function RelationsPanel({ note, index, onChange, onOpenNote }: Props) {
                 ) : (
                   <span className="relation__missing">Notiz gelöscht</span>
                 )}
-                {target ? <span className="badge">{noteTypeDef(target.type).label}</span> : null}
+                {target ? <span className="badge">{findNoteType(index.types, target.type).label}</span> : null}
                 <button
                   type="button"
                   className="icon-button"
@@ -94,7 +94,7 @@ export function RelationsPanel({ note, index, onChange, onOpenNote }: Props) {
           <option value="">Notiz wählen …</option>
           {available.map((candidate) => (
             <option value={candidate.id} key={candidate.id}>
-              {candidate.title} ({noteTypeDef(candidate.type).label})
+              {candidate.title} ({findNoteType(index.types, candidate.type).label})
             </option>
           ))}
         </select>

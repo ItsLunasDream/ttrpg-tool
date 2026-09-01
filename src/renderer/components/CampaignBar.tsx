@@ -9,6 +9,7 @@ interface Props {
   onRename: () => void;
   onDelete: () => void;
   onExport: () => void;
+  onEditNoteTypes: () => void;
   onOpenSettings: () => void;
 }
 
@@ -35,6 +36,9 @@ export function CampaignBar(props: Props) {
       </button>
       <button type="button" onClick={props.onRename} disabled={!activeCampaignId}>
         Umbenennen
+      </button>
+      <button type="button" onClick={props.onEditNoteTypes} disabled={!activeCampaignId}>
+        Notiztypen
       </button>
       <button type="button" onClick={props.onExport} disabled={!activeCampaignId}>
         Als ZIP sichern

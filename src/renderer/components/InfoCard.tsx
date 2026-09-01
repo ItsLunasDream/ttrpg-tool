@@ -1,9 +1,10 @@
-import { noteTypeDef } from '../../shared/noteTypes';
+import { findNoteType } from '../../shared/noteTypes';
 import { textPreview } from '../editor/markdown';
-import type { Note } from '../../shared/types';
+import type { Note, NoteTypeDef } from '../../shared/types';
 
 interface Props {
   note: Note;
+  types: NoteTypeDef[];
   rect: DOMRect;
   onOpen: (noteId: string) => void;
 }
@@ -11,8 +12,8 @@ interface Props {
 const CARD_WIDTH = 300;
 
 /** Kurzinfo beim Ueberfahren eines Wiki-Links. Kein Seitenwechsel. */
-export function InfoCard({ note, rect, onOpen }: Props) {
-  const def = noteTypeDef(note.type);
+export function InfoCard({ note, types, rect, onOpen }: Props) {
+  const def = findNoteType(types, note.type);
   const filled = def.fields.filter((field) => note.fields[field.key]?.trim());
   const preview = textPreview(note.body);
 

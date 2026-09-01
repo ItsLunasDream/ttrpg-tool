@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppSettings, Campaign, Note, NoteType } from '../shared/types';
+import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef } from '../shared/types';
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -23,7 +23,10 @@ const api = {
     list: () => invoke<Campaign[]>('campaign:list'),
     create: (name: string) => invoke<Campaign>('campaign:create', name),
     rename: (id: string, name: string) => invoke<Campaign>('campaign:rename', id, name),
-    remove: (id: string) => invoke<void>('campaign:delete', id)
+    remove: (id: string) => invoke<void>('campaign:delete', id),
+    get: (id: string) => invoke<Campaign>('campaign:get', id),
+    updateNoteTypes: (id: string, types: NoteTypeDef[]) =>
+      invoke<Campaign>('campaign:updateNoteTypes', id, types)
   },
   notes: {
     list: (campaignId: string) => invoke<Note[]>('note:list', campaignId),

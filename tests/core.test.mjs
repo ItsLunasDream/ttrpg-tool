@@ -2,7 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown} = entry;
+const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey} = entry;
+
+/** Baut einen Index mit den Standardtypen. */
+function makeIndex(notes) {
+  return buildIndex(notes, DEFAULT_NOTE_TYPES);
+}
 
 function note(overrides) {
   return {
@@ -65,18 +70,18 @@ test('countWords zaehlt den Anzeigetext, nicht die Syntax', () => {
 });
 
 test('Index loest Titel und Aliase unabhaengig von Grossschreibung auf', () => {
-  const index = buildIndex([note({ id: '1', title: 'Mira Falkenhand', aliases: ['Die Jägerin'] })]);
+  const index = makeIndex([note({ id: '1', title: 'Mira Falkenhand', aliases: ['Die Jägerin'] })]);
   assert.equal(index.byName.get('mira falkenhand')?.id, '1');
   assert.equal(index.byName.get('die jägerin')?.id, '1');
 });
 
 test('Index meldet mehrdeutige Namen', () => {
-  const index = buildIndex([note({ id: '1', title: 'Mira' }), note({ id: '2', title: 'mira' })]);
+  const index = makeIndex([note({ id: '1', title: 'Mira' }), note({ id: '2', title: 'mira' })]);
   assert.ok(index.ambiguous.has('mira'));
 });
 
 test('Backlinks finden Erwaehnungen ueber Aliase', () => {
-  const index = buildIndex([
+  const index = makeIndex([
     note({ id: '1', title: 'Mira Falkenhand', aliases: ['Die Jägerin'] }),
     note({ id: '2', title: 'Toran', body: 'Er schuldet [[Die Jägerin]] noch Gold.' })
   ]);
@@ -88,7 +93,7 @@ test('Backlinks finden Erwaehnungen ueber Aliase', () => {
 
 test('unresolvedLinks meldet nur Links ohne Notiz', () => {
   const target = note({ id: '2', title: 'Toran', body: 'Trifft [[Mira]] und [[Tante Ilva]].' });
-  const index = buildIndex([note({ id: '1', title: 'Mira' }), target]);
+  const index = makeIndex([note({ id: '1', title: 'Mira' }), target]);
   assert.deepEqual(unresolvedLinks(index, target), ['Tante Ilva']);
 });
 
@@ -105,7 +110,7 @@ test('findOccurrences ueberlappt sich nicht und kommt mit leerem Begriff klar', 
 });
 
 test('Suchtreffer liefern Fundstellen fuer die Hervorhebung', () => {
-  const index = buildIndex([
+  const index = makeIndex([
     note({ id: '1', title: 'Mira Falkenhand', body: 'Mira ging fort. Später kam Mira zurück.' })
   ]);
 
@@ -116,7 +121,7 @@ test('Suchtreffer liefern Fundstellen fuer die Hervorhebung', () => {
 });
 
 test('Rumpftreffer zaehlen alle Fundstellen und markieren im Ausschnitt', () => {
-  const index = buildIndex([
+  const index = makeIndex([
     note({ id: '1', title: 'Toran', body: 'Die Schmiede stand am Wasser. Die Schmiede brannte.' })
   ]);
 
@@ -131,7 +136,7 @@ test('Rumpftreffer zaehlen alle Fundstellen und markieren im Ausschnitt', () => 
 });
 
 test('Feldtreffer bekommen die lesbare Feldbezeichnung', () => {
-  const index = buildIndex([note({ id: '1', title: 'Mira', fields: { species: 'Waldelfe' } })]);
+  const index = makeIndex([note({ id: '1', title: 'Mira', fields: { species: 'Waldelfe' } })]);
   const [hit] = searchNotes(index, 'waldelfe');
   assert.equal(hit.field, 'field');
   assert.equal(hit.label, 'Spezies');
@@ -139,7 +144,7 @@ test('Feldtreffer bekommen die lesbare Feldbezeichnung', () => {
 });
 
 test('Volltextsuche greift auf Titel, Tags, Felder und Rumpf', () => {
-  const index = buildIndex([
+  const index = makeIndex([
     note({ id: '1', title: 'Mira', fields: { species: 'Waldelfe' } }),
     note({ id: '2', title: 'Toran', tags: ['Hafen'] }),
     note({ id: '3', title: 'Ilva', body: 'Ihre Schmiede stand am Wasser.' })
@@ -176,4 +181,28 @@ test('textPreview laesst kurzen Text unveraendert', () => {
 test('textPreview liefert bei leerem Rumpf einen leeren String', () => {
   assert.equal(textPreview(''), '');
   assert.equal(textPreview('   \n\n  '), '');
+});
+
+test('toKey erzeugt stabile Schluessel und weicht bei Kollision aus', () => {
+  assert.equal(toKey('Größe des Charakters'), 'groesse_des_charakters');
+  assert.equal(toKey('Spezies', ['spezies']), 'spezies_2');
+  assert.equal(toKey('Spezies', ['spezies', 'spezies_2']), 'spezies_3');
+  assert.equal(toKey('###'), 'feld');
+});
+
+test('findNoteType liefert einen Platzhalter statt zu werfen', () => {
+  const def = findNoteType(DEFAULT_NOTE_TYPES, 'gibtesnicht');
+  assert.equal(def.id, 'gibtesnicht');
+  assert.deepEqual(def.fields, []);
+});
+
+test('Standardtypen enthalten einen freien Typ ohne Felder', () => {
+  const generic = DEFAULT_NOTE_TYPES.find((def) => def.fields.length === 0);
+  assert.ok(generic, 'kein freier Typ vorhanden');
+  assert.equal(generic.id, 'note');
+});
+
+test('fieldLabel faellt auf den Schluessel zurueck', () => {
+  assert.equal(fieldLabel(DEFAULT_NOTE_TYPES, 'character', 'species'), 'Spezies');
+  assert.equal(fieldLabel(DEFAULT_NOTE_TYPES, 'character', 'unbekannt'), 'unbekannt');
 });
