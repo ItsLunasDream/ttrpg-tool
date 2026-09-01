@@ -179,7 +179,7 @@ Umgesetzt (MVP):
 - Versionsverlauf mit Vorschau und Wiederherstellen, abschaltbar
 - Export als Markdown und als PDF, je Notiz oder für die ganze Kampagne
 - Schreibhilfe mit Vorschlagslisten, ohne KI und frei bearbeitbar
-- Graph-Ansicht des Beziehungsnetzes, nach Notiztyp eingefärbt
+- Graph-Ansicht des Beziehungsnetzes mit Zoom und Filter nach Notiztyp
 - KI-Assistent in der Sidebar, wahlweise über Ollama (lokal) oder die Claude
   API, abschaltbar und austauschbar
 - Autosave (abschaltbar) und Strg+S
