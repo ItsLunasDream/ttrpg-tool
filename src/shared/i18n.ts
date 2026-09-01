@@ -122,6 +122,14 @@ const de = {
   'types.newTypePlural': 'Neue Typen',
   'types.newField': 'Neues Feld',
   'types.saved': 'Notiztypen gespeichert.',
+  'types.copyFrom': 'Aus anderer Kampagne übernehmen',
+  'types.copyFromChoose': 'Kampagne wählen …',
+  'types.copyFromApply': 'Übernehmen',
+  'types.copyFromNone': 'Es gibt keine andere Kampagne.',
+  'types.copyFromResult': '{types} Typen und {fields} Felder ergänzt.',
+  'types.copyFromNothing': 'Nichts zu ergänzen, alles ist schon vorhanden.',
+  'types.copyFromHint':
+    'Ergänzt nur: fehlende Typen und fehlende Felder kommen dazu. Vorhandenes bleibt unverändert, damit nichts still überschrieben wird.',
 
   'fieldType.text': 'Text',
   'fieldType.textarea': 'Mehrzeilig',
@@ -412,6 +420,14 @@ const en: Partial<Record<MessageKey, string>> = {
   'types.newTypePlural': 'New types',
   'types.newField': 'New field',
   'types.saved': 'Note types saved.',
+  'types.copyFrom': 'Take over from another campaign',
+  'types.copyFromChoose': 'Choose a campaign …',
+  'types.copyFromApply': 'Take over',
+  'types.copyFromNone': 'There is no other campaign.',
+  'types.copyFromResult': 'Added {types} types and {fields} fields.',
+  'types.copyFromNothing': 'Nothing to add, everything is already there.',
+  'types.copyFromHint':
+    'Only adds: missing types and missing fields are appended. Existing entries stay untouched so nothing is silently overwritten.',
 
   'fieldType.text': 'Text',
   'fieldType.textarea': 'Multiline',

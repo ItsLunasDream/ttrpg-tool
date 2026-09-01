@@ -601,7 +601,57 @@ app.whenReady().then(async () => {
 
     await save(window);
 
-    // 19. Aufräumen: benutzte Bilder bleiben, unbenutzte werden angeboten
+    // 19. Notiztypen aus einer anderen Kampagne übernehmen
+    await clickButton(window, 'Neue Kampagne');
+    await sleep(400);
+    await fillDialog(window, 'Aschetal', 'Anlegen');
+    await sleep(700);
+
+    await clickButton(window, 'Notiztypen');
+    await sleep(700);
+    check(await run(window, `return Boolean(document.querySelector('.type-editor__copy select'));`),
+      'Auswahl für andere Kampagnen fehlt');
+
+    await run(
+      window,
+      `const select = document.querySelector('.type-editor__copy select');
+       const option = [...select.options].find((o) => o.textContent.includes('Sturmküste'));
+       if (!option) throw new Error('Sturmküste nicht in der Auswahl');
+       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, option.value);
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;`
+    );
+    await sleep(300);
+    await clickButton(window, 'Übernehmen', "document.querySelector('.type-editor__copy')");
+    await sleep(600);
+
+    check(await run(window, `return Boolean(document.querySelector('.type-editor__note'));`),
+      'Keine Rückmeldung zum Übernehmen');
+    check(
+      await run(window, `return [...document.querySelectorAll('.type-editor__list button')]
+         .some((b) => b.textContent.includes('Gegenstand'));`),
+      'Der eigene Typ wurde nicht übernommen'
+    );
+
+    await clickButton(window, 'Übernehmen', "document.querySelector('.modal__footer')");
+    await sleep(900);
+    check(
+      await run(window, `return [...document.querySelectorAll('.note-list__new button')].some((b) => b.textContent.includes('Gegenstand'));`),
+      'Übernommener Typ fehlt nach dem Speichern'
+    );
+
+    // Zurück zur ursprünglichen Kampagne
+    await run(
+      window,
+      `const select = document.querySelector('.campaign-bar select');
+       const option = [...select.options].find((o) => o.textContent === 'Sturmküste');
+       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, option.value);
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;`
+    );
+    await sleep(1200);
+
+    // 20. Aufräumen: benutzte Bilder bleiben, unbenutzte werden angeboten
     await clickButton(window, 'Aufräumen');
     await sleep(2000);
     check(await run(window, `return Boolean(document.querySelector('.modal'));`), 'Aufräumen-Dialog öffnet nicht');
@@ -611,7 +661,7 @@ app.whenReady().then(async () => {
     await clickButton(window, 'Schließen', "document.querySelector('.modal__footer')");
     await sleep(500);
 
-    // 20. Versionsverlauf: alten Stand wiederherstellen
+    // 21. Versionsverlauf: alten Stand wiederherstellen
     await selectNote(window, 'Toran');
     await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
     await sleep(200);

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, layoutGraph, buildGraphEdges, buildGraphNodes} = entry;
+const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, layoutGraph, buildGraphEdges, buildGraphNodes, mergeNoteTypes, countMergeChanges} = entry;
 
 /** Baut einen Index mit den Standardtypen. */
 function makeIndex(notes) {
@@ -476,4 +476,45 @@ test('Anordnung kommt mit einem einzelnen Knoten klar', () => {
   const nodes = layoutGraph([{ id: 'a', degree: 0 }], [], { width: 400, height: 300 });
   assert.equal(nodes.length, 1);
   assert.ok(Number.isFinite(nodes[0].x));
+});
+
+const TYPE_A = { id: 'character', label: 'Charakter', plural: 'Charaktere', fields: [{ key: 'age', label: 'Alter', type: 'text' }] };
+const TYPE_B = { id: 'item', label: 'Gegenstand', plural: 'Gegenstände', fields: [{ key: 'value', label: 'Wert', type: 'text' }] };
+
+test('mergeNoteTypes ergaenzt fehlende Typen', () => {
+  const merged = mergeNoteTypes([TYPE_A], [TYPE_B]);
+  assert.deepEqual(merged.map((def) => def.id), ['character', 'item']);
+});
+
+test('mergeNoteTypes ergaenzt fehlende Felder, ohne vorhandene zu aendern', () => {
+  const incoming = {
+    ...TYPE_A,
+    label: 'Person',
+    fields: [
+      { key: 'age', label: 'Lebensjahre', type: 'number' },
+      { key: 'origin', label: 'Herkunft', type: 'text' }
+    ]
+  };
+  const [character] = mergeNoteTypes([TYPE_A], [incoming]);
+
+  assert.equal(character.label, 'Charakter', 'die eigene Bezeichnung wurde überschrieben');
+  assert.equal(character.fields[0].label, 'Alter', 'ein vorhandenes Feld wurde überschrieben');
+  assert.deepEqual(character.fields.map((field) => field.key), ['age', 'origin']);
+});
+
+test('mergeNoteTypes entfernt nie etwas', () => {
+  const merged = mergeNoteTypes([TYPE_A, TYPE_B], [TYPE_B]);
+  assert.deepEqual(merged.map((def) => def.id), ['character', 'item']);
+});
+
+test('mergeNoteTypes laesst die Vorlagen unberuehrt', () => {
+  const current = [structuredClone(TYPE_A)];
+  const incoming = [{ ...structuredClone(TYPE_A), fields: [{ key: 'x', label: 'X', type: 'text' }] }];
+  mergeNoteTypes(current, incoming);
+  assert.equal(current[0].fields.length, 1, 'die übergebene Liste wurde verändert');
+});
+
+test('countMergeChanges zaehlt Typen und Felder', () => {
+  assert.deepEqual(countMergeChanges([TYPE_A], [TYPE_B]), { types: 1, fields: 1 });
+  assert.deepEqual(countMergeChanges([TYPE_A], [TYPE_A]), { types: 0, fields: 0 });
 });
