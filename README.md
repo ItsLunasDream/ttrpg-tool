@@ -132,6 +132,11 @@ Phase 4: KI-Sidebar hinter einem austauschbaren Provider-Interface
 (Ollama lokal oder Claude API), als Rückfrage- und Konsistenzhilfe, nicht als
 Textgenerator.
 
+## Backlog
+
+Offene Aufgaben, geplante Phasen und bekannte Grenzen stehen in
+[BACKLOG.md](BACKLOG.md).
+
 ## Bekannte Grenzen
 
 - Beim Kampagnenwechsel werden alle Notizen der Kampagne in den Speicher
