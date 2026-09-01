@@ -1,12 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, writeFile, readdir, rename } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import entry from '../dist/tests/entry.cjs';
 
 const {Vault, zipDirectory} = entry;
+
+/**
+ * Datiert vorhandene Fassungen zurueck, damit das Sperrfenster von fuenf
+ * Minuten im Test nicht greift. Der Zeitstempel steckt im Dateinamen.
+ */
+async function backdateVersions(historyDir) {
+  let entries;
+  try {
+    entries = await readdir(historyDir);
+  } catch {
+    return;
+  }
+
+  for (const name of entries) {
+    const past = new Date(Date.now() - 60 * 60 * 1000 * (1 + entries.indexOf(name)));
+    const renamed = `${past.toISOString().replace(/[:.]/g, '-')}.md`;
+    if (renamed !== name) await rename(path.join(historyDir, name), path.join(historyDir, renamed));
+  }
+}
 
 async function withVault(run) {
   const root = await mkdtemp(path.join(tmpdir(), 'backstory-'));
@@ -267,5 +286,112 @@ test('Bilder landen in der ZIP-Sicherung', async () => {
 
     const listing = execFileSync('unzip', ['-Z1', target], { encoding: 'utf8' });
     assert.match(listing, new RegExp(relative.replace('assets/', 'assets/')));
+  });
+});
+
+test('Erste Aenderung legt eine Fassung an, weitere im Sperrfenster nicht', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+
+    assert.deepEqual(await vault.listVersions(campaign.id, note.id), [], 'neue Notiz hat schon Fassungen');
+
+    const first = await vault.saveNote(campaign.id, { ...note, body: 'Erster Text.' });
+    let versions = await vault.listVersions(campaign.id, note.id);
+    assert.equal(versions.length, 1, 'kein Stand gesichert');
+    assert.equal(versions[0].body.trim(), '', 'gesichert wurde der falsche Stand');
+
+    // Zweites Speichern kurz danach darf keine weitere Fassung anlegen
+    await vault.saveNote(campaign.id, { ...first, body: 'Zweiter Text.' });
+    versions = await vault.listVersions(campaign.id, note.id);
+    assert.equal(versions.length, 1, 'Sperrfenster greift nicht');
+  });
+});
+
+test('Unveraendertes Speichern legt keine Fassung an', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    const saved = await vault.saveNote(campaign.id, { ...note, body: 'Text.' });
+
+    const before = (await vault.listVersions(campaign.id, note.id)).length;
+    await vault.saveNote(campaign.id, saved);
+    const after = (await vault.listVersions(campaign.id, note.id)).length;
+
+    assert.equal(after, before, 'gleicher Inhalt hat eine Fassung erzeugt');
+  });
+});
+
+test('Wiederherstellen holt den alten Text zurueck und sichert den aktuellen', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    const first = await vault.saveNote(campaign.id, { ...note, body: 'Alter Text.' });
+
+    // Sperrfenster umgehen, indem die vorhandene Fassung zurueckdatiert wird
+    const historyDir = path.join(root, 'campaigns', campaign.id, 'history', note.id);
+    await backdateVersions(historyDir);
+
+    await vault.saveNote(campaign.id, { ...first, body: 'Neuer Text.' });
+
+    // Erst zurueckdatieren, dann auflisten: das Umbenennen aendert die IDs
+    await backdateVersions(historyDir);
+    const versions = await vault.listVersions(campaign.id, note.id);
+    const oldVersion = versions.find((version) => version.body.includes('Alter Text'));
+    assert.ok(oldVersion, 'alte Fassung fehlt im Verlauf');
+
+    const restored = await vault.restoreVersion(campaign.id, note.id, oldVersion.id);
+
+    assert.match(restored.body, /Alter Text/);
+    assert.equal(restored.id, note.id, 'Notiz-ID wurde ersetzt');
+    assert.equal(restored.createdAt, note.createdAt, 'Erstellungszeit wurde ersetzt');
+
+    const afterRestore = await vault.listVersions(campaign.id, note.id);
+    assert.ok(
+      afterRestore.some((version) => version.body.includes('Neuer Text')),
+      'der überschriebene Stand wurde nicht gesichert'
+    );
+  });
+});
+
+test('Der Verlauf wird auf die eingestellte Hoechstzahl gekuerzt', async () => {
+  await withVault(async (vault, root) => {
+    vault.setHistoryOptions({ enabled: true, maxVersions: 3 });
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    const historyDir = path.join(root, 'campaigns', campaign.id, 'history', note.id);
+
+    let current = note;
+    for (let round = 0; round < 6; round++) {
+      current = await vault.saveNote(campaign.id, { ...current, body: `Fassung ${round}` });
+      await backdateVersions(historyDir);
+    }
+
+    const versions = await vault.listVersions(campaign.id, note.id);
+    assert.ok(versions.length <= 3, `zu viele Fassungen: ${versions.length}`);
+  });
+});
+
+test('Abgeschalteter Verlauf legt nichts an', async () => {
+  await withVault(async (vault) => {
+    vault.setHistoryOptions({ enabled: false, maxVersions: 50 });
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    await vault.saveNote(campaign.id, { ...note, body: 'Text.' });
+
+    assert.deepEqual(await vault.listVersions(campaign.id, note.id), []);
+  });
+});
+
+test('Unbekannte Fassung wird abgelehnt', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    await assert.rejects(() => vault.restoreVersion(campaign.id, note.id, 'gibtesnicht'), {
+      key: 'error.versionMissing'
+    });
+    await assert.rejects(() => vault.restoreVersion(campaign.id, note.id, '../../campaign'), {
+      key: 'error.invalidId'
+    });
   });
 });

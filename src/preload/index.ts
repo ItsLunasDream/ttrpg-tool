@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef } from '../shared/types';
+import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion } from '../shared/types';
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -36,6 +36,11 @@ const api = {
     rename: (campaignId: string, noteId: string, title: string) =>
       invoke<{ note: Note; rewritten: number }>('note:rename', campaignId, noteId, title),
     remove: (campaignId: string, noteId: string) => invoke<void>('note:delete', campaignId, noteId)
+  },
+  history: {
+    list: (campaignId: string, noteId: string) => invoke<NoteVersion[]>('history:list', campaignId, noteId),
+    restore: (campaignId: string, noteId: string, versionId: string) =>
+      invoke<Note>('history:restore', campaignId, noteId, versionId)
   },
   assets: {
     /** Bild ueber einen Dateidialog waehlen. Liefert den relativen Verweis. */

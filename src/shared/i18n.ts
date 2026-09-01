@@ -79,6 +79,8 @@ const de = {
   'relations.add': 'Hinzufügen',
   'relations.remove': 'Beziehung entfernen',
   'relations.missing': 'Notiz gelöscht',
+  'relations.needsSecondNote': 'Beziehungen brauchen eine zweite Notiz in dieser Kampagne. Leg links eine an.',
+  'relations.allLinked': 'Zu allen anderen Notizen dieser Kampagne besteht bereits eine Beziehung.',
 
   'backlinks.title': 'Erwähnt von',
   'backlinks.empty': 'Noch keine andere Notiz verlinkt hierher.',
@@ -182,12 +184,27 @@ const de = {
   'error.invalidAsset': 'Ungültiger Dateiname: {name}',
   'error.unsupportedImage': 'Dieses Bildformat wird nicht unterstützt: {extension}',
   'error.imageTooLarge': 'Das Bild ist größer als {limit} MB.',
+  'error.versionMissing': 'Diese Fassung gibt es nicht mehr.',
 
   'image.insert': 'Bild einfügen',
   'image.choose': 'Bild wählen …',
   'image.remove': 'Bild entfernen',
   'image.alt': 'Bild',
-  'image.dropHint': 'Bild hierher ziehen oder einfügen'
+  'image.dropHint': 'Bild hierher ziehen oder einfügen',
+
+  'history.title': 'Versionsverlauf',
+  'history.open': 'Verlauf',
+  'history.empty': 'Noch keine früheren Fassungen. Es wird höchstens alle fünf Minuten eine gesichert.',
+  'history.disabled': 'Der Versionsverlauf ist in den Einstellungen abgeschaltet.',
+  'history.restore': 'Wiederherstellen',
+  'history.restored': 'Fassung vom {date} wiederhergestellt.',
+  'history.current': 'Aktueller Stand',
+  'history.words': '{count} Wörter',
+  'history.hint':
+    'Beim Wiederherstellen wird der aktuelle Stand vorher gesichert. Du kannst also auch das wieder rückgängig machen.',
+
+  'settings.history': 'Versionsverlauf führen',
+  'settings.historyMax': 'Höchstzahl gesicherter Fassungen je Notiz'
 } as const;
 
 export type MessageKey = keyof typeof de;
@@ -254,6 +271,8 @@ const en: Partial<Record<MessageKey, string>> = {
   'relations.add': 'Add',
   'relations.remove': 'Remove relationship',
   'relations.missing': 'Note deleted',
+  'relations.needsSecondNote': 'Relationships need a second note in this campaign. Create one on the left.',
+  'relations.allLinked': 'You already have a relationship to every other note in this campaign.',
 
   'backlinks.title': 'Mentioned by',
   'backlinks.empty': 'No other note links here yet.',
@@ -357,12 +376,27 @@ const en: Partial<Record<MessageKey, string>> = {
   'error.invalidAsset': 'Invalid file name: {name}',
   'error.unsupportedImage': 'This image format is not supported: {extension}',
   'error.imageTooLarge': 'The image is larger than {limit} MB.',
+  'error.versionMissing': 'This version no longer exists.',
 
   'image.insert': 'Insert image',
   'image.choose': 'Choose image …',
   'image.remove': 'Remove image',
   'image.alt': 'Image',
-  'image.dropHint': 'Drop or paste an image here'
+  'image.dropHint': 'Drop or paste an image here',
+
+  'history.title': 'Version history',
+  'history.open': 'History',
+  'history.empty': 'No earlier versions yet. At most one is kept every five minutes.',
+  'history.disabled': 'Version history is switched off in the settings.',
+  'history.restore': 'Restore',
+  'history.restored': 'Restored the version from {date}.',
+  'history.current': 'Current state',
+  'history.words': '{count} words',
+  'history.hint':
+    'Restoring saves the current state first, so you can undo the restore as well.',
+
+  'settings.history': 'Keep version history',
+  'settings.historyMax': 'Maximum versions kept per note'
 };
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { de, en };

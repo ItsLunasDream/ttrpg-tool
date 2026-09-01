@@ -5,7 +5,7 @@ import { parseFrontmatter, stringifyFrontmatter } from './frontmatter';
 import { rewriteWikiLinks } from '../shared/wikilinks';
 import { DEFAULT_NOTE_TYPES, isKnownNoteType, toKey } from '../shared/noteTypes';
 import { SCHEMA_VERSION } from '../shared/types';
-import type { AppSettings, Campaign, FieldDef, Note, NoteType, NoteTypeDef, Relation } from '../shared/types';
+import type { AppSettings, Campaign, FieldDef, Note, NoteType, NoteTypeDef, NoteVersion, Relation } from '../shared/types';
 import { DEFAULT_LANGUAGE, isLanguage } from '../shared/i18n';
 import type { MessageKey, MessageParams } from '../shared/i18n';
 
@@ -13,6 +13,15 @@ const CAMPAIGNS_DIR = 'campaigns';
 const NOTES_DIR = 'notes';
 const ASSETS_DIR = 'assets';
 const CAMPAIGN_FILE = 'campaign.json';
+const HISTORY_DIR = 'history';
+
+/**
+ * Mindestabstand zwischen zwei Versionen derselben Notiz. Ohne diese Sperre
+ * wuerde der Autosave im Sekundentakt hunderte fast gleicher Staende anlegen.
+ * Innerhalb des Fensters bleibt der aelteste Stand erhalten, man kommt also
+ * verlaesslich fuenf, zehn, fuenfzehn Minuten zurueck.
+ */
+const HISTORY_MIN_INTERVAL_MS = 5 * 60 * 1000;
 
 export const ALLOWED_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif'];
 const MAX_ASSET_BYTES = 25 * 1024 * 1024;
@@ -31,6 +40,11 @@ export class VaultError extends Error {
   }
 }
 
+export interface HistoryOptions {
+  enabled: boolean;
+  maxVersions: number;
+}
+
 /**
  * Ablage auf der Platte:
  *
@@ -38,14 +52,21 @@ export class VaultError extends Error {
  *     campaigns/
  *       <campaignId>/
  *         campaign.json
- *         notes/<noteId>.md      Frontmatter + Markdown-Rumpf
- *         assets/                Bilder (Phase 2)
+ *         notes/<noteId>.md            Frontmatter + Markdown-Rumpf
+ *         assets/                      Bilder der Kampagne
+ *         history/<noteId>/<zeit>.md   Frühere Staende der Notiz
  *
  * Jede Kampagne ist ein echter Container: Notizen gehoeren zu genau einer
  * Kampagne und sind nur innerhalb dieser verlinkbar.
  */
 export class Vault {
+  private history: HistoryOptions = { enabled: true, maxVersions: 50 };
+
   constructor(private root: string) {}
+
+  setHistoryOptions(options: HistoryOptions): void {
+    this.history = { enabled: options.enabled, maxVersions: Math.max(1, Math.min(500, options.maxVersions)) };
+  }
 
   get vaultRoot(): string {
     return this.root;
@@ -298,7 +319,100 @@ export class Vault {
     await fs.mkdir(path.dirname(file), { recursive: true });
 
     const { body, ...meta } = note;
-    await writeAtomic(file, stringifyFrontmatter(meta as unknown as Record<string, unknown>, body));
+    const content = stringifyFrontmatter(meta as unknown as Record<string, unknown>, body);
+
+    await this.snapshot(campaignId, note.id, content);
+    await writeAtomic(file, content);
+  }
+
+  // --- Versionsverlauf -----------------------------------------------------
+
+  private historyDir(campaignId: string, noteId: string): string {
+    assertSafeId(noteId);
+    return path.join(this.campaignDir(campaignId), HISTORY_DIR, noteId);
+  }
+
+  /**
+   * Sichert den Stand, der gerade auf der Platte liegt, bevor er ueberschrieben
+   * wird. Unveraenderte Speichervorgaenge und solche innerhalb des Sperrfensters
+   * legen keine Version an.
+   */
+  private async snapshot(campaignId: string, noteId: string, nextContent: string): Promise<void> {
+    if (!this.history.enabled) return;
+
+    let current: string;
+    try {
+      current = await fs.readFile(this.noteFile(campaignId, noteId), 'utf8');
+    } catch {
+      return; // Neue Notiz, es gibt noch nichts zu sichern.
+    }
+    if (current === nextContent) return;
+
+    const dir = this.historyDir(campaignId, noteId);
+    const versions = await this.listVersionFiles(campaignId, noteId);
+
+    const newest = versions[0];
+    if (newest && Date.now() - versionTime(newest) < HISTORY_MIN_INTERVAL_MS) return;
+
+    await fs.mkdir(dir, { recursive: true });
+    await writeAtomic(path.join(dir, `${new Date().toISOString().replace(/[:.]/g, '-')}.md`), current);
+
+    for (const stale of versions.slice(this.history.maxVersions - 1)) {
+      await fs.rm(path.join(dir, stale), { force: true });
+    }
+  }
+
+  /** Dateinamen der Versionen, neueste zuerst. */
+  private async listVersionFiles(campaignId: string, noteId: string): Promise<string[]> {
+    try {
+      const entries = await fs.readdir(this.historyDir(campaignId, noteId));
+      return entries.filter((name) => name.endsWith('.md')).sort().reverse();
+    } catch {
+      return [];
+    }
+  }
+
+  async listVersions(campaignId: string, noteId: string): Promise<NoteVersion[]> {
+    const dir = this.historyDir(campaignId, noteId);
+    const versions: NoteVersion[] = [];
+
+    for (const fileName of await this.listVersionFiles(campaignId, noteId)) {
+      try {
+        const { data, body } = parseFrontmatter(await fs.readFile(path.join(dir, fileName), 'utf8'));
+        versions.push({
+          id: fileName.replace(/\.md$/, ''),
+          savedAt: new Date(versionTime(fileName)).toISOString(),
+          title: typeof data.title === 'string' ? data.title : '',
+          body
+        });
+      } catch {
+        // Beschaedigte Einzeldatei darf den Verlauf nicht unlesbar machen.
+      }
+    }
+    return versions;
+  }
+
+  /**
+   * Stellt eine alte Fassung wieder her. Der aktuelle Stand wandert vorher in
+   * den Verlauf, das Zurueckholen ist also selbst umkehrbar.
+   */
+  async restoreVersion(campaignId: string, noteId: string, versionId: string): Promise<Note> {
+    assertSafeId(versionId);
+    const file = path.join(this.historyDir(campaignId, noteId), `${versionId}.md`);
+
+    let raw: string;
+    try {
+      raw = await fs.readFile(file, 'utf8');
+    } catch {
+      throw new VaultError('error.versionMissing');
+    }
+
+    const { data, body } = parseFrontmatter(raw);
+    const restored = normalizeNote(noteId, data, body);
+    const current = await this.getNote(campaignId, noteId);
+
+    // Erstellungszeit und Notiz-ID bleiben die der lebenden Notiz.
+    return this.saveNote(campaignId, { ...restored, id: noteId, createdAt: current.createdAt });
   }
 }
 
@@ -309,6 +423,14 @@ function assertSafeId(id: string): void {
   if (!/^[A-Za-z0-9_-]+$/.test(id)) {
     throw new VaultError('error.invalidId', { id });
   }
+}
+
+/** Zeitstempel aus dem Dateinamen einer Version. */
+function versionTime(fileName: string): number {
+  const stamp = fileName.replace(/\.md$/, '');
+  const iso = stamp.replace(/T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/, 'T$1:$2:$3.$4Z');
+  const parsed = Date.parse(iso);
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 async function writeAtomic(file: string, content: string | Buffer): Promise<void> {
@@ -460,6 +582,8 @@ export function defaultSettings(vaultRoot: string): AppSettings {
     language: DEFAULT_LANGUAGE,
     autosaveEnabled: true,
     autosaveDelayMs: 1500,
+    historyEnabled: true,
+    historyMaxVersions: 50,
     lastCampaignId: null
   };
 }
@@ -474,6 +598,7 @@ export async function readSettings(file: string, fallbackRoot: string): Promise<
       schemaVersion: SCHEMA_VERSION,
       vaultRoot: typeof parsed.vaultRoot === 'string' && parsed.vaultRoot ? parsed.vaultRoot : defaults.vaultRoot,
       autosaveDelayMs: clampDelay(parsed.autosaveDelayMs ?? defaults.autosaveDelayMs),
+      historyMaxVersions: clampVersions(parsed.historyMaxVersions ?? defaults.historyMaxVersions),
       language: isLanguage(parsed.language) ? parsed.language : defaults.language
     };
   } catch {
@@ -485,10 +610,16 @@ export async function writeSettings(file: string, settings: AppSettings): Promis
   const normalized: AppSettings = {
     ...settings,
     schemaVersion: SCHEMA_VERSION,
-    autosaveDelayMs: clampDelay(settings.autosaveDelayMs)
+    autosaveDelayMs: clampDelay(settings.autosaveDelayMs),
+    historyMaxVersions: clampVersions(settings.historyMaxVersions)
   };
   await writeJson(file, normalized);
   return normalized;
+}
+
+function clampVersions(value: number): number {
+  if (!Number.isFinite(value)) return 50;
+  return Math.min(500, Math.max(1, Math.round(value)));
 }
 
 function clampDelay(value: number): number {

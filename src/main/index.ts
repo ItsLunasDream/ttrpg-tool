@@ -51,6 +51,7 @@ void app.whenReady().then(async () => {
   const settings = await readSettings(settingsFile, defaultRoot);
 
   const vault = new Vault(settings.vaultRoot);
+  vault.setHistoryOptions({ enabled: settings.historyEnabled, maxVersions: settings.historyMaxVersions });
   await vault.init();
   handleAssetProtocol(vault);
 

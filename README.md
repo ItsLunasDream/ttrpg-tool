@@ -57,6 +57,7 @@ npm run dist:win  # Windows-Installer und portable exe nach release/
 | Steckbrief anpassen | „Notiztypen" in der Kopfzeile |
 | Sprache wechseln | Einstellungen → Sprache |
 | Bild einfügen | Knopf ▣ in der Werkzeugleiste, oder Bild in den Text ziehen bzw. einfügen |
+| Alten Stand zurückholen | „Verlauf" in der Kopfzeile des Editors |
 | Portrait setzen | Bild auf das Portrait-Feld im Steckbrief ziehen, oder „Bild wählen" |
 
 Links in einer anderen Farbe zeigen auf eine Notiz, die es noch nicht gibt.
@@ -74,6 +75,7 @@ Einstellungen → Speicherort.
       campaign.json
       notes/<noteId>.md      YAML-Frontmatter + Markdown
       assets/                Bilder der Kampagne
+      history/<noteId>/      Frühere Stände der Notiz, gleiches Format
 ```
 
 Notizen sind gewöhnliches Markdown mit YAML-Kopf. Sie lassen sich mit jedem
@@ -108,6 +110,12 @@ Markdown steht ein relativer Verweis `![](assets/x.png)`, damit die Dateien
 auch außerhalb des Tools lesbar bleiben. Angezeigt werden sie über ein eigenes
 Protokoll `backstory-asset://`, das ausschließlich aus dem `assets`-Ordner der
 jeweiligen Kampagne liefert; der Renderer behält keinen direkten Dateizugriff.
+
+**Versionsverlauf** sichert den vorherigen Stand, bevor eine Notiz
+überschrieben wird, höchstens aber alle fünf Minuten. Ohne diese Sperre würde
+der Autosave im Sekundentakt hunderte fast gleicher Stände anlegen. Beim
+Wiederherstellen wandert der aktuelle Stand vorher in den Verlauf, das
+Zurückholen ist also selbst umkehrbar.
 
 **Sprache** ist umschaltbar zwischen Deutsch und Englisch. Alle festen Texte
 liegen in `src/shared/i18n.ts`, auch die Fehlermeldungen des Hauptprozesses:
@@ -150,10 +158,10 @@ Umgesetzt (MVP):
   Sprung zwischen den Fundstellen per F3 und Umschalt+F3
 - Gerichtete Beziehungen und Backlinks
 - Oberfläche auf Deutsch oder Englisch, umschaltbar ohne Neustart
+- Versionsverlauf mit Vorschau und Wiederherstellen, abschaltbar
 - Autosave (abschaltbar) und Strg+S
 
-Phase 2: Versionsverlauf, Export als PDF und Markdown, Options-Listen als
-Schreibhilfe ohne KI.
+Phase 2: Export als PDF und Markdown, Options-Listen als Schreibhilfe ohne KI.
 
 Phase 3: Graph-Ansicht des Beziehungsnetzes.
 

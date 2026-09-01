@@ -5,7 +5,7 @@ import { Vault, VaultError, writeSettings } from './vault';
 import { translate } from '../shared/i18n';
 import { zipDirectory } from './export';
 import { ALLOWED_IMAGE_EXTENSIONS } from './vault';
-import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef } from '../shared/types';
+import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion } from '../shared/types';
 
 export interface IpcContext {
   vault: Vault;
@@ -44,6 +44,10 @@ export function registerIpc(context: IpcContext): void {
   handle<[Partial<AppSettings>], AppSettings>('settings:update', async (patch) => {
     const next: AppSettings = { ...context.settings, ...patch, vaultRoot: context.settings.vaultRoot };
     context.settings = await writeSettings(context.settingsFile, next);
+    vault.setHistoryOptions({
+      enabled: context.settings.historyEnabled,
+      maxVersions: context.settings.historyMaxVersions
+    });
     return context.settings;
   });
 
@@ -88,6 +92,13 @@ export function registerIpc(context: IpcContext): void {
     vault.renameNote(campaignId, noteId, title)
   );
   handle<[string, string], void>('note:delete', (campaignId, noteId) => vault.deleteNote(campaignId, noteId));
+
+  handle<[string, string], NoteVersion[]>('history:list', (campaignId, noteId) =>
+    vault.listVersions(campaignId, noteId)
+  );
+  handle<[string, string, string], Note>('history:restore', (campaignId, noteId, versionId) =>
+    vault.restoreVersion(campaignId, noteId, versionId)
+  );
 
   /** Bild ueber einen Dateidialog waehlen und in die Kampagne kopieren. */
   handle<[string], string | null>('asset:pick', async (campaignId) => {

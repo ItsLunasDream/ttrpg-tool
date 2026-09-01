@@ -52,6 +52,28 @@ export function SettingsDialog({ settings, onChange, onChooseVaultRoot, onReveal
         />
       </label>
 
+      <label className="field field--inline">
+        <input
+          type="checkbox"
+          checked={settings.historyEnabled}
+          onChange={(event) => onChange({ historyEnabled: event.target.checked })}
+        />
+        <span>{t('settings.history')}</span>
+      </label>
+
+      <label className="field">
+        <span className="field__label">{t('settings.historyMax')}</span>
+        <input
+          type="number"
+          min={1}
+          max={500}
+          step={1}
+          disabled={!settings.historyEnabled}
+          value={settings.historyMaxVersions}
+          onChange={(event) => onChange({ historyMaxVersions: Number(event.target.value) })}
+        />
+      </label>
+
       <label className="field">
         <span className="field__label">{t('settings.location')}</span>
         <code className="field__path">{settings.vaultRoot}</code>
