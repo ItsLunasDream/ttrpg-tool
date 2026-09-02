@@ -594,7 +594,7 @@ app.whenReady().then(async () => {
     );
     await sleep(500);
     check(
-      await run(window, `return document.body.textContent.includes('gehören zum Link-Format');`),
+      await run(window, `return document.body.textContent.includes('gehören zur Markdown-Syntax');`),
       'Hinweis auf unerlaubte Zeichen im Titel fehlt'
     );
     // Der Autosave muss pausieren, sonst stuende der Titel gleich in der Datei
