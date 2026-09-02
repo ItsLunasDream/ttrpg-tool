@@ -818,6 +818,39 @@ app.whenReady().then(async () => {
       await run(window, `return !document.querySelector('.ProseMirror').textContent.includes('Nachtrag');`),
       'Der alte Stand wurde nicht wiederhergestellt'
     );
+    // 22. Das Fenster muss sich mit ungespeicherten Aenderungen schliessen
+    // lassen. Frueher brach beforeunload das Schliessen ohne Dialog ab.
+    await selectNote(window, 'Toran');
+    await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
+    await sleep(200);
+    window.webContents.insertText(' Ungespeichert.');
+    await sleep(400);
+    check(await run(window, `return document.querySelector('.status--dirty') !== null;`),
+      'Notiz gilt nicht als ungespeichert');
+
+    const closed = await new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(false), 8000);
+      window.once('closed', () => {
+        clearTimeout(timer);
+        resolve(true);
+      });
+      window.close();
+    });
+    check(closed, 'Das Fenster ließ sich mit ungespeicherten Änderungen nicht schließen');
+
+    // Beim Schliessen muss der Stand noch gesichert worden sein
+    if (closed) {
+      const campaignsDir = path.join(userData, 'vault', 'campaigns');
+      const saved = fs
+        .readdirSync(campaignsDir)
+        .flatMap((id) => {
+          const notesDir = path.join(campaignsDir, id, 'notes');
+          if (!fs.existsSync(notesDir)) return [];
+          return fs.readdirSync(notesDir).map((name) => fs.readFileSync(path.join(notesDir, name), 'utf8'));
+        })
+        .some((raw) => raw.includes('Ungespeichert.'));
+      check(saved, 'Der ungespeicherte Stand ging beim Schließen verloren');
+    }
   } catch (error) {
     problems.push(String(error));
   }

@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { app, BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { Vault, readSettings } from './vault';
 import { registerIpc } from './ipc';
 import { handleAssetProtocol, registerAssetScheme } from './assetProtocol';
@@ -23,6 +23,28 @@ async function createWindow(): Promise<void> {
       nodeIntegration: false,
       sandbox: false
     }
+  });
+
+  // Vor dem Schliessen dem Renderer Zeit geben, Ungespeichertes zu sichern.
+  // Ueber beforeunload geht das nicht: Electron bricht damit das Schliessen
+  // ab, ohne einen Dialog zu zeigen, und das Fenster liesse sich nicht mehr
+  // schliessen.
+  let mayClose = false;
+  window.on('close', (event) => {
+    if (mayClose || window.webContents.isDestroyed()) return;
+    event.preventDefault();
+
+    const finish = () => {
+      clearTimeout(timer);
+      ipcMain.removeListener('app:flushed', finish);
+      mayClose = true;
+      window.close();
+    };
+
+    // Sicherheitsnetz: antwortet der Renderer nicht, wird trotzdem geschlossen.
+    const timer = setTimeout(finish, 3000);
+    ipcMain.once('app:flushed', finish);
+    window.webContents.send('app:flush');
   });
 
   // Externe Links gehoeren in den Systembrowser, nicht in ein App-Fenster.
