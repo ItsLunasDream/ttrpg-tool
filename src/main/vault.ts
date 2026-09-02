@@ -656,10 +656,39 @@ function versionTime(fileName: string): number {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+/**
+ * Fehlercodes, die unter Windows eine kurzlebige Sperre bedeuten: ein
+ * Virenscanner, die Dateisuche oder eine Ordnersynchronisation hat die Datei
+ * gerade offen. Nach einem Augenblick geht es wieder.
+ */
+const LOCKED_CODES = new Set(['EBUSY', 'EPERM', 'EACCES']);
+
+/**
+ * Schreibt ueber eine Nebendatei und benennt sie um. Bricht der Vorgang
+ * mittendrin ab, steht auf der Platte entweder der alte oder der neue Stand,
+ * nie ein halber.
+ */
 async function writeAtomic(file: string, content: string | Buffer): Promise<void> {
   const tmp = `${file}.tmp-${process.pid}`;
   await fs.writeFile(tmp, content);
-  await fs.rename(tmp, file);
+
+  try {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await fs.rename(tmp, file);
+        return;
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code ?? '';
+        if (attempt >= 4 || !LOCKED_CODES.has(code)) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 50 * 2 ** attempt));
+      }
+    }
+  } catch (error) {
+    // Sonst bliebe die Nebendatei im Speicherort liegen und landete in der
+    // ZIP-Sicherung. Der eigentliche Fehler bleibt der, der zaehlt.
+    await fs.rm(tmp, { force: true }).catch(() => undefined);
+    throw error;
+  }
 }
 
 async function writeJson(file: string, value: unknown): Promise<void> {
