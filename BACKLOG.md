@@ -87,6 +87,26 @@ umgesetzt zu sein.
 
 ## Erledigt
 
+### Tabellen, Links und der Markdown-Rundlauf
+
+In der Nacht auf den 2. September mit einer Sonde geprüft, was der Editor beim
+Laden und Speichern am Markdown verändert. Die Sonde ist als
+`scripts/roundtrip.cjs` geblieben und läuft in der CI mit.
+
+Gefunden und behoben wurden vier Wege, auf denen Text still verlorenging:
+
+- **Tabellen** wurden zu einer Textwurst zusammengezogen. Der Editor kennt sie
+  jetzt, samt Knöpfen für Zeilen und Spalten
+- **Links** verloren ihre Adresse und blieben als bloßes Wort zurück. Der
+  Editor kennt sie jetzt, mit Knopf in der Werkzeugleiste und Strg+Klick
+- **Überschriften** ab der vierten Ebene wurden zu gewöhnlichem Text
+- **Durchgestrichenes** verschwand, obwohl die Werkzeugleiste es anbietet
+
+Dazu ein Bündel kleinerer Sachen: Trennlinien behalten ihre Schreibweise,
+Leerzeichenreste am Zeilenende werden nicht mitgeschrieben, eine bloße Adresse
+bleibt bloß, und Wiki-Links überstehen Sonderzeichen im Titel. Die Grenzen, die
+geblieben sind, stehen oben.
+
 ### Textanfang in der Kurzinfo-Karte
 
 Die Kurzinfo beim Überfahren eines `[[Links]]` zeigt jetzt zusätzlich den
