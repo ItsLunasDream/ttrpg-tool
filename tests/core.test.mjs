@@ -608,3 +608,38 @@ test('Ein blosser Link wird nicht in Klammerschreibweise umgeschrieben', () => {
     'Siehe [Handbuch](https://example.org).'
   );
 });
+
+test('Tabellen ueberleben den Rundlauf', () => {
+  const markdown = '| Jahr | Ereignis |\n| --- | --- |\n| 712 | Geboren |\n| 730 | Verbannt |';
+  assert.equal(htmlToMarkdown(markdownToHtml(markdown)), markdown);
+});
+
+test('Ein Senkrechtstrich in einer Zelle zerlegt die Tabelle nicht', () => {
+  const html = '<table><tbody><tr><th>A</th></tr><tr><td>x | y</td></tr></tbody></table>';
+  const markdown = htmlToMarkdown(html);
+  assert.match(markdown, /x \\\| y/);
+  // Und wieder zurueck: der Strich gehoert in die Zelle, nicht dazwischen.
+  assert.equal(htmlToMarkdown(markdownToHtml(markdown)), markdown);
+});
+
+test('Eine Tabelle ohne Kopfzeile bekommt eine leere', () => {
+  // Markdown kennt keine kopflose Tabelle. Ohne Ersatzzeile waere es keine.
+  const markdown = htmlToMarkdown('<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>');
+  assert.equal(markdown, '|  |  |\n| --- | --- |\n| a | b |');
+});
+
+test('Eine Zeile mit Kopf- und Datenzellen behaelt ihre Reihenfolge', () => {
+  const markdown = htmlToMarkdown(
+    '<table><tbody><tr><th>Name</th><th>Wert</th></tr><tr><th>Stärke</th><td>16</td></tr></tbody></table>'
+  );
+  assert.equal(markdown, '| Name | Wert |\n| --- | --- |\n| Stärke | 16 |');
+});
+
+test('Die Kurzinfo zeigt Tabellen ohne Striche', () => {
+  const markdown = 'Vorher.\n\n| Jahr | Ereignis |\n| --- | --- |\n| 712 | Geboren |\n\nNachher.';
+  const text = textPreview(markdown);
+  assert.ok(!text.includes('|'), text);
+  assert.ok(!text.includes('---'), text);
+  assert.ok(text.includes('Jahr Ereignis'), text);
+  assert.ok(text.includes('712 Geboren'), text);
+});

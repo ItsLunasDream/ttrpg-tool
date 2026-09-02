@@ -534,6 +534,50 @@ mark {
   pointer-events: none;
 }
 
+/* Tabellen: fest angeordnet, damit lange Zellen die Spalten nicht sprengen. */
+.body-editor__surface table {
+  border-collapse: collapse;
+  margin: 16px 0;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.body-editor__surface th,
+.body-editor__surface td {
+  border: 1px solid var(--border-strong);
+  padding: 6px 10px;
+  /* Fuer die Markierung ganzer Zellen, die absolut darueber liegt. */
+  position: relative;
+  vertical-align: top;
+}
+
+.body-editor__surface th {
+  background: var(--bg-raised);
+  text-align: left;
+}
+
+.body-editor__surface td > p:first-child,
+.body-editor__surface th > p:first-child {
+  margin-top: 0;
+}
+
+.body-editor__surface td > p:last-child,
+.body-editor__surface th > p:last-child {
+  margin-bottom: 0;
+}
+
+/* Die markierten Zellen einer Mehrfachauswahl. */
+.body-editor__surface .selectedCell::after {
+  background: var(--accent-soft);
+  bottom: 0;
+  content: '';
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
 .body-editor__surface h1 {
   font-size: 24px;
 }

@@ -26,7 +26,22 @@ const ACTIONS: Action[] = [
   { label: '1.', title: (t) => t('toolbar.orderedList'), isActive: (e) => e.isActive('orderedList'), run: (e) => e.chain().focus().toggleOrderedList().run() },
   { label: '❝', title: (t) => t('toolbar.quote'), isActive: (e) => e.isActive('blockquote'), run: (e) => e.chain().focus().toggleBlockquote().run() },
   { label: '</>', title: (t) => t('toolbar.code'), isActive: (e) => e.isActive('codeBlock'), run: (e) => e.chain().focus().toggleCodeBlock().run() },
-  { label: '―', title: (t) => t('toolbar.rule'), run: (e) => e.chain().focus().setHorizontalRule().run() }
+  { label: '―', title: (t) => t('toolbar.rule'), run: (e) => e.chain().focus().setHorizontalRule().run() },
+  {
+    label: '▦',
+    title: (t) => t('toolbar.table'),
+    isActive: (e) => e.isActive('table'),
+    run: (e) => e.chain().focus().insertTable({ rows: 3, cols: 2, withHeaderRow: true }).run()
+  }
+];
+
+/** Nur sichtbar, wenn der Cursor in einer Tabelle steht. */
+const TABLE_ACTIONS: Action[] = [
+  { label: '+Z', title: (t) => t('table.addRow'), run: (e) => e.chain().focus().addRowAfter().run() },
+  { label: '+S', title: (t) => t('table.addColumn'), run: (e) => e.chain().focus().addColumnAfter().run() },
+  { label: '−Z', title: (t) => t('table.deleteRow'), run: (e) => e.chain().focus().deleteRow().run() },
+  { label: '−S', title: (t) => t('table.deleteColumn'), run: (e) => e.chain().focus().deleteColumn().run() },
+  { label: '⌫▦', title: (t) => t('table.delete'), run: (e) => e.chain().focus().deleteTable().run() }
 ];
 
 export function Toolbar({ editor, onInsertImage, onEditLink }: Props) {
@@ -49,6 +64,23 @@ export function Toolbar({ editor, onInsertImage, onEditLink }: Props) {
           {action.label}
         </button>
       ))}
+      {/* Nur innerhalb einer Tabelle: sonst waeren es acht tote Knoepfe. */}
+      {editor.isActive('table')
+        ? TABLE_ACTIONS.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              title={action.title(t)}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                action.run(editor);
+              }}
+            >
+              {action.label}
+            </button>
+          ))
+        : null}
+
       {/* Nur wenn ein Bild ausgewaehlt ist: Markdown kennt keine Groesse,
           deshalb steht sie als Attribut am Bild. */}
       {editor.isActive('image')

@@ -45,6 +45,9 @@ const PRINT_STYLE = `
   blockquote { border-left: 2pt solid #ddd; color: #4a4453; margin-left: 0; padding-left: 10pt; }
   pre { background: #f4f2f7; padding: 6pt; white-space: pre-wrap; }
   hr { border: none; border-top: 1pt solid #ddd; margin: 14pt 0; }
+  table { border-collapse: collapse; margin: 10pt 0; width: 100%; }
+  th, td { border: 0.5pt solid #bbb; padding: 3pt 5pt; text-align: left; vertical-align: top; }
+  th { background: #f4f2f7; }
   .section { margin-top: 14pt; }
   .section h2 { border-bottom: 1pt solid #e2dfe8; font-size: 12pt; padding-bottom: 2pt; }
   ul { margin: 0; padding-left: 16pt; }

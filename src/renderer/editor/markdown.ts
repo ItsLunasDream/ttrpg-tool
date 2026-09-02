@@ -28,6 +28,63 @@ turndown.addRule('strikethrough', {
 });
 
 /**
+ * Turndown kennt keine Tabellen und wuerde alle Zellen zu einer einzigen
+ * Textwurst zusammenziehen. Markdown-Tabellen sind rechteckig und brauchen
+ * eine Kopfzeile, also wird beides hergestellt: fehlende Zellen werden
+ * aufgefuellt, eine fehlende Kopfzeile durch eine leere ersetzt.
+ */
+turndown.addRule('table', {
+  filter: (node) => node.nodeName === 'TABLE',
+  replacement: (_content, node) => {
+    const rowNodes = collect(node, 'TR');
+    const rows = rowNodes.map((row) => collect(row, 'TH', 'TD'));
+    if (rows.length === 0) return '';
+
+    const columns = Math.max(...rows.map((row) => row.length));
+    const pad = (row: string[]) => Array.from({ length: columns }, (_unused, index) => row[index] ?? '');
+    const texts = rows.map((cells) => cells.map(cellText));
+
+    // Nur wenn die erste Zeile Kopfzellen enthaelt, ist sie eine Kopfzeile.
+    const firstIsHeader = collect(rowNodes[0], 'TH').length > 0;
+    const head = firstIsHeader ? pad(texts[0]) : pad([]);
+    const body = firstIsHeader ? texts.slice(1) : texts;
+
+    const line = (cells: string[]) => `| ${cells.join(' | ')} |`;
+    return [
+      '',
+      '',
+      line(head),
+      line(Array.from({ length: columns }, () => '---')),
+      ...body.map((row) => line(pad(row))),
+      '',
+      ''
+    ].join('\n');
+  }
+});
+
+/**
+ * Nachfahren mit dem gesuchten Namen, in Dokumentreihenfolge. Turndown laeuft
+ * im Test gegen eine schlanke DOM-Nachbildung ohne querySelectorAll, deshalb
+ * von Hand.
+ */
+function collect(node: Node, ...names: string[]): Element[] {
+  const found: Element[] = [];
+  for (const child of Array.from(node.childNodes)) {
+    if (names.includes(child.nodeName)) found.push(child as Element);
+    else found.push(...collect(child, ...names));
+  }
+  return found;
+}
+
+/** Zellinhalt einzeilig, mit maskierten Zeichen, die die Tabelle sonst zerlegen. */
+function cellText(cell: Element): string {
+  return (cell.textContent ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\|/g, '\\|');
+}
+
+/**
  * Steht im Text nur die nackte Adresse, macht Markdown daraus automatisch
  * einen Link. Ohne diese Regel schriebe Turndown ihn als
  * [https://x](https://x) zurueck und der Text saehe nach dem Speichern
@@ -105,6 +162,10 @@ export function stripMarkdown(markdown: string): string {
     .replace(/^\s{0,3}>\s?/gm, '')
     .replace(/^\s{0,3}([-*+]|\d+\.)\s+/gm, '')
     .replace(/^\s{0,3}([-*_])\s*\1\s*\1[-*_\s]*$/gm, '')
+    // Tabellen: die Trennzeile ganz weg, sonst nur die Striche.
+    .replace(/^\s*\|[\s|:-]*\|\s*$/gm, '')
+    .replace(/^\s*\|(.*)\|\s*$/gm, (_whole, row: string) => row.replace(/(?<!\\)\|/g, ' '))
+    .replace(/\\\|/g, '|')
     .replace(/(\*\*|__|\*|_|~~)/g, '');
 }
 
