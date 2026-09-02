@@ -1,6 +1,6 @@
 import { marked } from 'marked';
 import TurndownService from 'turndown';
-import { wikiLinkText } from '../../shared/wikilinks';
+import { WIKI_LINK_PATTERN, wikiLinkText } from '../../shared/wikilinks';
 
 const turndown = new TurndownService({
   headingStyle: 'atx',
@@ -12,18 +12,39 @@ const turndown = new TurndownService({
   hr: '---'
 });
 
-// Turndown maskiert Markdown-Sonderzeichen im Fliesstext. Ohne diese
-// Korrektur wuerde aus [[Name]] beim Speichern \[\[Name\]\] und der
-// Wiki-Link waere beim naechsten Laden kaputt.
-//
-// Nur die doppelten Klammern werden entmaskiert. Eine einzelne gehoert zur
-// Markdown-Syntax und muss maskiert bleiben, sonst zerlegt etwa eine Adresse
-// mit Klammer darin den Link, in dem sie steht.
+/**
+ * Turndown maskiert Markdown-Sonderzeichen im Fliesstext. Ein Wiki-Link
+ * darf davon nichts abbekommen: aus `[[Haus_am_See]]` wuerde sonst
+ * `[[Haus\_am\_See]]`, und beim naechsten Laden waere es kein Link mehr,
+ * ohne Ruecklink und ohne dass Umbenennen ihn noch faende.
+ *
+ * Deshalb bleiben Wiki-Links unangetastet und nur der Text dazwischen wird
+ * maskiert. Frueher wurde stattdessen nachtraeglich entmaskiert, was auch
+ * einzelne Klammern im uebrigen Text traf.
+ */
 const escapeText = turndown.escape.bind(turndown);
-turndown.escape = (text: string) =>
-  escapeText(text)
-    .replace(/\\\[\\\[/g, '[[')
-    .replace(/\\\]\\\]/g, ']]');
+
+turndown.escape = (text: string) => {
+  const pattern = new RegExp(WIKI_LINK_PATTERN.source, 'g');
+  let out = '';
+  let last = 0;
+
+  for (const match of text.matchAll(pattern)) {
+    out += escapeText(text.slice(last, match.index)) + match[0];
+    last = match.index + match[0].length;
+  }
+
+  return out + escapeText(text.slice(last));
+};
+
+/** encodeURI, ohne bei ungueltigen Zeichenfolgen zu werfen. */
+function encodeUri(text: string): string {
+  try {
+    return encodeURI(text);
+  } catch {
+    return text;
+  }
+}
 
 /**
  * Turndown kennt Durchstreichen nicht und wuerde die Auszeichnung ersatzlos
@@ -113,9 +134,13 @@ turndown.addRule('bareLink', {
     if (node.nodeName !== 'A') return false;
     const href = (node as HTMLAnchorElement).getAttribute('href');
     const text = node.textContent ?? '';
+    if (!href) return false;
+
     // Markdown verlinkt auch eine blosse E-Mail-Adresse, dann steht die
-    // Adresse im Text und mailto: davor im Verweis.
-    if (!href || (href !== text && href !== `mailto:${text}`)) return false;
+    // Adresse im Text und mailto: davor im Verweis. Und es kodiert
+    // Sonderzeichen im Verweis, waehrend im Text die Adresse steht, wie sie
+    // getippt wurde.
+    if (href !== text && href !== `mailto:${text}` && href !== encodeUri(text)) return false;
 
     // Muss im Text etwas maskiert werden, taugt die blosse Schreibweise
     // nicht: aus mira_x@example.org wuerde mira\_x@example.org, und die

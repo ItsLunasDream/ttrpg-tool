@@ -779,3 +779,21 @@ test('Eine Adresse mit eckiger Klammer ueberlebt mehrere Rundlaeufe', () => {
   const zweimal = htmlToMarkdown(markdownToHtml(einmal));
   assert.equal(zweimal, einmal, `nicht stabil: ${JSON.stringify(einmal)} -> ${JSON.stringify(zweimal)}`);
 });
+
+test('Ein Wiki-Link mit Sonderzeichen im Titel bleibt ein Link', () => {
+  // Unterstriche, Sterne und Backticks sind in Titeln erlaubt. Werden sie
+  // beim Speichern maskiert, ist der Link beim naechsten Laden keiner mehr.
+  // Stern und Backtick sind in Titeln nicht erlaubt, siehe LINK_RESERVED_PATTERN.
+  for (const titel of ['Haus_am_See', 'Ort #1', 'Fluss & Feld', 'Weg 3 - Nord']) {
+    const quelle = `Sie wohnt in [[${titel}]].`;
+    const back = htmlToMarkdown(markdownToHtml(quelle));
+    assert.deepEqual(findWikiLinks(back).map((link) => link.target), [titel], back);
+    assert.equal(htmlToMarkdown(markdownToHtml(back)), back);
+  }
+});
+
+test('Ein Alias im Wiki-Link ueberlebt Sonderzeichen ebenfalls', () => {
+  const quelle = 'Sie wohnt in [[Haus_am_See|dort]].';
+  const back = htmlToMarkdown(markdownToHtml(quelle));
+  assert.equal(back, quelle);
+});

@@ -73,8 +73,12 @@ export function rewriteWikiLinks(text: string, oldTitle: string, newTitle: strin
  * aus `[[Mira|Falke]]` wuerde ein Link auf `Mira` mit Anzeigetext `Falke`,
  * und ein `]]` im Titel wuerde den Link vorzeitig beenden. Der Backslash ist
  * mit dabei, weil er in einer Tabellenzelle den Strich maskiert.
+ *
+ * Stern und Backtick sind Markdown-Syntax: aus `[[Der *Turm*]]` macht der
+ * Editor beim Laden kursiven Text, und der Link ueberlebt das Speichern
+ * nicht. Ein Titel damit waere ein Titel, auf den niemand verlinken kann.
  */
-export const LINK_RESERVED_PATTERN = /[[\]|\\]/;
+export const LINK_RESERVED_PATTERN = /[[\]|\\*`]/;
 
 export function hasLinkReservedChars(name: string): boolean {
   return LINK_RESERVED_PATTERN.test(name);
