@@ -224,12 +224,30 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   }, [save]);
 
   useEffect(() => {
-    function onBeforeUnload(event: BeforeUnloadEvent) {
-      if (dirtyRef.current) event.preventDefault();
+    // Beim Wegklicken sichern. Deckt Alt-Tab und den Wechsel in ein anderes
+    // Fenster ab.
+    function onBlur() {
+      if (dirtyRef.current) void save();
     }
-    window.addEventListener('beforeunload', onBeforeUnload);
-    return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, []);
+
+    window.addEventListener('blur', onBlur);
+
+    // Beim Schliessen wartet der Hauptprozess auf diese Rueckmeldung.
+    const stopListening = api.onFlush(() => {
+      void (async () => {
+        try {
+          await persist();
+        } finally {
+          api.flushed();
+        }
+      })();
+    });
+
+    return () => {
+      window.removeEventListener('blur', onBlur);
+      stopListening();
+    };
+  }, [save, persist]);
 
   useEffect(() => {
     if (!message) return;

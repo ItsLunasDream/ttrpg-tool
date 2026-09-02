@@ -329,3 +329,21 @@ nie die Protokoll-URL.
 
 Kantenbeschriftungen erscheinen nur noch, wenn sie lesbar bleiben: bei bis zu
 zwanzig Kanten immer, darüber nur rund um den Knoten unter der Maus.
+
+### Auffangnetz und Sichern beim Beenden
+
+**Fehler in der Oberfläche** zeigten bisher ein leeres Fenster ohne Weg
+zurück. Jetzt fängt eine Fehlergrenze sie ab und bietet Neuladen an, mit dem
+Hinweis, dass die Notizen als Dateien auf der Platte davon nicht betroffen
+sind. Bewusst ohne Übersetzung: der Fehler kann aus der Sprachschicht selbst
+kommen, dann wäre ein Übersetzungsaufruf dort der nächste Absturz.
+
+**Beim Beenden** wartet der Hauptprozess jetzt darauf, dass der Renderer
+Ungespeichertes sichert, mit drei Sekunden Sicherheitsnetz. Vorher hing das
+allein an `beforeunload`, worauf in Electron kein Verlass ist. Zusätzlich wird
+beim Wegklicken des Fensters gesichert.
+
+Ehrlich dazu: ich hatte vermutet, dass `beforeunload` mit `preventDefault` das
+Schließen blockiert. Nachgestellt ließ sich das nicht, das Fenster schloss
+sich auch vorher. Die Änderung macht das Sichern beim Beenden trotzdem
+verlässlich statt vom Verhalten des Browsers abhängig.

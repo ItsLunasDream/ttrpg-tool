@@ -138,6 +138,30 @@ button:focus-visible {
   justify-content: center;
 }
 
+.crash {
+  margin: 0 auto;
+  max-width: 640px;
+  padding: 60px 24px;
+}
+
+.crash h1 {
+  color: var(--danger);
+  font-size: 20px;
+}
+
+.crash pre {
+  background: var(--bg-input);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+}
+
+.crash .modal__actions {
+  justify-content: flex-start;
+  margin-top: 16px;
+}
+
 /* --- Layout --- */
 
 .app {

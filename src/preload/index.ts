@@ -21,6 +21,16 @@ const api = {
   vault: {
     reveal: () => invoke<void>('vault:reveal')
   },
+  /**
+   * Das Fenster soll schliessen. Der Renderer sichert Ungespeichertes und
+   * meldet sich mit `flushed` zurueck.
+   */
+  onFlush: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('app:flush', listener);
+    return () => ipcRenderer.off('app:flush', listener);
+  },
+  flushed: () => ipcRenderer.send('app:flushed'),
   ai: {
     status: () => invoke<{ provider: string; ready: boolean; detail: string; hasKey: boolean }>('ai:status'),
     setApiKey: (apiKey: string) => invoke<AppSettings>('ai:setApiKey', apiKey),
