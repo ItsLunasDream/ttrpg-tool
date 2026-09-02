@@ -57,6 +57,7 @@ npm run dist:win  # Windows-Installer und portable exe nach release/
 | Kampagne sichern | „Als ZIP sichern" in der Kopfzeile |
 | Steckbrief anpassen | „Notiztypen" in der Kopfzeile |
 | Sprache wechseln | Einstellungen → Sprache |
+| Bildgröße ändern | Bild anklicken, dann 200 / 400 / 100% in der Werkzeugleiste |
 | Bild einfügen | Knopf ▣ in der Werkzeugleiste, oder Bild in den Text ziehen bzw. einfügen |
 | Assistent fragen | Sidebar im Editor, Einstellungen → Assistent |
 | Ungenutzte Bilder löschen | „Aufräumen" in der Kopfzeile |
