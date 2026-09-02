@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import Link from '@tiptap/extension-link';
 import { SizedImage } from '../editor/sizedImage';
 import { createWikiLinkExtension, type SuggestionState } from '../editor/wikiLinkExtension';
 import { createSearchHighlightExtension, replaceMatches, selectMatch } from '../editor/searchHighlight';
@@ -12,6 +13,7 @@ import type { NoteIndex } from '../noteIndex';
 import type { Note } from '../../shared/types';
 import { findNoteType } from '../../shared/noteTypes';
 import { Toolbar } from './Toolbar';
+import { Modal } from './Modal';
 import { useT } from '../i18n';
 
 interface Props {
@@ -33,6 +35,7 @@ interface Props {
   onPickImage: () => Promise<string | null>;
   /** Meldung an die Anwendung, etwa nach dem Ersetzen. */
   onReport: (text: string) => void;
+  onOpenExternal: (url: string) => void;
   onChange: (markdown: string) => void;
   onOpenNote: (noteId: string) => void;
   onCreateNote: (title: string) => void;
@@ -54,7 +57,8 @@ export function BodyEditor({
   onHoverNote,
   onImportImage,
   onPickImage,
-  onReport
+  onReport,
+  onOpenExternal
 }: Props) {
   const t = useT();
   const [suggestion, setSuggestion] = useState<SuggestionState | null>(null);
@@ -63,6 +67,8 @@ export function BodyEditor({
   const [activeMatch, setActiveMatch] = useState(-1);
   // Eigene Suche im Dokument, unabhaengig von der Suche in der Seitenleiste.
   const [localSearch, setLocalSearch] = useState<{ query: string; replace: string } | null>(null);
+  /** Adresse im Link-Dialog, null wenn er zu ist. */
+  const [linkDraft, setLinkDraft] = useState<string | null>(null);
 
   // Ist die eigene Suche offen, gilt ihr Begriff, sonst der aus der Seitenleiste.
   const effectiveQuery = localSearch ? localSearch.query : searchQuery;
@@ -145,6 +151,11 @@ export function BodyEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Placeholder.configure({ placeholder: t('editor.placeholder') }),
+      // Ohne diese Erweiterung kennt der Editor keine Links: [Text](URL) aus
+      // der Datei verlor beim Speichern seine Adresse. Geoeffnet wird wie bei
+      // Wiki-Links mit Strg+Klick, damit der Cursor sonst normal gesetzt
+      // werden kann, und im Systembrowser statt im App-Fenster.
+      Link.configure({ openOnClick: false, autolink: false, protocols: ['http', 'https', 'mailto'] }),
       wikiLink,
       searchHighlight,
       SizedImage.configure({ inline: false, allowBase64: false })
@@ -156,7 +167,18 @@ export function BodyEditor({
       // Bilder aus der Zwischenablage oder per Ziehen und Ablegen werden in
       // die Kampagne kopiert, nicht als Base64 in den Text geschrieben.
       handlePaste: (_view, event) => importFromDataTransfer(event.clipboardData),
-      handleDrop: (_view, event) => importFromDataTransfer((event as DragEvent).dataTransfer)
+      handleDrop: (_view, event) => importFromDataTransfer((event as DragEvent).dataTransfer),
+
+      handleDOMEvents: {
+        mousedown: (_view, event) => {
+          const href = (event.target as HTMLElement | null)?.closest('a')?.getAttribute('href');
+          if (!href || !(event.ctrlKey || event.metaKey)) return false;
+
+          event.preventDefault();
+          onOpenExternal(href);
+          return true;
+        }
+      }
     }
   });
 
@@ -226,6 +248,33 @@ export function BodyEditor({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [effectiveQuery, matchCount, goToMatch, localSearch]);
+
+  /**
+   * Setzt oder entfernt den Link auf der aktuellen Auswahl. Ohne Auswahl wird
+   * die Adresse als Text eingefuegt und verlinkt, sonst passierte nichts
+   * Sichtbares.
+   */
+  const applyLink = useCallback(
+    (raw: string) => {
+      const url = raw.trim();
+      setLinkDraft(null);
+      if (!editorRef.current) return;
+      const chain = editorRef.current.chain().focus().extendMarkRange('link');
+
+      if (!url) {
+        chain.unsetLink().run();
+        return;
+      }
+
+      if (editorRef.current.state.selection.empty && !editorRef.current.isActive('link')) {
+        chain.insertContent({ type: 'text', text: url, marks: [{ type: 'link', attrs: { href: url } }] }).run();
+        return;
+      }
+
+      chain.setLink({ href: url }).run();
+    },
+    []
+  );
 
   const replace = useCallback(
     (scope: number | 'all') => {
@@ -358,8 +407,35 @@ export function BodyEditor({
         </div>
       ) : null}
 
+      {linkDraft !== null && editor ? (
+        <Modal
+          title={t('link.title')}
+          onClose={() => setLinkDraft(null)}
+          footer={
+            <button type="button" onClick={() => applyLink(linkDraft)}>
+              {t('link.apply')}
+            </button>
+          }
+        >
+          <label className="field">
+            <span className="field__label">{t('link.url')}</span>
+            <input
+              autoFocus
+              value={linkDraft}
+              placeholder="https://"
+              onChange={(event) => setLinkDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') applyLink(linkDraft);
+              }}
+            />
+          </label>
+          <p className="panel__hint">{t('link.hint')}</p>
+        </Modal>
+      ) : null}
+
       <Toolbar
         editor={editor}
+        onEditLink={() => setLinkDraft(editor?.getAttributes('link').href ?? '')}
         onInsertImage={() =>
           void onPickImage().then((relativePath) => {
             if (relativePath) insertImage(relativePath);

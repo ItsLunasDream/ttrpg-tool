@@ -42,6 +42,7 @@ const de = {
   'help.nextMatch': 'Zur nächsten oder vorherigen Fundstelle springen',
   'help.link': 'Andere Notiz verlinken, Vorschläge erscheinen beim Tippen',
   'help.openLink': 'Verlinkte Notiz öffnen',
+  'help.openExternal': 'Adresse im Text im Browser öffnen',
   'help.format': 'Fett oder kursiv',
   'help.suggestion': 'Vorschlag aus der Liste übernehmen',
   'help.mouseTitle': 'Mit der Maus',
@@ -219,6 +220,12 @@ const de = {
   'msg.exported': 'Sicherung geschrieben: {path}',
   'msg.alreadyExists': '„{title}" existiert bereits.',
 
+  'toolbar.link': 'Link',
+  'link.title': 'Link',
+  'link.url': 'Adresse',
+  'link.hint': 'Leer lassen entfernt den Link. Eine eingefügte Adresse verlinkt den markierten Text auch direkt.',
+  'link.apply': 'Übernehmen',
+
   'error.campaignName': 'Die Kampagne braucht einen Namen.',
   'error.noteTitle': 'Die Notiz braucht einen Titel.',
   'error.linkChars': 'Die Zeichen [ ] und | gehören zum Link-Format und können nicht in „{name}" stehen.',
@@ -391,6 +398,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'help.nextMatch': 'Jump to the next or previous match',
   'help.link': 'Link another note, suggestions appear as you type',
   'help.openLink': 'Open the linked note',
+  'help.openExternal': 'Open an address in the text in the browser',
   'help.format': 'Bold or italic',
   'help.suggestion': 'Accept the highlighted suggestion',
   'help.mouseTitle': 'With the mouse',
@@ -567,6 +575,12 @@ const en: Partial<Record<MessageKey, string>> = {
   'msg.renamedOne': 'Renamed, links updated in one note.',
   'msg.exported': 'Backup written to {path}',
   'msg.alreadyExists': '“{title}” already exists.',
+
+  'toolbar.link': 'Link',
+  'link.title': 'Link',
+  'link.url': 'Address',
+  'link.hint': 'Leaving it empty removes the link. Pasting an address over selected text also links it directly.',
+  'link.apply': 'Apply',
 
   'error.campaignName': 'The campaign needs a name.',
   'error.noteTitle': 'The note needs a title.',
