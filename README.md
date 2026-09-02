@@ -95,6 +95,9 @@ Texteditor oder in Obsidian öffnen, das Tool ist keine Einbahnstraße. Eigene
 Angaben im YAML-Kopf, die das Tool nicht kennt, bleiben beim Speichern
 erhalten.
 
+Die Anwendung läuft nur einmal. Ein zweiter Start holt das vorhandene Fenster
+nach vorn, statt ein zweites Fenster auf denselben Speicherort zu öffnen.
+
 Jede Datei trägt eine `schemaVersion`, damit spätere Formatänderungen migriert
 werden können.
 
