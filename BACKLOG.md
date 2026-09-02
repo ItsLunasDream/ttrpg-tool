@@ -81,6 +81,9 @@ aus `**fett**` wird also fetter Text. Text mit eigener Formatierung (aus dem
 Editor selbst oder aus einem Browser) bleibt unangetastet, ebenso eine einzelne
 Adresse über markiertem Text, die weiterhin verlinkt statt eingefügt wird.
 
+In einem Codeblock bleibt Eingefügtes wörtlich, und spitze Klammern im Text
+werden als Text behandelt, nicht als HTML.
+
 Der Preis, der vorher als Gegenargument notiert war, bleibt bestehen: `5 * 3
 und 2 * 4` wird beim Einfügen kursiv. Strg+Z macht es rückgängig.
 

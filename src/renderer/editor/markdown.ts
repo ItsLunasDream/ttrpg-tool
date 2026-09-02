@@ -295,7 +295,7 @@ export function textPreview(markdown: string, maxChars = 220): string {
 }
 
 /** Zeichen, die in HTML eine Bedeutung haben. Fuer zurueckgesetzte Wiki-Links. */
-function escapeHtml(text: string): string {
+export function escapeHtml(text: string): string {
   // Auch die Anfuehrungszeichen: ein zurueckgesetzter Link kann in einem
   // Attribut landen, etwa im alt eines Bildes, und wuerde es sonst aufbrechen.
   return text
