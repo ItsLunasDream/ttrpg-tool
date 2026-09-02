@@ -46,6 +46,14 @@ umgesetzt zu sein.
   nicht als Wiki-Link, die Adresse wird beim Speichern aber zur
   ausgeschriebenen Linkschreibweise `[Text](Adresse)`. Sie bleibt dabei heil
   und ändert sich danach nicht weiter
+- Ein Wiki-Link, der in der Datei über zwei Zeilen umgebrochen ist, gilt nicht
+  als Link. Der Editor bricht nie um, das kann also nur aus einem anderen
+  Programm kommen. Die Beschränkung ist gewollt: ohne sie verschluckt eine
+  offene doppelte Klammer alles bis zur nächsten schließenden
+- Doppelte eckige Klammern in der Adresse eines ausgeschriebenen Verweises
+  werden erkannt und in Ruhe gelassen, außer die Adresse enthält selbst runde
+  Klammern (`[Text](…/Foo_(bar)/[[c]])`). Dann geht die Adresse beim Speichern
+  kaputt. Sehr enger Fall
 - Steht ein Wiki-Link mit maskiertem Senkrechtstrich (`[[Mira\|ihr]]`) in
   einem Codeblock, verliert er beim Speichern die Maskierung. Die Maskierung
   gehört in eine Tabellenzelle, und beim Zurücksetzen der Links ist noch nicht
