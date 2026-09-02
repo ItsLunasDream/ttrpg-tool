@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/react';
 import { useT, type Translate } from '../i18n';
+import { IMAGE_WIDTHS } from '../editor/sizedImage';
 
 interface Props {
   editor: Editor | null;
@@ -47,6 +48,24 @@ export function Toolbar({ editor, onInsertImage }: Props) {
           {action.label}
         </button>
       ))}
+      {/* Nur wenn ein Bild ausgewaehlt ist: Markdown kennt keine Groesse,
+          deshalb steht sie als Attribut am Bild. */}
+      {editor.isActive('image')
+        ? IMAGE_WIDTHS.map((entry) => (
+            <button
+              key={entry.label}
+              type="button"
+              title={t('image.width', { size: entry.label })}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                editor.chain().focus().updateAttributes('image', { width: entry.width }).run();
+              }}
+            >
+              {entry.label}
+            </button>
+          ))
+        : null}
+
       <button
         type="button"
         title={t('image.insert')}

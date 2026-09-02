@@ -565,3 +565,21 @@ test('Eine Rueckfrage ersetzt die Aufgabenvorlage', () => {
   assert.match(userPrompt(base), /Notiztext/);
   assert.equal(userPrompt({ ...base, followUp: '  Wie meinst du das?  ' }), 'Wie meinst du das?');
 });
+
+test('Bilder mit Breite bleiben als HTML erhalten und behalten den relativen Pfad', () => {
+  const markdown = 'Text\n\n<img src="assets/abc.png" alt="Szene" width="320">';
+  const html = markdownToHtml(markdown, (target) => assetUrl('k1', target));
+
+  assert.match(html, /backstory-asset:\/\/k1\/abc\.png/);
+  assert.match(html, /width="320"/);
+
+  const back = htmlToMarkdown(html, assetPath);
+  assert.match(back, /<img src="assets\/abc\.png"[^>]*width="320">/);
+  assert.ok(!back.includes('backstory-asset'), 'Protokoll-URL blieb im Markdown stehen');
+});
+
+test('Bilder ohne Breite bleiben gewoehnliches Markdown', () => {
+  const back = htmlToMarkdown(markdownToHtml('![Szene](assets/abc.png)', (t) => assetUrl('k1', t)), assetPath);
+  assert.match(back, /!\[Szene\]\(assets\/abc\.png\)/);
+  assert.ok(!back.includes('<img'), 'ohne Breite wurde unnötig HTML erzeugt');
+});

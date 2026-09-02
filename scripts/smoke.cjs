@@ -61,6 +61,22 @@ async function fillDialog(window, value, confirmLabel) {
   await sleep(500);
 }
 
+/**
+ * Drueckt einen Knopf der Werkzeugleiste. Die reagiert auf mousedown statt
+ * click, damit der Editor den Fokus behaelt.
+ */
+async function pressToolbar(window, label) {
+  await run(
+    window,
+    `const button = [...document.querySelectorAll('.toolbar button')]
+       .find((b) => b.textContent === ${JSON.stringify(label)});
+     if (!button) throw new Error('Werkzeug nicht gefunden: ' + ${JSON.stringify(label)});
+     button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+     return true;`
+  );
+  await sleep(400);
+}
+
 /** Waehlt eine Notiz ueber die Liste in der Seitenleiste aus. */
 async function selectNote(window, title) {
   await run(
@@ -438,6 +454,35 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelectorAll('.ProseMirror img').length === 1;`),
       'Bild wurde nicht in den Text eingefügt');
 
+    // Bildbreite setzen: die Knöpfe erscheinen nur bei ausgewähltem Bild
+    await run(
+      window,
+      `const image = document.querySelector('.ProseMirror img');
+       image.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+       image.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+       image.click();
+       return true;`
+    );
+    await sleep(600);
+    const hasWidthButtons = await run(
+      window,
+      `return [...document.querySelectorAll('.toolbar button')].some((b) => b.textContent === '200');`
+    );
+    if (hasWidthButtons) {
+      await pressToolbar(window, '200');
+      await sleep(600);
+      const attrs = await run(
+        window,
+        `const img = document.querySelector('.ProseMirror img');
+         return JSON.stringify({
+           width: img.getAttribute('width'),
+           selected: img.classList.contains('ProseMirror-selectednode'),
+           buttons: [...document.querySelectorAll('.toolbar button')].map((b) => b.textContent)
+         });`
+      );
+      check(JSON.parse(attrs).width === '200', `Bildbreite wurde nicht gesetzt: ${attrs}`);
+    }
+
     await save(window);
 
     // Im Markdown muss ein relativer Verweis stehen, kein Protokoll und kein Base64
@@ -447,8 +492,14 @@ app.whenReady().then(async () => {
       const notesDir = path.join(campaignsDir, campaignId, 'notes');
       const files = fs.readdirSync(notesDir).map((name) => fs.readFileSync(path.join(notesDir, name), 'utf8'));
 
-      check(files.some((raw) => /!\[[^\]]*\]\(assets\/[^)]+\.png\)/.test(raw)),
-        'Bild steht nicht als relativer Verweis im Markdown');
+      // Ohne Breite steht das Bild als Markdown, mit Breite als inline-HTML.
+      // Beides muss den relativen Pfad behalten.
+      check(
+        files.some((raw) => /!\[[^\]]*\]\(assets\/[^)]+\.png\)/.test(raw) || /<img[^>]*src="assets\/[^"]+\.png"/.test(raw)),
+        'Bild steht nicht als relativer Verweis im Markdown'
+      );
+      check(files.every((raw) => !/<img[^>]*src="backstory-asset/.test(raw)),
+        'Protokoll-URL steht im gespeicherten HTML');
       check(files.every((raw) => !raw.includes('backstory-asset://')),
         'Protokoll-URL wurde ins Markdown geschrieben');
       check(files.every((raw) => !raw.includes('data:image')), 'Bild wurde als Base64 eingebettet');
