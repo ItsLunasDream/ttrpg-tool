@@ -329,7 +329,7 @@ const de = {
   'graph.nodes': '{nodes} Notizen, {edges} Verbindungen',
   'graph.zoomIn': 'Vergrößern',
   'graph.zoomOut': 'Verkleinern',
-  'graph.zoomReset': 'Ansicht zurücksetzen',
+  'graph.zoomReset': 'Zoom zurücksetzen',
   'graph.filterType': 'Typen',
   'graph.allTypes': 'Alle',
   'graph.hintFull':
@@ -697,7 +697,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'graph.nodes': '{nodes} notes, {edges} connections',
   'graph.zoomIn': 'Zoom in',
   'graph.zoomOut': 'Zoom out',
-  'graph.zoomReset': 'Reset the view',
+  'graph.zoomReset': 'Reset zoom',
   'graph.filterType': 'Types',
   'graph.allTypes': 'All',
   'graph.hintFull':

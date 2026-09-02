@@ -808,7 +808,7 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelector('.graph__canvas').getAttribute('viewBox') !== ${JSON.stringify(zoomed)};`),
       'Zoom verändert die Ansicht nicht');
 
-    await clickButton(window, 'Ansicht zurücksetzen', "document.querySelector('.graph__bar')");
+    await clickButton(window, 'Zoom zurücksetzen', "document.querySelector('.graph__bar')");
     await sleep(500);
     check(await run(window, `return document.querySelector('.graph__canvas').getAttribute('viewBox') === '0 0 1200 780';`),
       'Zurücksetzen der Ansicht wirkt nicht');

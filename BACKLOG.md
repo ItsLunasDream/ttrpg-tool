@@ -64,6 +64,26 @@ Offen bleibt der Fall vieler Kanten insgesamt: dafür gibt es die Notbremse
 Knoten unter der Maus zeigt. Ob sie nach dieser Änderung noch gebraucht wird,
 zeigt sich erst in der Benutzung.
 
+### Graph: verschobene Knoten behalten ihre Stelle
+
+Zieht man einen Knoten an eine andere Stelle, sitzt er beim nächsten Öffnen
+wieder dort, wo die Berechnung ihn hingelegt hat. Wer sich sein Netz einmal
+ordentlich hingelegt hat, verliert das also.
+
+Die Anordnung soll gespeichert werden. Der Ort dafür ist `campaign.json`, nicht
+die Notizdateien: eine Position im Graphen sagt nichts über die Notiz aus und
+hätte im YAML-Kopf nichts zu suchen. Der Eintrag hängt an der Notiz-ID, gelöschte
+Notizen fallen beim Lesen raus.
+
+Zu klären:
+- Verschobene Knoten dürfen von „Neu anordnen" überschrieben werden, das ist
+  der Sinn des Knopfes. Vielleicht ergänzt um eine Rückfrage, wenn von Hand
+  gesetzte Stellen dabei verlorengehen
+- Ein Knoten ohne gespeicherte Stelle (neue Notiz) bekommt seine aus der
+  Berechnung. Die übrigen dürfen sich dabei nicht mitverschieben, sonst
+  wandert das ganze Netz, sobald eine Notiz dazukommt
+- Speichern erst beim Loslassen, nicht während des Ziehens
+
 ### Graph: laufende Simulation beim Ziehen
 
 Die Anordnung wird einmal berechnet. Zieht man einen Knoten, folgen die
