@@ -169,6 +169,15 @@ export function NoteEditor(props: Props) {
                           {option}
                         </option>
                       ))}
+                      {/*
+                        Ein eingetragener Wert, der nicht mehr zur Auswahl steht,
+                        weil jemand die Liste geaendert hat. Ohne diesen Eintrag
+                        stuende das Feld leer da, obwohl der Wert in der Datei
+                        weiter vorhanden ist.
+                      */}
+                      {value && !(field.options ?? []).includes(value) ? (
+                        <option value={value}>{t('field.notInList', { value })}</option>
+                      ) : null}
                     </select>
                   ) : field.type === 'checkbox' ? (
                     <input
