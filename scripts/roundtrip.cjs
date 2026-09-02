@@ -31,6 +31,10 @@ const run = (window, body) => window.webContents.executeJavaScript(`(() => { ${b
 const PROBEN = [
   { name: 'Tabelle', text: '| Jahr | Ereignis |\n| --- | --- |\n| 712 | Geboren |\n| 730 | Verbannt |' },
   { name: 'Tabelle mit Strich in der Zelle', text: '| A | B |\n| --- | --- |\n| x \\| y | z |' },
+  {
+    name: 'Wiki-Link mit Alias in einer Tabelle',
+    text: '| Wer | Notiz |\n| --- | --- |\n| [[Mira\\|ihr]] | dazu |'
+  },
   { name: 'Ueberschriften', text: '# Eins\n\n## Zwei\n\n### Drei' },
   { name: 'Tiefe Ueberschrift', text: '#### Vier\n\nText.' },
   { name: 'Zitat', text: '> Sie sagte nichts.\n>\n> Dann ging sie.' },

@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { BrowserWindow } from 'electron';
 import { marked } from 'marked';
+import { wikiLinkText } from '../shared/wikilinks';
 import { findNoteType } from '../shared/noteTypes';
 import type { Note, NoteTypeDef } from '../shared/types';
 import { formatFieldValue, type ExportLabels } from './markdownExport';
@@ -94,8 +95,7 @@ function renderNote(note: Note, context: PdfContext): string {
   }
 
   // Wiki-Links werden zu ihrem Anzeigetext: im PDF ist nichts klickbar.
-  const body = note.body
-    .replace(/\[\[([^[\]|]+)(?:\|([^[\]]*))?\]\]/g, (_whole, target: string, label?: string) => label || target)
+  const body = wikiLinkText(note.body)
     .replace(/!\[([^\]]*)\]\((assets\/[^)\s]+)\)/g, (whole, alt: string, target: string) => {
       const resolved = context.resolveAsset(target);
       return resolved ? `![${alt}](${fileUrl(resolved)})` : whole;

@@ -1,5 +1,6 @@
 import { marked } from 'marked';
 import TurndownService from 'turndown';
+import { wikiLinkText } from '../../shared/wikilinks';
 
 const turndown = new TurndownService({
   headingStyle: 'atx',
@@ -165,10 +166,9 @@ export function htmlToMarkdown(html: string, toRelative?: (url: string) => strin
  * Wiki-Links werden auf ihren Anzeigetext reduziert.
  */
 export function stripMarkdown(markdown: string): string {
-  return markdown
+  return wikiLinkText(markdown)
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`([^`]*)`/g, '$1')
-    .replace(/\[\[([^[\]|]+)(?:\|([^[\]]*))?\]\]/g, (_whole, target: string, label?: string) => label || target)
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/^\s{0,3}#{1,6}\s+/gm, '')
     .replace(/^\s{0,3}>\s?/gm, '')
