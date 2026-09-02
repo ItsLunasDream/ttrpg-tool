@@ -48,8 +48,17 @@ const PROBEN = [
   { name: 'Link', text: 'Siehe [Handbuch](https://example.org) und [[Mira]].' },
   { name: 'Blosse Adresse', text: 'Siehe https://example.org heute.' },
   { name: 'Blosse E-Mail-Adresse', text: 'Schreib an mira@example.org bitte.' },
-  { name: 'Wiki-Link mit Unterstrich im Titel', text: 'Sie wohnt in [[Haus_am_See]] und [[Ort #1]].' },
-  { name: 'Adresse mit doppelter Klammer', text: 'Siehe https://example.org/x?a=[[b]] dazu.' },
+  {
+    name: 'Wiki-Link mit Sonderzeichen im Titel',
+    text: 'Sie wohnt in [[Haus_am_See]], [[Der *Turm*]] und [[Ort #1]].'
+  },
+  {
+    name: 'Adresse mit doppelter Klammer',
+    text: 'Siehe https://example.org/x?a=[[b]] dazu.',
+    // Die Klammern muessen maskiert werden, also wird die Adresse zur
+    // ausgeschriebenen Linkschreibweise. Sie bleibt dabei heil.
+    erwartet: 'Siehe [https://example.org/x?a=\\[\\[b\\]\\]](https://example.org/x?a=%5B%5Bb%5D%5D) dazu.'
+  },
   {
     name: 'Adresse mit Klammer',
     text: 'Siehe https://example.org/a[b_c dazu.',

@@ -1,6 +1,6 @@
 import { marked } from 'marked';
 import TurndownService from 'turndown';
-import { WIKI_LINK_PATTERN, wikiLinkText } from '../../shared/wikilinks';
+import { maskWikiLinks, wikiLinkText } from '../../shared/wikilinks';
 
 const turndown = new TurndownService({
   headingStyle: 'atx',
@@ -13,38 +13,22 @@ const turndown = new TurndownService({
 });
 
 /**
- * Turndown maskiert Markdown-Sonderzeichen im Fliesstext. Ein Wiki-Link
- * darf davon nichts abbekommen: aus `[[Haus_am_See]]` wuerde sonst
+ * Turndown maskiert Markdown-Sonderzeichen im Fliesstext. Ein Wiki-Link darf
+ * davon nichts abbekommen: aus `[[Haus_am_See]]` wuerde sonst
  * `[[Haus\_am\_See]]`, und beim naechsten Laden waere es kein Link mehr,
  * ohne Ruecklink und ohne dass Umbenennen ihn noch faende.
  *
- * Deshalb bleiben Wiki-Links unangetastet und nur der Text dazwischen wird
- * maskiert. Frueher wurde stattdessen nachtraeglich entmaskiert, was auch
- * einzelne Klammern im uebrigen Text traf.
+ * Maskiert wird deshalb der Text ohne die Links, danach kommen sie
+ * unveraendert zurueck. Sie stueckweise um die Links herum zu maskieren
+ * waere falsch: Turndowns Regeln haengen am Zeilenanfang, und ein Stueck
+ * mitten in der Zeile faengt fuer sie eine neue an.
  */
 const escapeText = turndown.escape.bind(turndown);
 
 turndown.escape = (text: string) => {
-  const pattern = new RegExp(WIKI_LINK_PATTERN.source, 'g');
-  let out = '';
-  let last = 0;
-
-  for (const match of text.matchAll(pattern)) {
-    out += escapeText(text.slice(last, match.index)) + match[0];
-    last = match.index + match[0].length;
-  }
-
-  return out + escapeText(text.slice(last));
+  const { masked, restore } = maskWikiLinks(text);
+  return restore(escapeText(masked));
 };
-
-/** encodeURI, ohne bei ungueltigen Zeichenfolgen zu werfen. */
-function encodeUri(text: string): string {
-  try {
-    return encodeURI(text);
-  } catch {
-    return text;
-  }
-}
 
 /**
  * Turndown kennt Durchstreichen nicht und wuerde die Auszeichnung ersatzlos
@@ -140,7 +124,11 @@ turndown.addRule('bareLink', {
     // Adresse im Text und mailto: davor im Verweis. Und es kodiert
     // Sonderzeichen im Verweis, waehrend im Text die Adresse steht, wie sie
     // getippt wurde.
-    if (href !== text && href !== `mailto:${text}` && href !== encodeUri(text)) return false;
+    // Die kodierte Fassung zaehlt nur ohne Leerraum: sonst wuerde aus einem
+    // Verweis mit Leerzeichen eine blosse Adresse, die beim naechsten Laden
+    // am Leerzeichen abbricht.
+    const encoded = /\s/.test(text) ? null : encodeUri(text);
+    if (href !== text && href !== `mailto:${text}` && href !== encoded) return false;
 
     // Muss im Text etwas maskiert werden, taugt die blosse Schreibweise
     // nicht: aus mira_x@example.org wuerde mira\_x@example.org, und die
@@ -185,7 +173,17 @@ export function markdownToHtml(markdown: string, resolveAsset?: AssetResolver): 
 
   const prepared = resolveAsset ? replace(replace(markdown, ASSET_MARKDOWN), ASSET_HTML) : markdown;
 
-  return marked.parse(prepared, { async: false }) as string;
+  // Ohne diesen Schutz macht der Markdown-Leser aus [[Der *Turm*]] kursiven
+  // Text und schneidet den Link dabei in Stuecke. Zurueck kaeme er dann nicht
+  // mehr als Link.
+  const { masked, restore } = maskWikiLinks(prepared);
+
+  // Beim Zuruecksetzen faellt die Maskierung des Senkrechtstrichs weg: in
+  // einer Tabellenzelle muss sie in der Datei stehen, im Dokument gehoert
+  // dort der blosse Strich hin. Beim Speichern wird sie neu gesetzt.
+  return restore(marked.parse(masked, { async: false }) as string, (link) =>
+    escapeHtml(link.replace(/\\\|/g, '|'))
+  );
 }
 
 /**
@@ -294,4 +292,18 @@ export function textPreview(markdown: string, maxChars = 220): string {
   const cut = plain.slice(0, maxChars);
   const lastSpace = cut.lastIndexOf(' ');
   return `${(lastSpace > maxChars * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()} …`;
+}
+
+/** Zeichen, die in HTML eine Bedeutung haben. Fuer zurueckgesetzte Wiki-Links. */
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** encodeURI, ohne bei ungueltigen Zeichenfolgen zu werfen. */
+function encodeUri(text: string): string {
+  try {
+    return encodeURI(text);
+  } catch {
+    return text;
+  }
 }
