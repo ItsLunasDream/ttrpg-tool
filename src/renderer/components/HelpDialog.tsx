@@ -16,6 +16,7 @@ const ROWS: { keys: (ctrl: string, click: string) => string; key: MessageKey }[]
   { keys: () => 'F3 / ⇧ F3', key: 'help.nextMatch' },
   { keys: () => '[[', key: 'help.link' },
   { keys: (ctrl, click) => `${ctrl} + ${click}`, key: 'help.openLink' },
+  { keys: (ctrl, click) => `${ctrl} + ${click}`, key: 'help.openExternal' },
   { keys: (ctrl) => `${ctrl} + B / I`, key: 'help.format' },
   { keys: () => '⇥', key: 'help.suggestion' }
 ];

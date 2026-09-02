@@ -225,7 +225,10 @@ const ALLOWED_SAME = new Set([
   'fieldType.url',
   'graph.open',
   'settings.apiKeyPlaceholder',
-  'toolbar.code'
+  'toolbar.code',
+  // „Link" heisst in beiden Sprachen gleich.
+  'toolbar.link',
+  'link.title'
 ]);
 
 test('jeder deutsche Schluessel hat eine englische Entsprechung', () => {
@@ -594,4 +597,14 @@ test('Durchgestrichener Text ueberlebt den Rundlauf', () => {
 
 test('Trennlinien behalten ihre Schreibweise', () => {
   assert.equal(htmlToMarkdown(markdownToHtml('oben\n\n---\n\nunten')), 'oben\n\n---\n\nunten');
+});
+
+test('Ein blosser Link wird nicht in Klammerschreibweise umgeschrieben', () => {
+  // Markdown macht aus einer nackten Adresse automatisch einen Link. Ohne
+  // eigene Regel stuende nach dem Speichern [https://x](https://x) im Text.
+  assert.equal(htmlToMarkdown(markdownToHtml('Siehe https://example.org heute.')), 'Siehe https://example.org heute.');
+  assert.equal(
+    htmlToMarkdown(markdownToHtml('Siehe [Handbuch](https://example.org).')),
+    'Siehe [Handbuch](https://example.org).'
+  );
 });

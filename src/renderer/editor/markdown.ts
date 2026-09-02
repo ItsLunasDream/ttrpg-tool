@@ -28,6 +28,20 @@ turndown.addRule('strikethrough', {
 });
 
 /**
+ * Steht im Text nur die nackte Adresse, macht Markdown daraus automatisch
+ * einen Link. Ohne diese Regel schriebe Turndown ihn als
+ * [https://x](https://x) zurueck und der Text saehe nach dem Speichern
+ * anders aus als vorher.
+ */
+turndown.addRule('bareLink', {
+  filter: (node) =>
+    node.nodeName === 'A' &&
+    Boolean((node as HTMLAnchorElement).getAttribute('href')) &&
+    (node as HTMLAnchorElement).getAttribute('href') === node.textContent,
+  replacement: (content) => content
+});
+
+/**
  * Bilder mit gesetzter Breite bleiben als HTML stehen. Markdown kann keine
  * Groesse ausdruecken, inline-HTML ist aber gueltiges Markdown und wird auch
  * von Obsidian dargestellt.

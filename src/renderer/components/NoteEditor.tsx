@@ -135,6 +135,7 @@ export function NoteEditor(props: Props) {
             onImportImage={props.onImportImage}
             onPickImage={props.onPickImage}
             onReport={props.onReport}
+            onOpenExternal={props.onOpenExternal}
             onChange={(body) => onPatch({ body })}
             onOpenNote={props.onOpenNote}
             onCreateNote={props.onCreateNote}

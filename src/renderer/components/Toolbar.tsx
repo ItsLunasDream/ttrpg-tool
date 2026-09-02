@@ -5,6 +5,7 @@ import { IMAGE_WIDTHS } from '../editor/sizedImage';
 interface Props {
   editor: Editor | null;
   onInsertImage: () => void;
+  onEditLink: () => void;
 }
 
 interface Action {
@@ -28,7 +29,7 @@ const ACTIONS: Action[] = [
   { label: '―', title: (t) => t('toolbar.rule'), run: (e) => e.chain().focus().setHorizontalRule().run() }
 ];
 
-export function Toolbar({ editor, onInsertImage }: Props) {
+export function Toolbar({ editor, onInsertImage, onEditLink }: Props) {
   const t = useT();
   if (!editor) return <div className="toolbar" />;
 
@@ -65,6 +66,18 @@ export function Toolbar({ editor, onInsertImage }: Props) {
             </button>
           ))
         : null}
+
+      <button
+        type="button"
+        title={t('toolbar.link')}
+        className={editor.isActive('link') ? 'is-active' : undefined}
+        onMouseDown={(event) => {
+          event.preventDefault();
+          onEditLink();
+        }}
+      >
+        🔗
+      </button>
 
       <button
         type="button"

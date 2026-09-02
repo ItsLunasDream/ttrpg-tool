@@ -113,6 +113,10 @@ beim Umbenennen der Beschriftung unverändert, sonst gingen eingetragene Werte
 verloren. Und ein entferntes Feld löscht keine Werte: sie bleiben in der
 Notizdatei und erscheinen wieder, wenn das Feld zurückgeholt wird.
 
+**Links ins Netz** stehen als `[Text](https://…)`. Setzen über den Knopf in
+der Werkzeugleiste oder indem man eine Adresse über markierten Text einfügt.
+Strg+Klick öffnet sie im Systembrowser.
+
 **Wiki-Links** stehen als `[[Titel]]` bzw. `[[Titel|Anzeigetext]]` im Klartext.
 Beim Umbenennen einer Notiz werden alle Vorkommen in der Kampagne mitgezogen,
 Links gehen also durch Umbenennen nicht verloren.

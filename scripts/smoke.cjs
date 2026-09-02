@@ -938,6 +938,52 @@ app.whenReady().then(async () => {
       await run(window, `return !document.querySelector('.ProseMirror').textContent.includes('Nachtrag');`),
       'Der alte Stand wurde nicht wiederhergestellt'
     );
+    // 21b. Link im Fliesstext setzen und speichern
+    await selectNote(window, 'Toran');
+    await run(
+      window,
+      `const view = document.querySelector('.ProseMirror');
+       view.focus();
+       const range = document.createRange();
+       range.selectNodeContents(view);
+       range.collapse(false);
+       const selection = window.getSelection();
+       selection.removeAllRanges();
+       selection.addRange(range);
+       document.execCommand('insertText', false, ' Handbuch');
+       return true;`
+    );
+    await sleep(400);
+    // Das eben getippte Wort markieren, damit der Link daran haengt.
+    await run(
+      window,
+      `const view = document.querySelector('.ProseMirror');
+       const selection = window.getSelection();
+       selection.modify('extend', 'backward', 'word');
+       return selection.toString();`
+    );
+    await sleep(300);
+    await pressToolbar(window, '\u{1f517}');
+    await sleep(600);
+    check(await run(window, `return Boolean(document.querySelector('.modal input'));`), 'Link-Dialog öffnet nicht');
+    await run(
+      window,
+      `setValue(document.querySelector('.modal input'), 'https://example.org/regeln');
+       return true;`
+    );
+    await sleep(300);
+    await clickButton(window, 'Übernehmen', "document.querySelector('.modal')");
+    await sleep(600);
+    await save(window);
+    await sleep(900);
+    {
+      const dateien = fs.readdirSync(notesDir).map((n) => fs.readFileSync(path.join(notesDir, n), 'utf8'));
+      check(
+        dateien.some((raw) => raw.includes('[Handbuch](https://example.org/regeln)')),
+        'Der Link steht nicht in der Datei'
+      );
+    }
+
     // 22. Hilfe: Tastenkürzel müssen auffindbar sein
     await clickButton(window, 'Hilfe');
     await sleep(600);
