@@ -694,3 +694,39 @@ test('Umbenennen bricht Links in anderen Notizen nicht auf', async () => {
     assert.equal(updated.body.trim(), 'Er schuldet [[Mira]] Gold.');
   });
 });
+
+test('Fremde Frontmatter-Schluessel ueberleben das Speichern', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const file = path.join(root, 'campaigns', campaign.id, 'notes', `${mira.id}.md`);
+
+    // Wie es passiert, wenn jemand die Datei in Obsidian oder einem
+    // Texteditor um eigene Angaben ergaenzt.
+    const raw = await readFile(file, 'utf8');
+    await writeFile(file, raw.replace('title: Mira', 'title: Mira\ncssclass: karteikarte\nstufe: 5'));
+
+    const reloaded = await vault.getNote(campaign.id, mira.id);
+    await vault.saveNote(campaign.id, { ...reloaded, body: 'Neuer Text.' });
+
+    const after = await readFile(file, 'utf8');
+    assert.match(after, /cssclass: karteikarte/);
+    assert.match(after, /stufe: 5/);
+    assert.match(after, /Neuer Text\./);
+  });
+});
+
+test('Auch ein Frontmatter-Schluessel namens constructor bleibt erhalten', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const file = path.join(root, 'campaigns', campaign.id, 'notes', `${mira.id}.md`);
+
+    const raw = await readFile(file, 'utf8');
+    await writeFile(file, raw.replace('title: Mira', 'title: Mira\nconstructor: eigen'));
+
+    const reloaded = await vault.getNote(campaign.id, mira.id);
+    await vault.saveNote(campaign.id, { ...reloaded, body: 'Text.' });
+    assert.match(await readFile(file, 'utf8'), /constructor: eigen/);
+  });
+});

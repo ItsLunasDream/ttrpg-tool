@@ -484,10 +484,42 @@ export class Vault {
     await fs.mkdir(path.dirname(file), { recursive: true });
 
     const { body, ...meta } = note;
-    const content = stringifyFrontmatter(meta as unknown as Record<string, unknown>, body);
+    const content = stringifyFrontmatter(
+      { ...meta, ...(await this.foreignKeys(file, meta)) } as unknown as Record<string, unknown>,
+      body
+    );
 
     await this.snapshot(campaignId, note.id, content);
     await writeAtomic(file, content);
+  }
+
+  /**
+   * Frontmatter-Angaben, die nicht zum Datenmodell gehoeren. Die Dateien
+   * sollen in Obsidian oder einem Texteditor bearbeitbar bleiben; ergaenzt
+   * jemand dort eigene Schluessel, wuerde ein Speichern sie sonst
+   * stillschweigend loeschen.
+   */
+  private async foreignKeys(file: string, known: object): Promise<Record<string, unknown>> {
+    let raw: string;
+    try {
+      raw = await fs.readFile(file, 'utf8');
+    } catch {
+      return {};
+    }
+
+    let data: Record<string, unknown>;
+    try {
+      ({ data } = parseFrontmatter(raw));
+    } catch {
+      // Kaputtes YAML: nichts zu retten, findUnreadableNotes meldet es.
+      return {};
+    }
+
+    const foreign: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (!Object.hasOwn(known, key)) foreign[key] = value;
+    }
+    return foreign;
   }
 
   // --- Versionsverlauf -----------------------------------------------------
