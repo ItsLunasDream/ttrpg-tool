@@ -194,7 +194,9 @@ export function BodyEditor({
 
           // Alles andere waere ein Verweis, den der Editor gar nicht erst
           // anlegt, und der Hauptprozess wiese ihn ohnehin ab.
-          if (!LINK_PROTOCOLS.some((scheme) => href.startsWith(`${scheme}:`))) return false;
+          // Kleingeschrieben vergleichen: HTTPS: ist derselbe Verweis.
+          const scheme = href.slice(0, href.indexOf(':')).toLowerCase();
+          if (!LINK_PROTOCOLS.includes(scheme)) return false;
 
           event.preventDefault();
           onOpenExternal(href);

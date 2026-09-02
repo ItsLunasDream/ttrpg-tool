@@ -110,7 +110,13 @@ turndown.addRule('bareLink', {
     // Adresse im Text und mailto: davor im Verweis.
     return href === node.textContent || href === `mailto:${node.textContent}`;
   },
-  replacement: (content) => content
+  replacement: (content, node) => {
+    // Musste Turndown im Text etwas maskieren, taugt die blosse Schreibweise
+    // nicht: aus mira_x@example.org wuerde mira\_x@example.org, und die
+    // automatische Erkennung faende dann nur den Rest hinter der Maskierung.
+    if (content === node.textContent) return content;
+    return `[${content}](${(node as HTMLAnchorElement).getAttribute('href')})`;
+  }
 });
 
 /**
@@ -159,16 +165,29 @@ export function markdownToHtml(markdown: string, resolveAsset?: AssetResolver): 
  * Markdown ein harter Umbruch und kein Rest.
  */
 function tidyBlankLines(markdown: string): string {
-  let inCode = false;
+  let open: string | null = null;
+
   return markdown
     .split('\n')
     .map((line) => {
+      const fence = FENCE_LINE.exec(line);
+      if (fence) {
+        const marker = fence[2];
+        // Ein Zaun schliesst nur, wenn er dasselbe Zeichen benutzt und
+        // mindestens so lang ist. Sonst darf ein laengerer Zaun einen
+        // kuerzeren enthalten.
+        if (open === null) open = marker;
+        else if (marker[0] === open[0] && marker.length >= open.length) open = null;
+      }
+
       // In einem Codeblock sind Leerzeichen Inhalt, nicht Rest.
-      if (/^\s*```/.test(line)) inCode = !inCode;
-      return inCode ? line : line.replace(/^([\t >]*?)[ \t]+$/, '$1');
+      return open !== null || fence ? line : line.replace(/^([\t >]*?)[ \t]+$/, '$1');
     })
     .join('\n');
 }
+
+/** Zaun eines Codeblocks, auch eingerueckt und in einem Zitat. */
+const FENCE_LINE = /^(\s*(?:>\s?)*)(`{3,}|~{3,})/;
 
 export function htmlToMarkdown(html: string, toRelative?: (url: string) => string | null): string {
   const markdown = tidyBlankLines(turndown.turndown(html)).trim();
@@ -196,13 +215,31 @@ export function stripMarkdown(markdown: string): string {
     .replace(/^\s{0,3}>\s?/gm, '')
     .replace(/^\s{0,3}([-*+]|\d+\.)\s+/gm, '')
     .replace(/^\s{0,3}([-*_])\s*\1\s*\1[-*_\s]*$/gm, '')
-    // Tabellen: die Trennzeile ganz weg, sonst nur die Striche. Verlangt
-    // werden drei Striche je Zelle, sonst faellt eine Datenzeile wie
-    // "| - | - |" der Regel zum Opfer.
-    .replace(/^\s*\|(?:\s*:?-{3,}:?\s*\|)+\s*$/gm, '')
-    .replace(/^\s*\|(.*)\|\s*$/gm, (_whole, row: string) => row.replace(/(?<!\\)\|/g, ' '))
-    .replace(/\\\|/g, '|')
-    .replace(/(\*\*|__|\*|_|~~)/g, '');
+    .replace(/(\*\*|__|\*|_|~~)/g, '')
+    .split('\n')
+    .map(stripTableRow)
+    .join('\n');
+}
+
+const TABLE_ROW = /^\s*\|(.*)\|\s*$/;
+/** Eine Trennzeile besteht nur aus Strichen, Doppelpunkten und Trennern. */
+const TABLE_RULE = /^\s*\|(?:\s*:?-+:?\s*\|)+\s*$/;
+
+/**
+ * Macht aus einer Tabellenzeile lesbaren Text. Die Trennzeile faellt ganz weg.
+ *
+ * Sie wird an ihrer Stelle erkannt, nicht an ihrer Form: eine Datenzeile kann
+ * genauso aussehen. Nach Markdown steht die Trennzeile unmittelbar unter der
+ * Kopfzeile, also unter der ersten Zeile einer Tabelle.
+ */
+function stripTableRow(line: string, index: number, lines: string[]): string {
+  const row = TABLE_ROW.exec(line);
+  if (!row) return line;
+
+  const isSecondRow = index > 0 && TABLE_ROW.test(lines[index - 1]) && !TABLE_ROW.test(lines[index - 2] ?? '');
+  if (isSecondRow && TABLE_RULE.test(line)) return '';
+
+  return row[1].replace(/(?<!\\)\|/g, ' ').replace(/\\\|/g, '|');
 }
 
 /** Zaehlt Woerter im Markdown-Rumpf, ohne Syntax mitzuzaehlen. */

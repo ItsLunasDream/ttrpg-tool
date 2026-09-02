@@ -735,3 +735,36 @@ test('Eine Datenzeile aus Strichen wird nicht fuer eine Trennzeile gehalten', ()
   assert.ok(text.includes('b'), text);
   assert.ok(/-/.test(text), `Die Datenzeile fehlt: ${text}`);
 });
+
+test('Eine E-Mail-Adresse mit Unterstrich bleibt ein richtiger Link', () => {
+  // Turndown maskiert den Unterstrich. Als blosse Adresse geschrieben,
+  // begaenne die automatische Erkennung erst nach der Maskierung und der
+  // Link zeigte auf die falsche Adresse.
+  const back = htmlToMarkdown(markdownToHtml('Schreib an mira_x@example.org bitte.'));
+  assert.equal(htmlToMarkdown(markdownToHtml(back)), back);
+  assert.ok(back.includes('mira_x@example.org') || back.includes('mailto:mira_x@example.org'), back);
+});
+
+test('Ein Zaun im Codeblock bringt die Erkennung nicht durcheinander', () => {
+  // Ein laengerer Zaun darf einen kuerzeren enthalten. Wird der als Ende
+  // gelesen, gilt der Rest des Textes faelschlich als Code.
+  const markdown = '````\ncode mit ``` darin\n````\n\nText.\n\n```\neins\n   \nzwei\n```';
+  assert.equal(htmlToMarkdown(markdownToHtml(markdown)).includes('eins\n   \nzwei'), true);
+});
+
+test('Eine Trennzeile mit einem Strich je Zelle wird erkannt', () => {
+  for (const trenner of ['| - | - |', '|:--|--:|', '| --- | --- |']) {
+    const text = stripMarkdown(`| Wer | Was |\n${trenner}\n| a | b |`);
+    assert.ok(!text.includes('-'), `${trenner} blieb stehen: ${text}`);
+  }
+});
+
+test('Eine Datenzeile aus Strichen bleibt erhalten', () => {
+  // Dieselbe Zeile, aber nicht an zweiter Stelle: dann ist sie Inhalt.
+  const text = stripMarkdown('| Wer | Was |\n| --- | --- |\n| - | - |\n| a | b |');
+  assert.ok(/-/.test(text), `Die Datenzeile fehlt: ${text}`);
+});
+
+test('Woerter in einer Tabelle werden richtig gezaehlt', () => {
+  assert.equal(countWords('| Wer | Was |\n| --- | --- |\n| Mira | Bogen |'), 4);
+});
