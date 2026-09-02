@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { net, protocol } from 'electron';
 import type { Vault } from './vault';
 
@@ -36,7 +37,10 @@ export function handleAssetProtocol(vault: Vault): void {
       const file = vault.assetFile(campaignId, fileName);
       await fs.access(file);
 
-      return net.fetch(`file://${path.resolve(file)}`);
+      // pathToFileURL statt Zusammenbauen: der Speicherort wird frei
+      // gewaehlt und darf # oder ? enthalten, die in einer URL sonst
+      // Fragment bzw. Abfrage einleiten wuerden.
+      return net.fetch(pathToFileURL(path.resolve(file)).href);
     } catch {
       return new Response('Not found', { status: 404 });
     }
