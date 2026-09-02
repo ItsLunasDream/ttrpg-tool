@@ -221,7 +221,14 @@ export function NoteEditor(props: Props) {
             onAddReverse={props.onAddReverseRelation}
           />
 
-          <AssistantPanel status={props.aiStatus} onAsk={props.onAsk} />
+          {/*
+            Der Schluessel setzt das Gespraech beim Notizwechsel zurueck.
+            Als Kontext geht immer die offene Notiz mit; ein Verlauf ueber
+            eine andere Notiz haette das Modell in die Irre gefuehrt, und
+            auf dem Schirm stuenden Antworten zu einer Notiz, die gar
+            nicht mehr offen ist.
+          */}
+          <AssistantPanel key={note.id} status={props.aiStatus} onAsk={props.onAsk} />
 
           <BacklinksPanel
             backlinks={backlinks}
