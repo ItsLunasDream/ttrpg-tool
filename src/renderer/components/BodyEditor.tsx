@@ -10,7 +10,7 @@ import TableHeader from '@tiptap/extension-table-header';
 import { SizedImage } from '../editor/sizedImage';
 import { createWikiLinkExtension, type SuggestionState } from '../editor/wikiLinkExtension';
 import { createSearchHighlightExtension, replaceMatches, selectMatch } from '../editor/searchHighlight';
-import { htmlToMarkdown, markdownToHtml } from '../editor/markdown';
+import { escapeHtml, htmlToMarkdown, markdownToHtml } from '../editor/markdown';
 import { assetPath, assetUrl, isImageFile } from '../editor/assets';
 import { normalizeName } from '../../shared/wikilinks';
 import type { NoteIndex } from '../noteIndex';
@@ -137,6 +137,10 @@ export function BodyEditor({
     const editor = editorRef.current;
     if (!editor || !transfer || transfer.types.includes('text/html')) return false;
 
+    // In einem Codeblock gehoert Eingefuegtes woertlich hinein, sonst
+    // verschwaenden aus "**p;" die Sterne.
+    if (editor.isActive('codeBlock') || editor.isActive('code')) return false;
+
     const text = transfer.getData('text/plain');
     if (!text.trim()) return false;
 
@@ -146,11 +150,17 @@ export function BodyEditor({
       return false;
     }
 
-    const html = markdownToHtml(text, (target) => assetUrl(importRef.current.campaignId, target));
+    // Spitze Klammern im eingefuegten Text sind Text, kein HTML. Ohne diesen
+    // Schritt wuerde ein <div> darin vom Schema verworfen und der Inhalt
+    // waere stillschweigend weg.
+    const html = markdownToHtml(escapeHtml(text), (target) =>
+      assetUrl(importRef.current.campaignId, target)
+    );
 
     // Text ohne eigene Absaetze bleibt im laufenden Absatz, sonst risse ein
-    // eingefuegtes Wort den Satz auseinander.
-    const single = /^<p>([\s\S]*)<\/p>\s*$/.exec(html.trim());
+    // eingefuegtes Wort den Satz auseinander. Nur ein einzelner Absatz zaehlt,
+    // deshalb darf zwischen den Klammern kein weiterer stecken.
+    const single = /^<p>((?:(?!<\/p>)[\s\S])*)<\/p>\s*$/.exec(html.trim());
     editor.chain().focus().insertContent(single ? single[1] : html).run();
     return true;
   }

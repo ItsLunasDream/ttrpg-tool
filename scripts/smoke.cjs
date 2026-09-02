@@ -1016,6 +1016,46 @@ app.whenReady().then(async () => {
       await run(window, `return [...document.querySelectorAll('.ProseMirror strong')].some((b) => b.textContent === 'fetter');`),
       'Eingefügtes Markdown wurde nicht als Fettschrift gelesen'
     );
+    // Mehrere Absaetze duerfen keine leeren dazwischen erzeugen.
+    const leereVorher = await run(window, `return [...document.querySelectorAll('.ProseMirror p')].filter((p) => !p.textContent.trim()).length;`);
+    await run(
+      window,
+      `const view = document.querySelector('.ProseMirror');
+       view.focus();
+       const nl = String.fromCharCode(10);
+       const data = new DataTransfer();
+       data.setData('text/plain', 'Absatz eins.' + nl + nl + 'Absatz zwei.' + nl + nl + 'Ein <div>Kasten</div> bleibt Text.');
+       view.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+       return true;`
+    );
+    await sleep(800);
+    check(
+      (await run(window, `return [...document.querySelectorAll('.ProseMirror p')].filter((p) => !p.textContent.trim()).length;`)) === leereVorher,
+      'Das Einfügen mehrerer Absätze hat leere Absätze erzeugt'
+    );
+    check(
+      await run(window, `return document.querySelector('.ProseMirror').textContent.includes('<div>Kasten</div>');`),
+      'Spitze Klammern im eingefügten Text wurden als HTML gelesen'
+    );
+
+    // In einem Codeblock bleibt Eingefuegtes woertlich.
+    await pressToolbar(window, '</>');
+    await sleep(400);
+    await run(
+      window,
+      `const view = document.querySelector('.ProseMirror');
+       view.focus();
+       const data = new DataTransfer();
+       data.setData('text/plain', 'if (**p) return;');
+       view.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+       return true;`
+    );
+    await sleep(700);
+    check(
+      await run(window, `return [...document.querySelectorAll('.ProseMirror pre')].some((p) => p.textContent.includes('if (**p) return;'));`),
+      'Im Codeblock wurde das Eingefügte als Markdown gelesen'
+    );
+
     await save(window);
     await sleep(900);
     {
