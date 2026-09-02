@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { parseFrontmatter, stringifyFrontmatter } from './frontmatter';
-import { rewriteWikiLinks } from '../shared/wikilinks';
+import { hasLinkReservedChars, rewriteWikiLinks } from '../shared/wikilinks';
 import { DEFAULT_NOTE_TYPES, isKnownNoteType, toKey } from '../shared/noteTypes';
 import { defaultPrompts } from '../shared/writingPrompts';
 import type { PromptCategory } from '../shared/writingPrompts';
@@ -389,6 +389,7 @@ export class Vault {
   async createNote(campaignId: string, type: NoteType, title: string): Promise<Note> {
     const trimmed = title.trim();
     if (!trimmed) throw new VaultError('error.noteTitle');
+    assertLinkable(trimmed);
 
     const campaign = await this.readCampaign(campaignId);
     if (!isKnownNoteType(campaign.noteTypes, type)) {
@@ -416,6 +417,8 @@ export class Vault {
   async saveNote(campaignId: string, note: Note): Promise<Note> {
     const trimmed = note.title.trim();
     if (!trimmed) throw new VaultError('error.noteTitle');
+    assertLinkable(trimmed);
+    for (const alias of note.aliases) assertLinkable(alias);
 
     const updated: Note = {
       ...note,
@@ -434,6 +437,7 @@ export class Vault {
   async renameNote(campaignId: string, noteId: string, newTitle: string): Promise<{ note: Note; rewritten: number }> {
     const trimmed = newTitle.trim();
     if (!trimmed) throw new VaultError('error.noteTitle');
+    assertLinkable(trimmed);
 
     const note = await this.getNote(campaignId, noteId);
     if (note.title === trimmed) return { note, rewritten: 0 };
@@ -583,6 +587,17 @@ export class Vault {
 function assertSafeId(id: string): void {
   if (!/^[A-Za-z0-9_-]+$/.test(id)) {
     throw new VaultError('error.invalidId', { id });
+  }
+}
+
+/**
+ * Titel und Aliase sind Linkziele. Enthalten sie [ ] oder |, laesst sich die
+ * Notiz nicht mehr eindeutig verlinken, und ein Umbenennen wuerde bestehende
+ * Links in der ganzen Kampagne zerreissen.
+ */
+function assertLinkable(name: string): void {
+  if (hasLinkReservedChars(name)) {
+    throw new VaultError('error.linkChars', { name });
   }
 }
 

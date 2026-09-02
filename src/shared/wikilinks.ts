@@ -48,3 +48,15 @@ export function rewriteWikiLinks(text: string, oldTitle: string, newTitle: strin
     return label === undefined ? `[[${newTitle}]]` : `[[${newTitle}|${label}]]`;
   });
 }
+
+/**
+ * Zeichen, die im Link-Format eine Bedeutung haben. Stuenden sie in einem
+ * Titel oder Alias, liesse sich die Notiz nicht mehr eindeutig verlinken:
+ * aus `[[Mira|Falke]]` wuerde ein Link auf `Mira` mit Anzeigetext `Falke`,
+ * und ein `]]` im Titel wuerde den Link vorzeitig beenden.
+ */
+export const LINK_RESERVED_PATTERN = /[[\]|]/;
+
+export function hasLinkReservedChars(name: string): boolean {
+  return LINK_RESERVED_PATTERN.test(name);
+}

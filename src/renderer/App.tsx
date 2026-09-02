@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, call } from './api';
 import { buildIndex, filterNotes, searchNotes, type SearchFilters } from './noteIndex';
-import { normalizeName } from '../shared/wikilinks';
+import { hasLinkReservedChars, normalizeName } from '../shared/wikilinks';
 import { DEFAULT_NOTE_TYPES } from '../shared/noteTypes';
 import type {
   AppSettings,
@@ -209,12 +209,18 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
 
   const save = useCallback(() => guard(persist), [guard, persist]);
 
+  // Titel und Aliase mit [ ] oder | lehnt der Vault ab. Der Editor weist
+  // darauf hin; der Autosave wuerde bis zur Korrektur im Sekundentakt
+  // dieselbe Fehlermeldung einblenden und pausiert deshalb solange.
+  const draftLinkable =
+    !draft || ![draft.title, ...draft.aliases].some((name) => hasLinkReservedChars(name));
+
   // Autosave laeuft nur, wenn er in den Einstellungen aktiv ist.
   useEffect(() => {
-    if (!settings?.autosaveEnabled || !dirty || !draft) return;
+    if (!settings?.autosaveEnabled || !dirty || !draft || !draftLinkable) return;
     const timer = window.setTimeout(() => void save(), settings.autosaveDelayMs);
     return () => window.clearTimeout(timer);
-  }, [settings?.autosaveEnabled, settings?.autosaveDelayMs, dirty, draft, save]);
+  }, [settings?.autosaveEnabled, settings?.autosaveDelayMs, dirty, draft, draftLinkable, save]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {

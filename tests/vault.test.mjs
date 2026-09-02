@@ -654,3 +654,43 @@ test('Ohne kaputte Dateien meldet die Pruefung nichts', async () => {
     assert.deepEqual(await vault.findUnreadableNotes(campaign.id), []);
   });
 });
+
+test('Titel mit Link-Sonderzeichen werden abgelehnt', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+
+    // [[ ]] und | haben im Link-Format eine Bedeutung. Stuenden sie im
+    // Titel, liesse sich die Notiz nicht mehr eindeutig verlinken.
+    for (const bad of ['Mira|Falke', 'Buch [[Alpha]]', 'Halb ] offen']) {
+      await assert.rejects(() => vault.createNote(campaign.id, 'character', bad));
+    }
+
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    await assert.rejects(() => vault.renameNote(campaign.id, mira.id, 'Mira|Falke'));
+    await assert.rejects(() => vault.saveNote(campaign.id, { ...mira, title: 'Mira|Falke' }));
+
+    // Der abgelehnte Versuch darf nichts veraendert haben.
+    assert.equal((await vault.getNote(campaign.id, mira.id)).title, 'Mira');
+  });
+});
+
+test('Aliase mit Link-Sonderzeichen werden abgelehnt', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    await assert.rejects(() => vault.saveNote(campaign.id, { ...mira, aliases: ['Die|Jaegerin'] }));
+  });
+});
+
+test('Umbenennen bricht Links in anderen Notizen nicht auf', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+    await vault.saveNote(campaign.id, { ...toran, body: 'Er schuldet [[Mira]] Gold.' });
+
+    await assert.rejects(() => vault.renameNote(campaign.id, mira.id, 'Mira|Falke'));
+    const updated = await vault.getNote(campaign.id, toran.id);
+    assert.equal(updated.body.trim(), 'Er schuldet [[Mira]] Gold.');
+  });
+});

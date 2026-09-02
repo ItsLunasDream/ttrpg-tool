@@ -582,6 +582,33 @@ app.whenReady().then(async () => {
     const afterRename = fs.readdirSync(notesDir).map((name) => fs.readFileSync(path.join(notesDir, name), 'utf8'));
     check(afterRename.some((raw) => raw.includes('[[Mira Sturmhand]]')), 'Umbenennen hat den Link nicht mitgezogen');
     check(afterRename.every((raw) => !raw.includes('[[Mira Falkenhand]]')), 'Alter Linkname blieb stehen');
+
+    // 14b. Ein Titel mit Link-Sonderzeichen wird abgewiesen, nicht gespeichert
+    await run(
+      window,
+      `const title = document.querySelector('.note-editor__title');
+       setValue(title, 'Mira|Sturm');
+       return true;`
+    );
+    await sleep(500);
+    check(
+      await run(window, `return document.body.textContent.includes('gehören zum Link-Format');`),
+      'Hinweis auf unerlaubte Zeichen im Titel fehlt'
+    );
+    // Der Autosave muss pausieren, sonst stuende der Titel gleich in der Datei
+    await sleep(1200);
+    check(
+      fs.readdirSync(notesDir).every((name) => !fs.readFileSync(path.join(notesDir, name), 'utf8').includes('Mira|Sturm')),
+      'Titel mit Sonderzeichen wurde gespeichert'
+    );
+
+    await run(
+      window,
+      `const title = document.querySelector('.note-editor__title');
+       setValue(title, 'Mira Sturmhand');
+       return true;`
+    );
+    await sleep(1600);
     // 15. Export als Markdown und PDF
     {
       const exportDir = path.join(userData, 'export');

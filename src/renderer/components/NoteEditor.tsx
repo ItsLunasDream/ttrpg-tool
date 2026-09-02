@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { CHECKED, findNoteType } from '../../shared/noteTypes';
 import type { Note, Relation } from '../../shared/types';
 import { backlinksFor, unresolvedLinks, type NoteIndex } from '../noteIndex';
-import { normalizeName } from '../../shared/wikilinks';
+import { hasLinkReservedChars, normalizeName } from '../../shared/wikilinks';
 import { countWords } from '../editor/markdown';
 import { BodyEditor } from './BodyEditor';
 import { RelationsPanel } from './RelationsPanel';
@@ -65,6 +65,13 @@ export function NoteEditor(props: Props) {
     [note.title, note.aliases, index.ambiguous]
   );
 
+  // Der Vault lehnt solche Namen ab. Ohne Hinweis bliebe nur eine
+  // Fehlermeldung beim Speichern, ohne dass klar waere, woran es liegt.
+  const reservedName = useMemo(
+    () => [note.title, ...note.aliases].find((name) => hasLinkReservedChars(name)),
+    [note.title, note.aliases]
+  );
+
   const status = t(saving ? 'editor.saving' : dirty ? 'editor.unsaved' : 'editor.saved');
 
   return (
@@ -102,6 +109,12 @@ export function NoteEditor(props: Props) {
 
       {!autosaveEnabled && dirty ? (
         <p className="note-editor__warning">{t('editor.autosaveOffHint')}</p>
+      ) : null}
+
+      {reservedName ? (
+        <p className="note-editor__warning note-editor__warning--danger">
+          {t('error.linkChars', { name: reservedName })}
+        </p>
       ) : null}
 
       {ambiguousName ? (
