@@ -54,17 +54,18 @@ npm run dist:win  # Windows-Installer und portable exe nach release/
 | Speichern | Strg+S, oder Autosave laufen lassen |
 | In der Notiz suchen und ersetzen | Strg+F |
 | Zwischen Fundstellen springen | F3 und Umschalt+F3, oder die Pfeile über dem Editor |
-| Kampagne sichern | „Als ZIP sichern" in der Kopfzeile |
-| Steckbrief anpassen | „Notiztypen" in der Kopfzeile |
+| Kampagne sichern | Menü „Kampagne" → „Als ZIP sichern" |
+| Steckbrief anpassen | Menü „Kampagne" → „Notiztypen" |
+| Tastenkürzel nachsehen | „Hilfe" in der Kopfzeile |
 | Sprache wechseln | Einstellungen → Sprache |
 | Bildgröße ändern | Bild anklicken, dann 200 / 400 / 100% in der Werkzeugleiste |
 | Bild einfügen | Knopf ▣ in der Werkzeugleiste, oder Bild in den Text ziehen bzw. einfügen |
 | Assistent fragen | Sidebar im Editor, Einstellungen → Assistent |
-| Ungenutzte Bilder löschen | „Aufräumen" in der Kopfzeile |
+| Ungenutzte Bilder löschen | Menü „Kampagne" → „Aufräumen" |
 | Beziehungsnetz ansehen | „Graph" in der Kopfzeile |
 | Vorschläge zum Weiterschreiben | „Schreibhilfe" in der Kopfzeile des Editors |
 | Notiz exportieren | „MD" oder „PDF" in der Kopfzeile des Editors |
-| Kampagne exportieren | „Kampagne als Markdown" bzw. „als PDF" in der Kopfzeile |
+| Kampagne exportieren | Menü „Kampagne" → Export |
 | Alten Stand zurückholen | „Verlauf" in der Kopfzeile des Editors |
 | Portrait setzen | Bild auf das Portrait-Feld im Steckbrief ziehen, oder „Bild wählen" |
 
@@ -100,7 +101,7 @@ Kampagne und ist nur innerhalb dieser verlinkbar.
 
 **Notiztypen** sind gleichberechtigt und schema-getrieben. Das Schema ist
 kein Code, sondern gehört der Kampagne: es liegt in `campaign.json` und wird
-über „Notiztypen" in der Kopfzeile bearbeitet. Typen und Felder lassen sich
+über Menü „Kampagne" → „Notiztypen" bearbeitet. Typen und Felder lassen sich
 anlegen, umbenennen, umsortieren und entfernen. Feldarten sind Text,
 mehrzeilig, Zahl, Link, Bild, Auswahlliste, Datum und Ankreuzfeld.
 `src/shared/noteTypes.ts` liefert nur noch die Vorlage für neue Kampagnen.

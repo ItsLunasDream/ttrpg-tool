@@ -61,6 +61,27 @@ async function fillDialog(window, value, confirmLabel) {
   await sleep(500);
 }
 
+/** Oeffnet das Kampagnen-Menue und waehlt einen Eintrag. */
+async function menuAction(window, label) {
+  await run(
+    window,
+    `const opener = [...document.querySelectorAll('.menu > button')][0];
+     if (!opener) throw new Error('Kampagnen-Menü fehlt');
+     if (opener.getAttribute('aria-expanded') !== 'true') opener.click();
+     return true;`
+  );
+  await sleep(300);
+  await run(
+    window,
+    `const entry = [...document.querySelectorAll('.menu__list button')]
+       .find((b) => b.textContent === ${JSON.stringify(label)});
+     if (!entry) throw new Error('Menüeintrag nicht gefunden: ' + ${JSON.stringify(label)});
+     entry.click();
+     return true;`
+  );
+  await sleep(500);
+}
+
 /**
  * Drueckt einen Knopf der Werkzeugleiste. Die reagiert auf mousedown statt
  * click, damit der Editor den Fokus behaelt.
@@ -285,7 +306,7 @@ app.whenReady().then(async () => {
     check(files.some((raw) => raw.includes('schemaVersion: 1')), 'schemaVersion fehlt');
 
     // 11. Notiztyp anpassen: Feld umbenennen und neues Feld anlegen
-    await clickButton(window, 'Notiztypen');
+    await menuAction(window, 'Notiztypen');
     await sleep(500);
     check(await run(window, `return Boolean(document.querySelector('.type-editor'));`), 'Notiztyp-Editor öffnet nicht');
 
@@ -376,7 +397,7 @@ app.whenReady().then(async () => {
     );
 
     // Neuen Typ anlegen und benutzen
-    await clickButton(window, 'Notiztypen');
+    await menuAction(window, 'Notiztypen');
     await sleep(500);
     await clickButton(window, '+ Typ', "document.querySelector('.type-editor')");
     await sleep(300);
@@ -523,8 +544,11 @@ app.whenReady().then(async () => {
 
     check(await run(window, `return document.querySelector('.modal__header h2').textContent === 'Settings';`),
       'Dialog bleibt nach dem Sprachwechsel deutsch');
-    check(await run(window, `return [...document.querySelectorAll('.campaign-bar button')].some((b) => b.textContent === 'New campaign');`),
-      'Kopfzeile bleibt nach dem Sprachwechsel deutsch');
+    check(
+      await run(window, `return [...document.querySelectorAll('.campaign-bar button')]
+         .some((b) => b.textContent === 'Settings');`),
+      'Kopfzeile bleibt nach dem Sprachwechsel deutsch'
+    );
 
     // Selbst vergebene Bezeichnungen bleiben unveraendert, die kann das
     // Programm nicht uebersetzen
@@ -565,7 +589,7 @@ app.whenReady().then(async () => {
 
       // Die Notiz wurde in Abschnitt 14 umbenannt
       await selectNote(window, 'Mira Sturmhand');
-      await clickButton(window, 'Kampagne als Markdown');
+      await menuAction(window, 'Kampagne als Markdown');
       await sleep(2500);
 
       const campaignDir = fs.readdirSync(exportDir).map((name) => path.join(exportDir, name)).find((entry) => fs.statSync(entry).isDirectory());
@@ -587,7 +611,7 @@ app.whenReady().then(async () => {
         check(assets.length >= 1, 'keine Bilder im Export');
       }
 
-      await clickButton(window, 'Kampagne als PDF');
+      await menuAction(window, 'Kampagne als PDF');
       await sleep(4000);
 
       const pdf = fs.readdirSync(exportDir).find((name) => name.endsWith('.pdf'));
@@ -739,12 +763,12 @@ app.whenReady().then(async () => {
     await save(window);
 
     // 19. Notiztypen aus einer anderen Kampagne übernehmen
-    await clickButton(window, 'Neue Kampagne');
+    await menuAction(window, 'Neue Kampagne');
     await sleep(400);
     await fillDialog(window, 'Aschetal', 'Anlegen');
     await sleep(700);
 
-    await clickButton(window, 'Notiztypen');
+    await menuAction(window, 'Notiztypen');
     await sleep(700);
     check(await run(window, `return Boolean(document.querySelector('.type-editor__copy select'));`),
       'Auswahl für andere Kampagnen fehlt');
@@ -789,7 +813,7 @@ app.whenReady().then(async () => {
     await sleep(1200);
 
     // 20. Aufräumen: benutzte Bilder bleiben, unbenutzte werden angeboten
-    await clickButton(window, 'Aufräumen');
+    await menuAction(window, 'Aufräumen');
     await sleep(2000);
     check(await run(window, `return Boolean(document.querySelector('.modal'));`), 'Aufräumen-Dialog öffnet nicht');
     // Beide Bilder sind noch in Benutzung, es darf nichts angeboten werden
@@ -818,7 +842,16 @@ app.whenReady().then(async () => {
       await run(window, `return !document.querySelector('.ProseMirror').textContent.includes('Nachtrag');`),
       'Der alte Stand wurde nicht wiederhergestellt'
     );
-    // 22. Das Fenster muss sich mit ungespeicherten Aenderungen schliessen
+    // 22. Hilfe: Tastenkürzel müssen auffindbar sein
+    await clickButton(window, 'Hilfe');
+    await sleep(600);
+    check(await run(window, `return Boolean(document.querySelector('.help'));`), 'Hilfe öffnet nicht');
+    check(await run(window, `return document.querySelector('.help').textContent.includes('Strg + F');`),
+      'Tastenkürzel fehlen in der Hilfe');
+    await clickButton(window, '×', "document.querySelector('.modal__header')");
+    await sleep(400);
+
+    // 23. Das Fenster muss sich mit ungespeicherten Aenderungen schliessen
     // lassen. Frueher brach beforeunload das Schliessen ohne Dialog ab.
     await selectNote(window, 'Toran');
     await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
