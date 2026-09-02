@@ -856,3 +856,9 @@ test('Ein Anfuehrungszeichen im Titel bricht kein HTML-Attribut auf', () => {
   const html = markdownToHtml('![[[Bild "gross"]]](assets/a.png)');
   assert.ok(!/alt="[^"]*"[^>]*"/.test(html), html);
 });
+
+test('Ein Wiki-Link direkt hinter einem Verweis bleibt ein Link', () => {
+  const quelle = 'Siehe [Karte](https://example.org)[[Der *Turm*]] dazu.';
+  const back = htmlToMarkdown(markdownToHtml(quelle));
+  assert.deepEqual(findWikiLinks(back).map((link) => link.target), ['Der *Turm*'], back);
+});

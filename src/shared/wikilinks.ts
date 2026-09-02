@@ -108,9 +108,10 @@ export interface MaskedWikiLinks {
 
 /** Steht die Fundstelle mitten in einer Adresse? */
 function insideUrl(text: string, index: number): boolean {
-  // Bis zum letzten Leerraum oder zur oeffnenden Klammer: damit greift es
-  // auch in der Adresse eines ausgeschriebenen Verweises [Text](Adresse).
-  const token = /([^\s(]+)$/.exec(text.slice(0, index))?.[1] ?? '';
+  // Bis zum letzten Leerraum oder zur naechsten runden Klammer: damit greift
+  // es in der Adresse eines ausgeschriebenen Verweises [Text](Adresse), aber
+  // nicht mehr hinter dessen Ende.
+  const token = /([^\s()]+)$/.exec(text.slice(0, index))?.[1] ?? '';
   return /^(?:[A-Za-z][A-Za-z0-9+.-]*:\/\/|www\.)/.test(token);
 }
 
