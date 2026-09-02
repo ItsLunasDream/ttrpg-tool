@@ -679,3 +679,24 @@ test('Ein zweiter Rundlauf aendert nichts mehr', () => {
     assert.equal(zweimal, einmal, `nicht stabil: ${JSON.stringify(quelle)}`);
   }
 });
+
+test('Ein Wiki-Link mit Alias wird auch in einer Tabellenzelle erkannt', () => {
+  // In einer Tabelle muss der Senkrechtstrich maskiert sein, sonst zerfaellt
+  // die Zeile. Der Link ist derselbe und muss gefunden werden.
+  const links = findWikiLinks('| Wer |\n| --- |\n| [[Mira\\|ihr]] |');
+  assert.equal(links.length, 1);
+  assert.equal(links[0].target, 'Mira');
+  assert.equal(links[0].label, 'ihr');
+});
+
+test('Umbenennen behaelt die Maskierung in einer Tabellenzelle', () => {
+  // Schriebe das Umbenennen einen blossen Strich zurueck, zerfiele die Zeile
+  // und der Text der letzten Spalte waere weg.
+  const zeile = '| [[Mira\\|ihr]] | dazu |';
+  assert.equal(rewriteWikiLinks(zeile, 'Mira', 'Mira Falkenhand'), '| [[Mira Falkenhand\\|ihr]] | dazu |');
+  assert.equal(rewriteWikiLinks('Er schuldet [[Mira|ihr]] Gold.', 'Mira', 'Mira F.'), 'Er schuldet [[Mira F.|ihr]] Gold.');
+});
+
+test('Die Kurzinfo zeigt den Anzeigetext auch bei maskiertem Strich', () => {
+  assert.equal(stripMarkdown('Siehe [[Mira\\|ihr]] dazu.').trim(), 'Siehe ihr dazu.');
+});

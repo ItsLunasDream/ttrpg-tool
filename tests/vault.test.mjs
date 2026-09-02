@@ -661,7 +661,7 @@ test('Titel mit Link-Sonderzeichen werden abgelehnt', async () => {
 
     // [[ ]] und | haben im Link-Format eine Bedeutung. Stuenden sie im
     // Titel, liesse sich die Notiz nicht mehr eindeutig verlinken.
-    for (const bad of ['Mira|Falke', 'Buch [[Alpha]]', 'Halb ] offen']) {
+    for (const bad of ['Mira|Falke', 'Buch [[Alpha]]', 'Halb ] offen', 'Mira\\Falke']) {
       await assert.rejects(() => vault.createNote(campaign.id, 'character', bad));
     }
 
