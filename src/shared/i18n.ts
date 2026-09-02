@@ -221,6 +221,7 @@ const de = {
 
   'error.campaignName': 'Die Kampagne braucht einen Namen.',
   'error.noteTitle': 'Die Notiz braucht einen Titel.',
+  'error.linkChars': 'Die Zeichen [ ] und | gehören zum Link-Format und können nicht in „{name}" stehen.',
   'error.unknownNoteType': 'Unbekannter Notiztyp: {type}',
   'error.invalidId': 'Ungültige ID: {id}',
   'error.externalProtocol': 'Nur http- und https-Links können geöffnet werden.',
@@ -569,6 +570,7 @@ const en: Partial<Record<MessageKey, string>> = {
 
   'error.campaignName': 'The campaign needs a name.',
   'error.noteTitle': 'The note needs a title.',
+  'error.linkChars': 'The characters [ ] and | belong to the link format and cannot appear in "{name}".',
   'error.unknownNoteType': 'Unknown note type: {type}',
   'error.invalidId': 'Invalid id: {id}',
   'error.externalProtocol': 'Only http and https links can be opened.',
