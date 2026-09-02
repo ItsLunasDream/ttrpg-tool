@@ -11,12 +11,6 @@ Bilder werden derzeit in voller Breite bis maximal zur Textbreite angezeigt.
 Eine Möglichkeit, ein Bild kleiner zu setzen oder neben den Text zu stellen,
 wäre nützlich, ist aber im Markdown nicht ohne Weiteres abbildbar.
 
-### Assistent mit Gesprächsverlauf
-
-Jede Anfrage steht für sich. Eine Rückfrage zur letzten Antwort ist nicht
-möglich. Wäre nützlich, kostet aber bei der Claude API mehr, weil der Verlauf
-mitgeschickt wird.
-
 ### Graph: Beschriftungen bei dichten Netzen
 
 Kantenbeschriftungen überlappen sich, wenn viele Verbindungen dicht
@@ -320,3 +314,14 @@ kaputt gemachte wird beim Lesen zu einem Textfeld.
 Ankreuzfelder erscheinen im Export und in der Kurzinfo als Ja oder Nein, und
 zwar auch dann, wenn sie nicht gesetzt sind: bei einem Ankreuzfeld ist das
 eine Aussage, bei einem leeren Textfeld nicht.
+
+### Assistent mit Gesprächsverlauf
+
+Nach einer Antwort lässt sich eine Rückfrage stellen. Der bisherige Verlauf
+geht dann mit, das Gespräch steht untereinander in der Sidebar.
+
+Ein Klick auf eine der drei Aufgaben fängt dagegen bewusst neu an, damit ein
+alter Faden nicht unbemerkt weiterläuft. Der mitgeschickte Verlauf ist auf die
+letzten acht Nachrichten begrenzt, sonst wächst jede Rückfrage die Anfrage
+weiter auf und kostet mehr, ohne besser zu werden. Ein Hinweis in der Sidebar
+sagt, dass Rückfragen bei der Claude API entsprechend mehr kosten.

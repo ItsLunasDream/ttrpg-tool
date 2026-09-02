@@ -30,7 +30,7 @@ import { PromptsDialog } from './components/PromptsDialog';
 import { GraphView } from './components/GraphView';
 import { CleanupDialog } from './components/CleanupDialog';
 import type { AiStatus } from './components/AssistantPanel';
-import type { AiTask } from '../main/ai/provider';
+import type { AiMessage, AiTask } from '../main/ai/provider';
 
 type Dialog =
   | { kind: 'none' }
@@ -437,7 +437,12 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 onDelete={() => setDialog({ kind: 'deleteNote', note: draft })}
                 onOpenHistory={() => void openHistory(draft)}
                 aiStatus={aiStatus}
-                onAsk={async (task: AiTask, onChunk: (text: string) => void) => {
+                onAsk={async (
+                  task: AiTask,
+                  history: AiMessage[],
+                  followUp: string,
+                  onChunk: (text: string) => void
+                ) => {
                   const campaignId = activeCampaignId;
                   if (!campaignId) return null;
                   await persist();
@@ -447,7 +452,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                   const streamId = crypto.randomUUID();
                   const unsubscribe = api.ai.onChunk(streamId, onChunk);
                   try {
-                    return await guard(() => call(api.ai.ask(campaignId, draft.id, task, streamId)));
+                    return await guard(() =>
+                      call(api.ai.ask(campaignId, draft.id, task, streamId, history, followUp))
+                    );
                   } finally {
                     unsubscribe();
                   }

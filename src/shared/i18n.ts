@@ -300,7 +300,13 @@ const de = {
   'ai.notReady': 'Nicht bereit: {detail}',
   'ai.ready': 'Bereit: {detail}',
   'ai.hint': 'Der Assistent stellt Fragen und prüft. Er schreibt den Text nicht für dich.',
-  'ai.clear': 'Antwort verwerfen',
+  'ai.clear': 'Gespräch verwerfen',
+  'ai.followUp': 'Rückfrage stellen …',
+  'ai.send': 'Fragen',
+  'ai.you': 'Du',
+  'ai.assistant': 'Assistent',
+  'ai.historyHint':
+    'Rückfragen schicken den bisherigen Verlauf mit. Bei der Claude API kostet das entsprechend mehr.',
 
   'settings.ai': 'Assistent',
   'settings.aiProvider': 'KI-Anbindung',
@@ -618,7 +624,13 @@ const en: Partial<Record<MessageKey, string>> = {
   'ai.notReady': 'Not ready: {detail}',
   'ai.ready': 'Ready: {detail}',
   'ai.hint': 'The assistant asks questions and checks. It does not write the text for you.',
-  'ai.clear': 'Discard answer',
+  'ai.clear': 'Discard the conversation',
+  'ai.followUp': 'Ask a follow-up …',
+  'ai.send': 'Ask',
+  'ai.you': 'You',
+  'ai.assistant': 'Assistant',
+  'ai.historyHint':
+    'Follow-ups send the conversation so far. With the Claude API that costs accordingly more.',
 
   'settings.ai': 'Assistant',
   'settings.aiProvider': 'AI connection',

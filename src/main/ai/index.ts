@@ -6,7 +6,7 @@ import { AiError, type AiProvider, type AiRequest } from './provider';
 import type { AppSettings } from '../../shared/types';
 
 export { AiError, DEFAULT_CLAUDE_MODEL };
-export type { AiProvider, AiRequest };
+export type { AiProvider, AiRequest, AiMessage } from './provider';
 
 /**
  * Waehlt den eingestellten Anbieter aus. Der Rest der Anwendung kennt nur das
@@ -29,7 +29,8 @@ export async function askProvider(
   onChunk: (text: string) => void
 ): Promise<string> {
   const language = request.language === 'en' ? 'en' : 'de';
-  return provider.ask(request, systemPrompt(language), userPrompt(request), onChunk);
+  const messages = [...request.history, { role: 'user' as const, content: userPrompt(request) }];
+  return provider.ask(request, systemPrompt(language), messages, onChunk);
 }
 
 /**

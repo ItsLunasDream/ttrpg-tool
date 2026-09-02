@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { AiError, type AiProvider, type AiRequest, type AiStatus } from './provider';
+import { AiError, type AiMessage, type AiProvider, type AiRequest, type AiStatus } from './provider';
 import type { MessageKey, MessageParams } from '../../shared/i18n';
 
 export interface ClaudeOptions {
@@ -43,7 +43,7 @@ export class ClaudeProvider implements AiProvider {
   async ask(
     _request: AiRequest,
     systemPrompt: string,
-    userPrompt: string,
+    messages: AiMessage[],
     onChunk: (text: string) => void
   ): Promise<string> {
     try {
@@ -58,7 +58,7 @@ export class ClaudeProvider implements AiProvider {
         betas: ['server-side-fallback-2026-06-01'],
         fallbacks: [{ model: 'claude-opus-4-8' }],
         system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
+        messages
       });
 
       stream.on('text', onChunk);

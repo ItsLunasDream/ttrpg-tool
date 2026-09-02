@@ -551,3 +551,17 @@ test('Ankreuzfelder erscheinen im Export als Ja oder Nein', () => {
   assert.match(markdown, /\*\*Lebt noch:\*\* Ja/);
   assert.match(markdown, /\*\*Verstorben:\*\* Nein/, 'ein nicht gesetztes Ankreuzfeld fehlt im Export');
 });
+
+test('Die Systemanweisung verbietet fertigen Text', () => {
+  const { systemPrompt } = entry;
+  assert.match(systemPrompt('de'), /schreibst den Text nicht/);
+  assert.match(systemPrompt('en'), /do not write the text/);
+});
+
+test('Eine Rueckfrage ersetzt die Aufgabenvorlage', () => {
+  const { userPrompt } = entry;
+  const base = { task: 'questions', language: 'de', note: 'Notiztext', context: '', history: [] };
+
+  assert.match(userPrompt(base), /Notiztext/);
+  assert.equal(userPrompt({ ...base, followUp: '  Wie meinst du das?  ' }), 'Wie meinst du das?');
+});

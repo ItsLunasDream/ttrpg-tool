@@ -16,6 +16,7 @@ export {
 export { Vault } from '../src/main/vault';
 export { zipDirectory } from '../src/main/export';
 export { OllamaProvider } from '../src/main/ai/ollama';
+export { systemPrompt, userPrompt } from '../src/main/ai/prompts';
 export { renderNoteMarkdown, referencedAssets, toFileName } from '../src/main/markdownExport';
 export { defaultPrompts } from '../src/shared/writingPrompts';
 export { layoutGraph } from '../src/renderer/graph/layout';

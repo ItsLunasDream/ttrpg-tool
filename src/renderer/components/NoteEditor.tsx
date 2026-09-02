@@ -10,7 +10,7 @@ import { BacklinksPanel } from './BacklinksPanel';
 import { TokenInput } from './TokenInput';
 import { ImageField } from './ImageField';
 import { AssistantPanel, type AiStatus } from './AssistantPanel';
-import type { AiTask } from '../../main/ai/provider';
+import type { AiMessage, AiTask } from '../../main/ai/provider';
 import { useT } from '../i18n';
 
 interface Props {
@@ -28,7 +28,12 @@ interface Props {
   onReport: (text: string) => void;
   onAddReverseRelation: (targetId: string) => void;
   aiStatus: AiStatus | null;
-  onAsk: (task: AiTask, onChunk: (text: string) => void) => Promise<string | null>;
+  onAsk: (
+    task: AiTask,
+    history: AiMessage[],
+    followUp: string,
+    onChunk: (text: string) => void
+  ) => Promise<string | null>;
   onExportMarkdown: () => void;
   onExportPdf: () => void;
   onOpenNote: (noteId: string) => void;

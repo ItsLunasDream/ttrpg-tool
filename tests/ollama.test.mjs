@@ -36,7 +36,7 @@ test('Teiltexte kommen einzeln an und ergeben zusammen die Antwort', async () =>
         '{"message":{"content":"Erster "}}\n',
         '{"message":{"content":"zweiter "}}\n{"message":{"content":"dritter"}}\n'
       ]),
-    () => provider().ask({}, 'system', 'user', (chunk) => chunks.push(chunk))
+    () => provider().ask({}, 'system', [{ role: 'user', content: 'user' }], (chunk) => chunks.push(chunk))
   );
 
   assert.deepEqual(chunks, ['Erster ', 'zweiter ', 'dritter']);
@@ -47,7 +47,7 @@ test('Eine über zwei Pakete verteilte Zeile wird korrekt zusammengesetzt', asyn
   const chunks = [];
   const text = await withFetch(
     async () => streamingResponse(['{"message":{"con', 'tent":"geteilt"}}\n']),
-    () => provider().ask({}, 'system', 'user', (chunk) => chunks.push(chunk))
+    () => provider().ask({}, 'system', [{ role: 'user', content: 'user' }], (chunk) => chunks.push(chunk))
   );
 
   assert.deepEqual(chunks, ['geteilt']);
@@ -58,7 +58,7 @@ test('Ein Fehler im Datenstrom wird gemeldet', async () => {
   await assert.rejects(
     withFetch(
       async () => streamingResponse(['{"error":"Modell nicht geladen"}\n']),
-      () => provider().ask({}, 'system', 'user', () => {})
+      () => provider().ask({}, 'system', [{ role: 'user', content: 'user' }], () => {})
     ),
     { key: 'error.aiOther' }
   );
@@ -68,7 +68,7 @@ test('Eine leere Antwort gilt als Fehler', async () => {
   await assert.rejects(
     withFetch(
       async () => streamingResponse(['{"message":{"content":"   "}}\n']),
-      () => provider().ask({}, 'system', 'user', () => {})
+      () => provider().ask({}, 'system', [{ role: 'user', content: 'user' }], () => {})
     ),
     { key: 'error.aiEmpty' }
   );
@@ -78,7 +78,7 @@ test('Ein HTTP-Fehler wird gemeldet, ohne den Rumpf zu lesen', async () => {
   await assert.rejects(
     withFetch(
       async () => new Response('kaputt', { status: 500 }),
-      () => provider().ask({}, 'system', 'user', () => {})
+      () => provider().ask({}, 'system', [{ role: 'user', content: 'user' }], () => {})
     ),
     { key: 'error.aiHttp' }
   );
@@ -90,7 +90,7 @@ test('Eine abgelehnte Verbindung wird als solche gemeldet', async () => {
       async () => {
         throw new Error('fetch failed: ECONNREFUSED');
       },
-      () => provider().ask({}, 'system', 'user', () => {})
+      () => provider().ask({}, 'system', [{ role: 'user', content: 'user' }], () => {})
     ),
     { key: 'error.aiNoConnection' }
   );
@@ -111,4 +111,33 @@ test('Die Bereitschaftspruefung akzeptiert das Modell mit Tag', async () => {
     () => provider().check()
   );
   assert.equal(status.ready, true);
+});
+
+test('Der Gespraechsverlauf wird mitgeschickt, mit der Systemanweisung zuerst', async () => {
+  let sent = null;
+  await withFetch(
+    async (_url, init) => {
+      sent = JSON.parse(init.body);
+      return streamingResponse(['{"message":{"content":"ok"}}\n']);
+    },
+    () =>
+      provider().ask(
+        {},
+        'systemtext',
+        [
+          { role: 'user', content: 'erste Frage' },
+          { role: 'assistant', content: 'erste Antwort' },
+          { role: 'user', content: 'Rückfrage' }
+        ],
+        () => {}
+      )
+  );
+
+  assert.deepEqual(sent.messages, [
+    { role: 'system', content: 'systemtext' },
+    { role: 'user', content: 'erste Frage' },
+    { role: 'assistant', content: 'erste Antwort' },
+    { role: 'user', content: 'Rückfrage' }
+  ]);
+  assert.equal(sent.stream, true);
 });
