@@ -43,6 +43,7 @@ export function HelpDialog({ onClose }: Props) {
       <h4 className="type-editor__heading">{t('help.mouseTitle')}</h4>
       <ul className="help__list">
         <li>{t('help.dropImage')}</li>
+        <li>{t('help.pasteMarkdown')}</li>
         <li>{t('help.imageWidth')}</li>
         <li>{t('help.hoverLink')}</li>
         <li>{t('help.graph')}</li>

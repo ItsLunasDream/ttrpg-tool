@@ -984,6 +984,52 @@ app.whenReady().then(async () => {
       );
     }
 
+    // 21d. Eingefuegter Klartext wird als Markdown gelesen
+    await selectNote(window, 'Toran');
+    await run(
+      window,
+      `const view = document.querySelector('.ProseMirror');
+       view.focus();
+       const range = document.createRange();
+       range.selectNodeContents(view);
+       range.collapse(false);
+       const selection = window.getSelection();
+       selection.removeAllRanges();
+       selection.addRange(range);
+
+       // Zeilenumbruch ueber String.fromCharCode, damit er die Vorlage hier
+       // nicht selbst umbricht.
+       const nl = String.fromCharCode(10);
+       const text = nl + '## Aus der Zwischenablage' + nl + nl + 'Ein **fetter** Satz.';
+
+       const data = new DataTransfer();
+       data.setData('text/plain', text);
+       view.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+       return true;`
+    );
+    await sleep(800);
+    check(
+      await run(window, `return [...document.querySelectorAll('.ProseMirror h2')].some((h) => h.textContent.includes('Aus der Zwischenablage'));`),
+      'Eingefügtes Markdown wurde nicht als Überschrift gelesen'
+    );
+    check(
+      await run(window, `return [...document.querySelectorAll('.ProseMirror strong')].some((b) => b.textContent === 'fetter');`),
+      'Eingefügtes Markdown wurde nicht als Fettschrift gelesen'
+    );
+    await save(window);
+    await sleep(900);
+    {
+      const dateien = fs.readdirSync(notesDir).map((n) => fs.readFileSync(path.join(notesDir, n), 'utf8'));
+      check(
+        dateien.some((raw) => raw.includes('## Aus der Zwischenablage') && raw.includes('**fetter**')),
+        'Das eingefügte Markdown steht nicht als Markdown in der Datei'
+      );
+      check(
+        dateien.every((raw) => !raw.includes('\\*\\*fetter')),
+        'Das eingefügte Markdown wurde maskiert statt ausgewertet'
+      );
+    }
+
     // 21c. Tabelle einfuegen, fuellen und speichern
     await selectNote(window, 'Toran');
     await run(

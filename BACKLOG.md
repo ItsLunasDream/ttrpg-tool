@@ -23,19 +23,6 @@ Aliasen und Tags mit den festen Wörtern „Alias" und „Tag" (`matchNote` in
 `src/renderer/noteIndex.ts`). In beiden bisherigen Sprachen heißen sie
 zufällig gleich, deshalb fällt es nicht auf.
 
-### Eingefügtes Markdown: als Text oder als Formatierung?
-
-Fügt man Text aus der Zwischenablage ein, landet er wörtlich im Dokument. Aus
-`**fett**` wird also nicht fetter Text, sondern die Zeichen selbst, und in der
-Datei stehen sie danach maskiert als `\*\*fett\*\*`.
-
-Für jemanden, der eine bestehende Backstory aus einer Textdatei einfügt, ist
-das lästig. Andererseits würde ein automatisches Auswerten auch dort
-zuschlagen, wo es nicht gemeint ist: `5 * 3 und 2 * 4` würde kursiv.
-
-Das ist eine Entscheidung, keine Fehlerbehebung, deshalb steht sie hier statt
-umgesetzt zu sein.
-
 ## Bekannte Grenzen
 
 - Der Dateiname einer Notiz wird zu ihrer ID und darf deshalb nur Buchstaben
@@ -86,6 +73,16 @@ umgesetzt zu sein.
   Zertifikat
 
 ## Erledigt
+
+### Eingefügtes Markdown wird ausgewertet
+
+Auf Wunsch umgesetzt: eingefügter reiner Text läuft durch den Markdown-Leser,
+aus `**fett**` wird also fetter Text. Text mit eigener Formatierung (aus dem
+Editor selbst oder aus einem Browser) bleibt unangetastet, ebenso eine einzelne
+Adresse über markiertem Text, die weiterhin verlinkt statt eingefügt wird.
+
+Der Preis, der vorher als Gegenargument notiert war, bleibt bestehen: `5 * 3
+und 2 * 4` wird beim Einfügen kursiv. Strg+Z macht es rückgängig.
 
 ### Tabellen, Links und der Markdown-Rundlauf
 
