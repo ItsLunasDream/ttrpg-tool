@@ -611,6 +611,73 @@ app.whenReady().then(async () => {
        return true;`
     );
     await sleep(1600);
+    // 14c. Ein Kampagnen-Export sichert vorher, sonst fehlt der letzte Absatz
+    {
+      // Autosave aus, damit die Luecke nicht zufaellig zugedeckt wird.
+      await clickButton(window, 'Einstellungen');
+      await sleep(400);
+      await run(
+        window,
+        `const box = [...document.querySelectorAll('.modal input[type=checkbox]')][0];
+         if (box.checked) box.click();
+         return true;`
+      );
+      await sleep(500);
+      await clickButton(window, '\u00d7', "document.querySelector('.modal__header')");
+      await sleep(400);
+
+      await selectNote(window, 'Mira Sturmhand');
+      await run(
+        window,
+        `const view = document.querySelector('.ProseMirror');
+         view.focus();
+         // Ans Ende, sonst ersetzt der Text eine noch markierte Bildkachel.
+         const range = document.createRange();
+         range.selectNodeContents(view);
+         range.collapse(false);
+         const selection = window.getSelection();
+         selection.removeAllRanges();
+         selection.addRange(range);
+         document.execCommand('insertText', false, ' Ungesicherter Nachsatz.');
+         return true;`
+      );
+      await sleep(600);
+      check(
+        await run(window, `return document.querySelector('.status--dirty') !== null;`),
+        'Der Text gilt nicht als ungesichert, der Test pruefte nichts'
+      );
+
+      const unsavedDir = path.join(userData, 'export-ungesichert');
+      stubDialogs(unsavedDir);
+      await menuAction(window, 'Kampagne als Markdown');
+      await sleep(2500);
+
+      const dir = fs.readdirSync(unsavedDir).map((n) => path.join(unsavedDir, n)).find((e) => fs.statSync(e).isDirectory());
+      check(Boolean(dir), 'Export ohne Autosave hat keinen Ordner angelegt');
+      if (dir) {
+        const texte = fs.readdirSync(dir)
+          .filter((n) => n.endsWith('.md'))
+          .map((n) => fs.readFileSync(path.join(dir, n), 'utf8'));
+        check(
+          texte.some((raw) => raw.includes('Ungesicherter Nachsatz.')),
+          'Der Export enthaelt die ungesicherten Aenderungen nicht'
+        );
+      }
+
+      // Autosave wieder an, die folgenden Abschnitte verlassen sich darauf.
+      await clickButton(window, 'Einstellungen');
+      await sleep(400);
+      await run(
+        window,
+        `const box = [...document.querySelectorAll('.modal input[type=checkbox]')][0];
+         if (!box.checked) box.click();
+         return true;`
+      );
+      await sleep(500);
+      await clickButton(window, '\u00d7', "document.querySelector('.modal__header')");
+      await sleep(400);
+    }
+
     // 15. Export als Markdown und PDF
     {
       const exportDir = path.join(userData, 'export');

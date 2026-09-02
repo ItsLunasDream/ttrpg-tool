@@ -393,6 +393,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         onExport={() =>
           activeCampaign &&
           void guard(async () => {
+            // Exportiert wird der Stand auf der Platte. Ohne dieses
+            // Speichern fehlte der zuletzt getippte Absatz in der Sicherung.
+            await persist();
             const target = await call(api.exportCampaignZip(activeCampaign.id, activeCampaign.name));
             if (target) report(t('msg.exported', { path: target }));
           })
@@ -400,6 +403,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         onExportMarkdown={() =>
           activeCampaign &&
           void guard(async () => {
+            await persist();
             const result = await call(api.exportMarkdown.campaign(activeCampaign.id));
             if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
           })
@@ -407,6 +411,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         onExportPdf={() =>
           activeCampaign &&
           void guard(async () => {
+            await persist();
             const result = await call(api.exportPdf.campaign(activeCampaign.id, activeCampaign.name));
             if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
           })
