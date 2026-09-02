@@ -730,3 +730,23 @@ test('Auch ein Frontmatter-Schluessel namens constructor bleibt erhalten', async
     assert.match(await readFile(file, 'utf8'), /constructor: eigen/);
   });
 });
+
+test('Ein fehlgeschlagenes Schreiben laesst keine Temp-Datei zurueck', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+
+    const notesDir = path.join(root, 'campaigns', campaign.id, 'notes');
+    const file = path.join(notesDir, `${mira.id}.md`);
+
+    // Ein Verzeichnis an der Stelle der Datei laesst das Umbenennen scheitern,
+    // ohne dass sich der Fehler wiederholen liesse.
+    await fs.rm(file);
+    await fs.mkdir(file);
+
+    await assert.rejects(() => vault.saveNote(campaign.id, { ...mira, body: 'Text.' }));
+
+    const leftovers = (await readdir(notesDir)).filter((name) => name.includes('.tmp-'));
+    assert.deepEqual(leftovers, []);
+  });
+});
