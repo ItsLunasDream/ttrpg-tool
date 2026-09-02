@@ -9,6 +9,24 @@ const devServerUrl = process.env.VITE_DEV_SERVER_URL;
 // Muss vor app.whenReady stehen, sonst darf das Schema keine Bilder liefern.
 registerAssetScheme();
 
+/**
+ * Nur eine Instanz. Zwei Fenster auf demselben Speicherort wuerden sich
+ * gegenseitig ueberschreiben: das eine haelt eine Notiz noch im alten Stand,
+ * der Autosave schreibt ihn spaeter ueber die Aenderungen des anderen.
+ * Ein zweiter Start holt stattdessen das vorhandene Fenster nach vorn.
+ */
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    const [window] = BrowserWindow.getAllWindows();
+    if (!window) return;
+    if (window.isMinimized()) window.restore();
+    window.focus();
+  });
+}
+
 async function createWindow(): Promise<void> {
   const window = new BrowserWindow({
     width: 1440,
@@ -68,6 +86,10 @@ async function createWindow(): Promise<void> {
 }
 
 void app.whenReady().then(async () => {
+  // Die zweite Instanz beendet sich gleich wieder, sie soll den Speicherort
+  // gar nicht erst anfassen.
+  if (!gotLock) return;
+
   const settingsFile = path.join(app.getPath('userData'), 'settings.json');
   const defaultRoot = path.join(app.getPath('userData'), 'vault');
   const settings = await readSettings(settingsFile, defaultRoot);
