@@ -18,6 +18,11 @@ Deutsch und Englisch sind umgesetzt. Eine weitere Sprache ist ein Eintrag in
 „jeder deutsche Schlüssel hat eine englische Entsprechung" müsste dann auf
 alle Sprachen erweitert werden.
 
+Eine Stelle wäre dann noch zu ändern: die Trefferliste beschriftet Funde in
+Aliasen und Tags mit den festen Wörtern „Alias" und „Tag" (`matchNote` in
+`src/renderer/noteIndex.ts`). In beiden bisherigen Sprachen heißen sie
+zufällig gleich, deshalb fällt es nicht auf.
+
 ## Bekannte Grenzen
 
 - Beim Kampagnenwechsel werden alle Notizen der Kampagne in den Speicher
