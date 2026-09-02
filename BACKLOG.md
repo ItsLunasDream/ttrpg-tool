@@ -5,6 +5,55 @@ eines Abschnitts ist keine Priorisierung.
 
 ## Offene Wünsche
 
+### Assistent: großes Fenster wie ein Chat
+
+Die Sidebar ist zu schmal und schlecht lesbar. Gewünscht ist derselbe
+Assistent zusätzlich als großes Fenster, aufrufbar wie die Schreibhilfe, also
+über einen Knopf in der Kopfzeile des Editors. Darstellung mehr wie ein
+KI-Chat: Frage und Antwort als abgesetzte Blasen, breiterer Textbereich, das
+Eingabefeld unten.
+
+Die Sidebar soll bleiben. Beide Ansichten müssten sich denselben
+Gesprächsverlauf teilen, sonst stünde in der einen etwas anderes als in der
+anderen.
+
+Offen: „unter Schreibhilfe" kann heißen „auf demselben Weg aufrufbar" oder
+„als zweiter Reiter im Schreibhilfe-Dialog". Ich habe es als Ersteres gelesen,
+bei Gelegenheit nachfragen.
+
+### Steckbrief: Knopf zum Bearbeiten direkt daneben
+
+Die Notiztypen liegen im Menü „Kampagne" in der Kopfzeile. Dort findet sie
+niemand, der gerade den Steckbrief vor sich hat: der Weg von „ich will dieses
+Feld umbenennen" zum passenden Knopf führt an der falschen Stelle vorbei.
+
+Stattdessen ein Knopf „Bearbeiten" rechts neben der Überschrift „Steckbrief",
+der denselben Dialog öffnet. Der Eintrag im Menü kann bleiben.
+
+### MD und PDF unter einen Export-Knopf
+
+In der Kopfzeile des Editors stehen zwei Knöpfe „MD" und „PDF" nebeneinander.
+Beide gehören zu derselben Sache und sollten unter einem Knopf „Export"
+liegen, der die beiden Formate zur Auswahl stellt.
+
+Im Kampagnen-Menü stehen die drei Exporte (ZIP, Markdown, PDF) schon
+beieinander; die Frage stellt sich dort also nur, ob sie ebenfalls unter einen
+Eintrag sollen.
+
+### Graph: Beziehungstexte überlagern sich
+
+Die Beschriftungen der Kanten stehen ineinander und sind dann nicht mehr zu
+lesen. Es gibt bereits eine Notbremse (`LABEL_LIMIT` in `GraphView.tsx`): ab
+zwanzig Kanten erscheinen nur noch die der hervorgehobenen Nachbarschaft. Das
+reicht offensichtlich nicht, überlagern können sich auch wenige.
+
+Denkbare Wege, in aufsteigendem Aufwand:
+- die Beschriftung entlang der Kante drehen statt waagerecht setzen
+- einen Kasten in der Hintergrundfarbe hinterlegen, damit wenigstens die
+  oberste lesbar bleibt
+- Beschriftungen weglassen, die sich mit einer bereits gesetzten überlappen
+  (Rechtecke vergleichen, wie es Kartenbeschriftungen machen)
+
 ### Graph: laufende Simulation beim Ziehen
 
 Die Anordnung wird einmal berechnet. Zieht man einen Knoten, folgen die
