@@ -47,6 +47,12 @@ const PROBEN = [
   { name: 'Harter Umbruch', text: 'Erste Zeile  \nZweite Zeile' },
   { name: 'Link', text: 'Siehe [Handbuch](https://example.org) und [[Mira]].' },
   { name: 'Blosse Adresse', text: 'Siehe https://example.org heute.' },
+  { name: 'Blosse E-Mail-Adresse', text: 'Schreib an mira@example.org bitte.' },
+  {
+    name: 'Codeblock mit Leerzeile',
+    text: 'Davor:\n\n```\neins\n   \nzwei\n```',
+    erwartet: 'Davor:\n\n```\neins\n   \nzwei\n\n```'
+  },
   { name: 'Codeblock', text: 'Davor:\n\n```\nzeile eins\nzeile zwei\n```', erwartet: 'Davor:\n\n```\nzeile eins\nzeile zwei\n\n```' },
   {
     name: 'Liste',

@@ -705,3 +705,33 @@ test('Auszeichnungen in einer Tabellenzelle bleiben erhalten', () => {
   const markdown = '| Wer | Was |\n| --- | --- |\n| **Mira** | ein [Link](https://example.org) |';
   assert.equal(htmlToMarkdown(markdownToHtml(markdown)), markdown);
 });
+
+test('Ein Backslash vor dem Strich in einer Zelle zerlegt die Tabelle nicht', () => {
+  const markdown = htmlToMarkdown(
+    '<table><tbody><tr><th>A</th><th>B</th></tr><tr><td>a\\|b</td><td>z</td></tr></tbody></table>'
+  );
+  // Die letzte Spalte muss ueberleben: sonst faellt sie beim naechsten Laden weg.
+  const zeilen = markdown.split('\n');
+  assert.equal(zeilen[2].split(/(?<!\\)\|/).length, 4, markdown);
+  assert.equal(htmlToMarkdown(markdownToHtml(markdown)), markdown);
+});
+
+test('Eine blosse E-Mail-Adresse bleibt eine blosse Adresse', () => {
+  assert.equal(
+    htmlToMarkdown(markdownToHtml('Schreib an mira@example.org bitte.')),
+    'Schreib an mira@example.org bitte.'
+  );
+});
+
+test('Leerzeilen in einem Codeblock bleiben, wie sie sind', () => {
+  // Ausserhalb von Codebloecken sind Leerzeichen am Zeilenende Reste,
+  // darin sind sie Inhalt.
+  assert.equal(htmlToMarkdown('<pre><code>eins\n   \nzwei</code></pre>'), '```\neins\n   \nzwei\n```');
+});
+
+test('Eine Datenzeile aus Strichen wird nicht fuer eine Trennzeile gehalten', () => {
+  const text = stripMarkdown('| Wer | Was |\n| --- | --- |\n| - | - |\n| a | b |');
+  assert.ok(text.includes('a'), text);
+  assert.ok(text.includes('b'), text);
+  assert.ok(/-/.test(text), `Die Datenzeile fehlt: ${text}`);
+});

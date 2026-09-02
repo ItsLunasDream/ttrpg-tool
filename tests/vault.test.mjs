@@ -780,3 +780,24 @@ test('Eine Datei ohne Titel im Kopf nimmt ihre erste Ueberschrift', async () => 
     assert.equal(byId.get('spaeter').title, 'Ohne Titel');
   });
 });
+
+test('Umbenennen prueft die Aliase, bevor es Fremdes anfasst', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+    await vault.saveNote(campaign.id, { ...toran, body: 'Er schuldet [[Mira]] Gold.' });
+
+    // Ein Alias, wie ihn jemand in Obsidian eintragen koennte.
+    const file = path.join(root, 'campaigns', campaign.id, 'notes', `${mira.id}.md`);
+    const raw = await readFile(file, 'utf8');
+    await writeFile(file, raw.replace('aliases: []', "aliases:\n  - 'Die|Jaegerin'"));
+
+    await assert.rejects(() => vault.renameNote(campaign.id, mira.id, 'Mira Falkenhand'));
+
+    // Ohne die Pruefung vorab waere Torans Link schon umgeschrieben, der Titel
+    // aber nicht. Ein zweiter Versuch fuehrt dann zu nichts.
+    const updated = await vault.getNote(campaign.id, toran.id);
+    assert.equal(updated.body.trim(), 'Er schuldet [[Mira]] Gold.');
+  });
+});

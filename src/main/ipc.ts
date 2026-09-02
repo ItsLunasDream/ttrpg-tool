@@ -240,9 +240,10 @@ export function registerIpc(context: IpcContext): void {
   );
 
   handle<[string], void>('shell:openExternal', async (url) => {
-    // Nur http(s) oeffnen, damit ein Link im Text keine beliebigen Handler startet.
+    // Nur diese drei oeffnen, damit ein Link im Text keine beliebigen Handler
+    // startet. mailto gehoert dazu, seit der Editor solche Links kennt.
     const parsed = new URL(url);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    if (!['http:', 'https:', 'mailto:'].includes(parsed.protocol)) {
       throw new VaultError('error.externalProtocol');
     }
     await shell.openExternal(parsed.toString());

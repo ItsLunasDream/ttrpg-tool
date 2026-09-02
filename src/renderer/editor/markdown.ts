@@ -81,8 +81,10 @@ function collect(node: Node, ...names: string[]): Element[] {
  * Zellinhalt als Markdown, einzeilig. Reiner Text waere einfacher, wuerde aber
  * Fettes, Kursives und Links in der Zelle verschlucken.
  *
- * Der Senkrechtstrich muss maskiert werden, sonst waere er ein Spaltenwechsel;
- * bereits maskierte bleiben, wie sie sind.
+ * Jeder Senkrechtstrich wird maskiert, sonst waere er ein Spaltenwechsel.
+ * Ein Ausnehmen bereits maskierter waere falsch: Turndown hat literale
+ * Backslashes an dieser Stelle schon verdoppelt, ein `\` vor dem Strich
+ * gehoert also zum Text und schuetzt ihn nicht.
  */
 function cellText(cell: Element): string {
   const inner = (cell as HTMLElement).innerHTML ?? '';
@@ -90,7 +92,7 @@ function cellText(cell: Element): string {
     .turndown(inner)
     .replace(/\s+/g, ' ')
     .trim()
-    .replace(/(?<!\\)\|/g, '\\|');
+    .replace(/\|/g, '\\|');
 }
 
 /**
@@ -100,10 +102,14 @@ function cellText(cell: Element): string {
  * anders aus als vorher.
  */
 turndown.addRule('bareLink', {
-  filter: (node) =>
-    node.nodeName === 'A' &&
-    Boolean((node as HTMLAnchorElement).getAttribute('href')) &&
-    (node as HTMLAnchorElement).getAttribute('href') === node.textContent,
+  filter: (node) => {
+    if (node.nodeName !== 'A') return false;
+    const href = (node as HTMLAnchorElement).getAttribute('href');
+    if (!href) return false;
+    // Markdown verlinkt auch eine blosse E-Mail-Adresse, dann steht die
+    // Adresse im Text und mailto: davor im Verweis.
+    return href === node.textContent || href === `mailto:${node.textContent}`;
+  },
   replacement: (content) => content
 });
 
@@ -153,7 +159,15 @@ export function markdownToHtml(markdown: string, resolveAsset?: AssetResolver): 
  * Markdown ein harter Umbruch und kein Rest.
  */
 function tidyBlankLines(markdown: string): string {
-  return markdown.replace(/^([\t >]*?)[ \t]+$/gm, '$1');
+  let inCode = false;
+  return markdown
+    .split('\n')
+    .map((line) => {
+      // In einem Codeblock sind Leerzeichen Inhalt, nicht Rest.
+      if (/^\s*```/.test(line)) inCode = !inCode;
+      return inCode ? line : line.replace(/^([\t >]*?)[ \t]+$/, '$1');
+    })
+    .join('\n');
 }
 
 export function htmlToMarkdown(html: string, toRelative?: (url: string) => string | null): string {
@@ -182,8 +196,10 @@ export function stripMarkdown(markdown: string): string {
     .replace(/^\s{0,3}>\s?/gm, '')
     .replace(/^\s{0,3}([-*+]|\d+\.)\s+/gm, '')
     .replace(/^\s{0,3}([-*_])\s*\1\s*\1[-*_\s]*$/gm, '')
-    // Tabellen: die Trennzeile ganz weg, sonst nur die Striche.
-    .replace(/^\s*\|[\s|:-]*\|\s*$/gm, '')
+    // Tabellen: die Trennzeile ganz weg, sonst nur die Striche. Verlangt
+    // werden drei Striche je Zelle, sonst faellt eine Datenzeile wie
+    // "| - | - |" der Regel zum Opfer.
+    .replace(/^\s*\|(?:\s*:?-{3,}:?\s*\|)+\s*$/gm, '')
     .replace(/^\s*\|(.*)\|\s*$/gm, (_whole, row: string) => row.replace(/(?<!\\)\|/g, ' '))
     .replace(/\\\|/g, '|')
     .replace(/(\*\*|__|\*|_|~~)/g, '');
