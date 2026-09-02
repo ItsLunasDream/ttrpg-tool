@@ -296,7 +296,14 @@ export function textPreview(markdown: string, maxChars = 220): string {
 
 /** Zeichen, die in HTML eine Bedeutung haben. Fuer zurueckgesetzte Wiki-Links. */
 function escapeHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Auch die Anfuehrungszeichen: ein zurueckgesetzter Link kann in einem
+  // Attribut landen, etwa im alt eines Bildes, und wuerde es sonst aufbrechen.
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /** encodeURI, ohne bei ungueltigen Zeichenfolgen zu werfen. */
