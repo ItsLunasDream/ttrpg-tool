@@ -848,6 +848,8 @@ app.whenReady().then(async () => {
     check(await run(window, `return Boolean(document.querySelector('.help'));`), 'Hilfe öffnet nicht');
     check(await run(window, `return document.querySelector('.help').textContent.includes('Strg + F');`),
       'Tastenkürzel fehlen in der Hilfe');
+    check(await run(window, `return document.querySelector('.help').textContent.includes('Strg + Klick');`),
+      'Tastenbezeichnungen sind nicht deutsch');
     await clickButton(window, '×', "document.querySelector('.modal__header')");
     await sleep(400);
 
