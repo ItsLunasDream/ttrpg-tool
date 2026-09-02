@@ -82,6 +82,32 @@ export function createSearchHighlightExtension(handlers: SearchHighlightHandlers
   });
 }
 
+/**
+ * Ersetzt eine oder alle Fundstellen.
+ *
+ * Von hinten nach vorne, weil jede Ersetzung die Positionen dahinter
+ * verschiebt. In einer Transaktion, damit ein Rueckgaengig alles zusammen
+ * zurueckholt.
+ */
+export function replaceMatches(
+  view: { state: EditorState; dispatch: (tr: EditorState['tr']) => void },
+  query: string,
+  replacement: string,
+  index: number | 'all'
+): number {
+  const matches = collectDocMatches(view.state.doc, query);
+  const targets = index === 'all' ? matches : matches[index] ? [matches[index]] : [];
+  if (targets.length === 0) return 0;
+
+  const tr = view.state.tr;
+  for (const match of [...targets].reverse()) {
+    if (replacement) tr.insertText(replacement, match.from, match.to);
+    else tr.delete(match.from, match.to);
+  }
+  view.dispatch(tr);
+  return targets.length;
+}
+
 /** Springt zur Fundstelle mit dem gegebenen Index und markiert sie. */
 export function selectMatch(
   view: { state: EditorState; dispatch: (tr: EditorState['tr']) => void },

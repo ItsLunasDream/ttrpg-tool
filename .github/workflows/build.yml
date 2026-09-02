@@ -21,6 +21,26 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
+  ui:
+    name: Oberfläche und Markdown-Rundlauf
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: sudo apt-get update && sudo apt-get install -y xvfb
+      # Beide Tests fahren die gebaute Anwendung hoch. Die Tests oben laufen
+      # gegen einzelne Module und sehen weder die Oberflaeche noch das Schema
+      # des Editors.
+      - name: Rauchtest
+        run: npm run smoke
+      - name: Markdown-Rundlauf
+        run: npm run roundtrip
+
   package-check:
     name: Gepacktes Paket prüfen
     needs: test

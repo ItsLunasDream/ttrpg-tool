@@ -3,12 +3,14 @@
  * tippt einen Wiki-Link, speichert und prueft die Datei auf der Platte.
  * Aufruf: xvfb-run -a npx electron scripts/smoke.cjs --no-sandbox
  */
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, dialog } = require('electron');
 const path = require('node:path');
 const os = require('node:os');
 const fs = require('node:fs');
 
-const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'backstory-smoke-'));
+// Das '#' im Namen ist Absicht: der Speicherort wird frei gewaehlt und darf
+// Zeichen enthalten, die in einer URL eine Bedeutung haben.
+const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'backstory-smoke #'));
 app.setPath('userData', userData);
 
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
@@ -61,6 +63,43 @@ async function fillDialog(window, value, confirmLabel) {
   await sleep(500);
 }
 
+/** Oeffnet das Kampagnen-Menue und waehlt einen Eintrag. */
+async function menuAction(window, label) {
+  await run(
+    window,
+    `const opener = [...document.querySelectorAll('.menu > button')][0];
+     if (!opener) throw new Error('Kampagnen-Menü fehlt');
+     if (opener.getAttribute('aria-expanded') !== 'true') opener.click();
+     return true;`
+  );
+  await sleep(300);
+  await run(
+    window,
+    `const entry = [...document.querySelectorAll('.menu__list button')]
+       .find((b) => b.textContent === ${JSON.stringify(label)});
+     if (!entry) throw new Error('Menüeintrag nicht gefunden: ' + ${JSON.stringify(label)});
+     entry.click();
+     return true;`
+  );
+  await sleep(500);
+}
+
+/**
+ * Drueckt einen Knopf der Werkzeugleiste. Die reagiert auf mousedown statt
+ * click, damit der Editor den Fokus behaelt.
+ */
+async function pressToolbar(window, label) {
+  await run(
+    window,
+    `const button = [...document.querySelectorAll('.toolbar button')]
+       .find((b) => b.textContent === ${JSON.stringify(label)});
+     if (!button) throw new Error('Werkzeug nicht gefunden: ' + ${JSON.stringify(label)});
+     button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+     return true;`
+  );
+  await sleep(400);
+}
+
 /** Waehlt eine Notiz ueber die Liste in der Seitenleiste aus. */
 async function selectNote(window, title) {
   await run(
@@ -93,6 +132,21 @@ async function save(window) {
     `window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true })); return true;`
   );
   await sleep(1200);
+}
+
+/**
+ * Dateidialoge blockieren einen automatischen Durchlauf. Fuer den Rauchtest
+ * werden sie durch feste Antworten ersetzt.
+ */
+function stubDialogs(exportDir) {
+  fs.mkdirSync(exportDir, { recursive: true });
+
+  dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [exportDir] });
+  dialog.showSaveDialog = async (...args) => {
+    const options = args.length > 1 ? args[1] : args[0];
+    const name = path.basename(options?.defaultPath || 'ausgabe');
+    return { canceled: false, filePath: path.join(exportDir, name) };
+  };
 }
 
 app.whenReady().then(async () => {
@@ -130,7 +184,45 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelectorAll('.note-list li').length === 2;`),
       'Notizliste zeigt nicht beide Charaktere');
 
-    // 3. Mira bekommt Steckbrieffeld und Text, damit die Kurzinfo etwas zeigt
+    // 3. Beziehungen: mit zwei Notizen muss die Auswahl gefuellt sein
+    await selectNote(window, 'Mira Falkenhand');
+    check(
+      await run(window, `const select = document.querySelector('.relations__add select');
+         return Boolean(select) && select.options.length === 2;`),
+      'Auswahlliste für Beziehungen ist leer, obwohl es eine zweite Notiz gibt'
+    );
+
+    await run(
+      window,
+      `const select = document.querySelector('.relations__add select');
+       const option = [...select.options].find((o) => o.textContent.includes('Toran'));
+       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, option.value);
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;`
+    );
+    await sleep(300);
+    await clickButton(window, 'Hinzufügen', "document.querySelector('.relations__add')");
+    await sleep(500);
+    check(await run(window, `return document.querySelectorAll('.relation').length === 1;`),
+      'Beziehung wurde nicht angelegt');
+
+    // Die Gegenrichtung fehlt und muss angeboten werden
+    check(await run(window, `return Boolean(document.querySelector('.relation__reverse'));`),
+      'Fehlende Gegenrichtung wird nicht angeboten');
+    await clickButton(window, 'Gegenrichtung anlegen', "document.querySelector('.relation__reverse')");
+    await sleep(1200);
+    check(await run(window, `return document.querySelector('.relation__reverse') === null;`),
+      'Hinweis auf die Gegenrichtung bleibt stehen');
+
+    await selectNote(window, 'Toran');
+    check(await run(window, `return document.querySelectorAll('.relation').length === 1;`),
+      'Gegenrichtung wurde bei Toran nicht angelegt');
+    await selectNote(window, 'Mira Falkenhand');
+    // Jetzt gibt es keine freie Notiz mehr, statt leerer Liste muss ein Hinweis stehen
+    check(await run(window, `return document.querySelector('.relations__add') === null;`),
+      'Leere Auswahlliste bleibt sichtbar');
+
+    // 4. Mira bekommt Steckbrieffeld und Text, damit die Kurzinfo etwas zeigt
     await selectNote(window, 'Mira Falkenhand');
     await setField(window, 'Spezies', 'Waldelfe');
     await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
@@ -139,7 +231,7 @@ app.whenReady().then(async () => {
     await sleep(600);
     await save(window);
 
-    // 4. Text mit Wiki-Link in Torans Notiz tippen
+    // 5. Text mit Wiki-Link in Torans Notiz tippen
     await selectNote(window, 'Toran');
     await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
     await sleep(200);
@@ -153,7 +245,7 @@ app.whenReady().then(async () => {
     check(await run(window, `return /\\d+ Wörter/.test(document.querySelector('.note-editor__words').textContent);`),
       'Wortzaehler fehlt');
 
-    // 5. Kurzinfo-Karte muss den Textanfang zeigen
+    // 6. Kurzinfo-Karte muss den Textanfang zeigen
     await run(
       window,
       `const link = document.querySelector('.ProseMirror .wikilink');
@@ -169,10 +261,10 @@ app.whenReady().then(async () => {
     await run(window, `document.querySelector('.ProseMirror').dispatchEvent(new MouseEvent('mouseleave', { bubbles: true })); return true;`);
     await sleep(300);
 
-    // 6. Speichern per Strg+S
+    // 7. Speichern per Strg+S
     await save(window);
 
-    // 7. Suche: Treffer markiert in Liste und im Editor
+    // 8. Suche: Treffer markiert in Liste und im Editor
     await run(
       window,
       `setValue(document.querySelector('.note-list__search input'), 'gold');
@@ -198,12 +290,12 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelectorAll('.ProseMirror .search-hit').length === 0;`),
       'Hervorhebung bleibt nach Leeren der Suche stehen');
 
-    // 8. Backlink muss jetzt bei Mira auftauchen
+    // 9. Backlink muss jetzt bei Mira auftauchen
     await selectNote(window, 'Mira Falkenhand');
     check(await run(window, `return document.querySelector('.backlinks')?.textContent.includes('Toran') === true;`),
       'Backlink von Toran fehlt bei Mira');
 
-    // 9. Datei auf der Platte pruefen
+    // 10. Datei auf der Platte pruefen
     const campaignsDir = path.join(userData, 'vault', 'campaigns');
     const campaignId = fs.readdirSync(campaignsDir)[0];
     const notesDir = path.join(campaignsDir, campaignId, 'notes');
@@ -215,8 +307,8 @@ app.whenReady().then(async () => {
     check(files.every((raw) => !raw.includes('\\[')), 'Klammern wurden beim Speichern maskiert');
     check(files.some((raw) => raw.includes('schemaVersion: 1')), 'schemaVersion fehlt');
 
-    // 10. Notiztyp anpassen: Feld umbenennen und neues Feld anlegen
-    await clickButton(window, 'Notiztypen');
+    // 11. Notiztyp anpassen: Feld umbenennen und neues Feld anlegen
+    await menuAction(window, 'Notiztypen');
     await sleep(500);
     check(await run(window, `return Boolean(document.querySelector('.type-editor'));`), 'Notiztyp-Editor öffnet nicht');
 
@@ -250,6 +342,30 @@ app.whenReady().then(async () => {
     );
     await sleep(250);
 
+    // Eine Auswahlliste anlegen und mit Werten füllen
+    await clickButton(window, '+ Feld', "document.querySelector('.type-editor')");
+    await sleep(300);
+    await run(
+      window,
+      `const rows = [...document.querySelectorAll('.type-editor__fields li')];
+       const row = rows[rows.length - 1];
+       setValue(row.querySelector('.type-editor__field-label'), 'Gesinnung');
+       const select = row.querySelector('select');
+       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, 'select');
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;`
+    );
+    await sleep(400);
+    await run(
+      window,
+      `const rows = [...document.querySelectorAll('.type-editor__fields li')];
+       const area = rows[rows.length - 1].querySelector('textarea');
+       if (!area) throw new Error('Eingabe für Auswahlwerte fehlt');
+       setValue(area, 'Rechtschaffen' + String.fromCharCode(10) + 'Neutral' + String.fromCharCode(10) + 'Chaotisch');
+       return true;`
+    );
+    await sleep(300);
+
     await clickButton(window, 'Übernehmen', "document.querySelector('.modal')");
     await sleep(900);
 
@@ -266,6 +382,16 @@ app.whenReady().then(async () => {
       await run(
         window,
         `const field = [...document.querySelectorAll('.note-editor__side .field')]
+           .find((f) => f.textContent.startsWith('Gesinnung'));
+         const select = field?.querySelector('select');
+         return Boolean(select) && [...select.options].map((o) => o.value).includes('Chaotisch');`
+      ),
+      'Auswahlliste erscheint nicht im Steckbrief'
+    );
+    check(
+      await run(
+        window,
+        `const field = [...document.querySelectorAll('.note-editor__side .field')]
            .find((f) => f.textContent.startsWith('Volk'));
          return field.querySelector('input').value === 'Waldelfe';`
       ),
@@ -273,7 +399,7 @@ app.whenReady().then(async () => {
     );
 
     // Neuen Typ anlegen und benutzen
-    await clickButton(window, 'Notiztypen');
+    await menuAction(window, 'Notiztypen');
     await sleep(500);
     await clickButton(window, '+ Typ', "document.querySelector('.type-editor')");
     await sleep(300);
@@ -302,7 +428,7 @@ app.whenReady().then(async () => {
       'Notiz bekam nicht den neuen Typ'
     );
 
-    // 11. Bild ins Portrait-Feld ziehen und im Fliesstext einfuegen
+    // 12. Bild ins Portrait-Feld ziehen und im Fliesstext einfuegen
     await selectNote(window, 'Mira Falkenhand');
 
     // Ein winziges PNG, das im Renderer als Datei uebergeben wird
@@ -351,6 +477,35 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelectorAll('.ProseMirror img').length === 1;`),
       'Bild wurde nicht in den Text eingefügt');
 
+    // Bildbreite setzen: die Knöpfe erscheinen nur bei ausgewähltem Bild
+    await run(
+      window,
+      `const image = document.querySelector('.ProseMirror img');
+       image.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+       image.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+       image.click();
+       return true;`
+    );
+    await sleep(600);
+    const hasWidthButtons = await run(
+      window,
+      `return [...document.querySelectorAll('.toolbar button')].some((b) => b.textContent === '200');`
+    );
+    if (hasWidthButtons) {
+      await pressToolbar(window, '200');
+      await sleep(600);
+      const attrs = await run(
+        window,
+        `const img = document.querySelector('.ProseMirror img');
+         return JSON.stringify({
+           width: img.getAttribute('width'),
+           selected: img.classList.contains('ProseMirror-selectednode'),
+           buttons: [...document.querySelectorAll('.toolbar button')].map((b) => b.textContent)
+         });`
+      );
+      check(JSON.parse(attrs).width === '200', `Bildbreite wurde nicht gesetzt: ${attrs}`);
+    }
+
     await save(window);
 
     // Im Markdown muss ein relativer Verweis stehen, kein Protokoll und kein Base64
@@ -360,8 +515,14 @@ app.whenReady().then(async () => {
       const notesDir = path.join(campaignsDir, campaignId, 'notes');
       const files = fs.readdirSync(notesDir).map((name) => fs.readFileSync(path.join(notesDir, name), 'utf8'));
 
-      check(files.some((raw) => /!\[[^\]]*\]\(assets\/[^)]+\.png\)/.test(raw)),
-        'Bild steht nicht als relativer Verweis im Markdown');
+      // Ohne Breite steht das Bild als Markdown, mit Breite als inline-HTML.
+      // Beides muss den relativen Pfad behalten.
+      check(
+        files.some((raw) => /!\[[^\]]*\]\(assets\/[^)]+\.png\)/.test(raw) || /<img[^>]*src="assets\/[^"]+\.png"/.test(raw)),
+        'Bild steht nicht als relativer Verweis im Markdown'
+      );
+      check(files.every((raw) => !/<img[^>]*src="backstory-asset/.test(raw)),
+        'Protokoll-URL steht im gespeicherten HTML');
       check(files.every((raw) => !raw.includes('backstory-asset://')),
         'Protokoll-URL wurde ins Markdown geschrieben');
       check(files.every((raw) => !raw.includes('data:image')), 'Bild wurde als Base64 eingebettet');
@@ -371,7 +532,7 @@ app.whenReady().then(async () => {
       check(assets.length === 2, `erwartet zwei Bilddateien, gefunden ${assets.length}`);
     }
 
-    // 12. Sprache auf Englisch und wieder zurueck
+    // 13. Sprache auf Englisch und wieder zurueck
     await clickButton(window, 'Einstellungen');
     await sleep(500);
     await run(
@@ -385,8 +546,11 @@ app.whenReady().then(async () => {
 
     check(await run(window, `return document.querySelector('.modal__header h2').textContent === 'Settings';`),
       'Dialog bleibt nach dem Sprachwechsel deutsch');
-    check(await run(window, `return [...document.querySelectorAll('.campaign-bar button')].some((b) => b.textContent === 'New campaign');`),
-      'Kopfzeile bleibt nach dem Sprachwechsel deutsch');
+    check(
+      await run(window, `return [...document.querySelectorAll('.campaign-bar button')]
+         .some((b) => b.textContent === 'Settings');`),
+      'Kopfzeile bleibt nach dem Sprachwechsel deutsch'
+    );
 
     // Selbst vergebene Bezeichnungen bleiben unveraendert, die kann das
     // Programm nicht uebersetzen
@@ -407,7 +571,7 @@ app.whenReady().then(async () => {
     await clickButton(window, '×', "document.querySelector('.modal__header')");
     await sleep(400);
 
-    // 13. Umbenennen muss die Links mitziehen
+    // 14. Umbenennen muss die Links mitziehen
     await selectNote(window, 'Mira Falkenhand');
     await run(
       window,
@@ -420,6 +584,587 @@ app.whenReady().then(async () => {
     const afterRename = fs.readdirSync(notesDir).map((name) => fs.readFileSync(path.join(notesDir, name), 'utf8'));
     check(afterRename.some((raw) => raw.includes('[[Mira Sturmhand]]')), 'Umbenennen hat den Link nicht mitgezogen');
     check(afterRename.every((raw) => !raw.includes('[[Mira Falkenhand]]')), 'Alter Linkname blieb stehen');
+
+    // 14b. Ein Titel mit Link-Sonderzeichen wird abgewiesen, nicht gespeichert
+    await run(
+      window,
+      `const title = document.querySelector('.note-editor__title');
+       setValue(title, 'Mira|Sturm');
+       return true;`
+    );
+    await sleep(500);
+    check(
+      await run(window, `return document.body.textContent.includes('gehören zum Link-Format');`),
+      'Hinweis auf unerlaubte Zeichen im Titel fehlt'
+    );
+    // Der Autosave muss pausieren, sonst stuende der Titel gleich in der Datei
+    await sleep(1200);
+    check(
+      fs.readdirSync(notesDir).every((name) => !fs.readFileSync(path.join(notesDir, name), 'utf8').includes('Mira|Sturm')),
+      'Titel mit Sonderzeichen wurde gespeichert'
+    );
+
+    await run(
+      window,
+      `const title = document.querySelector('.note-editor__title');
+       setValue(title, 'Mira Sturmhand');
+       return true;`
+    );
+    await sleep(1600);
+    // 14c. Ein Kampagnen-Export sichert vorher, sonst fehlt der letzte Absatz
+    {
+      // Autosave aus, damit die Luecke nicht zufaellig zugedeckt wird.
+      await clickButton(window, 'Einstellungen');
+      await sleep(400);
+      await run(
+        window,
+        `const box = [...document.querySelectorAll('.modal input[type=checkbox]')][0];
+         if (box.checked) box.click();
+         return true;`
+      );
+      await sleep(500);
+      await clickButton(window, '\u00d7', "document.querySelector('.modal__header')");
+      await sleep(400);
+
+      await selectNote(window, 'Mira Sturmhand');
+      await run(
+        window,
+        `const view = document.querySelector('.ProseMirror');
+         view.focus();
+         // Ans Ende, sonst ersetzt der Text eine noch markierte Bildkachel.
+         const range = document.createRange();
+         range.selectNodeContents(view);
+         range.collapse(false);
+         const selection = window.getSelection();
+         selection.removeAllRanges();
+         selection.addRange(range);
+         document.execCommand('insertText', false, ' Ungesicherter Nachsatz.');
+         return true;`
+      );
+      await sleep(600);
+      check(
+        await run(window, `return document.querySelector('.status--dirty') !== null;`),
+        'Der Text gilt nicht als ungesichert, der Test pruefte nichts'
+      );
+
+      const unsavedDir = path.join(userData, 'export-ungesichert');
+      stubDialogs(unsavedDir);
+      await menuAction(window, 'Kampagne als Markdown');
+      await sleep(2500);
+
+      const dir = fs.readdirSync(unsavedDir).map((n) => path.join(unsavedDir, n)).find((e) => fs.statSync(e).isDirectory());
+      check(Boolean(dir), 'Export ohne Autosave hat keinen Ordner angelegt');
+      if (dir) {
+        const texte = fs.readdirSync(dir)
+          .filter((n) => n.endsWith('.md'))
+          .map((n) => fs.readFileSync(path.join(dir, n), 'utf8'));
+        check(
+          texte.some((raw) => raw.includes('Ungesicherter Nachsatz.')),
+          'Der Export enthaelt die ungesicherten Aenderungen nicht'
+        );
+      }
+
+      // Autosave wieder an, die folgenden Abschnitte verlassen sich darauf.
+      await clickButton(window, 'Einstellungen');
+      await sleep(400);
+      await run(
+        window,
+        `const box = [...document.querySelectorAll('.modal input[type=checkbox]')][0];
+         if (!box.checked) box.click();
+         return true;`
+      );
+      await sleep(500);
+      await clickButton(window, '\u00d7', "document.querySelector('.modal__header')");
+      await sleep(400);
+    }
+
+    // 15. Export als Markdown und PDF
+    {
+      const exportDir = path.join(userData, 'export');
+      stubDialogs(exportDir);
+
+      // Die Notiz wurde in Abschnitt 14 umbenannt
+      await selectNote(window, 'Mira Sturmhand');
+      await menuAction(window, 'Kampagne als Markdown');
+      await sleep(2500);
+
+      const campaignDir = fs.readdirSync(exportDir).map((name) => path.join(exportDir, name)).find((entry) => fs.statSync(entry).isDirectory());
+      check(Boolean(campaignDir), 'Markdown-Export hat keinen Ordner angelegt');
+
+      if (campaignDir) {
+        const files = fs.readdirSync(campaignDir);
+        check(files.some((name) => name.startsWith('Mira Sturmhand')), `Notizdatei fehlt: ${files.join(', ')}`);
+        check(files.includes('assets'), 'Bilder wurden nicht mitkopiert');
+
+        const miraFile = files.find((name) => name.startsWith('Mira Sturmhand'));
+        const content = fs.readFileSync(path.join(campaignDir, miraFile), 'utf8');
+        check(content.startsWith('# Mira'), 'Export beginnt nicht mit der Überschrift');
+        check(!content.includes('schemaVersion'), 'YAML-Kopf steht im Export');
+        check(/\*\*Volk:\*\*\s*Waldelfe/.test(content), 'Steckbrieffeld fehlt im Export');
+        check(content.includes('## Beziehungen'), 'Beziehungen fehlen im Export');
+
+        const assets = fs.readdirSync(path.join(campaignDir, 'assets'));
+        check(assets.length >= 1, 'keine Bilder im Export');
+      }
+
+      await menuAction(window, 'Kampagne als PDF');
+      await sleep(4000);
+
+      const pdf = fs.readdirSync(exportDir).find((name) => name.endsWith('.pdf'));
+      check(Boolean(pdf), `PDF wurde nicht geschrieben: ${fs.readdirSync(exportDir).join(', ')}`);
+      if (pdf) {
+        const bytes = fs.readFileSync(path.join(exportDir, pdf));
+        check(bytes.subarray(0, 4).toString() === '%PDF', 'Datei ist kein PDF');
+        check(bytes.length > 1000, `PDF ist verdächtig klein: ${bytes.length} Bytes`);
+      }
+    }
+
+    // 16. Schreibhilfe: Vorschlag in den Text uebernehmen
+    await selectNote(window, 'Toran');
+    await clickButton(window, 'Schreibhilfe');
+    await sleep(1200);
+    check(await run(window, `return Boolean(document.querySelector('.prompts__categories'));`),
+      'Schreibhilfe öffnet nicht');
+    check(await run(window, `return document.querySelectorAll('.prompts__option').length === 4;`),
+      'Es werden nicht vier Vorschläge gewürfelt');
+
+    const suggestion = await run(
+      window,
+      `const option = document.querySelector('.prompts__option');
+       const text = option.querySelector('span').textContent;
+       option.querySelector('button').click();
+       return text;`
+    );
+    await sleep(900);
+    check(await run(window, `return document.querySelector('.modal') === null;`), 'Schreibhilfe bleibt offen');
+    check(
+      await run(window, `return document.querySelector('.ProseMirror').textContent.includes(${JSON.stringify('')} + ${JSON.stringify(suggestion)});`),
+      'Vorschlag steht nicht im Text'
+    );
+
+    await save(window);
+
+    // Die Vorschlagsdatei muss im Speicherort liegen und bearbeitbar sein
+    check(fs.existsSync(path.join(userData, 'vault', 'writing-prompts.json')),
+      'writing-prompts.json wurde nicht angelegt');
+
+    // 17. Graph-Ansicht
+    await clickButton(window, 'Graph');
+    await sleep(1500);
+    check(await run(window, `return Boolean(document.querySelector('.graph__canvas'));`), 'Graph öffnet nicht');
+    check(await run(window, `return document.querySelectorAll('.graph__node').length >= 3;`),
+      'Zu wenige Knoten im Graph');
+    check(await run(window, `return document.querySelectorAll('.graph__edge').length >= 2;`),
+      'Zu wenige Kanten im Graph');
+    check(
+      await run(window, `return document.querySelectorAll('.graph__edge--relation').length >= 1
+         && document.querySelectorAll('.graph__edge--mention').length >= 1;`),
+      'Beziehungen und Erwähnungen werden nicht unterschieden'
+    );
+    // Knoten muessen auseinanderliegen, nicht alle auf einem Punkt
+    check(
+      await run(window, `const points = [...document.querySelectorAll('.graph__node')]
+           .map((g) => g.getAttribute('transform'));
+         return new Set(points).size === points.length;`),
+      'Knoten liegen übereinander'
+    );
+
+    await clickButton(window, 'Beziehungen', "document.querySelector('.graph__modes')");
+    await sleep(800);
+    check(await run(window, `return document.querySelectorAll('.graph__edge--mention').length === 0;`),
+      'Filter auf Beziehungen wirkt nicht');
+
+    // Typfilter: Charaktere ausblenden muss Knoten entfernen
+    const beforeFilter = await run(window, `return document.querySelectorAll('.graph__node').length;`);
+    await run(
+      window,
+      `const bars = document.querySelectorAll('.graph__modes');
+       const chip = [...bars[bars.length - 1].querySelectorAll('button')]
+         .find((b) => b.textContent.includes('Charakter'));
+       if (!chip) throw new Error('Typfilter für Charakter fehlt');
+       chip.click();
+       return true;`
+    );
+    await sleep(900);
+    const afterFilter = await run(window, `return document.querySelectorAll('.graph__node').length;`);
+    check(afterFilter < beforeFilter, `Typfilter wirkt nicht (${beforeFilter} -> ${afterFilter})`);
+
+    await clickButton(window, 'Alle', "document.querySelectorAll('.graph__modes')[1]");
+    await sleep(800);
+    check(
+      await run(window, `return document.querySelectorAll('.graph__node').length === ${beforeFilter};`),
+      'Zurücksetzen des Typfilters wirkt nicht'
+    );
+
+    // Zoom verändert die viewBox und lässt sich zurücksetzen
+    const zoomed = await run(
+      window,
+      `const svg = document.querySelector('.graph__canvas');
+       const before = svg.getAttribute('viewBox');
+       [...document.querySelectorAll('.graph__bar button')].find((b) => b.textContent.trim() === '+').click();
+       return before;`
+    );
+    await sleep(500);
+    check(await run(window, `return document.querySelector('.graph__canvas').getAttribute('viewBox') !== ${JSON.stringify(zoomed)};`),
+      'Zoom verändert die Ansicht nicht');
+
+    await clickButton(window, 'Ansicht zurücksetzen', "document.querySelector('.graph__bar')");
+    await sleep(500);
+    check(await run(window, `return document.querySelector('.graph__canvas').getAttribute('viewBox') === '0 0 1200 780';`),
+      'Zurücksetzen der Ansicht wirkt nicht');
+
+    // Klick auf einen Knoten oeffnet die Notiz
+    await run(window, `document.querySelector('.graph__node').dispatchEvent(new MouseEvent('click', { bubbles: true })); return true;`);
+    await sleep(900);
+    check(await run(window, `return document.querySelector('.graph__canvas') === null
+       && Boolean(document.querySelector('.note-editor'));`), 'Klick auf einen Knoten öffnet keine Notiz');
+
+    // 18. Eigene Suche im Editor mit Strg+F, samt Ersetzen
+    await selectNote(window, 'Toran');
+    await run(
+      window,
+      `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', ctrlKey: true, bubbles: true })); return true;`
+    );
+    await sleep(600);
+    check(await run(window, `return Boolean(document.querySelector('.search-bar__query'));`),
+      'Strg+F öffnet keine Suchleiste');
+
+    await run(window, `setValue(document.querySelector('.search-bar__query'), 'Gold'); return true;`);
+    await sleep(700);
+    check(await run(window, `return document.querySelectorAll('.ProseMirror .search-hit').length === 1;`),
+      'Eigene Suche hebt nichts hervor');
+
+    await run(window, `setValue(document.querySelector('.search-bar__replace'), 'Silber'); return true;`);
+    await sleep(400);
+    await clickButton(window, 'Alle ersetzen', "document.querySelector('.search-bar')");
+    await sleep(900);
+
+    check(
+      await run(window, `const text = document.querySelector('.ProseMirror').textContent;
+         return text.includes('Silber') && !text.includes('Gold');`),
+      'Ersetzen hat nicht gewirkt'
+    );
+    check(await run(window, `return document.querySelectorAll('.ProseMirror .search-hit').length === 0;`),
+      'Nach dem Ersetzen bleiben Fundstellen markiert');
+
+    // Escape schliesst die eigene Suche wieder
+    await run(
+      window,
+      `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`
+    );
+    await sleep(500);
+    check(await run(window, `return document.querySelector('.search-bar__query') === null;`),
+      'Escape schließt die Suchleiste nicht');
+
+    await save(window);
+
+    // 19. Notiztypen aus einer anderen Kampagne übernehmen
+    await menuAction(window, 'Neue Kampagne');
+    await sleep(400);
+    await fillDialog(window, 'Aschetal', 'Anlegen');
+    await sleep(700);
+
+    await menuAction(window, 'Notiztypen');
+    await sleep(700);
+    check(await run(window, `return Boolean(document.querySelector('.type-editor__copy select'));`),
+      'Auswahl für andere Kampagnen fehlt');
+
+    await run(
+      window,
+      `const select = document.querySelector('.type-editor__copy select');
+       const option = [...select.options].find((o) => o.textContent.includes('Sturmküste'));
+       if (!option) throw new Error('Sturmküste nicht in der Auswahl');
+       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, option.value);
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;`
+    );
+    await sleep(300);
+    await clickButton(window, 'Übernehmen', "document.querySelector('.type-editor__copy')");
+    await sleep(600);
+
+    check(await run(window, `return Boolean(document.querySelector('.type-editor__note'));`),
+      'Keine Rückmeldung zum Übernehmen');
+    check(
+      await run(window, `return [...document.querySelectorAll('.type-editor__list button')]
+         .some((b) => b.textContent.includes('Gegenstand'));`),
+      'Der eigene Typ wurde nicht übernommen'
+    );
+
+    await clickButton(window, 'Übernehmen', "document.querySelector('.modal__footer')");
+    await sleep(900);
+    check(
+      await run(window, `return [...document.querySelectorAll('.note-list__new button')].some((b) => b.textContent.includes('Gegenstand'));`),
+      'Übernommener Typ fehlt nach dem Speichern'
+    );
+
+    // Zurück zur ursprünglichen Kampagne
+    await run(
+      window,
+      `const select = document.querySelector('.campaign-bar select');
+       const option = [...select.options].find((o) => o.textContent === 'Sturmküste');
+       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, option.value);
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;`
+    );
+    await sleep(1200);
+
+    // 20. Aufräumen: benutzte Bilder bleiben, unbenutzte werden angeboten
+    await menuAction(window, 'Aufräumen');
+    await sleep(2000);
+    check(await run(window, `return Boolean(document.querySelector('.modal'));`), 'Aufräumen-Dialog öffnet nicht');
+    // Beide Bilder sind noch in Benutzung, es darf nichts angeboten werden
+    check(await run(window, `return document.querySelectorAll('.cleanup li').length === 0;`),
+      'Benutzte Bilder wurden als verwaist gemeldet');
+    await clickButton(window, 'Schließen', "document.querySelector('.modal__footer')");
+    await sleep(500);
+
+    // 21. Versionsverlauf: alten Stand wiederherstellen
+    await selectNote(window, 'Toran');
+    await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
+    await sleep(200);
+    window.webContents.insertText(' Nachtrag.');
+    await sleep(500);
+    await save(window);
+
+    await clickButton(window, 'Verlauf');
+    await sleep(1200);
+    check(await run(window, `return Boolean(document.querySelector('.history__list'));`),
+      'Verlauf zeigt keine Fassungen');
+
+    await clickButton(window, 'Wiederherstellen', "document.querySelector('.modal')");
+    await sleep(1500);
+    check(await run(window, `return document.querySelector('.modal') === null;`), 'Verlaufs-Dialog bleibt offen');
+    check(
+      await run(window, `return !document.querySelector('.ProseMirror').textContent.includes('Nachtrag');`),
+      'Der alte Stand wurde nicht wiederhergestellt'
+    );
+    // 21b. Link im Fliesstext setzen und speichern
+    await selectNote(window, 'Toran');
+    await run(
+      window,
+      `const view = document.querySelector('.ProseMirror');
+       view.focus();
+       const range = document.createRange();
+       range.selectNodeContents(view);
+       range.collapse(false);
+       const selection = window.getSelection();
+       selection.removeAllRanges();
+       selection.addRange(range);
+       document.execCommand('insertText', false, ' Handbuch');
+       return true;`
+    );
+    await sleep(400);
+    // Das eben getippte Wort markieren, damit der Link daran haengt.
+    await run(
+      window,
+      `const view = document.querySelector('.ProseMirror');
+       const selection = window.getSelection();
+       selection.modify('extend', 'backward', 'word');
+       return selection.toString();`
+    );
+    await sleep(300);
+    await pressToolbar(window, '\u{1f517}');
+    await sleep(600);
+    check(await run(window, `return Boolean(document.querySelector('.modal input'));`), 'Link-Dialog öffnet nicht');
+    await run(
+      window,
+      `setValue(document.querySelector('.modal input'), 'https://example.org/regeln');
+       return true;`
+    );
+    await sleep(300);
+    await clickButton(window, 'Übernehmen', "document.querySelector('.modal')");
+    await sleep(600);
+    await save(window);
+    await sleep(900);
+    {
+      const dateien = fs.readdirSync(notesDir).map((n) => fs.readFileSync(path.join(notesDir, n), 'utf8'));
+      check(
+        dateien.some((raw) => raw.includes('[Handbuch](https://example.org/regeln)')),
+        'Der Link steht nicht in der Datei'
+      );
+    }
+
+    // 21d. Eingefuegter Klartext wird als Markdown gelesen
+    await selectNote(window, 'Toran');
+    await run(
+      window,
+      `const view = document.querySelector('.ProseMirror');
+       view.focus();
+       const range = document.createRange();
+       range.selectNodeContents(view);
+       range.collapse(false);
+       const selection = window.getSelection();
+       selection.removeAllRanges();
+       selection.addRange(range);
+
+       // Zeilenumbruch ueber String.fromCharCode, damit er die Vorlage hier
+       // nicht selbst umbricht.
+       const nl = String.fromCharCode(10);
+       const text = nl + '## Aus der Zwischenablage' + nl + nl + 'Ein **fetter** Satz.';
+
+       const data = new DataTransfer();
+       data.setData('text/plain', text);
+       view.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+       return true;`
+    );
+    await sleep(800);
+    check(
+      await run(window, `return [...document.querySelectorAll('.ProseMirror h2')].some((h) => h.textContent.includes('Aus der Zwischenablage'));`),
+      'Eingefügtes Markdown wurde nicht als Überschrift gelesen'
+    );
+    check(
+      await run(window, `return [...document.querySelectorAll('.ProseMirror strong')].some((b) => b.textContent === 'fetter');`),
+      'Eingefügtes Markdown wurde nicht als Fettschrift gelesen'
+    );
+    // Mehrere Absaetze duerfen keine leeren dazwischen erzeugen.
+    const leereVorher = await run(window, `return [...document.querySelectorAll('.ProseMirror p')].filter((p) => !p.textContent.trim()).length;`);
+    await run(
+      window,
+      `const view = document.querySelector('.ProseMirror');
+       view.focus();
+       const nl = String.fromCharCode(10);
+       const data = new DataTransfer();
+       data.setData('text/plain', 'Absatz eins.' + nl + nl + 'Absatz zwei.' + nl + nl + 'Ein <div>Kasten</div> bleibt Text.');
+       view.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+       return true;`
+    );
+    await sleep(800);
+    check(
+      (await run(window, `return [...document.querySelectorAll('.ProseMirror p')].filter((p) => !p.textContent.trim()).length;`)) === leereVorher,
+      'Das Einfügen mehrerer Absätze hat leere Absätze erzeugt'
+    );
+    check(
+      await run(window, `return document.querySelector('.ProseMirror').textContent.includes('<div>Kasten</div>');`),
+      'Spitze Klammern im eingefügten Text wurden als HTML gelesen'
+    );
+
+    // In einem Codeblock bleibt Eingefuegtes woertlich.
+    await pressToolbar(window, '</>');
+    await sleep(400);
+    await run(
+      window,
+      `const view = document.querySelector('.ProseMirror');
+       view.focus();
+       const data = new DataTransfer();
+       data.setData('text/plain', 'if (**p) return;');
+       view.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+       return true;`
+    );
+    await sleep(700);
+    check(
+      await run(window, `return [...document.querySelectorAll('.ProseMirror pre')].some((p) => p.textContent.includes('if (**p) return;'));`),
+      'Im Codeblock wurde das Eingefügte als Markdown gelesen'
+    );
+
+    await save(window);
+    await sleep(900);
+    {
+      const dateien = fs.readdirSync(notesDir).map((n) => fs.readFileSync(path.join(notesDir, n), 'utf8'));
+      check(
+        dateien.some((raw) => raw.includes('## Aus der Zwischenablage') && raw.includes('**fetter**')),
+        'Das eingefügte Markdown steht nicht als Markdown in der Datei'
+      );
+      check(
+        dateien.every((raw) => !raw.includes('\\*\\*fetter')),
+        'Das eingefügte Markdown wurde maskiert statt ausgewertet'
+      );
+    }
+
+    // 21c. Tabelle einfuegen, fuellen und speichern
+    await selectNote(window, 'Toran');
+    await run(
+      window,
+      `const view = document.querySelector('.ProseMirror');
+       view.focus();
+       const range = document.createRange();
+       range.selectNodeContents(view);
+       range.collapse(false);
+       const selection = window.getSelection();
+       selection.removeAllRanges();
+       selection.addRange(range);
+       return true;`
+    );
+    await sleep(300);
+    await pressToolbar(window, '\u25a6');
+    await sleep(700);
+    check(
+      await run(window, `return document.querySelectorAll('.ProseMirror table th').length === 2;`),
+      'Tabelle wurde nicht eingefügt'
+    );
+    // In die erste Kopfzelle schreiben.
+    await run(
+      window,
+      `const cell = document.querySelector('.ProseMirror table th');
+       const range = document.createRange();
+       range.selectNodeContents(cell);
+       range.collapse(true);
+       const selection = window.getSelection();
+       selection.removeAllRanges();
+       selection.addRange(range);
+       document.querySelector('.ProseMirror').focus();
+       document.execCommand('insertText', false, 'Jahr');
+       return true;`
+    );
+    await sleep(500);
+    check(
+      await run(window, `return [...document.querySelectorAll('.toolbar button')].some((b) => b.textContent === '+Z');`),
+      'Tabellenknöpfe fehlen, obwohl der Cursor in der Tabelle steht'
+    );
+    await save(window);
+    await sleep(900);
+    {
+      const dateien = fs.readdirSync(notesDir).map((n) => fs.readFileSync(path.join(notesDir, n), 'utf8'));
+      const mitTabelle = dateien.find((raw) => raw.includes('| Jahr |'));
+      check(Boolean(mitTabelle), 'Die Tabelle steht nicht in der Datei');
+      if (mitTabelle) {
+        check(/\|\s*---\s*\|/.test(mitTabelle), 'Der Tabelle fehlt die Trennzeile');
+      }
+    }
+
+    // 22. Hilfe: Tastenkürzel müssen auffindbar sein
+    await clickButton(window, 'Hilfe');
+    await sleep(600);
+    check(await run(window, `return Boolean(document.querySelector('.help'));`), 'Hilfe öffnet nicht');
+    check(await run(window, `return document.querySelector('.help').textContent.includes('Strg + F');`),
+      'Tastenkürzel fehlen in der Hilfe');
+    check(await run(window, `return document.querySelector('.help').textContent.includes('Strg + Klick');`),
+      'Tastenbezeichnungen sind nicht deutsch');
+    await clickButton(window, '×', "document.querySelector('.modal__header')");
+    await sleep(400);
+
+    // 23. Das Fenster muss sich mit ungespeicherten Aenderungen schliessen
+    // lassen. Frueher brach beforeunload das Schliessen ohne Dialog ab.
+    await selectNote(window, 'Toran');
+    await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
+    await sleep(200);
+    window.webContents.insertText(' Ungespeichert.');
+    await sleep(400);
+    check(await run(window, `return document.querySelector('.status--dirty') !== null;`),
+      'Notiz gilt nicht als ungespeichert');
+
+    const closed = await new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(false), 8000);
+      window.once('closed', () => {
+        clearTimeout(timer);
+        resolve(true);
+      });
+      window.close();
+    });
+    check(closed, 'Das Fenster ließ sich mit ungespeicherten Änderungen nicht schließen');
+
+    // Beim Schliessen muss der Stand noch gesichert worden sein
+    if (closed) {
+      const campaignsDir = path.join(userData, 'vault', 'campaigns');
+      const saved = fs
+        .readdirSync(campaignsDir)
+        .flatMap((id) => {
+          const notesDir = path.join(campaignsDir, id, 'notes');
+          if (!fs.existsSync(notesDir)) return [];
+          return fs.readdirSync(notesDir).map((name) => fs.readFileSync(path.join(notesDir, name), 'utf8'));
+        })
+        .some((raw) => raw.includes('Ungespeichert.'));
+      check(saved, 'Der ungespeicherte Stand ging beim Schließen verloren');
+    }
   } catch (error) {
     problems.push(String(error));
   }

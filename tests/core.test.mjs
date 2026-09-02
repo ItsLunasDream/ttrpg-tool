@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath} = entry;
+const {pastedMarkdownToHtml, findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, layoutGraph, buildGraphEdges, buildGraphNodes, mergeNoteTypes, countMergeChanges} = entry;
 
 /** Baut einen Index mit den Standardtypen. */
 function makeIndex(notes) {
@@ -220,9 +220,15 @@ const ALLOWED_SAME = new Set([
   'card.alias',
   'dialog.ok',
   'editor.tags',
+  'export.tags',
   'fieldType.text',
   'fieldType.url',
-  'toolbar.code'
+  'graph.open',
+  'settings.apiKeyPlaceholder',
+  'toolbar.code',
+  // „Link" heisst in beiden Sprachen gleich.
+  'toolbar.link',
+  'link.title'
 ]);
 
 test('jeder deutsche Schluessel hat eine englische Entsprechung', () => {
@@ -279,4 +285,606 @@ test('Standard-Charakter hat ein Portrait-Feld', () => {
   const portrait = character.fields.find((field) => field.type === 'image');
   assert.ok(portrait, 'kein Bildfeld vorhanden');
   assert.equal(portrait.key, 'portrait');
+});
+
+const EXPORT_LABELS = {
+  type: 'Typ',
+  relations: 'Beziehungen',
+  mentionedBy: 'Erwähnt von',
+  aliases: 'Aliase',
+  tags: 'Tags',
+  yes: 'Ja',
+  no: 'Nein'
+};
+
+test('Markdown-Export schreibt Steckbrief, Text und Beziehungen aus', () => {
+  const mira = note({
+    id: '1',
+    title: 'Mira Falkenhand',
+    aliases: ['Die Jägerin'],
+    tags: ['Kapitel 1'],
+    fields: { species: 'Waldelfe', portrait: 'assets/p.png' },
+    body: 'Sie wuchs im [[Hafen]] auf.',
+    relations: [{ id: 'r1', targetId: '2', type: 'Mentorin', note: 'Bringt ihr das Bogenschießen bei.' }]
+  });
+  const toran = note({ id: '2', title: 'Toran', body: 'Er schuldet [[Mira Falkenhand]] Gold.' });
+
+  const markdown = renderNoteMarkdown(mira, DEFAULT_NOTE_TYPES, [mira, toran], EXPORT_LABELS);
+
+  assert.match(markdown, /^# Mira Falkenhand/);
+  assert.match(markdown, /\*Charakter\*/);
+  assert.match(markdown, /\*\*Spezies:\*\* Waldelfe/);
+  assert.match(markdown, /\*\*Portrait:\*\* !\[\]\(assets\/p\.png\)/);
+  assert.match(markdown, /\*\*Aliase:\*\* Die Jägerin/);
+  assert.match(markdown, /Sie wuchs im \[\[Hafen\]\] auf\./);
+  assert.match(markdown, /## Beziehungen/);
+  assert.match(markdown, /\*\*Mentorin\*\* \[\[Toran\]\] — Bringt ihr das Bogenschießen bei\./);
+  assert.match(markdown, /## Erwähnt von/);
+  assert.match(markdown, /- \[\[Toran\]\]/);
+  assert.ok(!markdown.includes('---\nid:'), 'YAML-Kopf im Export');
+});
+
+test('Markdown-Export laesst leere Abschnitte weg', () => {
+  const solo = note({ id: '1', title: 'Allein', body: 'Nur Text.' });
+  const markdown = renderNoteMarkdown(solo, DEFAULT_NOTE_TYPES, [solo], EXPORT_LABELS);
+
+  assert.ok(!markdown.includes('## Beziehungen'), 'leerer Beziehungsabschnitt');
+  assert.ok(!markdown.includes('## Erwähnt von'), 'leerer Erwähnungsabschnitt');
+  assert.ok(!markdown.includes('Aliase'), 'leerer Aliasabschnitt');
+});
+
+test('Beziehungen auf geloeschte Notizen tauchen im Export nicht auf', () => {
+  const solo = note({
+    id: '1',
+    title: 'Allein',
+    relations: [{ id: 'r1', targetId: 'weg', type: 'Feindin', note: '' }]
+  });
+  assert.ok(!renderNoteMarkdown(solo, DEFAULT_NOTE_TYPES, [solo], EXPORT_LABELS).includes('Beziehungen'));
+});
+
+test('referencedAssets findet Bilder aus Text und Steckbrief', () => {
+  const withImages = note({
+    id: '1',
+    title: 'Mira',
+    fields: { portrait: 'assets/p.png' },
+    body: 'Text ![Szene](assets/s.png) und nochmal ![](assets/s.png), dazu ![extern](https://x/y.png)'
+  });
+  const assets = referencedAssets(withImages, DEFAULT_NOTE_TYPES).sort();
+  assert.deepEqual(assets, ['assets/p.png', 'assets/s.png']);
+});
+
+test('toFileName entfernt kritische Zeichen und weicht bei Kollision aus', () => {
+  assert.equal(toFileName('Mira: die Jägerin'), 'Mira die Jägerin.md');
+  assert.equal(toFileName('A/B\\C'), 'ABC.md');
+  assert.equal(toFileName('Mira', ['Mira.md']), 'Mira 2.md');
+  assert.equal(toFileName('   '), 'Notiz.md');
+});
+
+test('Schreibhilfe liefert in beiden Sprachen dieselben Kategorien', () => {
+  const german = defaultPrompts('de');
+  const english = defaultPrompts('en');
+
+  assert.ok(german.length >= 5, 'zu wenige Kategorien');
+  assert.deepEqual(
+    german.map((category) => category.id),
+    english.map((category) => category.id),
+    'Kategorien unterscheiden sich zwischen den Sprachen'
+  );
+});
+
+test('Jede Kategorie hat genug und eindeutige Vorschläge', () => {
+  for (const category of defaultPrompts('de')) {
+    assert.ok(category.options.length >= 20, `${category.id} hat nur ${category.options.length} Einträge`);
+    assert.equal(
+      new Set(category.options).size,
+      category.options.length,
+      `${category.id} enthält Dubletten`
+    );
+    assert.ok(
+      category.options.every((option) => option.trim().length > 10),
+      `${category.id} enthält zu kurze Einträge`
+    );
+  }
+});
+
+test('defaultPrompts liefert eine Kopie, kein geteiltes Objekt', () => {
+  const first = defaultPrompts('de');
+  first[0].options.push('Testeintrag');
+  assert.ok(!defaultPrompts('de')[0].options.includes('Testeintrag'), 'Vorlage wurde verändert');
+});
+
+test('Graph erzeugt gerichtete Kanten aus Beziehungen und Erwähnungen', () => {
+  const mira = note({
+    id: '1',
+    title: 'Mira',
+    relations: [{ id: 'r1', targetId: '2', type: 'Mentorin', note: '' }],
+    body: 'Sie kennt [[Toran]] gut.'
+  });
+  const toran = note({ id: '2', title: 'Toran' });
+  const index = makeIndex([mira, toran]);
+
+  const relations = buildGraphEdges(index, 'relations');
+  assert.equal(relations.length, 1);
+  assert.deepEqual(relations[0], { source: '1', target: '2', label: 'Mentorin', kind: 'relation' });
+
+  const mentions = buildGraphEdges(index, 'mentions');
+  assert.equal(mentions.length, 1);
+  assert.equal(mentions[0].kind, 'mention');
+
+  assert.equal(buildGraphEdges(index, 'both').length, 2);
+});
+
+test('Graph zaehlt mehrfache Erwähnungen nur einmal', () => {
+  const mira = note({ id: '1', title: 'Mira', body: '[[Toran]] und nochmal [[Toran]].' });
+  const index = makeIndex([mira, note({ id: '2', title: 'Toran' })]);
+  assert.equal(buildGraphEdges(index, 'mentions').length, 1);
+});
+
+test('Graph ignoriert Selbstverweise und gelöschte Ziele', () => {
+  const solo = note({
+    id: '1',
+    title: 'Mira',
+    body: 'Ich, [[Mira]], schreibe das.',
+    relations: [{ id: 'r1', targetId: 'weg', type: 'Feindin', note: '' }]
+  });
+  assert.deepEqual(buildGraphEdges(makeIndex([solo]), 'both'), []);
+});
+
+test('Knotengrad zaehlt ein- und ausgehende Kanten', () => {
+  const notes = [note({ id: '1', title: 'A' }), note({ id: '2', title: 'B' }), note({ id: '3', title: 'C' })];
+  const edges = [
+    { source: '1', target: '2', label: '', kind: 'relation' },
+    { source: '3', target: '2', label: '', kind: 'relation' }
+  ];
+  const degrees = Object.fromEntries(buildGraphNodes(notes, edges).map((entry) => [entry.id, entry.degree]));
+  assert.deepEqual(degrees, { 1: 1, 2: 2, 3: 1 });
+});
+
+test('Anordnung ist wiederholbar und bleibt in der Fläche', () => {
+  const ids = [
+    { id: 'a', degree: 1 },
+    { id: 'b', degree: 1 },
+    { id: 'c', degree: 0 }
+  ];
+  const edges = [{ source: 'a', target: 'b', label: '', kind: 'relation' }];
+  const options = { width: 800, height: 600, iterations: 120, seed: 7 };
+
+  const first = layoutGraph(ids, edges, options);
+  const second = layoutGraph(ids, edges, options);
+  assert.deepEqual(first, second, 'gleicher Startwert liefert unterschiedliche Anordnungen');
+
+  for (const node of first) {
+    assert.ok(node.x >= 0 && node.x <= 800, `x außerhalb der Fläche: ${node.x}`);
+    assert.ok(node.y >= 0 && node.y <= 600, `y außerhalb der Fläche: ${node.y}`);
+    assert.ok(Number.isFinite(node.x) && Number.isFinite(node.y), 'ungültige Koordinate');
+  }
+});
+
+test('Verbundene Knoten landen näher beieinander als unverbundene', () => {
+  const ids = [
+    { id: 'a', degree: 1 },
+    { id: 'b', degree: 1 },
+    { id: 'c', degree: 0 }
+  ];
+  const edges = [{ source: 'a', target: 'b', label: '', kind: 'relation' }];
+  const nodes = layoutGraph(ids, edges, { width: 800, height: 600, iterations: 400, seed: 3 });
+
+  const at = (id) => nodes.find((node) => node.id === id);
+  const distance = (first, second) => Math.hypot(first.x - second.x, first.y - second.y);
+
+  const linked = distance(at('a'), at('b'));
+  const loose = Math.min(distance(at('a'), at('c')), distance(at('b'), at('c')));
+  assert.ok(linked < loose, `verbunden ${linked.toFixed(1)} nicht näher als unverbunden ${loose.toFixed(1)}`);
+});
+
+test('Anordnung kommt mit einem einzelnen Knoten klar', () => {
+  const nodes = layoutGraph([{ id: 'a', degree: 0 }], [], { width: 400, height: 300 });
+  assert.equal(nodes.length, 1);
+  assert.ok(Number.isFinite(nodes[0].x));
+});
+
+const TYPE_A = { id: 'character', label: 'Charakter', plural: 'Charaktere', fields: [{ key: 'age', label: 'Alter', type: 'text' }] };
+const TYPE_B = { id: 'item', label: 'Gegenstand', plural: 'Gegenstände', fields: [{ key: 'value', label: 'Wert', type: 'text' }] };
+
+test('mergeNoteTypes ergaenzt fehlende Typen', () => {
+  const merged = mergeNoteTypes([TYPE_A], [TYPE_B]);
+  assert.deepEqual(merged.map((def) => def.id), ['character', 'item']);
+});
+
+test('mergeNoteTypes ergaenzt fehlende Felder, ohne vorhandene zu aendern', () => {
+  const incoming = {
+    ...TYPE_A,
+    label: 'Person',
+    fields: [
+      { key: 'age', label: 'Lebensjahre', type: 'number' },
+      { key: 'origin', label: 'Herkunft', type: 'text' }
+    ]
+  };
+  const [character] = mergeNoteTypes([TYPE_A], [incoming]);
+
+  assert.equal(character.label, 'Charakter', 'die eigene Bezeichnung wurde überschrieben');
+  assert.equal(character.fields[0].label, 'Alter', 'ein vorhandenes Feld wurde überschrieben');
+  assert.deepEqual(character.fields.map((field) => field.key), ['age', 'origin']);
+});
+
+test('mergeNoteTypes entfernt nie etwas', () => {
+  const merged = mergeNoteTypes([TYPE_A, TYPE_B], [TYPE_B]);
+  assert.deepEqual(merged.map((def) => def.id), ['character', 'item']);
+});
+
+test('mergeNoteTypes laesst die Vorlagen unberuehrt', () => {
+  const current = [structuredClone(TYPE_A)];
+  const incoming = [{ ...structuredClone(TYPE_A), fields: [{ key: 'x', label: 'X', type: 'text' }] }];
+  mergeNoteTypes(current, incoming);
+  assert.equal(current[0].fields.length, 1, 'die übergebene Liste wurde verändert');
+});
+
+test('countMergeChanges zaehlt Typen und Felder', () => {
+  assert.deepEqual(countMergeChanges([TYPE_A], [TYPE_B]), { types: 1, fields: 1 });
+  assert.deepEqual(countMergeChanges([TYPE_A], [TYPE_A]), { types: 0, fields: 0 });
+});
+
+test('Die Rundenzahl sinkt bei vielen Knoten, damit nichts blockiert', () => {
+  const many = Array.from({ length: 600 }, (_, index) => ({ id: `n${index}`, degree: 0 }));
+
+  const started = Date.now();
+  const nodes = layoutGraph(many, [], { width: 1200, height: 780 });
+  const duration = Date.now() - started;
+
+  assert.equal(nodes.length, 600);
+  assert.ok(duration < 8000, `Anordnung dauerte ${duration} ms`);
+  assert.ok(nodes.every((node) => Number.isFinite(node.x) && Number.isFinite(node.y)));
+});
+
+test('Ankreuzfelder erscheinen im Export als Ja oder Nein', () => {
+  const types = [
+    {
+      id: 'character',
+      label: 'Charakter',
+      plural: 'Charaktere',
+      fields: [
+        { key: 'lebt', label: 'Lebt noch', type: 'checkbox' },
+        { key: 'tot', label: 'Verstorben', type: 'checkbox' }
+      ]
+    }
+  ];
+  const entry = note({ id: '1', title: 'Mira', fields: { lebt: 'ja', tot: '' } });
+  const markdown = renderNoteMarkdown(entry, types, [entry], EXPORT_LABELS);
+
+  assert.match(markdown, /\*\*Lebt noch:\*\* Ja/);
+  assert.match(markdown, /\*\*Verstorben:\*\* Nein/, 'ein nicht gesetztes Ankreuzfeld fehlt im Export');
+});
+
+test('Die Systemanweisung verbietet fertigen Text', () => {
+  const { systemPrompt } = entry;
+  assert.match(systemPrompt('de'), /schreibst den Text nicht/);
+  assert.match(systemPrompt('en'), /do not write the text/);
+});
+
+test('Eine Rueckfrage ersetzt die Aufgabenvorlage', () => {
+  const { userPrompt } = entry;
+  const base = { task: 'questions', language: 'de', note: 'Notiztext', context: '', history: [] };
+
+  assert.match(userPrompt(base), /Notiztext/);
+  assert.equal(userPrompt({ ...base, followUp: '  Wie meinst du das?  ' }), 'Wie meinst du das?');
+});
+
+test('Bilder mit Breite bleiben als HTML erhalten und behalten den relativen Pfad', () => {
+  const markdown = 'Text\n\n<img src="assets/abc.png" alt="Szene" width="320">';
+  const html = markdownToHtml(markdown, (target) => assetUrl('k1', target));
+
+  assert.match(html, /backstory-asset:\/\/k1\/abc\.png/);
+  assert.match(html, /width="320"/);
+
+  const back = htmlToMarkdown(html, assetPath);
+  assert.match(back, /<img src="assets\/abc\.png"[^>]*width="320">/);
+  assert.ok(!back.includes('backstory-asset'), 'Protokoll-URL blieb im Markdown stehen');
+});
+
+test('Bilder ohne Breite bleiben gewoehnliches Markdown', () => {
+  const back = htmlToMarkdown(markdownToHtml('![Szene](assets/abc.png)', (t) => assetUrl('k1', t)), assetPath);
+  assert.match(back, /!\[Szene\]\(assets\/abc\.png\)/);
+  assert.ok(!back.includes('<img'), 'ohne Breite wurde unnötig HTML erzeugt');
+});
+
+test('Durchgestrichener Text ueberlebt den Rundlauf', () => {
+  // Die Werkzeugleiste bietet Durchstreichen an. Ohne eigene Regel wirft
+  // Turndown das Element weg und die Auszeichnung waere beim Speichern weg.
+  assert.equal(htmlToMarkdown('<p><s>weg</s></p>'), '~~weg~~');
+  assert.equal(htmlToMarkdown('<p><del>weg</del></p>'), '~~weg~~');
+  assert.equal(htmlToMarkdown(markdownToHtml('Das ist ~~falsch~~ gewesen.')), 'Das ist ~~falsch~~ gewesen.');
+});
+
+test('Trennlinien behalten ihre Schreibweise', () => {
+  assert.equal(htmlToMarkdown(markdownToHtml('oben\n\n---\n\nunten')), 'oben\n\n---\n\nunten');
+});
+
+test('Ein blosser Link wird nicht in Klammerschreibweise umgeschrieben', () => {
+  // Markdown macht aus einer nackten Adresse automatisch einen Link. Ohne
+  // eigene Regel stuende nach dem Speichern [https://x](https://x) im Text.
+  assert.equal(htmlToMarkdown(markdownToHtml('Siehe https://example.org heute.')), 'Siehe https://example.org heute.');
+  assert.equal(
+    htmlToMarkdown(markdownToHtml('Siehe [Handbuch](https://example.org).')),
+    'Siehe [Handbuch](https://example.org).'
+  );
+});
+
+test('Tabellen ueberleben den Rundlauf', () => {
+  const markdown = '| Jahr | Ereignis |\n| --- | --- |\n| 712 | Geboren |\n| 730 | Verbannt |';
+  assert.equal(htmlToMarkdown(markdownToHtml(markdown)), markdown);
+});
+
+test('Ein Senkrechtstrich in einer Zelle zerlegt die Tabelle nicht', () => {
+  const html = '<table><tbody><tr><th>A</th></tr><tr><td>x | y</td></tr></tbody></table>';
+  const markdown = htmlToMarkdown(html);
+  assert.match(markdown, /x \\\| y/);
+  // Und wieder zurueck: der Strich gehoert in die Zelle, nicht dazwischen.
+  assert.equal(htmlToMarkdown(markdownToHtml(markdown)), markdown);
+});
+
+test('Eine Tabelle ohne Kopfzeile bekommt eine leere', () => {
+  // Markdown kennt keine kopflose Tabelle. Ohne Ersatzzeile waere es keine.
+  const markdown = htmlToMarkdown('<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>');
+  assert.equal(markdown, '|  |  |\n| --- | --- |\n| a | b |');
+});
+
+test('Eine Zeile mit Kopf- und Datenzellen behaelt ihre Reihenfolge', () => {
+  const markdown = htmlToMarkdown(
+    '<table><tbody><tr><th>Name</th><th>Wert</th></tr><tr><th>Stärke</th><td>16</td></tr></tbody></table>'
+  );
+  assert.equal(markdown, '| Name | Wert |\n| --- | --- |\n| Stärke | 16 |');
+});
+
+test('Die Kurzinfo zeigt Tabellen ohne Striche', () => {
+  const markdown = 'Vorher.\n\n| Jahr | Ereignis |\n| --- | --- |\n| 712 | Geboren |\n\nNachher.';
+  const text = textPreview(markdown);
+  assert.ok(!text.includes('|'), text);
+  assert.ok(!text.includes('---'), text);
+  assert.ok(text.includes('Jahr Ereignis'), text);
+  assert.ok(text.includes('712 Geboren'), text);
+});
+
+test('Leerzeichen am Zeilenende werden nicht mitgeschrieben', () => {
+  // Turndown laesst in Listen und Zitaten Zeilen aus lauter Leerzeichen
+  // zurueck. Sie aendern nichts an der Darstellung, aber die Datei sieht
+  // nach jedem Speichern anders aus.
+  const markdown = htmlToMarkdown('<ul><li><p>eins</p></li><li><p>zwei</p></li></ul>');
+  assert.ok(!/[ \t]+$/m.test(markdown), JSON.stringify(markdown));
+
+  const zitat = htmlToMarkdown('<blockquote><p>oben</p><p>unten</p></blockquote>');
+  assert.ok(!/[ \t]+$/m.test(zitat), JSON.stringify(zitat));
+});
+
+test('Ein harter Zeilenumbruch behaelt seine zwei Leerzeichen', () => {
+  // Zwei Leerzeichen am Zeilenende sind in Markdown ein Umbruch, kein Rest.
+  assert.equal(htmlToMarkdown('<p>Erste Zeile<br>Zweite Zeile</p>'), 'Erste Zeile  \nZweite Zeile');
+});
+
+test('Ein zweiter Rundlauf aendert nichts mehr', () => {
+  // Der erste Rundlauf darf die Schreibweise vereinheitlichen. Aendert sich
+  // danach weiter etwas, saehe die Datei nach jedem Speichern anders aus.
+  const quellen = [
+    '- eins\n- zwei\n  - zwei a\n\n1. erstens\n2. zweitens',
+    '> Sie sagte nichts.\n>\n> Dann ging sie.',
+    '| Jahr | Ereignis |\n| --- | --- |\n| 712 | Geboren |',
+    '# Eins\n\n## Zwei\n\nText mit **fett**, *kursiv* und ~~weg~~.',
+    'Siehe [Handbuch](https://example.org) und https://example.org.',
+    'oben\n\n---\n\nunten',
+    'Erste Zeile  \nZweite Zeile'
+  ];
+
+  for (const quelle of quellen) {
+    const einmal = htmlToMarkdown(markdownToHtml(quelle));
+    const zweimal = htmlToMarkdown(markdownToHtml(einmal));
+    assert.equal(zweimal, einmal, `nicht stabil: ${JSON.stringify(quelle)}`);
+  }
+});
+
+test('Ein Wiki-Link mit Alias wird auch in einer Tabellenzelle erkannt', () => {
+  // In einer Tabelle muss der Senkrechtstrich maskiert sein, sonst zerfaellt
+  // die Zeile. Der Link ist derselbe und muss gefunden werden.
+  const links = findWikiLinks('| Wer |\n| --- |\n| [[Mira\\|ihr]] |');
+  assert.equal(links.length, 1);
+  assert.equal(links[0].target, 'Mira');
+  assert.equal(links[0].label, 'ihr');
+});
+
+test('Umbenennen behaelt die Maskierung in einer Tabellenzelle', () => {
+  // Schriebe das Umbenennen einen blossen Strich zurueck, zerfiele die Zeile
+  // und der Text der letzten Spalte waere weg.
+  const zeile = '| [[Mira\\|ihr]] | dazu |';
+  assert.equal(rewriteWikiLinks(zeile, 'Mira', 'Mira Falkenhand'), '| [[Mira Falkenhand\\|ihr]] | dazu |');
+  assert.equal(rewriteWikiLinks('Er schuldet [[Mira|ihr]] Gold.', 'Mira', 'Mira F.'), 'Er schuldet [[Mira F.|ihr]] Gold.');
+});
+
+test('Die Kurzinfo zeigt den Anzeigetext auch bei maskiertem Strich', () => {
+  assert.equal(stripMarkdown('Siehe [[Mira\\|ihr]] dazu.').trim(), 'Siehe ihr dazu.');
+});
+
+test('Auszeichnungen in einer Tabellenzelle bleiben erhalten', () => {
+  const markdown = '| Wer | Was |\n| --- | --- |\n| **Mira** | ein [Link](https://example.org) |';
+  assert.equal(htmlToMarkdown(markdownToHtml(markdown)), markdown);
+});
+
+test('Ein Backslash vor dem Strich in einer Zelle zerlegt die Tabelle nicht', () => {
+  const markdown = htmlToMarkdown(
+    '<table><tbody><tr><th>A</th><th>B</th></tr><tr><td>a\\|b</td><td>z</td></tr></tbody></table>'
+  );
+  // Die letzte Spalte muss ueberleben: sonst faellt sie beim naechsten Laden weg.
+  const zeilen = markdown.split('\n');
+  assert.equal(zeilen[2].split(/(?<!\\)\|/).length, 4, markdown);
+  assert.equal(htmlToMarkdown(markdownToHtml(markdown)), markdown);
+});
+
+test('Eine blosse E-Mail-Adresse bleibt eine blosse Adresse', () => {
+  assert.equal(
+    htmlToMarkdown(markdownToHtml('Schreib an mira@example.org bitte.')),
+    'Schreib an mira@example.org bitte.'
+  );
+});
+
+test('Leerzeilen in einem Codeblock bleiben, wie sie sind', () => {
+  // Ausserhalb von Codebloecken sind Leerzeichen am Zeilenende Reste,
+  // darin sind sie Inhalt.
+  assert.equal(htmlToMarkdown('<pre><code>eins\n   \nzwei</code></pre>'), '```\neins\n   \nzwei\n```');
+});
+
+test('Eine Datenzeile aus Strichen wird nicht fuer eine Trennzeile gehalten', () => {
+  const text = stripMarkdown('| Wer | Was |\n| --- | --- |\n| - | - |\n| a | b |');
+  assert.ok(text.includes('a'), text);
+  assert.ok(text.includes('b'), text);
+  assert.ok(/-/.test(text), `Die Datenzeile fehlt: ${text}`);
+});
+
+test('Eine E-Mail-Adresse mit Unterstrich bleibt ein richtiger Link', () => {
+  // Turndown maskiert den Unterstrich. Als blosse Adresse geschrieben,
+  // begaenne die automatische Erkennung erst nach der Maskierung und der
+  // Link zeigte auf die falsche Adresse.
+  const back = htmlToMarkdown(markdownToHtml('Schreib an mira_x@example.org bitte.'));
+  assert.equal(htmlToMarkdown(markdownToHtml(back)), back);
+  assert.ok(back.includes('mira_x@example.org') || back.includes('mailto:mira_x@example.org'), back);
+});
+
+test('Ein Zaun im Codeblock bringt die Erkennung nicht durcheinander', () => {
+  // Ein laengerer Zaun darf einen kuerzeren enthalten. Wird der als Ende
+  // gelesen, gilt der Rest des Textes faelschlich als Code.
+  const markdown = '````\ncode mit ``` darin\n````\n\nText.\n\n```\neins\n   \nzwei\n```';
+  assert.equal(htmlToMarkdown(markdownToHtml(markdown)).includes('eins\n   \nzwei'), true);
+});
+
+test('Eine Trennzeile mit einem Strich je Zelle wird erkannt', () => {
+  for (const trenner of ['| - | - |', '|:--|--:|', '| --- | --- |']) {
+    const text = stripMarkdown(`| Wer | Was |\n${trenner}\n| a | b |`);
+    assert.ok(!text.includes('-'), `${trenner} blieb stehen: ${text}`);
+  }
+});
+
+test('Eine Datenzeile aus Strichen bleibt erhalten', () => {
+  // Dieselbe Zeile, aber nicht an zweiter Stelle: dann ist sie Inhalt.
+  const text = stripMarkdown('| Wer | Was |\n| --- | --- |\n| - | - |\n| a | b |');
+  assert.ok(/-/.test(text), `Die Datenzeile fehlt: ${text}`);
+});
+
+test('Woerter in einer Tabelle werden richtig gezaehlt', () => {
+  assert.equal(countWords('| Wer | Was |\n| --- | --- |\n| Mira | Bogen |'), 4);
+});
+
+test('Ein maskierter Strich ausserhalb einer Tabelle wird auch entmaskiert', () => {
+  assert.equal(stripMarkdown('Er sagte a \\| b.').trim(), 'Er sagte a | b.');
+});
+
+test('Eine Adresse mit eckiger Klammer ueberlebt mehrere Rundlaeufe', () => {
+  const quelle = 'Siehe https://example.org/a[b_c dazu.';
+  const einmal = htmlToMarkdown(markdownToHtml(quelle));
+  const zweimal = htmlToMarkdown(markdownToHtml(einmal));
+  assert.equal(zweimal, einmal, `nicht stabil: ${JSON.stringify(einmal)} -> ${JSON.stringify(zweimal)}`);
+});
+
+test('Ein Wiki-Link mit Sonderzeichen im Titel bleibt ein Link', () => {
+  // Unterstriche, Sterne und Backticks sind in Titeln erlaubt. Werden sie
+  // beim Speichern maskiert, ist der Link beim naechsten Laden keiner mehr.
+  for (const titel of ['Haus_am_See', 'Der *Turm*', 'Ort #1', 'Fluss & Feld', 'Weg 3 - Nord']) {
+    const quelle = `Sie wohnt in [[${titel}]].`;
+    const back = htmlToMarkdown(markdownToHtml(quelle));
+    assert.deepEqual(findWikiLinks(back).map((link) => link.target), [titel], back);
+    assert.equal(htmlToMarkdown(markdownToHtml(back)), back);
+  }
+});
+
+test('Ein Alias im Wiki-Link ueberlebt Sonderzeichen ebenfalls', () => {
+  const quelle = 'Sie wohnt in [[Haus_am_See|dort]].';
+  const back = htmlToMarkdown(markdownToHtml(quelle));
+  assert.equal(back, quelle);
+});
+
+test('Wiki-Links ueberstehen Sonderzeichen im Titel in beide Richtungen', () => {
+  for (const titel of ['Haus_am_See', 'Haus _am_ See', 'Der *Turm*', 'Fluss `Weiss`', 'Ort #1', 'A & B']) {
+    const quelle = `Sie wohnt in [[${titel}]].`;
+    const back = htmlToMarkdown(markdownToHtml(quelle));
+    assert.equal(back, quelle, `Rundlauf verändert: ${JSON.stringify(back)}`);
+    assert.deepEqual(findWikiLinks(back).map((link) => link.target), [titel], back);
+  }
+});
+
+test('Ein Wiki-Link wird im Editor nicht als Auszeichnung gelesen', () => {
+  // Ohne Schutz machte marked aus [[Der *Turm*]] kursiven Text, und der
+  // Link war beim Speichern nicht mehr zusammenhaengend.
+  const html = markdownToHtml('Sie wohnt in [[Der *Turm*]].');
+  assert.ok(!html.includes('<em>'), html);
+});
+
+test('Eine Adresse mit Leerzeichen im Text bleibt ein richtiger Link', () => {
+  const back = htmlToMarkdown('<p><a href="https://example.org/a%20b">https://example.org/a b</a></p>');
+  assert.equal(back, '[https://example.org/a b](https://example.org/a%20b)');
+});
+
+test('Ein Wiki-Link in einer Tabellenzelle wird nicht doppelt maskiert', () => {
+  const markdown = '| Wer | Notiz |\n| --- | --- |\n| [[Mira\\|ihr]] | dazu |';
+  assert.equal(htmlToMarkdown(markdownToHtml(markdown)), markdown);
+});
+
+test('Doppelte Klammern in einer Adresse gelten nicht als Wiki-Link', () => {
+  const quelle = 'Siehe https://example.org/x?a=[[b]] und [[Mira]].';
+  const einmal = htmlToMarkdown(markdownToHtml(quelle));
+
+  // Die Adresse wird zur ausgeschriebenen Linkschreibweise, weil die
+  // Klammern darin maskiert werden muessen. Wichtig ist, dass sie dabei
+  // heil bleibt und der Text nicht bei jedem Speichern weiter waechst.
+  assert.ok(einmal.includes('https://example.org/x?a=%5B%5Bb%5D%5D'), einmal);
+  assert.equal(htmlToMarkdown(markdownToHtml(einmal)), einmal);
+
+  // Der echte Wiki-Link daneben bleibt einer.
+  assert.deepEqual(findWikiLinks(einmal).map((link) => link.target), ['Mira'], einmal);
+});
+
+test('Doppelte Klammern in einem ausgeschriebenen Verweis bleiben heil', () => {
+  const quelle = 'Siehe [Text](https://example.org/x?a=[[b]]) dazu.';
+  const einmal = htmlToMarkdown(markdownToHtml(quelle));
+  assert.ok(einmal.includes('%5B%5Bb%5D%5D'), einmal);
+  assert.equal(htmlToMarkdown(markdownToHtml(einmal)), einmal);
+});
+
+test('Ein Wiki-Link geht nicht ueber Zeilengrenzen', () => {
+  // Sonst verschluckt eine offene Klammer alles bis zur naechsten
+  // schliessenden, samt Absaetzen und Listenpunkten.
+  assert.deepEqual(findWikiLinks('Ein [[offener Anfang\n\nund ein Ende]] hier.'), []);
+  const quelle = 'Ein [[offener Anfang\n\nund ein Ende]] hier.';
+  assert.ok(htmlToMarkdown(markdownToHtml(quelle)).includes('\n\n'), 'Der Absatz ist verlorengegangen');
+});
+
+test('Ein Anfuehrungszeichen im Titel bricht kein HTML-Attribut auf', () => {
+  const html = markdownToHtml('![[[Bild "gross"]]](assets/a.png)');
+  assert.ok(!/alt="[^"]*"[^>]*"/.test(html), html);
+});
+
+test('Ein Wiki-Link direkt hinter einem Verweis bleibt ein Link', () => {
+  const quelle = 'Siehe [Karte](https://example.org)[[Der *Turm*]] dazu.';
+  const back = htmlToMarkdown(markdownToHtml(quelle));
+  assert.deepEqual(findWikiLinks(back).map((link) => link.target), ['Der *Turm*'], back);
+});
+
+test('Eingefuegter Text: Markdown gilt, rohes HTML bleibt Text', () => {
+  assert.match(pastedMarkdownToHtml('**fett**'), /<strong>fett<\/strong>/);
+  assert.match(pastedMarkdownToHtml('> Zitat'), /<blockquote>/);
+  assert.match(pastedMarkdownToHtml('| a | b |\n| --- | --- |\n| 1 | 2 |'), /<table>/);
+
+  // Ein unbekanntes Element wuerde der Editor samt Inhalt verwerfen.
+  const html = pastedMarkdownToHtml('Ein <div>Kasten</div> hier.');
+  assert.ok(!html.includes('<div>'), html);
+  assert.match(html, /&lt;div&gt;Kasten&lt;\/div&gt;/);
+});
+
+test('Eingefuegter Text: Sonderzeichen werden nicht doppelt maskiert', () => {
+  assert.match(pastedMarkdownToHtml('`a & b`'), /<code>a &amp; b<\/code>/);
+  assert.match(pastedMarkdownToHtml('![B](assets/x.png "T")'), /<img[^>]+src="assets\/x\.png"/);
+});
+
+test('Spitze Klammern im Text ueberleben das Speichern als Text', () => {
+  // Eingefuegt bleibt <div> Text. Ohne Maskierung stuende es roh in der
+  // Datei, und der naechste Ladevorgang machte daraus wieder HTML, das der
+  // Editor verwirft: der Verlust waere nur aufgeschoben.
+  const md = htmlToMarkdown(pastedMarkdownToHtml('Ein <div>Kasten</div> hier.'));
+  const wieder = htmlToMarkdown(markdownToHtml(md));
+  assert.equal(wieder, md);
+  assert.ok(wieder.includes('Kasten'), wieder);
 });

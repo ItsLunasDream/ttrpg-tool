@@ -1,12 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, writeFile, readdir, rename } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { promises as fs } from 'node:fs';
 import entry from '../dist/tests/entry.cjs';
 
 const {Vault, zipDirectory} = entry;
+
+/**
+ * Datiert vorhandene Fassungen zurueck, damit das Sperrfenster von fuenf
+ * Minuten im Test nicht greift. Der Zeitstempel steckt im Dateinamen.
+ */
+async function backdateVersions(historyDir) {
+  let entries;
+  try {
+    entries = await readdir(historyDir);
+  } catch {
+    return;
+  }
+
+  for (const name of entries) {
+    const past = new Date(Date.now() - 60 * 60 * 1000 * (1 + entries.indexOf(name)));
+    const renamed = `${past.toISOString().replace(/[:.]/g, '-')}.md`;
+    if (renamed !== name) await rename(path.join(historyDir, name), path.join(historyDir, renamed));
+  }
+}
 
 async function withVault(run) {
   const root = await mkdtemp(path.join(tmpdir(), 'backstory-'));
@@ -267,5 +287,517 @@ test('Bilder landen in der ZIP-Sicherung', async () => {
 
     const listing = execFileSync('unzip', ['-Z1', target], { encoding: 'utf8' });
     assert.match(listing, new RegExp(relative.replace('assets/', 'assets/')));
+  });
+});
+
+test('Erste Aenderung legt eine Fassung an, weitere im Sperrfenster nicht', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+
+    assert.deepEqual(await vault.listVersions(campaign.id, note.id), [], 'neue Notiz hat schon Fassungen');
+
+    const first = await vault.saveNote(campaign.id, { ...note, body: 'Erster Text.' });
+    let versions = await vault.listVersions(campaign.id, note.id);
+    assert.equal(versions.length, 1, 'kein Stand gesichert');
+    assert.equal(versions[0].body.trim(), '', 'gesichert wurde der falsche Stand');
+
+    // Zweites Speichern kurz danach darf keine weitere Fassung anlegen
+    await vault.saveNote(campaign.id, { ...first, body: 'Zweiter Text.' });
+    versions = await vault.listVersions(campaign.id, note.id);
+    assert.equal(versions.length, 1, 'Sperrfenster greift nicht');
+  });
+});
+
+test('Unveraendertes Speichern legt keine Fassung an', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    const saved = await vault.saveNote(campaign.id, { ...note, body: 'Text.' });
+
+    const before = (await vault.listVersions(campaign.id, note.id)).length;
+    await vault.saveNote(campaign.id, saved);
+    const after = (await vault.listVersions(campaign.id, note.id)).length;
+
+    assert.equal(after, before, 'gleicher Inhalt hat eine Fassung erzeugt');
+  });
+});
+
+test('Wiederherstellen holt den alten Text zurueck und sichert den aktuellen', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    const first = await vault.saveNote(campaign.id, { ...note, body: 'Alter Text.' });
+
+    // Sperrfenster umgehen, indem die vorhandene Fassung zurueckdatiert wird
+    const historyDir = path.join(root, 'campaigns', campaign.id, 'history', note.id);
+    await backdateVersions(historyDir);
+
+    await vault.saveNote(campaign.id, { ...first, body: 'Neuer Text.' });
+
+    // Erst zurueckdatieren, dann auflisten: das Umbenennen aendert die IDs
+    await backdateVersions(historyDir);
+    const versions = await vault.listVersions(campaign.id, note.id);
+    const oldVersion = versions.find((version) => version.body.includes('Alter Text'));
+    assert.ok(oldVersion, 'alte Fassung fehlt im Verlauf');
+
+    const restored = await vault.restoreVersion(campaign.id, note.id, oldVersion.id);
+
+    assert.match(restored.body, /Alter Text/);
+    assert.equal(restored.id, note.id, 'Notiz-ID wurde ersetzt');
+    assert.equal(restored.createdAt, note.createdAt, 'Erstellungszeit wurde ersetzt');
+
+    const afterRestore = await vault.listVersions(campaign.id, note.id);
+    assert.ok(
+      afterRestore.some((version) => version.body.includes('Neuer Text')),
+      'der überschriebene Stand wurde nicht gesichert'
+    );
+  });
+});
+
+test('Der Verlauf wird auf die eingestellte Hoechstzahl gekuerzt', async () => {
+  await withVault(async (vault, root) => {
+    vault.setHistoryOptions({ enabled: true, maxVersions: 3 });
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    const historyDir = path.join(root, 'campaigns', campaign.id, 'history', note.id);
+
+    let current = note;
+    for (let round = 0; round < 6; round++) {
+      current = await vault.saveNote(campaign.id, { ...current, body: `Fassung ${round}` });
+      await backdateVersions(historyDir);
+    }
+
+    const versions = await vault.listVersions(campaign.id, note.id);
+    assert.ok(versions.length <= 3, `zu viele Fassungen: ${versions.length}`);
+  });
+});
+
+test('Abgeschalteter Verlauf legt nichts an', async () => {
+  await withVault(async (vault) => {
+    vault.setHistoryOptions({ enabled: false, maxVersions: 50 });
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    await vault.saveNote(campaign.id, { ...note, body: 'Text.' });
+
+    assert.deepEqual(await vault.listVersions(campaign.id, note.id), []);
+  });
+});
+
+test('Unbekannte Fassung wird abgelehnt', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    await assert.rejects(() => vault.restoreVersion(campaign.id, note.id, 'gibtesnicht'), {
+      key: 'error.versionMissing'
+    });
+    await assert.rejects(() => vault.restoreVersion(campaign.id, note.id, '../../campaign'), {
+      key: 'error.invalidId'
+    });
+  });
+});
+
+test('Schreibhilfe wird beim ersten Lesen als Datei angelegt', async () => {
+  await withVault(async (vault, root) => {
+    const prompts = await vault.readPrompts('de');
+    assert.ok(prompts.length >= 5);
+
+    const raw = JSON.parse(await readFile(path.join(root, 'writing-prompts.json'), 'utf8'));
+    assert.equal(raw.length, prompts.length, 'Datei wurde nicht geschrieben');
+  });
+});
+
+test('Eigene Schreibhilfe-Datei wird benutzt und repariert', async () => {
+  await withVault(async (vault, root) => {
+    await writeFile(
+      path.join(root, 'writing-prompts.json'),
+      JSON.stringify([
+        { id: 'eigene', label: 'Eigene Liste', options: ['Erster Eintrag', '  ', 42] },
+        { label: '', options: ['wird verworfen'] },
+        { label: 'Ohne Einträge', options: [] },
+        'kaputt'
+      ])
+    );
+
+    const prompts = await vault.readPrompts('de');
+    assert.equal(prompts.length, 1, 'unbrauchbare Einträge wurden nicht aussortiert');
+    assert.equal(prompts[0].label, 'Eigene Liste');
+    assert.deepEqual(prompts[0].options, ['Erster Eintrag']);
+  });
+});
+
+test('Unlesbare Schreibhilfe-Datei faellt auf die Vorlage zurueck', async () => {
+  await withVault(async (vault, root) => {
+    await writeFile(path.join(root, 'writing-prompts.json'), 'kein json');
+    assert.ok((await vault.readPrompts('de')).length >= 5);
+  });
+});
+
+test('Verwaiste Bilder werden gefunden, benutzte nicht', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+
+    const imBody = await vault.saveAsset(campaign.id, 'szene.png', new Uint8Array([1, 2, 3]));
+    const imField = await vault.saveAsset(campaign.id, 'portrait.png', new Uint8Array([1, 2, 3, 4]));
+    const unused = await vault.saveAsset(campaign.id, 'alt.png', new Uint8Array([1, 2, 3, 4, 5]));
+
+    await vault.saveNote(campaign.id, {
+      ...note,
+      body: `Text ![Szene](${imBody})`,
+      fields: { portrait: imField }
+    });
+
+    const orphans = await vault.listOrphanedAssets(campaign.id);
+    assert.deepEqual(
+      orphans.map((entry) => entry.name),
+      [unused.replace('assets/', '')],
+      'falsche Dateien als verwaist gemeldet'
+    );
+    assert.equal(orphans[0].bytes, 5);
+  });
+});
+
+test('Bilder aus dem Versionsverlauf gelten als benutzt', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    const image = await vault.saveAsset(campaign.id, 'szene.png', new Uint8Array([1, 2, 3]));
+
+    const withImage = await vault.saveNote(campaign.id, { ...note, body: `![](${image})` });
+    await backdateVersions(path.join(root, 'campaigns', campaign.id, 'history', note.id));
+
+    // Bild aus dem Text entfernen: der alte Stand wandert in den Verlauf
+    await vault.saveNote(campaign.id, { ...withImage, body: 'Ohne Bild.' });
+
+    assert.deepEqual(
+      await vault.listOrphanedAssets(campaign.id),
+      [],
+      'ein noch im Verlauf benutztes Bild wurde als verwaist gemeldet'
+    );
+  });
+});
+
+test('Ohne Versionsverlauf wird das entfernte Bild verwaist', async () => {
+  await withVault(async (vault) => {
+    vault.setHistoryOptions({ enabled: false, maxVersions: 50 });
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    const image = await vault.saveAsset(campaign.id, 'szene.png', new Uint8Array([1, 2, 3]));
+
+    const withImage = await vault.saveNote(campaign.id, { ...note, body: `![](${image})` });
+    await vault.saveNote(campaign.id, { ...withImage, body: 'Ohne Bild.' });
+
+    const orphans = await vault.listOrphanedAssets(campaign.id);
+    assert.equal(orphans.length, 1);
+    assert.equal(orphans[0].name, image.replace('assets/', ''));
+  });
+});
+
+test('Loeschen entfernt genau die genannten Dateien', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const keep = await vault.saveAsset(campaign.id, 'behalten.png', new Uint8Array([1]));
+    const drop = await vault.saveAsset(campaign.id, 'weg.png', new Uint8Array([1]));
+
+    const removed = await vault.deleteAssets(campaign.id, [drop.replace('assets/', '')]);
+    assert.equal(removed, 1);
+
+    const files = await readdir(path.join(root, 'campaigns', campaign.id, 'assets'));
+    assert.deepEqual(files, [keep.replace('assets/', '')]);
+
+    // Erneutes Loeschen ist kein Fehler
+    assert.equal(await vault.deleteAssets(campaign.id, [drop.replace('assets/', '')]), 0);
+  });
+});
+
+test('Loeschen laesst keinen Ausbruch aus dem Bildverzeichnis zu', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    await assert.rejects(() => vault.deleteAssets(campaign.id, ['../campaign.json']), { key: 'error.invalidAsset' });
+  });
+});
+
+test('Umbenennen zieht auch einen Selbstverweis mit', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    await vault.saveNote(campaign.id, { ...mira, body: 'Ich, [[Mira]], schreibe das.' });
+
+    await vault.renameNote(campaign.id, mira.id, 'Mira Falkenhand');
+
+    const updated = await vault.getNote(campaign.id, mira.id);
+    assert.equal(updated.title, 'Mira Falkenhand');
+    assert.match(updated.body, /\[\[Mira Falkenhand\]\]/);
+    assert.ok(!/\[\[Mira\]\]/.test(updated.body), 'der alte Name steht noch im eigenen Text');
+  });
+});
+
+test('Beim Umbenennen wird der Titel zuletzt gesetzt', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+    await vault.saveNote(campaign.id, { ...toran, body: 'Er kennt [[Mira]].' });
+
+    // Schreiben der anderen Notiz scheitern lassen, um einen Abbruch mitten
+    // im Umbenennen nachzustellen
+    const original = fs.rename;
+    let broken = true;
+    fs.rename = async (from, to) => {
+      if (broken && String(to).endsWith(`${toran.id}.md`)) throw new Error('Schreiben fehlgeschlagen');
+      return original(from, to);
+    };
+
+    try {
+      await assert.rejects(() => vault.renameNote(campaign.id, mira.id, 'Mira Falkenhand'));
+
+      // Die Notiz muss noch den alten Titel tragen, sonst waere der Zustand
+      // nicht mehr durch erneutes Umbenennen zu reparieren
+      const afterCrash = await vault.getNote(campaign.id, mira.id);
+      assert.equal(afterCrash.title, 'Mira', 'der Titel wurde vor den Verweisen gesetzt');
+
+      broken = false;
+      await vault.renameNote(campaign.id, mira.id, 'Mira Falkenhand');
+      assert.match((await vault.getNote(campaign.id, toran.id)).body, /\[\[Mira Falkenhand\]\]/);
+    } finally {
+      fs.rename = original;
+    }
+  });
+});
+
+test('Auswahllisten behalten ihre Werte', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const types = campaign.noteTypes.map((def) =>
+      def.id === 'character'
+        ? {
+            ...def,
+            fields: [
+              ...def.fields,
+              { key: 'gesinnung', label: 'Gesinnung', type: 'select', options: ['Rechtschaffen', 'Neutral', 'Chaotisch'] },
+              { key: 'lebt', label: 'Lebt noch', type: 'checkbox' },
+              { key: 'geburtstag', label: 'Geburtstag', type: 'date' }
+            ]
+          }
+        : def
+    );
+
+    const updated = await vault.updateNoteTypes(campaign.id, types);
+    const character = updated.noteTypes.find((def) => def.id === 'character');
+    assert.deepEqual(
+      character.fields.find((field) => field.key === 'gesinnung').options,
+      ['Rechtschaffen', 'Neutral', 'Chaotisch']
+    );
+    assert.equal(character.fields.find((field) => field.key === 'lebt').type, 'checkbox');
+    assert.equal(character.fields.find((field) => field.key === 'geburtstag').type, 'date');
+
+    // Nach dem erneuten Lesen von der Platte muss alles noch da sein
+    const [reloaded] = await vault.listCampaigns();
+    assert.equal(
+      reloaded.noteTypes.find((def) => def.id === 'character').fields.find((field) => field.key === 'gesinnung')
+        .options.length,
+      3
+    );
+  });
+});
+
+test('Eine Auswahlliste ohne Werte wird abgelehnt', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    await assert.rejects(
+      () =>
+        vault.updateNoteTypes(campaign.id, [
+          { id: 'a', label: 'A', plural: 'A', fields: [{ key: 'x', label: 'Auswahl', type: 'select', options: [] }] }
+        ]),
+      { key: 'error.selectNeedsOptions' }
+    );
+  });
+});
+
+test('Eine von Hand kaputt gemachte Auswahlliste wird zu Text', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const file = path.join(root, 'campaigns', campaign.id, 'campaign.json');
+    const stored = JSON.parse(await readFile(file, 'utf8'));
+    stored.noteTypes = [
+      { id: 'a', label: 'A', plural: 'A', fields: [{ key: 'x', label: 'Auswahl', type: 'select' }] }
+    ];
+    await writeFile(file, JSON.stringify(stored));
+
+    const [reloaded] = await vault.listCampaigns();
+    assert.equal(reloaded.noteTypes[0].fields[0].type, 'text', 'kaputte Auswahlliste blieb unbedienbar');
+  });
+});
+
+test('Kaputte Notizdateien werden gemeldet statt stillschweigend zu fehlen', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const heil = await vault.createNote(campaign.id, 'character', 'Mira');
+
+    const notesDir = path.join(root, 'campaigns', campaign.id, 'notes');
+    await writeFile(path.join(notesDir, 'kaputt.md'), '---\nid: [unclosed\n  broken: yaml\n---\n\nText');
+
+    // Die heile Notiz bleibt lesbar, die kaputte fehlt in der Liste
+    const notes = await vault.listNotes(campaign.id);
+    assert.deepEqual(notes.map((note) => note.id), [heil.id]);
+
+    // ... wird aber gemeldet, mit dem Grund
+    assert.deepEqual(await vault.findUnreadableNotes(campaign.id), [{ name: 'kaputt.md', reason: 'content' }]);
+
+    // Ein Dateiname, der nicht als ID taugt, wird als solcher gemeldet:
+    // dagegen hilft ein Umbenennen, nicht der Texteditor.
+    await writeFile(path.join(notesDir, 'mein charakter.md'), 'Text.\n');
+    assert.deepEqual(await vault.findUnreadableNotes(campaign.id), [
+      { name: 'kaputt.md', reason: 'content' },
+      { name: 'mein charakter.md', reason: 'name' }
+    ]);
+  });
+});
+
+test('Ohne kaputte Dateien meldet die Pruefung nichts', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    await vault.createNote(campaign.id, 'character', 'Mira');
+    assert.deepEqual(await vault.findUnreadableNotes(campaign.id), []);
+  });
+});
+
+test('Titel mit Link-Sonderzeichen werden abgelehnt', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+
+    // [[ ]] und | haben im Link-Format eine Bedeutung. Stuenden sie im
+    // Titel, liesse sich die Notiz nicht mehr eindeutig verlinken.
+    for (const bad of ['Mira|Falke', 'Buch [[Alpha]]', 'Halb ] offen', 'Mira\\Falke']) {
+      await assert.rejects(() => vault.createNote(campaign.id, 'character', bad));
+    }
+
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    await assert.rejects(() => vault.renameNote(campaign.id, mira.id, 'Mira|Falke'));
+    await assert.rejects(() => vault.saveNote(campaign.id, { ...mira, title: 'Mira|Falke' }));
+
+    // Der abgelehnte Versuch darf nichts veraendert haben.
+    assert.equal((await vault.getNote(campaign.id, mira.id)).title, 'Mira');
+  });
+});
+
+test('Aliase mit Link-Sonderzeichen werden abgelehnt', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    await assert.rejects(() => vault.saveNote(campaign.id, { ...mira, aliases: ['Die|Jaegerin'] }));
+  });
+});
+
+test('Umbenennen bricht Links in anderen Notizen nicht auf', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+    await vault.saveNote(campaign.id, { ...toran, body: 'Er schuldet [[Mira]] Gold.' });
+
+    await assert.rejects(() => vault.renameNote(campaign.id, mira.id, 'Mira|Falke'));
+    const updated = await vault.getNote(campaign.id, toran.id);
+    assert.equal(updated.body.trim(), 'Er schuldet [[Mira]] Gold.');
+  });
+});
+
+test('Fremde Frontmatter-Schluessel ueberleben das Speichern', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const file = path.join(root, 'campaigns', campaign.id, 'notes', `${mira.id}.md`);
+
+    // Wie es passiert, wenn jemand die Datei in Obsidian oder einem
+    // Texteditor um eigene Angaben ergaenzt.
+    const raw = await readFile(file, 'utf8');
+    await writeFile(file, raw.replace('title: Mira', 'title: Mira\ncssclass: karteikarte\nstufe: 5'));
+
+    const reloaded = await vault.getNote(campaign.id, mira.id);
+    await vault.saveNote(campaign.id, { ...reloaded, body: 'Neuer Text.' });
+
+    const after = await readFile(file, 'utf8');
+    assert.match(after, /cssclass: karteikarte/);
+    assert.match(after, /stufe: 5/);
+    assert.match(after, /Neuer Text\./);
+  });
+});
+
+test('Auch ein Frontmatter-Schluessel namens constructor bleibt erhalten', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const file = path.join(root, 'campaigns', campaign.id, 'notes', `${mira.id}.md`);
+
+    const raw = await readFile(file, 'utf8');
+    await writeFile(file, raw.replace('title: Mira', 'title: Mira\nconstructor: eigen'));
+
+    const reloaded = await vault.getNote(campaign.id, mira.id);
+    await vault.saveNote(campaign.id, { ...reloaded, body: 'Text.' });
+    assert.match(await readFile(file, 'utf8'), /constructor: eigen/);
+  });
+});
+
+test('Ein fehlgeschlagenes Schreiben laesst keine Temp-Datei zurueck', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+
+    const notesDir = path.join(root, 'campaigns', campaign.id, 'notes');
+    const file = path.join(notesDir, `${mira.id}.md`);
+
+    // Ein Verzeichnis an der Stelle der Datei laesst das Umbenennen scheitern,
+    // ohne dass sich der Fehler wiederholen liesse.
+    await fs.rm(file);
+    await fs.mkdir(file);
+
+    await assert.rejects(() => vault.saveNote(campaign.id, { ...mira, body: 'Text.' }));
+
+    const leftovers = (await readdir(notesDir)).filter((name) => name.includes('.tmp-'));
+    assert.deepEqual(leftovers, []);
+  });
+});
+
+test('Eine Datei ohne Titel im Kopf nimmt ihre erste Ueberschrift', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const notesDir = path.join(root, 'campaigns', campaign.id, 'notes');
+    await fs.mkdir(notesDir, { recursive: true });
+
+    // So sieht eine Datei aus, die jemand aus einem anderen Programm ablegt.
+    await writeFile(path.join(notesDir, 'alte-backstory.md'), '# Meine Backstory\n\nEs war einmal.\n');
+    await writeFile(path.join(notesDir, 'ohne-alles.md'), 'Nur Text, keine Ueberschrift.\n');
+    await writeFile(path.join(notesDir, 'spaeter.md'), 'Vorspann.\n\n## Kapitel eins\n');
+
+    const byId = new Map((await vault.listNotes(campaign.id)).map((note) => [note.id, note]));
+    assert.equal(byId.get('alte-backstory').title, 'Meine Backstory');
+    // Die Ueberschrift bleibt im Text stehen, es geht nichts verloren.
+    assert.match(byId.get('alte-backstory').body, /^# Meine Backstory/);
+    assert.equal(byId.get('ohne-alles').title, 'Ohne Titel');
+    // Nur die erste Zeile zaehlt: sonst bekaeme eine lange Notiz einen
+    // Titel aus ihrer Mitte.
+    assert.equal(byId.get('spaeter').title, 'Ohne Titel');
+  });
+});
+
+test('Umbenennen prueft die Aliase, bevor es Fremdes anfasst', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+    await vault.saveNote(campaign.id, { ...toran, body: 'Er schuldet [[Mira]] Gold.' });
+
+    // Ein Alias, wie ihn jemand in Obsidian eintragen koennte.
+    const file = path.join(root, 'campaigns', campaign.id, 'notes', `${mira.id}.md`);
+    const raw = await readFile(file, 'utf8');
+    await writeFile(file, raw.replace('aliases: []', "aliases:\n  - 'Die|Jaegerin'"));
+
+    await assert.rejects(() => vault.renameNote(campaign.id, mira.id, 'Mira Falkenhand'));
+
+    // Ohne die Pruefung vorab waere Torans Link schon umgeschrieben, der Titel
+    // aber nicht. Ein zweiter Versuch fuehrt dann zu nichts.
+    const updated = await vault.getNote(campaign.id, toran.id);
+    assert.equal(updated.body.trim(), 'Er schuldet [[Mira]] Gold.');
   });
 });

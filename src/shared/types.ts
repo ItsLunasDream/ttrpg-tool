@@ -9,7 +9,7 @@ export const SCHEMA_VERSION = 1;
  */
 export type NoteType = string;
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'url' | 'image';
+export type FieldType = 'text' | 'textarea' | 'number' | 'url' | 'image' | 'select' | 'date' | 'checkbox';
 
 export interface FieldDef {
   /** Stabiler Schluessel, unter dem der Wert in der Notiz steht. Wird nie geaendert. */
@@ -17,6 +17,8 @@ export interface FieldDef {
   label: string;
   type: FieldType;
   placeholder?: string;
+  /** Nur fuer die Feldart Auswahlliste. */
+  options?: string[];
 }
 
 export interface NoteTypeDef {
@@ -54,6 +56,31 @@ export interface Note extends NoteMeta {
   body: string;
 }
 
+/** Eine Bilddatei, auf die keine Notiz mehr verweist. */
+export interface OrphanedAsset {
+  name: string;
+  bytes: number;
+}
+
+/**
+ * Eine Datei im Notizordner, die sich nicht lesen laesst.
+ *
+ * `name`: der Dateiname taugt nicht als ID, ein Umbenennen behebt es.
+ * `content`: der Inhalt ist kaputt, meist der YAML-Kopf.
+ */
+export interface UnreadableNote {
+  name: string;
+  reason: 'name' | 'content';
+}
+
+/** Ein gesicherter Stand einer Notiz. */
+export interface NoteVersion {
+  id: string;
+  savedAt: string;
+  title: string;
+  body: string;
+}
+
 export interface Campaign {
   id: string;
   schemaVersion: number;
@@ -63,12 +90,23 @@ export interface Campaign {
   noteTypes: NoteTypeDef[];
 }
 
+export type AiProviderId = 'none' | 'ollama' | 'claude';
+
 export interface AppSettings {
   schemaVersion: number;
   vaultRoot: string;
   language: Language;
   autosaveEnabled: boolean;
   autosaveDelayMs: number;
+  historyEnabled: boolean;
+  historyMaxVersions: number;
+  /** Welche KI-Anbindung benutzt wird. 'none' schaltet die Sidebar ab. */
+  aiProvider: AiProviderId;
+  ollamaBaseUrl: string;
+  ollamaModel: string;
+  claudeModel: string;
+  /** Verschluesselter API-Schluessel. Erreicht den Renderer nie. */
+  claudeApiKeyEncrypted: string;
   lastCampaignId: string | null;
 }
 

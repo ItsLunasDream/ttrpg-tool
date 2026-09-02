@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, call } from './api';
 import { buildIndex, filterNotes, searchNotes, type SearchFilters } from './noteIndex';
-import { normalizeName } from '../shared/wikilinks';
+import { hasLinkReservedChars, normalizeName } from '../shared/wikilinks';
 import { DEFAULT_NOTE_TYPES } from '../shared/noteTypes';
-import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, SearchHit } from '../shared/types';
+import type {
+  AppSettings,
+  Campaign,
+  Note,
+  NoteType,
+  NoteTypeDef,
+  NoteVersion,
+  OrphanedAsset,
+  SearchHit,
+  UnreadableNote
+} from '../shared/types';
+import type { PromptCategory } from '../shared/writingPrompts';
 import { CampaignBar } from './components/CampaignBar';
 import { NoteList } from './components/NoteList';
 import { NoteEditor } from './components/NoteEditor';
@@ -15,6 +26,13 @@ import { LanguageProvider, useLanguage, useT } from './i18n';
 import { DEFAULT_LANGUAGE } from '../shared/i18n';
 import type { Language } from '../shared/i18n';
 import { NoteTypesDialog } from './components/NoteTypesDialog';
+import { HistoryDialog } from './components/HistoryDialog';
+import { PromptsDialog } from './components/PromptsDialog';
+import { GraphView } from './components/GraphView';
+import { CleanupDialog } from './components/CleanupDialog';
+import { HelpDialog } from './components/HelpDialog';
+import type { AiStatus } from './components/AssistantPanel';
+import type { AiMessage, AiTask } from '../main/ai/provider';
 
 type Dialog =
   | { kind: 'none' }
@@ -24,7 +42,11 @@ type Dialog =
   | { kind: 'deleteCampaign'; campaign: Campaign }
   | { kind: 'newNote'; type: NoteType }
   | { kind: 'deleteNote'; note: Note }
-  | { kind: 'noteTypes' };
+  | { kind: 'noteTypes' }
+  | { kind: 'history'; note: Note }
+  | { kind: 'prompts' }
+  | { kind: 'cleanup' }
+  | { kind: 'help' };
 
 const EMPTY_FILTERS: SearchFilters = { query: '', type: 'all', tag: null };
 
@@ -39,7 +61,7 @@ export function App() {
 }
 
 function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language) => void }) {
-  const { t, compare } = useLanguage();
+  const { t, compare, language } = useLanguage();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
@@ -51,6 +73,15 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const [hover, setHover] = useState<{ note: Note; rect: DOMRect } | null>(null);
   const [dialog, setDialog] = useState<Dialog>({ kind: 'none' });
   const [message, setMessage] = useState<{ text: string; tone: 'info' | 'error' } | null>(null);
+  const [versions, setVersions] = useState<NoteVersion[] | null>(null);
+  // Wird hochgezaehlt, wenn der Text einer offenen Notiz von aussen ersetzt
+  // wurde. Ohne dieses Signal zeigte der Editor weiter den alten Stand.
+  const [reloadKey, setReloadKey] = useState(0);
+  const [prompts, setPrompts] = useState<PromptCategory[] | null>(null);
+  const [showGraph, setShowGraph] = useState(false);
+  const [aiStatus, setAiStatus] = useState<AiStatus | null>(null);
+  const [orphans, setOrphans] = useState<OrphanedAsset[] | null>(null);
+  const [unreadable, setUnreadable] = useState<UnreadableNote[]>([]);
 
   const draftRef = useRef<Note | null>(null);
   draftRef.current = draft;
@@ -95,6 +126,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       const loaded = await call(api.settings.get());
       setSettings(loaded);
       onLanguageChange(loaded.language);
+      // Der Status haengt an einem Netzaufruf, deshalb nebenlaeufig.
+      void call(api.ai.status()).then(setAiStatus, () => setAiStatus(null));
 
       const list = await call(api.campaigns.list());
       setCampaigns(list);
@@ -107,6 +140,12 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const reloadNotes = useCallback(
     async (campaignId: string) => {
       const list = await call(api.notes.list(campaignId));
+      // Auch die Referenz sofort setzen. Sonst arbeitet der noch laufende
+      // Ablauf mit dem alten Stand weiter, denn die Referenz wird erst beim
+      // naechsten Rendern nachgezogen. Nach einem Umbenennen haette der
+      // Editor dann den Text von vor dem Link-Rewrite gezeigt und beim
+      // Speichern wieder zurueckgeschrieben.
+      notesRef.current = list;
       setNotes(list);
       return list;
     },
@@ -124,6 +163,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       setDraft(list[0] ?? null);
       setDirty(false);
       setFilters(EMPTY_FILTERS);
+      setUnreadable(await call(api.notes.unreadable(activeCampaignId)));
       await call(api.settings.update({ lastCampaignId: activeCampaignId }));
     });
   }, [activeCampaignId, guard, reloadNotes]);
@@ -149,12 +189,14 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         const result = await call(api.notes.rename(campaignId, current.id, current.title));
         saved = result.note;
         await reloadNotes(campaignId);
+        if (saved.body !== current.body) setReloadKey((previous) => previous + 1);
         if (result.rewritten > 0) {
           report(result.rewritten === 1 ? t('msg.renamedOne') : t('msg.renamed', { count: result.rewritten }));
         }
       } else {
         saved = await call(api.notes.save(campaignId, current));
-        setNotes((previous) => previous.map((note) => (note.id === saved.id ? saved : note)));
+        notesRef.current = notesRef.current.map((note) => (note.id === saved.id ? saved : note));
+        setNotes(notesRef.current);
       }
 
       setDraft((previous) => (previous && previous.id === saved.id ? saved : previous));
@@ -168,12 +210,18 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
 
   const save = useCallback(() => guard(persist), [guard, persist]);
 
+  // Titel und Aliase mit [ ] oder | lehnt der Vault ab. Der Editor weist
+  // darauf hin; der Autosave wuerde bis zur Korrektur im Sekundentakt
+  // dieselbe Fehlermeldung einblenden und pausiert deshalb solange.
+  const draftLinkable =
+    !draft || ![draft.title, ...draft.aliases].some((name) => hasLinkReservedChars(name));
+
   // Autosave laeuft nur, wenn er in den Einstellungen aktiv ist.
   useEffect(() => {
-    if (!settings?.autosaveEnabled || !dirty || !draft) return;
+    if (!settings?.autosaveEnabled || !dirty || !draft || !draftLinkable) return;
     const timer = window.setTimeout(() => void save(), settings.autosaveDelayMs);
     return () => window.clearTimeout(timer);
-  }, [settings?.autosaveEnabled, settings?.autosaveDelayMs, dirty, draft, save]);
+  }, [settings?.autosaveEnabled, settings?.autosaveDelayMs, dirty, draft, draftLinkable, save]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -187,12 +235,30 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   }, [save]);
 
   useEffect(() => {
-    function onBeforeUnload(event: BeforeUnloadEvent) {
-      if (dirtyRef.current) event.preventDefault();
+    // Beim Wegklicken sichern. Deckt Alt-Tab und den Wechsel in ein anderes
+    // Fenster ab.
+    function onBlur() {
+      if (dirtyRef.current) void save();
     }
-    window.addEventListener('beforeunload', onBeforeUnload);
-    return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, []);
+
+    window.addEventListener('blur', onBlur);
+
+    // Beim Schliessen wartet der Hauptprozess auf diese Rueckmeldung.
+    const stopListening = api.onFlush(() => {
+      void (async () => {
+        try {
+          await persist();
+        } finally {
+          api.flushed();
+        }
+      })();
+    });
+
+    return () => {
+      window.removeEventListener('blur', onBlur);
+      stopListening();
+    };
+  }, [save, persist]);
 
   useEffect(() => {
     if (!message) return;
@@ -219,6 +285,22 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     if (!campaignId) return null;
     return (await guard(() => call(api.assets.pick(campaignId)))) ?? null;
   }, [activeCampaignId, guard]);
+
+  /** Verlauf oeffnen. Ungespeichertes wird vorher gesichert, sonst fehlt es dort. */
+  const openHistory = useCallback(
+    async (note: Note) => {
+      const campaignId = activeCampaignId;
+      if (!campaignId) return;
+
+      setVersions(null);
+      setDialog({ kind: 'history', note });
+      await guard(async () => {
+        await persist();
+        setVersions(await call(api.history.list(campaignId, note.id)));
+      });
+    },
+    [activeCampaignId, guard, persist]
+  );
 
   const patchDraft = useCallback((patch: Partial<Note>) => {
     setDraft((previous) => (previous ? { ...previous, ...patch } : previous));
@@ -289,6 +371,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         const updated = await call(api.settings.update(patch));
         setSettings(updated);
         onLanguageChange(updated.language);
+        void call(api.ai.status()).then(setAiStatus, () => setAiStatus(null));
       });
     },
     [guard, onLanguageChange]
@@ -311,10 +394,41 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         onExport={() =>
           activeCampaign &&
           void guard(async () => {
+            // Exportiert wird der Stand auf der Platte. Ohne dieses
+            // Speichern fehlte der zuletzt getippte Absatz in der Sicherung.
+            await persist();
             const target = await call(api.exportCampaignZip(activeCampaign.id, activeCampaign.name));
             if (target) report(t('msg.exported', { path: target }));
           })
         }
+        onExportMarkdown={() =>
+          activeCampaign &&
+          void guard(async () => {
+            await persist();
+            const result = await call(api.exportMarkdown.campaign(activeCampaign.id));
+            if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
+          })
+        }
+        onExportPdf={() =>
+          activeCampaign &&
+          void guard(async () => {
+            await persist();
+            const result = await call(api.exportPdf.campaign(activeCampaign.id, activeCampaign.name));
+            if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
+          })
+        }
+        onToggleGraph={() => setShowGraph((previous) => !previous)}
+        graphOpen={showGraph}
+        onCleanup={() =>
+          activeCampaign &&
+          void guard(async () => {
+            setOrphans(null);
+            setDialog({ kind: 'cleanup' });
+            await persist();
+            setOrphans(await call(api.assets.orphans(activeCampaign.id)));
+          })
+        }
+        onOpenHelp={() => setDialog({ kind: 'help' })}
         onOpenSettings={() => setDialog({ kind: 'settings' })}
         onEditNoteTypes={() => setDialog({ kind: 'noteTypes' })}
       />
@@ -331,11 +445,23 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               onFiltersChange={setFilters}
               onSelect={openNote}
               onCreate={(type) => setDialog({ kind: 'newNote', type })}
+              unreadable={unreadable}
+              onRevealVault={() => void guard(() => call(api.vault.reveal()))}
             />
           </aside>
 
           <section className="app__content">
-            {draft ? (
+            {showGraph ? (
+              <GraphView
+                index={index}
+                activeNoteId={draft?.id ?? null}
+                onClose={() => setShowGraph(false)}
+                onOpenNote={(noteId) => {
+                  openNote(noteId);
+                  setShowGraph(false);
+                }}
+              />
+            ) : draft ? (
               <NoteEditor
                 note={draft}
                 index={index}
@@ -346,14 +472,87 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 onSave={() => void save()}
                 onRename={() => void save()}
                 onDelete={() => setDialog({ kind: 'deleteNote', note: draft })}
+                onOpenHistory={() => void openHistory(draft)}
+                aiStatus={aiStatus}
+                onAsk={async (
+                  task: AiTask,
+                  history: AiMessage[],
+                  followUp: string,
+                  onChunk: (text: string) => void
+                ) => {
+                  const campaignId = activeCampaignId;
+                  if (!campaignId) return null;
+                  await persist();
+
+                  // Eigene Kennung je Anfrage, damit Teiltexte einer alten
+                  // Anfrage nicht in einer neuen Antwort landen.
+                  const streamId = crypto.randomUUID();
+                  const unsubscribe = api.ai.onChunk(streamId, onChunk);
+                  try {
+                    return await guard(() =>
+                      call(api.ai.ask(campaignId, draft.id, task, streamId, history, followUp))
+                    );
+                  } finally {
+                    unsubscribe();
+                  }
+                }}
+                onOpenPrompts={() => {
+                  setDialog({ kind: 'prompts' });
+                  if (!prompts) void guard(async () => setPrompts(await call(api.prompts.get())));
+                }}
+                onExportMarkdown={() =>
+                  void guard(async () => {
+                    const campaignId = activeCampaignId;
+                    if (!campaignId) return;
+                    await persist();
+                    const result = await call(api.exportMarkdown.note(campaignId, draft.id));
+                    if (result) report(t('export.done', { path: result.path }));
+                  })
+                }
+                onExportPdf={() =>
+                  void guard(async () => {
+                    const campaignId = activeCampaignId;
+                    if (!campaignId) return;
+                    await persist();
+                    const result = await call(api.exportPdf.note(campaignId, draft.id, draft.title));
+                    if (result) report(t('export.done', { path: result.path }));
+                  })
+                }
                 onOpenNote={openNote}
                 onCreateNote={createNoteFromLink}
                 onHoverNote={(note, rect) => setHover(note && rect ? { note, rect } : null)}
                 onOpenExternal={(url) => void guard(() => call(api.openExternal(url)))}
                 searchQuery={filters.query}
                 campaignId={activeCampaignId}
+                reloadKey={reloadKey}
                 onImportImage={importImage}
                 onPickImage={pickImage}
+                onReport={report}
+                onAddReverseRelation={(targetId) =>
+                  void guard(async () => {
+                    const campaignId = activeCampaignId;
+                    if (!campaignId) return;
+
+                    // Erst den eigenen Stand sichern, sonst ginge er beim
+                    // Neuladen nach dem Speichern der anderen Notiz verloren.
+                    await persist();
+
+                    const target = notesRef.current.find((entry) => entry.id === targetId);
+                    if (!target || target.relations.some((entry) => entry.targetId === draft.id)) return;
+
+                    await call(
+                      api.notes.save(campaignId, {
+                        ...target,
+                        relations: [
+                          ...target.relations,
+                          { id: crypto.randomUUID(), targetId: draft.id, type: '', note: '' }
+                        ]
+                      })
+                    );
+                    await reloadNotes(campaignId);
+                    report(t('relations.reverseAdded', { title: target.title }));
+                  })
+                }
               />
             ) : (
               <div className="placeholder">
@@ -388,6 +587,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         <NoteTypesDialog
           types={noteTypes}
           notes={notes}
+          otherCampaigns={campaigns.filter((campaign) => campaign.id !== activeCampaign.id)}
           onClose={() => setDialog({ kind: 'none' })}
           onSave={(types) =>
             void guard(async () => {
@@ -400,9 +600,76 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         />
       ) : null}
 
+      {dialog.kind === 'help' ? <HelpDialog onClose={() => setDialog({ kind: 'none' })} /> : null}
+
+      {dialog.kind === 'cleanup' && activeCampaignId ? (
+        <CleanupDialog
+          campaignId={activeCampaignId}
+          assets={orphans}
+          onClose={() => setDialog({ kind: 'none' })}
+          onDelete={(names) =>
+            void guard(async () => {
+              const removed = await call(api.assets.deleteMany(activeCampaignId, names));
+              report(removed === 1 ? t('cleanup.deletedOne') : t('cleanup.deleted', { count: removed }));
+              setOrphans(await call(api.assets.orphans(activeCampaignId)));
+            })
+          }
+        />
+      ) : null}
+
+      {dialog.kind === 'prompts' ? (
+        <PromptsDialog
+          categories={prompts}
+          onClose={() => setDialog({ kind: 'none' })}
+          onEditFile={() => void guard(() => call(api.prompts.reveal()))}
+          onInsert={(text) => {
+            // An den Text anhaengen statt einzufuegen: der Vorschlag ist ein
+            // Startpunkt, kein Baustein mitten im Satz.
+            if (!draft) return;
+            patchDraft({ body: draft.body.trimEnd() ? `${draft.body.trimEnd()}\n\n${text}` : text });
+            setReloadKey((previous) => previous + 1);
+            setDialog({ kind: 'none' });
+          }}
+        />
+      ) : null}
+
+      {dialog.kind === 'history' ? (
+        <HistoryDialog
+          note={dialog.note}
+          versions={versions}
+          historyEnabled={settings.historyEnabled}
+          onClose={() => setDialog({ kind: 'none' })}
+          onRestore={(versionId) =>
+            void guard(async () => {
+              const campaignId = activeCampaignId;
+              if (!campaignId) return;
+
+              const restored = await call(api.history.restore(campaignId, dialog.note.id, versionId));
+              await reloadNotes(campaignId);
+              setDraft(restored);
+              setDirty(false);
+              setReloadKey((previous) => previous + 1);
+              setDialog({ kind: 'none' });
+
+              const version = versions?.find((entry) => entry.id === versionId);
+              if (version) {
+                report(t('history.restored', { date: new Date(version.savedAt).toLocaleString(language) }));
+              }
+            })
+          }
+        />
+      ) : null}
+
       {dialog.kind === 'settings' ? (
         <SettingsDialog
           settings={settings}
+          hasApiKey={aiStatus?.hasKey ?? false}
+          onSaveApiKey={(apiKey) =>
+            void guard(async () => {
+              setSettings(await call(api.ai.setApiKey(apiKey)));
+              setAiStatus(await call(api.ai.status()));
+            })
+          }
           onChange={updateSettings}
           onChooseVaultRoot={() =>
             void guard(async () => {

@@ -58,7 +58,19 @@ export const DEFAULT_NOTE_TYPES: NoteTypeDef[] = [
   }
 ];
 
-export const FIELD_TYPES: FieldDef['type'][] = ['text', 'textarea', 'number', 'url', 'image'];
+export const FIELD_TYPES: FieldDef['type'][] = [
+  'text',
+  'textarea',
+  'number',
+  'url',
+  'image',
+  'select',
+  'date',
+  'checkbox'
+];
+
+/** Ein Ankreuzfeld ist gesetzt, wenn hier etwas anderes als leer steht. */
+export const CHECKED = 'ja';
 
 /**
  * Notiztyp aus der Kampagne. Ist der Typ unbekannt, etwa weil er geloescht
@@ -100,6 +112,50 @@ export function toKey(label: string, taken: Iterable<string> = []): string {
   let counter = 2;
   while (used.has(`${base}_${counter}`)) counter += 1;
   return `${base}_${counter}`;
+}
+
+/**
+ * Uebernimmt Notiztypen aus einer anderen Kampagne, ohne etwas zu verlieren.
+ *
+ * Bewusst nur ergaenzend: fehlende Typen kommen dazu, bei bekannten Typen
+ * fehlende Felder. Nichts wird ersetzt oder entfernt, denn ein hier
+ * geloeschter Typ wuerde bestehende Notizen typlos machen, und eine
+ * ueberschriebene Beschriftung waere eine stille Aenderung an eigener Arbeit.
+ */
+export function mergeNoteTypes(current: NoteTypeDef[], incoming: NoteTypeDef[]): NoteTypeDef[] {
+  const merged = current.map((def) => ({ ...def, fields: [...def.fields] }));
+  const byId = new Map(merged.map((def) => [def.id, def]));
+
+  for (const source of incoming) {
+    const existing = byId.get(source.id);
+    if (!existing) {
+      const copy = { ...source, fields: source.fields.map((field) => ({ ...field })) };
+      merged.push(copy);
+      byId.set(copy.id, copy);
+      continue;
+    }
+
+    const keys = new Set(existing.fields.map((field) => field.key));
+    for (const field of source.fields) {
+      if (!keys.has(field.key)) {
+        existing.fields.push({ ...field });
+        keys.add(field.key);
+      }
+    }
+  }
+
+  return merged;
+}
+
+/** Zaehlt, was ein Zusammenfuehren aendern wuerde, fuer die Rueckmeldung. */
+export function countMergeChanges(
+  current: NoteTypeDef[],
+  incoming: NoteTypeDef[]
+): { types: number; fields: number } {
+  const merged = mergeNoteTypes(current, incoming);
+  const currentFields = current.reduce((sum, def) => sum + def.fields.length, 0);
+  const mergedFields = merged.reduce((sum, def) => sum + def.fields.length, 0);
+  return { types: merged.length - current.length, fields: mergedFields - currentFields };
 }
 
 /** Vorschlaege fuer das Beziehungsfeld. Freitext bleibt erlaubt. */
