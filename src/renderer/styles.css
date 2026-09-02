@@ -230,6 +230,15 @@ button:focus-visible {
   padding: 10px;
 }
 
+.note-list__broken {
+  background: rgba(209, 99, 92, 0.16);
+  border-radius: var(--radius);
+  color: var(--danger);
+  font-size: 12px;
+  margin: 0;
+  padding: 7px 9px;
+}
+
 .note-list__filters {
   display: grid;
   gap: 6px;

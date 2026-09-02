@@ -350,6 +350,36 @@ export class Vault {
     return notes.sort((a, b) => a.title.localeCompare(b.title, 'de-DE'));
   }
 
+  /**
+   * Notizdateien, die sich nicht lesen lassen, etwa weil das Frontmatter von
+   * Hand kaputt bearbeitet wurde.
+   *
+   * `listNotes` uebergeht sie, damit eine einzelne Datei nicht die ganze
+   * Kampagne unlesbar macht. Stillschweigend verschwinden duerfen sie aber
+   * nicht: sonst faellt der Verlust erst auf, wenn es zu spaet ist.
+   */
+  async findUnreadableNotes(campaignId: string): Promise<string[]> {
+    const dir = path.join(this.campaignDir(campaignId), NOTES_DIR);
+
+    let entries;
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return [];
+    }
+
+    const broken: string[] = [];
+    for (const entry of entries) {
+      if (!entry.isFile() || !entry.name.endsWith('.md')) continue;
+      try {
+        await this.getNote(campaignId, entry.name.slice(0, -3));
+      } catch {
+        broken.push(entry.name);
+      }
+    }
+    return broken.sort();
+  }
+
   async getNote(campaignId: string, noteId: string): Promise<Note> {
     const raw = await fs.readFile(this.noteFile(campaignId, noteId), 'utf8');
     const { data, body } = parseFrontmatter(raw);

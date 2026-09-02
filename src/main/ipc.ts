@@ -122,6 +122,7 @@ export function registerIpc(context: IpcContext): void {
   );
 
   handle<[string], Note[]>('note:list', (campaignId) => vault.listNotes(campaignId));
+  handle<[string], string[]>('note:unreadable', (campaignId) => vault.findUnreadableNotes(campaignId));
   handle<[string, NoteType, string], Note>('note:create', (campaignId, type, title) =>
     vault.createNote(campaignId, type, title)
   );

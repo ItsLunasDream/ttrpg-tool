@@ -41,6 +41,9 @@ const de = {
   'list.noMatch': 'Keine Notiz passt zum Filter.',
   'list.total': '{total} Notizen · {visible} sichtbar',
   'list.withoutType': 'Ohne Typ',
+  'list.unreadable': '{count} Dateien lassen sich nicht lesen und fehlen in dieser Liste.',
+  'list.unreadableOne': 'Eine Datei lässt sich nicht lesen und fehlt in dieser Liste.',
+  'list.unreadableOpen': 'Ordner öffnen',
 
   'editor.title': 'Titel',
   'editor.save': 'Speichern',
@@ -366,6 +369,9 @@ const en: Partial<Record<MessageKey, string>> = {
   'list.noMatch': 'No note matches the filter.',
   'list.total': '{total} notes · {visible} shown',
   'list.withoutType': 'Without type',
+  'list.unreadable': '{count} files cannot be read and are missing from this list.',
+  'list.unreadableOne': 'One file cannot be read and is missing from this list.',
+  'list.unreadableOpen': 'Open the folder',
 
   'editor.title': 'Title',
   'editor.save': 'Save',
