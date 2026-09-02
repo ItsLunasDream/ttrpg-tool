@@ -642,8 +642,16 @@ test('Kaputte Notizdateien werden gemeldet statt stillschweigend zu fehlen', asy
     const notes = await vault.listNotes(campaign.id);
     assert.deepEqual(notes.map((note) => note.id), [heil.id]);
 
-    // ... wird aber gemeldet
-    assert.deepEqual(await vault.findUnreadableNotes(campaign.id), ['kaputt.md']);
+    // ... wird aber gemeldet, mit dem Grund
+    assert.deepEqual(await vault.findUnreadableNotes(campaign.id), [{ name: 'kaputt.md', reason: 'content' }]);
+
+    // Ein Dateiname, der nicht als ID taugt, wird als solcher gemeldet:
+    // dagegen hilft ein Umbenennen, nicht der Texteditor.
+    await writeFile(path.join(notesDir, 'mein charakter.md'), 'Text.\n');
+    assert.deepEqual(await vault.findUnreadableNotes(campaign.id), [
+      { name: 'kaputt.md', reason: 'content' },
+      { name: 'mein charakter.md', reason: 'name' }
+    ]);
   });
 });
 
@@ -748,5 +756,27 @@ test('Ein fehlgeschlagenes Schreiben laesst keine Temp-Datei zurueck', async () 
 
     const leftovers = (await readdir(notesDir)).filter((name) => name.includes('.tmp-'));
     assert.deepEqual(leftovers, []);
+  });
+});
+
+test('Eine Datei ohne Titel im Kopf nimmt ihre erste Ueberschrift', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const notesDir = path.join(root, 'campaigns', campaign.id, 'notes');
+    await fs.mkdir(notesDir, { recursive: true });
+
+    // So sieht eine Datei aus, die jemand aus einem anderen Programm ablegt.
+    await writeFile(path.join(notesDir, 'alte-backstory.md'), '# Meine Backstory\n\nEs war einmal.\n');
+    await writeFile(path.join(notesDir, 'ohne-alles.md'), 'Nur Text, keine Ueberschrift.\n');
+    await writeFile(path.join(notesDir, 'spaeter.md'), 'Vorspann.\n\n## Kapitel eins\n');
+
+    const byId = new Map((await vault.listNotes(campaign.id)).map((note) => [note.id, note]));
+    assert.equal(byId.get('alte-backstory').title, 'Meine Backstory');
+    // Die Ueberschrift bleibt im Text stehen, es geht nichts verloren.
+    assert.match(byId.get('alte-backstory').body, /^# Meine Backstory/);
+    assert.equal(byId.get('ohne-alles').title, 'Ohne Titel');
+    // Nur die erste Zeile zaehlt: sonst bekaeme eine lange Notiz einen
+    // Titel aus ihrer Mitte.
+    assert.equal(byId.get('spaeter').title, 'Ohne Titel');
   });
 });

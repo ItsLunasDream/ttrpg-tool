@@ -1,5 +1,5 @@
 import { findNoteType } from '../../shared/noteTypes';
-import type { Note, NoteType, SearchHit } from '../../shared/types';
+import type { Note, NoteType, SearchHit, UnreadableNote } from '../../shared/types';
 import type { NoteIndex, SearchFilters } from '../noteIndex';
 import { HighlightedText } from './HighlightedText';
 import { useT } from '../i18n';
@@ -15,7 +15,7 @@ interface Props {
   onSelect: (noteId: string) => void;
   onCreate: (type: NoteType) => void;
   /** Dateien, die sich nicht lesen lassen. Leer im Normalfall. */
-  unreadable: string[];
+  unreadable: UnreadableNote[];
   onRevealVault: () => void;
 }
 
@@ -42,6 +42,8 @@ export function NoteList({
     grouped.push({ def: { id: '__orphan', label: t('list.withoutType'), plural: t('list.withoutType'), fields: [] }, entries: orphans });
   }
 
+  const badNames = unreadable.filter((entry) => entry.reason === 'name').length;
+
   return (
     <div className="note-list">
       {unreadable.length ? (
@@ -49,6 +51,15 @@ export function NoteList({
           {unreadable.length === 1
             ? t('list.unreadableOne')
             : t('list.unreadable', { count: unreadable.length })}{' '}
+          {/*
+            Liegt es am Dateinamen, hilft ein Umbenennen. Ohne diesen Hinweis
+            waere nicht zu erraten, was an der Datei falsch ist.
+          */}
+          {badNames ? (
+            <>
+              {badNames === 1 ? t('list.unreadableNameOne') : t('list.unreadableName', { count: badNames })}{' '}
+            </>
+          ) : null}
           <button type="button" className="link-button" onClick={onRevealVault}>
             {t('list.unreadableOpen')}
           </button>

@@ -95,6 +95,11 @@ Texteditor oder in Obsidian öffnen, das Tool ist keine Einbahnstraße. Eigene
 Angaben im YAML-Kopf, die das Tool nicht kennt, bleiben beim Speichern
 erhalten.
 
+Eine Markdown-Datei, die man selbst in `notes/` ablegt, wird mitgelesen. Fehlt
+der YAML-Kopf, dient die erste Überschrift als Titel. Der Dateiname wird zur
+ID und darf deshalb nur Buchstaben, Ziffern, `-` und `_` enthalten; andere
+Dateien meldet die Notizliste als nicht lesbar.
+
 Die Anwendung läuft nur einmal. Ein zweiter Start holt das vorhandene Fenster
 nach vorn, statt ein zweites Fenster auf denselben Speicherort zu öffnen.
 

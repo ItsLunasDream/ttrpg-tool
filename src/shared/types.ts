@@ -62,6 +62,17 @@ export interface OrphanedAsset {
   bytes: number;
 }
 
+/**
+ * Eine Datei im Notizordner, die sich nicht lesen laesst.
+ *
+ * `name`: der Dateiname taugt nicht als ID, ein Umbenennen behebt es.
+ * `content`: der Inhalt ist kaputt, meist der YAML-Kopf.
+ */
+export interface UnreadableNote {
+  name: string;
+  reason: 'name' | 'content';
+}
+
 /** Ein gesicherter Stand einer Notiz. */
 export interface NoteVersion {
   id: string;
