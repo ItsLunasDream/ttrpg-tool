@@ -25,6 +25,14 @@ zufällig gleich, deshalb fällt es nicht auf.
 
 ## Bekannte Grenzen
 
+- Der Editor vereinheitlicht beim ersten Speichern die Schreibweise des
+  Markdowns: Listen bekommen drei Leerzeichen nach dem Strich und eine
+  Leerzeile zwischen den Punkten, ein `*` oder `_` im Fließtext wird maskiert,
+  ein Codeblock bekommt eine Leerzeile vor dem Schlusszaun. Am Dargestellten
+  ändert das nichts, und ein zweiter Durchlauf ändert nichts mehr; ein Test
+  hält diese Stabilität fest. Wer die Dateien parallel in Obsidian pflegt,
+  sieht die Umstellung aber einmal
+
 - Beim Kampagnenwechsel werden alle Notizen der Kampagne in den Speicher
   geladen. Für einige hundert Notizen unkritisch, darüber bräuchte es einen
   Index statt Volllast

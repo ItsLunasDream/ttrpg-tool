@@ -135,8 +135,20 @@ export function markdownToHtml(markdown: string, resolveAsset?: AssetResolver): 
   return marked.parse(prepared, { async: false }) as string;
 }
 
+/**
+ * Zeilen, die nur aus Leerzeichen bestehen (in Listen und Zitaten auch hinter
+ * dem Zeichen `>`), werden geleert. Sie aendern an der Darstellung nichts,
+ * lassen die Datei aber bei jedem Speichern anders aussehen.
+ *
+ * Zeilen mit Text bleiben unangetastet: zwei Leerzeichen am Ende sind in
+ * Markdown ein harter Umbruch und kein Rest.
+ */
+function tidyBlankLines(markdown: string): string {
+  return markdown.replace(/^([\t >]*?)[ \t]+$/gm, '$1');
+}
+
 export function htmlToMarkdown(html: string, toRelative?: (url: string) => string | null): string {
-  const markdown = turndown.turndown(html).trim();
+  const markdown = tidyBlankLines(turndown.turndown(html)).trim();
   if (!toRelative) return markdown;
 
   const back = (text: string, pattern: RegExp) =>
