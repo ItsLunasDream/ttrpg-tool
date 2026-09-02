@@ -8,7 +8,9 @@ const path = require('node:path');
 const os = require('node:os');
 const fs = require('node:fs');
 
-const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'backstory-smoke-'));
+// Das '#' im Namen ist Absicht: der Speicherort wird frei gewaehlt und darf
+// Zeichen enthalten, die in einer URL eine Bedeutung haben.
+const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'backstory-smoke #'));
 app.setPath('userData', userData);
 
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
