@@ -69,6 +69,8 @@ const api = {
   },
   notes: {
     list: (campaignId: string) => invoke<Note[]>('note:list', campaignId),
+    /** Dateien, die sich nicht lesen lassen und deshalb in der Liste fehlen. */
+    unreadable: (campaignId: string) => invoke<string[]>('note:unreadable', campaignId),
     create: (campaignId: string, type: NoteType, title: string) =>
       invoke<Note>('note:create', campaignId, type, title),
     save: (campaignId: string, note: Note) => invoke<Note>('note:save', campaignId, note),

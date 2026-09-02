@@ -78,6 +78,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const [showGraph, setShowGraph] = useState(false);
   const [aiStatus, setAiStatus] = useState<AiStatus | null>(null);
   const [orphans, setOrphans] = useState<OrphanedAsset[] | null>(null);
+  const [unreadable, setUnreadable] = useState<string[]>([]);
 
   const draftRef = useRef<Note | null>(null);
   draftRef.current = draft;
@@ -159,6 +160,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       setDraft(list[0] ?? null);
       setDirty(false);
       setFilters(EMPTY_FILTERS);
+      setUnreadable(await call(api.notes.unreadable(activeCampaignId)));
       await call(api.settings.update({ lastCampaignId: activeCampaignId }));
     });
   }, [activeCampaignId, guard, reloadNotes]);
@@ -428,6 +430,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               onFiltersChange={setFilters}
               onSelect={openNote}
               onCreate={(type) => setDialog({ kind: 'newNote', type })}
+              unreadable={unreadable}
+              onRevealVault={() => void guard(() => call(api.vault.reveal()))}
             />
           </aside>
 

@@ -14,9 +14,23 @@ interface Props {
   onFiltersChange: (filters: SearchFilters) => void;
   onSelect: (noteId: string) => void;
   onCreate: (type: NoteType) => void;
+  /** Dateien, die sich nicht lesen lassen. Leer im Normalfall. */
+  unreadable: string[];
+  onRevealVault: () => void;
 }
 
-export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersChange, onSelect, onCreate }: Props) {
+export function NoteList({
+  index,
+  notes,
+  hits,
+  activeNoteId,
+  filters,
+  onFiltersChange,
+  onSelect,
+  onCreate,
+  unreadable,
+  onRevealVault
+}: Props) {
   const t = useT();
   const grouped = index.types
     .map((def) => ({ def, entries: notes.filter((note) => note.type === def.id) }))
@@ -30,6 +44,17 @@ export function NoteList({ index, notes, hits, activeNoteId, filters, onFiltersC
 
   return (
     <div className="note-list">
+      {unreadable.length ? (
+        <p className="note-list__broken">
+          {unreadable.length === 1
+            ? t('list.unreadableOne')
+            : t('list.unreadable', { count: unreadable.length })}{' '}
+          <button type="button" className="link-button" onClick={onRevealVault}>
+            {t('list.unreadableOpen')}
+          </button>
+        </p>
+      ) : null}
+
       <div className="note-list__search">
         <input
           type="search"

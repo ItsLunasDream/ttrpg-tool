@@ -347,3 +347,10 @@ Ehrlich dazu: ich hatte vermutet, dass `beforeunload` mit `preventDefault` das
 Schließen blockiert. Nachgestellt ließ sich das nicht, das Fenster schloss
 sich auch vorher. Die Änderung macht das Sichern beim Beenden trotzdem
 verlässlich statt vom Verhalten des Browsers abhängig.
+
+### Kaputte Notizdateien werden gemeldet
+
+Eine Datei mit beschädigtem Frontmatter wurde übergangen, damit sie nicht die
+ganze Kampagne unlesbar macht. Sie verschwand damit aber stillschweigend aus
+der Liste, und der Verlust wäre erst aufgefallen, wenn es zu spät ist. Jetzt
+steht ein Hinweis über der Notizliste, mit einem Knopf zum Öffnen des Ordners.

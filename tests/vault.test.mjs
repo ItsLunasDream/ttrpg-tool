@@ -629,3 +629,28 @@ test('Eine von Hand kaputt gemachte Auswahlliste wird zu Text', async () => {
     assert.equal(reloaded.noteTypes[0].fields[0].type, 'text', 'kaputte Auswahlliste blieb unbedienbar');
   });
 });
+
+test('Kaputte Notizdateien werden gemeldet statt stillschweigend zu fehlen', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const heil = await vault.createNote(campaign.id, 'character', 'Mira');
+
+    const notesDir = path.join(root, 'campaigns', campaign.id, 'notes');
+    await writeFile(path.join(notesDir, 'kaputt.md'), '---\nid: [unclosed\n  broken: yaml\n---\n\nText');
+
+    // Die heile Notiz bleibt lesbar, die kaputte fehlt in der Liste
+    const notes = await vault.listNotes(campaign.id);
+    assert.deepEqual(notes.map((note) => note.id), [heil.id]);
+
+    // ... wird aber gemeldet
+    assert.deepEqual(await vault.findUnreadableNotes(campaign.id), ['kaputt.md']);
+  });
+});
+
+test('Ohne kaputte Dateien meldet die Pruefung nichts', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    await vault.createNote(campaign.id, 'character', 'Mira');
+    assert.deepEqual(await vault.findUnreadableNotes(campaign.id), []);
+  });
+});
