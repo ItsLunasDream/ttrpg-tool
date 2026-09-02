@@ -10,7 +10,7 @@ import TableHeader from '@tiptap/extension-table-header';
 import { SizedImage } from '../editor/sizedImage';
 import { createWikiLinkExtension, type SuggestionState } from '../editor/wikiLinkExtension';
 import { createSearchHighlightExtension, replaceMatches, selectMatch } from '../editor/searchHighlight';
-import { escapeHtml, htmlToMarkdown, markdownToHtml } from '../editor/markdown';
+import { htmlToMarkdown, markdownToHtml, pastedMarkdownToHtml } from '../editor/markdown';
 import { assetPath, assetUrl, isImageFile } from '../editor/assets';
 import { normalizeName } from '../../shared/wikilinks';
 import type { NoteIndex } from '../noteIndex';
@@ -150,10 +150,9 @@ export function BodyEditor({
       return false;
     }
 
-    // Spitze Klammern im eingefuegten Text sind Text, kein HTML. Ohne diesen
-    // Schritt wuerde ein <div> darin vom Schema verworfen und der Inhalt
-    // waere stillschweigend weg.
-    const html = markdownToHtml(escapeHtml(text), (target) =>
+    // Rohes HTML im eingefuegten Text bleibt Text: der Editor wuerde ein
+    // unbekanntes Element samt Inhalt verwerfen.
+    const html = pastedMarkdownToHtml(text, (target) =>
       assetUrl(importRef.current.campaignId, target)
     );
 

@@ -3,7 +3,14 @@ export { findWikiLinks, rewriteWikiLinks, normalizeName } from '../src/shared/wi
 export { DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, mergeNoteTypes, countMergeChanges } from '../src/shared/noteTypes';
 export { translate, isLanguage, LANGUAGES, MESSAGE_KEYS } from '../src/shared/i18n';
 export { parseFrontmatter, stringifyFrontmatter } from '../src/main/frontmatter';
-export { countWords, markdownToHtml, htmlToMarkdown, textPreview, stripMarkdown } from '../src/renderer/editor/markdown';
+export {
+  countWords,
+  markdownToHtml,
+  pastedMarkdownToHtml,
+  htmlToMarkdown,
+  textPreview,
+  stripMarkdown
+} from '../src/renderer/editor/markdown';
 export { assetUrl, assetPath } from '../src/renderer/editor/assets';
 export {
   buildIndex,
