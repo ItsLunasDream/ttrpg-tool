@@ -89,7 +89,9 @@ Einstellungen → Speicherort.
 ```
 
 Notizen sind gewöhnliches Markdown mit YAML-Kopf. Sie lassen sich mit jedem
-Texteditor oder in Obsidian öffnen, das Tool ist keine Einbahnstraße.
+Texteditor oder in Obsidian öffnen, das Tool ist keine Einbahnstraße. Eigene
+Angaben im YAML-Kopf, die das Tool nicht kennt, bleiben beim Speichern
+erhalten.
 
 Jede Datei trägt eine `schemaVersion`, damit spätere Formatänderungen migriert
 werden können.
