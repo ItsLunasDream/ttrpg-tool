@@ -5,7 +5,10 @@ const turndown = new TurndownService({
   headingStyle: 'atx',
   bulletListMarker: '-',
   codeBlockStyle: 'fenced',
-  emDelimiter: '*'
+  emDelimiter: '*',
+  // Voreinstellung waere '* * *'. Dann saehe eine Trennlinie nach jedem
+  // Speichern anders aus als vorher in der Datei.
+  hr: '---'
 });
 
 // Turndown maskiert Markdown-Sonderzeichen im Fliesstext. Ohne diese
@@ -13,6 +16,16 @@ const turndown = new TurndownService({
 // Wiki-Link waere beim naechsten Laden kaputt.
 const escapeText = turndown.escape.bind(turndown);
 turndown.escape = (text: string) => escapeText(text).replace(/\\([[\]])/g, '$1');
+
+/**
+ * Turndown kennt Durchstreichen nicht und wuerde die Auszeichnung ersatzlos
+ * fallen lassen. Die Werkzeugleiste bietet sie an, sie muss also auch in der
+ * Datei ankommen.
+ */
+turndown.addRule('strikethrough', {
+  filter: (node) => ['S', 'DEL', 'STRIKE'].includes(node.nodeName),
+  replacement: (content) => (content.trim() ? `~~${content}~~` : content)
+});
 
 /**
  * Bilder mit gesetzter Breite bleiben als HTML stehen. Markdown kann keine
