@@ -700,3 +700,8 @@ test('Umbenennen behaelt die Maskierung in einer Tabellenzelle', () => {
 test('Die Kurzinfo zeigt den Anzeigetext auch bei maskiertem Strich', () => {
   assert.equal(stripMarkdown('Siehe [[Mira\\|ihr]] dazu.').trim(), 'Siehe ihr dazu.');
 });
+
+test('Auszeichnungen in einer Tabellenzelle bleiben erhalten', () => {
+  const markdown = '| Wer | Was |\n| --- | --- |\n| **Mira** | ein [Link](https://example.org) |';
+  assert.equal(htmlToMarkdown(markdownToHtml(markdown)), markdown);
+});

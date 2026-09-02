@@ -77,12 +77,20 @@ function collect(node: Node, ...names: string[]): Element[] {
   return found;
 }
 
-/** Zellinhalt einzeilig, mit maskierten Zeichen, die die Tabelle sonst zerlegen. */
+/**
+ * Zellinhalt als Markdown, einzeilig. Reiner Text waere einfacher, wuerde aber
+ * Fettes, Kursives und Links in der Zelle verschlucken.
+ *
+ * Der Senkrechtstrich muss maskiert werden, sonst waere er ein Spaltenwechsel;
+ * bereits maskierte bleiben, wie sie sind.
+ */
 function cellText(cell: Element): string {
-  return (cell.textContent ?? '')
+  const inner = (cell as HTMLElement).innerHTML ?? '';
+  return turndown
+    .turndown(inner)
     .replace(/\s+/g, ' ')
     .trim()
-    .replace(/\|/g, '\\|');
+    .replace(/(?<!\\)\|/g, '\\|');
 }
 
 /**

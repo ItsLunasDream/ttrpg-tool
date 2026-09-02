@@ -35,6 +35,10 @@ const PROBEN = [
     name: 'Wiki-Link mit Alias in einer Tabelle',
     text: '| Wer | Notiz |\n| --- | --- |\n| [[Mira\\|ihr]] | dazu |'
   },
+  {
+    name: 'Tabelle mit Auszeichnungen',
+    text: '| Wer | Was |\n| --- | --- |\n| **Mira** | ein [Link](https://example.org) |'
+  },
   { name: 'Ueberschriften', text: '# Eins\n\n## Zwei\n\n### Drei' },
   { name: 'Tiefe Ueberschrift', text: '#### Vier\n\nText.' },
   { name: 'Zitat', text: '> Sie sagte nichts.\n>\n> Dann ging sie.' },
