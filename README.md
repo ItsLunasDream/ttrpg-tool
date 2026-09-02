@@ -39,6 +39,8 @@ npm install
 npm run dev       # Entwicklungsmodus mit Hot Reload
 npm start         # Produktionsbuild starten
 npm test          # Tests der Kernlogik
+npm run smoke     # Rauchtest der gebauten App
+npm run roundtrip # prüft, ob Speichern am Markdown etwas verändert
 npm run typecheck
 npm run dist:win  # Windows-Installer und portable exe nach release/
 ```
@@ -253,3 +255,21 @@ Unter Windows und macOS direkt ohne Xvfb:
 ```bash
 npm run build && npx electron scripts/smoke.cjs
 ```
+
+## Markdown-Rundlauf
+
+`scripts/roundtrip.cjs` legt Notizen mit verschiedenen Markdown-Bestandteilen
+hinter dem Rücken der Anwendung an, lässt sie laden, ändert eine Kleinigkeit,
+speichert und vergleicht die Datei.
+
+Die Tests der Kernlogik prüfen nur die Umwandlung Markdown ↔ HTML. Ob das
+Schema des Editors ein Element überhaupt kennt, sehen sie nicht: kennt es das
+Element nicht, fällt es beim Laden weg und ist nach dem nächsten Speichern
+verloren. Genau so gingen früher Tabellen, Links und Überschriften ab der
+vierten Ebene verloren.
+
+```bash
+npm run roundtrip
+```
+
+Beide Tests laufen auch in der CI.
