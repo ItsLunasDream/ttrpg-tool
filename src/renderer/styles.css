@@ -1152,6 +1152,29 @@ mark {
   }
 }
 
+.assistant__turn {
+  margin-bottom: 8px;
+}
+
+.assistant__role {
+  color: var(--text-muted);
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+}
+
+.assistant__followUp {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 6px;
+}
+
+.assistant__followUp input {
+  font-size: 12px;
+}
+
 .assistant__warning {
   color: var(--link-missing);
 }

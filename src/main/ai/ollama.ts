@@ -1,4 +1,4 @@
-import { AiError, type AiProvider, type AiRequest, type AiStatus } from './provider';
+import { AiError, type AiMessage, type AiProvider, type AiRequest, type AiStatus } from './provider';
 import type { MessageKey, MessageParams } from '../../shared/i18n';
 
 export interface OllamaOptions {
@@ -49,7 +49,7 @@ export class OllamaProvider implements AiProvider {
   async ask(
     _request: AiRequest,
     systemPrompt: string,
-    userPrompt: string,
+    messages: AiMessage[],
     onChunk: (text: string) => void
   ): Promise<string> {
     let response: Response;
@@ -61,10 +61,7 @@ export class OllamaProvider implements AiProvider {
         body: JSON.stringify({
           model: this.options.model,
           stream: true,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ]
+          messages: [{ role: 'system', content: systemPrompt }, ...messages]
         })
       });
     } catch (error) {

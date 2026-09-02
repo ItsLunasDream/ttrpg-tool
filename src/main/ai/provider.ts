@@ -8,6 +8,11 @@ export type AiStatus =
   | { ready: true; detail: string }
   | { ready: false; key: MessageKey; params?: MessageParams };
 
+export interface AiMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface AiRequest {
   task: AiTask;
   language: Language;
@@ -15,6 +20,10 @@ export interface AiRequest {
   note: string;
   /** Verlinkte Notizen als Kontext, gekuerzt. */
   context: string;
+  /** Bisheriger Gespraechsverlauf, aelteste Nachricht zuerst. */
+  history: AiMessage[];
+  /** Rueckfrage der Nutzerin. Ist sie gesetzt, gilt sie statt der Aufgabe. */
+  followUp?: string;
 }
 
 /**
@@ -41,7 +50,7 @@ export interface AiProvider {
   ask(
     request: AiRequest,
     systemPrompt: string,
-    userPrompt: string,
+    messages: AiMessage[],
     onChunk: (text: string) => void
   ): Promise<string>;
 }

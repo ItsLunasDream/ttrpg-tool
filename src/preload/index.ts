@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion, OrphanedAsset } from '../shared/types';
 import type { PromptCategory } from '../shared/writingPrompts';
-import type { AiTask } from '../main/ai/provider';
+import type { AiMessage, AiTask } from '../main/ai/provider';
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -24,8 +24,14 @@ const api = {
   ai: {
     status: () => invoke<{ provider: string; ready: boolean; detail: string; hasKey: boolean }>('ai:status'),
     setApiKey: (apiKey: string) => invoke<AppSettings>('ai:setApiKey', apiKey),
-    ask: (campaignId: string, noteId: string, task: AiTask, streamId: string) =>
-      invoke<string>('ai:ask', campaignId, noteId, task, streamId),
+    ask: (
+      campaignId: string,
+      noteId: string,
+      task: AiTask,
+      streamId: string,
+      history: AiMessage[],
+      followUp: string
+    ) => invoke<string>('ai:ask', campaignId, noteId, task, streamId, history, followUp),
     /**
      * Teiltexte der laufenden Antwort. Liefert eine Funktion zum Abmelden.
      * Der Renderer bekommt bewusst kein ipcRenderer, nur diesen Ausschnitt.

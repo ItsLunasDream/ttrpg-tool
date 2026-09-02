@@ -47,7 +47,14 @@ export function systemPrompt(language: 'de' | 'en'): string {
   return SYSTEM[language];
 }
 
+/**
+ * Erste Nachricht eines Gespraechs: Aufgabe, Notiz und Kontext. Bei einer
+ * Rueckfrage steht der Text der Nutzerin fuer sich, die Notiz ist dem Modell
+ * aus dem Verlauf bereits bekannt.
+ */
 export function userPrompt(request: AiRequest): string {
+  if (request.followUp?.trim()) return request.followUp.trim();
+
   const language = request.language === 'en' ? 'en' : 'de';
   const parts = [TASKS[request.task][language], '', '--- Notiz ---', request.note];
 

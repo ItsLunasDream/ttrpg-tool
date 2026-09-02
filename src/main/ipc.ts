@@ -10,7 +10,7 @@ import { referencedAssets, renderNoteMarkdown, toFileName } from './markdownExpo
 import { exportNotesToPdf } from './pdfExport';
 import type { PromptCategory } from '../shared/writingPrompts';
 import { askProvider, createProvider, decryptSecret, encryptSecret, AiError } from './ai';
-import type { AiTask } from './ai/provider';
+import type { AiMessage, AiTask } from './ai/provider';
 import { findNoteType } from '../shared/noteTypes';
 import { findWikiLinks, normalizeName } from '../shared/wikilinks';
 import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion, OrphanedAsset } from '../shared/types';
@@ -187,35 +187,42 @@ export function registerIpc(context: IpcContext): void {
     return context.settings;
   });
 
-  handleWithEvent<[string, string, AiTask, string], string>('ai:ask', async (event, campaignId, noteId, task, streamId) => {
-    const provider = createProvider(context.settings, decryptSecret(context.settings.claudeApiKeyEncrypted));
-    if (!provider) throw new VaultError('error.noAiProvider');
+  handleWithEvent<[string, string, AiTask, string, AiMessage[], string], string>(
+    'ai:ask',
+    async (event, campaignId, noteId, task, streamId, history, followUp) => {
+      const provider = createProvider(context.settings, decryptSecret(context.settings.claudeApiKeyEncrypted));
+      if (!provider) throw new VaultError('error.noAiProvider');
 
-    const campaign = await vault.getCampaign(campaignId);
-    const notes = await vault.listNotes(campaignId);
-    const note = notes.find((entry) => entry.id === noteId);
-    if (!note) throw new VaultError('error.noteMissing');
+      const campaign = await vault.getCampaign(campaignId);
+      const notes = await vault.listNotes(campaignId);
+      const note = notes.find((entry) => entry.id === noteId);
+      if (!note) throw new VaultError('error.noteMissing');
 
-    try {
-      return await askProvider(
-        provider,
-        {
-          task,
-          language: context.settings.language,
-          note: describeNote(note, campaign.noteTypes),
-          context: describeLinkedNotes(note, notes, campaign.noteTypes)
-        },
-        // Teiltexte gehen als eigenes Ereignis an genau das Fenster, das
-        // gefragt hat. Die Kennung ordnet sie der laufenden Anfrage zu.
-        (chunk) => {
-          if (!event.sender.isDestroyed()) event.sender.send('ai:chunk', streamId, chunk);
-        }
-      );
-    } catch (error) {
-      if (error instanceof AiError) throw new VaultError(error.key, error.params);
-      throw error;
+      try {
+        return await askProvider(
+          provider,
+          {
+            task,
+            language: context.settings.language,
+            note: describeNote(note, campaign.noteTypes),
+            context: describeLinkedNotes(note, notes, campaign.noteTypes),
+            // Der Verlauf wird begrenzt, sonst waechst jede Rueckfrage die
+            // Anfrage weiter auf und kostet mehr, ohne besser zu werden.
+            history: history.slice(-8),
+            followUp
+          },
+          // Teiltexte gehen als eigenes Ereignis an genau das Fenster, das
+          // gefragt hat. Die Kennung ordnet sie der laufenden Anfrage zu.
+          (chunk) => {
+            if (!event.sender.isDestroyed()) event.sender.send('ai:chunk', streamId, chunk);
+          }
+        );
+      } catch (error) {
+        if (error instanceof AiError) throw new VaultError(error.key, error.params);
+        throw error;
+      }
     }
-  });
+  );
 
   handle<[string], OrphanedAsset[]>('asset:orphans', (campaignId) => vault.listOrphanedAssets(campaignId));
   handle<[string, string[]], number>('asset:deleteMany', (campaignId, names) =>
