@@ -590,6 +590,16 @@ mark {
   font-size: 17px;
 }
 
+/* Nicht in der Werkzeugleiste, aber aus bestehenden Dateien moeglich. */
+.body-editor__surface h4 {
+  font-size: 17px;
+}
+
+.body-editor__surface h5,
+.body-editor__surface h6 {
+  font-size: 15px;
+}
+
 .body-editor__surface blockquote {
   border-left: 3px solid var(--border-strong);
   color: var(--text-muted);

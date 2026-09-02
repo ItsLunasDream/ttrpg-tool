@@ -153,7 +153,11 @@ export function BodyEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+      // Die Werkzeugleiste bietet nur H1 bis H3 an, das reicht fuer eine
+      // Backstory. Tiefere Ueberschriften muss der Editor trotzdem kennen,
+      // sonst wuerde ein #### aus einer bestehenden Datei beim Speichern zu
+      // gewoehnlichem Text.
+      StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }),
       Placeholder.configure({ placeholder: t('editor.placeholder') }),
       // Ohne diese Erweiterung kennt der Editor keine Links: [Text](URL) aus
       // der Datei verlor beim Speichern seine Adresse. Geoeffnet wird wie bei
