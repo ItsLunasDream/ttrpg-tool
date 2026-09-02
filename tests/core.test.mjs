@@ -583,3 +583,15 @@ test('Bilder ohne Breite bleiben gewoehnliches Markdown', () => {
   assert.match(back, /!\[Szene\]\(assets\/abc\.png\)/);
   assert.ok(!back.includes('<img'), 'ohne Breite wurde unnötig HTML erzeugt');
 });
+
+test('Durchgestrichener Text ueberlebt den Rundlauf', () => {
+  // Die Werkzeugleiste bietet Durchstreichen an. Ohne eigene Regel wirft
+  // Turndown das Element weg und die Auszeichnung waere beim Speichern weg.
+  assert.equal(htmlToMarkdown('<p><s>weg</s></p>'), '~~weg~~');
+  assert.equal(htmlToMarkdown('<p><del>weg</del></p>'), '~~weg~~');
+  assert.equal(htmlToMarkdown(markdownToHtml('Das ist ~~falsch~~ gewesen.')), 'Das ist ~~falsch~~ gewesen.');
+});
+
+test('Trennlinien behalten ihre Schreibweise', () => {
+  assert.equal(htmlToMarkdown(markdownToHtml('oben\n\n---\n\nunten')), 'oben\n\n---\n\nunten');
+});
