@@ -14,6 +14,20 @@ const turndown = new TurndownService({
 const escapeText = turndown.escape.bind(turndown);
 turndown.escape = (text: string) => escapeText(text).replace(/\\([[\]])/g, '$1');
 
+/**
+ * Bilder mit gesetzter Breite bleiben als HTML stehen. Markdown kann keine
+ * Groesse ausdruecken, inline-HTML ist aber gueltiges Markdown und wird auch
+ * von Obsidian dargestellt.
+ */
+turndown.addRule('imageWithWidth', {
+  filter: (node) => node.nodeName === 'IMG' && Boolean((node as HTMLImageElement).getAttribute('width')),
+  replacement: (_content, node) => {
+    const image = node as HTMLImageElement;
+    const alt = image.getAttribute('alt') ?? '';
+    return `<img src="${image.getAttribute('src') ?? ''}" alt="${alt}" width="${image.getAttribute('width')}">`;
+  }
+});
+
 marked.setOptions({ gfm: true, breaks: false });
 
 /**
@@ -24,13 +38,15 @@ marked.setOptions({ gfm: true, breaks: false });
 export type AssetResolver = (relativePath: string) => string;
 
 const ASSET_MARKDOWN = /(!\[[^\]]*\]\()(assets\/[^)\s]+)(\))/g;
+const ASSET_HTML = /(<img[^>]*\ssrc=")(assets\/[^"]+)(")/g;
 
 export function markdownToHtml(markdown: string, resolveAsset?: AssetResolver): string {
-  const prepared = resolveAsset
-    ? markdown.replace(ASSET_MARKDOWN, (_whole, prefix: string, target: string, suffix: string) =>
-        `${prefix}${resolveAsset(target)}${suffix}`
-      )
-    : markdown;
+  const replace = (text: string, pattern: RegExp) =>
+    text.replace(pattern, (_whole, prefix: string, target: string, suffix: string) =>
+      `${prefix}${resolveAsset!(target)}${suffix}`
+    );
+
+  const prepared = resolveAsset ? replace(replace(markdown, ASSET_MARKDOWN), ASSET_HTML) : markdown;
 
   return marked.parse(prepared, { async: false }) as string;
 }
@@ -39,10 +55,13 @@ export function htmlToMarkdown(html: string, toRelative?: (url: string) => strin
   const markdown = turndown.turndown(html).trim();
   if (!toRelative) return markdown;
 
-  return markdown.replace(/(!\[[^\]]*\]\()([^)\s]+)(\))/g, (whole, prefix: string, url: string, suffix: string) => {
-    const relative = toRelative(url);
-    return relative ? `${prefix}${relative}${suffix}` : whole;
-  });
+  const back = (text: string, pattern: RegExp) =>
+    text.replace(pattern, (whole, prefix: string, url: string, suffix: string) => {
+      const relative = toRelative(url);
+      return relative ? `${prefix}${relative}${suffix}` : whole;
+    });
+
+  return back(back(markdown, /(!\[[^\]]*\]\()([^)\s]+)(\))/g), /(<img[^>]*\ssrc=")([^"]+)(")/g);
 }
 
 /**

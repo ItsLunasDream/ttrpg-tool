@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import Image from '@tiptap/extension-image';
+import { SizedImage } from '../editor/sizedImage';
 import { createWikiLinkExtension, type SuggestionState } from '../editor/wikiLinkExtension';
 import { createSearchHighlightExtension, replaceMatches, selectMatch } from '../editor/searchHighlight';
 import { htmlToMarkdown, markdownToHtml } from '../editor/markdown';
@@ -147,7 +147,7 @@ export function BodyEditor({
       Placeholder.configure({ placeholder: t('editor.placeholder') }),
       wikiLink,
       searchHighlight,
-      Image.configure({ inline: false, allowBase64: false })
+      SizedImage.configure({ inline: false, allowBase64: false })
     ],
     content: markdownToHtml(markdown, (target) => assetUrl(campaignId, target)),
     onUpdate: ({ editor: instance }) => onChange(htmlToMarkdown(instance.getHTML(), assetPath)),

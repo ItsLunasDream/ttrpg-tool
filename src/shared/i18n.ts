@@ -236,6 +236,7 @@ const de = {
   'image.remove': 'Bild entfernen',
   'image.alt': 'Bild',
   'image.dropHint': 'Bild hierher ziehen oder einfügen',
+  'image.width': 'Bildbreite {size}',
 
   'history.title': 'Versionsverlauf',
   'history.open': 'Verlauf',
@@ -560,6 +561,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'image.remove': 'Remove image',
   'image.alt': 'Image',
   'image.dropHint': 'Drop or paste an image here',
+  'image.width': 'Image width {size}',
 
   'history.title': 'Version history',
   'history.open': 'History',

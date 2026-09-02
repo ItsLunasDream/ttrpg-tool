@@ -15,6 +15,13 @@ interface Props {
 const WIDTH = 1200;
 const HEIGHT = 780;
 
+/**
+ * Ab dieser Kantenzahl ueberlagern sich die Beschriftungen so stark, dass sie
+ * mehr stoeren als helfen. Dann erscheinen nur noch die der hervorgehobenen
+ * Nachbarschaft.
+ */
+const LABEL_LIMIT = 20;
+
 /** Feste Farbreihe, damit Notiztypen wiedererkennbar bleiben. */
 const TYPE_COLORS = ['#c4a35a', '#8ec3e0', '#a3c48b', '#d98a7c', '#b39ddb', '#7fb3a8'];
 
@@ -108,6 +115,10 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
       };
     });
   }
+
+  // Beschriftungen nur zeigen, wenn sie lesbar bleiben: bei wenigen Kanten
+  // immer, sonst nur rund um den Knoten unter der Maus.
+  const showLabels = edges.length <= LABEL_LIMIT || neighbours !== null;
 
   return (
     <div className="graph">
@@ -241,7 +252,7 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
                 y2={target.y - Math.sin(angle) * radius}
                 markerEnd="url(#arrow)"
               />
-              {edge.label && !dimmed ? (
+              {edge.label && !dimmed && showLabels ? (
                 <text x={(source.x + target.x) / 2} y={(source.y + target.y) / 2 - 4}>
                   {edge.label}
                 </text>
