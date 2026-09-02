@@ -15,8 +15,15 @@ const turndown = new TurndownService({
 // Turndown maskiert Markdown-Sonderzeichen im Fliesstext. Ohne diese
 // Korrektur wuerde aus [[Name]] beim Speichern \[\[Name\]\] und der
 // Wiki-Link waere beim naechsten Laden kaputt.
+//
+// Nur die doppelten Klammern werden entmaskiert. Eine einzelne gehoert zur
+// Markdown-Syntax und muss maskiert bleiben, sonst zerlegt etwa eine Adresse
+// mit Klammer darin den Link, in dem sie steht.
 const escapeText = turndown.escape.bind(turndown);
-turndown.escape = (text: string) => escapeText(text).replace(/\\([[\]])/g, '$1');
+turndown.escape = (text: string) =>
+  escapeText(text)
+    .replace(/\\\[\\\[/g, '[[')
+    .replace(/\\\]\\\]/g, ']]');
 
 /**
  * Turndown kennt Durchstreichen nicht und wuerde die Auszeichnung ersatzlos
@@ -105,18 +112,18 @@ turndown.addRule('bareLink', {
   filter: (node) => {
     if (node.nodeName !== 'A') return false;
     const href = (node as HTMLAnchorElement).getAttribute('href');
-    if (!href) return false;
+    const text = node.textContent ?? '';
     // Markdown verlinkt auch eine blosse E-Mail-Adresse, dann steht die
     // Adresse im Text und mailto: davor im Verweis.
-    return href === node.textContent || href === `mailto:${node.textContent}`;
-  },
-  replacement: (content, node) => {
-    // Musste Turndown im Text etwas maskieren, taugt die blosse Schreibweise
+    if (!href || (href !== text && href !== `mailto:${text}`)) return false;
+
+    // Muss im Text etwas maskiert werden, taugt die blosse Schreibweise
     // nicht: aus mira_x@example.org wuerde mira\_x@example.org, und die
-    // automatische Erkennung faende dann nur den Rest hinter der Maskierung.
-    if (content === node.textContent) return content;
-    return `[${content}](${(node as HTMLAnchorElement).getAttribute('href')})`;
-  }
+    // automatische Erkennung faende nur den Rest hinter der Maskierung.
+    // Dann uebernimmt Turndowns eigene Regel und schreibt [Text](Adresse).
+    return turndown.escape(text) === text;
+  },
+  replacement: (content) => content
 });
 
 /**
@@ -218,7 +225,10 @@ export function stripMarkdown(markdown: string): string {
     .replace(/(\*\*|__|\*|_|~~)/g, '')
     .split('\n')
     .map(stripTableRow)
-    .join('\n');
+    .join('\n')
+    // Zuletzt, damit die Trenner der Tabelle vorher noch von maskierten
+    // Strichen im Text zu unterscheiden waren.
+    .replace(/\\\|/g, '|');
 }
 
 const TABLE_ROW = /^\s*\|(.*)\|\s*$/;
@@ -239,7 +249,7 @@ function stripTableRow(line: string, index: number, lines: string[]): string {
   const isSecondRow = index > 0 && TABLE_ROW.test(lines[index - 1]) && !TABLE_ROW.test(lines[index - 2] ?? '');
   if (isSecondRow && TABLE_RULE.test(line)) return '';
 
-  return row[1].replace(/(?<!\\)\|/g, ' ').replace(/\\\|/g, '|');
+  return row[1].replace(/(?<!\\)\|/g, ' ');
 }
 
 /** Zaehlt Woerter im Markdown-Rumpf, ohne Syntax mitzuzaehlen. */
