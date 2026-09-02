@@ -643,3 +643,39 @@ test('Die Kurzinfo zeigt Tabellen ohne Striche', () => {
   assert.ok(text.includes('Jahr Ereignis'), text);
   assert.ok(text.includes('712 Geboren'), text);
 });
+
+test('Leerzeichen am Zeilenende werden nicht mitgeschrieben', () => {
+  // Turndown laesst in Listen und Zitaten Zeilen aus lauter Leerzeichen
+  // zurueck. Sie aendern nichts an der Darstellung, aber die Datei sieht
+  // nach jedem Speichern anders aus.
+  const markdown = htmlToMarkdown('<ul><li><p>eins</p></li><li><p>zwei</p></li></ul>');
+  assert.ok(!/[ \t]+$/m.test(markdown), JSON.stringify(markdown));
+
+  const zitat = htmlToMarkdown('<blockquote><p>oben</p><p>unten</p></blockquote>');
+  assert.ok(!/[ \t]+$/m.test(zitat), JSON.stringify(zitat));
+});
+
+test('Ein harter Zeilenumbruch behaelt seine zwei Leerzeichen', () => {
+  // Zwei Leerzeichen am Zeilenende sind in Markdown ein Umbruch, kein Rest.
+  assert.equal(htmlToMarkdown('<p>Erste Zeile<br>Zweite Zeile</p>'), 'Erste Zeile  \nZweite Zeile');
+});
+
+test('Ein zweiter Rundlauf aendert nichts mehr', () => {
+  // Der erste Rundlauf darf die Schreibweise vereinheitlichen. Aendert sich
+  // danach weiter etwas, saehe die Datei nach jedem Speichern anders aus.
+  const quellen = [
+    '- eins\n- zwei\n  - zwei a\n\n1. erstens\n2. zweitens',
+    '> Sie sagte nichts.\n>\n> Dann ging sie.',
+    '| Jahr | Ereignis |\n| --- | --- |\n| 712 | Geboren |',
+    '# Eins\n\n## Zwei\n\nText mit **fett**, *kursiv* und ~~weg~~.',
+    'Siehe [Handbuch](https://example.org) und https://example.org.',
+    'oben\n\n---\n\nunten',
+    'Erste Zeile  \nZweite Zeile'
+  ];
+
+  for (const quelle of quellen) {
+    const einmal = htmlToMarkdown(markdownToHtml(quelle));
+    const zweimal = htmlToMarkdown(markdownToHtml(einmal));
+    assert.equal(zweimal, einmal, `nicht stabil: ${JSON.stringify(quelle)}`);
+  }
+});
