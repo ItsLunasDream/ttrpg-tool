@@ -5,18 +5,6 @@ eines Abschnitts ist keine Priorisierung.
 
 ## Offene Wünsche
 
-### Bildgröße im Text einstellen
-
-Bilder werden derzeit in voller Breite bis maximal zur Textbreite angezeigt.
-Eine Möglichkeit, ein Bild kleiner zu setzen oder neben den Text zu stellen,
-wäre nützlich, ist aber im Markdown nicht ohne Weiteres abbildbar.
-
-### Graph: Beschriftungen bei dichten Netzen
-
-Kantenbeschriftungen überlappen sich, wenn viele Verbindungen dicht
-beieinander liegen. Denkbar: Beschriftungen erst ab einer Zoomstufe zeigen,
-oder nur die der hervorgehobenen Nachbarschaft.
-
 ### Graph: laufende Simulation beim Ziehen
 
 Die Anordnung wird einmal berechnet. Zieht man einen Knoten, folgen die
@@ -325,3 +313,19 @@ alter Faden nicht unbemerkt weiterläuft. Der mitgeschickte Verlauf ist auf die
 letzten acht Nachrichten begrenzt, sonst wächst jede Rückfrage die Anfrage
 weiter auf und kostet mehr, ohne besser zu werden. Ein Hinweis in der Sidebar
 sagt, dass Rückfragen bei der Claude API entsprechend mehr kosten.
+
+### Bildgröße im Text einstellen
+
+Ist ein Bild ausgewählt, erscheinen in der Werkzeugleiste drei Breiten: 200,
+400 und volle Textbreite.
+
+Markdown kann keine Bildgröße ausdrücken. Bilder mit gesetzter Breite werden
+deshalb als inline-HTML gespeichert, was gültiges Markdown ist und auch von
+Obsidian dargestellt wird. Ohne Breite bleibt es beim gewöhnlichen
+`![](assets/x.png)`. In beiden Fällen steht der relative Pfad in der Datei,
+nie die Protokoll-URL.
+
+### Graph: Beschriftungen bei dichten Netzen
+
+Kantenbeschriftungen erscheinen nur noch, wenn sie lesbar bleiben: bei bis zu
+zwanzig Kanten immer, darüber nur rund um den Knoten unter der Maus.
