@@ -194,9 +194,10 @@ export function BodyEditor({
 
           // Alles andere waere ein Verweis, den der Editor gar nicht erst
           // anlegt, und der Hauptprozess wiese ihn ohnehin ab.
-          // Kleingeschrieben vergleichen: HTTPS: ist derselbe Verweis.
-          const scheme = href.slice(0, href.indexOf(':')).toLowerCase();
-          if (!LINK_PROTOCOLS.includes(scheme)) return false;
+          // Kleingeschrieben vergleichen, HTTPS: ist derselbe Verweis. Ohne
+          // Doppelpunkt gibt es kein Schema und nichts zu oeffnen.
+          const scheme = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(href)?.[1].toLowerCase();
+          if (!scheme || !LINK_PROTOCOLS.includes(scheme)) return false;
 
           event.preventDefault();
           onOpenExternal(href);

@@ -768,3 +768,14 @@ test('Eine Datenzeile aus Strichen bleibt erhalten', () => {
 test('Woerter in einer Tabelle werden richtig gezaehlt', () => {
   assert.equal(countWords('| Wer | Was |\n| --- | --- |\n| Mira | Bogen |'), 4);
 });
+
+test('Ein maskierter Strich ausserhalb einer Tabelle wird auch entmaskiert', () => {
+  assert.equal(stripMarkdown('Er sagte a \\| b.').trim(), 'Er sagte a | b.');
+});
+
+test('Eine Adresse mit eckiger Klammer ueberlebt mehrere Rundlaeufe', () => {
+  const quelle = 'Siehe https://example.org/a[b_c dazu.';
+  const einmal = htmlToMarkdown(markdownToHtml(quelle));
+  const zweimal = htmlToMarkdown(markdownToHtml(einmal));
+  assert.equal(zweimal, einmal, `nicht stabil: ${JSON.stringify(einmal)} -> ${JSON.stringify(zweimal)}`);
+});

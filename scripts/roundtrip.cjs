@@ -49,6 +49,11 @@ const PROBEN = [
   { name: 'Blosse Adresse', text: 'Siehe https://example.org heute.' },
   { name: 'Blosse E-Mail-Adresse', text: 'Schreib an mira@example.org bitte.' },
   {
+    name: 'Adresse mit Klammer',
+    text: 'Siehe https://example.org/a[b_c dazu.',
+    erwartet: 'Siehe [https://example.org/a\\[b\\_c](https://example.org/a%5Bb_c) dazu.'
+  },
+  {
     name: 'Codeblock mit Leerzeile',
     text: 'Davor:\n\n```\neins\n   \nzwei\n```',
     erwartet: 'Davor:\n\n```\neins\n   \nzwei\n\n```'
