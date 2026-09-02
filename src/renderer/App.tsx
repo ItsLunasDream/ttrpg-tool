@@ -29,6 +29,7 @@ import { HistoryDialog } from './components/HistoryDialog';
 import { PromptsDialog } from './components/PromptsDialog';
 import { GraphView } from './components/GraphView';
 import { CleanupDialog } from './components/CleanupDialog';
+import { HelpDialog } from './components/HelpDialog';
 import type { AiStatus } from './components/AssistantPanel';
 import type { AiMessage, AiTask } from '../main/ai/provider';
 
@@ -43,7 +44,8 @@ type Dialog =
   | { kind: 'noteTypes' }
   | { kind: 'history'; note: Note }
   | { kind: 'prompts' }
-  | { kind: 'cleanup' };
+  | { kind: 'cleanup' }
+  | { kind: 'help' };
 
 const EMPTY_FILTERS: SearchFilters = { query: '', type: 'all', tag: null };
 
@@ -414,6 +416,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
             setOrphans(await call(api.assets.orphans(activeCampaign.id)));
           })
         }
+        onOpenHelp={() => setDialog({ kind: 'help' })}
         onOpenSettings={() => setDialog({ kind: 'settings' })}
         onEditNoteTypes={() => setDialog({ kind: 'noteTypes' })}
       />
@@ -584,6 +587,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
           }
         />
       ) : null}
+
+      {dialog.kind === 'help' ? <HelpDialog onClose={() => setDialog({ kind: 'none' })} /> : null}
 
       {dialog.kind === 'cleanup' && activeCampaignId ? (
         <CleanupDialog

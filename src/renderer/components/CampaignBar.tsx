@@ -1,10 +1,12 @@
 import type { AppSettings, Campaign } from '../../shared/types';
 import { useT } from '../i18n';
+import { Menu } from './Menu';
 
 interface Props {
   campaigns: Campaign[];
   activeCampaignId: string | null;
   settings: AppSettings;
+  graphOpen: boolean;
   onSelect: (campaignId: string) => void;
   onCreate: () => void;
   onRename: () => void;
@@ -12,16 +14,22 @@ interface Props {
   onExport: () => void;
   onExportMarkdown: () => void;
   onExportPdf: () => void;
-  onToggleGraph: () => void;
-  onCleanup: () => void;
-  graphOpen: boolean;
   onEditNoteTypes: () => void;
+  onCleanup: () => void;
+  onToggleGraph: () => void;
+  onOpenHelp: () => void;
   onOpenSettings: () => void;
 }
 
+/**
+ * Kopfzeile. Die Aktionen einer Kampagne stecken in einem Klappmenue: als
+ * einzelne Knoepfe waren es so viele, dass die Zeile umbrach und nichts mehr
+ * zu finden war.
+ */
 export function CampaignBar(props: Props) {
   const t = useT();
   const { campaigns, activeCampaignId, settings } = props;
+  const noCampaign = !activeCampaignId;
 
   return (
     <header className="campaign-bar">
@@ -38,42 +46,43 @@ export function CampaignBar(props: Props) {
         ))}
       </select>
 
-      <button type="button" onClick={props.onCreate}>
-        {t('bar.newCampaign')}
-      </button>
-      <button type="button" onClick={props.onRename} disabled={!activeCampaignId}>
-        {t('bar.rename')}
-      </button>
+      <Menu
+        label={t('bar.campaign')}
+        entries={[
+          { label: t('bar.newCampaign'), onSelect: props.onCreate },
+          { label: t('bar.rename'), onSelect: props.onRename, disabled: noCampaign },
+          { label: t('bar.noteTypes'), onSelect: props.onEditNoteTypes, disabled: noCampaign, separated: true },
+          { label: t('cleanup.open'), onSelect: props.onCleanup, disabled: noCampaign },
+          { label: t('bar.exportZip'), onSelect: props.onExport, disabled: noCampaign, separated: true },
+          { label: t('export.markdownCampaign'), onSelect: props.onExportMarkdown, disabled: noCampaign },
+          { label: t('export.pdfCampaign'), onSelect: props.onExportPdf, disabled: noCampaign },
+          {
+            label: t('bar.deleteCampaign'),
+            onSelect: props.onDelete,
+            disabled: noCampaign,
+            danger: true,
+            separated: true
+          }
+        ]}
+      />
+
       <button
         type="button"
         className={props.graphOpen ? 'is-active' : undefined}
         onClick={props.onToggleGraph}
-        disabled={!activeCampaignId}
+        disabled={noCampaign}
       >
         {t('graph.open')}
-      </button>
-      <button type="button" onClick={props.onEditNoteTypes} disabled={!activeCampaignId}>
-        {t('bar.noteTypes')}
-      </button>
-      <button type="button" onClick={props.onCleanup} disabled={!activeCampaignId}>
-        {t('cleanup.open')}
-      </button>
-      <button type="button" onClick={props.onExport} disabled={!activeCampaignId}>
-        {t('bar.exportZip')}
-      </button>
-      <button type="button" onClick={props.onExportMarkdown} disabled={!activeCampaignId}>
-        {t('export.markdownCampaign')}
-      </button>
-      <button type="button" onClick={props.onExportPdf} disabled={!activeCampaignId}>
-        {t('export.pdfCampaign')}
-      </button>
-      <button type="button" className="danger" onClick={props.onDelete} disabled={!activeCampaignId}>
-        {t('bar.deleteCampaign')}
       </button>
 
       <span className="campaign-bar__spacer" />
 
-      <span className="campaign-bar__autosave">{t(settings.autosaveEnabled ? 'bar.autosaveOn' : 'bar.autosaveOff')}</span>
+      <span className="campaign-bar__autosave">
+        {t(settings.autosaveEnabled ? 'bar.autosaveOn' : 'bar.autosaveOff')}
+      </span>
+      <button type="button" onClick={props.onOpenHelp}>
+        {t('bar.help')}
+      </button>
       <button type="button" onClick={props.onOpenSettings}>
         {t('bar.settings')}
       </button>

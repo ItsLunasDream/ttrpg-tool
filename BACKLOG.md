@@ -354,3 +354,13 @@ Eine Datei mit beschädigtem Frontmatter wurde übergangen, damit sie nicht die
 ganze Kampagne unlesbar macht. Sie verschwand damit aber stillschweigend aus
 der Liste, und der Verlust wäre erst aufgefallen, wenn es zu spät ist. Jetzt
 steht ein Hinweis über der Notizliste, mit einem Knopf zum Öffnen des Ordners.
+
+### Kopfzeile entrümpelt und Hilfe ergänzt
+
+Die Kopfzeile hatte vierzehn Elemente und brach auf drei Zeilen um. Die
+Aktionen einer Kampagne stecken jetzt in einem Klappmenü, sichtbar bleiben
+Kampagnenauswahl, Graph, Hilfe und Einstellungen.
+
+Neu ist eine Hilfe mit den Tastenkürzeln und den Handgriffen, die man sonst
+nicht findet: `[[` zum Verlinken, Strg+Klick zum Öffnen, Bilder ziehen,
+Bildbreite über die Werkzeugleiste, Zoom im Graph.
