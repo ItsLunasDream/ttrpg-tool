@@ -35,6 +35,8 @@ const de = {
   'bar.help': 'Hilfe',
 
   'help.title': 'Tastenkürzel und Handgriffe',
+  'help.ctrl': 'Strg',
+  'help.click': 'Klick',
   'help.save': 'Speichern',
   'help.find': 'In dieser Notiz suchen und ersetzen',
   'help.nextMatch': 'Zur nächsten oder vorherigen Fundstelle springen',
@@ -381,6 +383,8 @@ const en: Partial<Record<MessageKey, string>> = {
   'bar.help': 'Help',
 
   'help.title': 'Shortcuts and handling',
+  'help.ctrl': 'Ctrl',
+  'help.click': 'click',
   'help.save': 'Save',
   'help.find': 'Search and replace in this note',
   'help.nextMatch': 'Jump to the next or previous match',

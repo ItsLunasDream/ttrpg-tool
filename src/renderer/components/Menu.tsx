@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export interface MenuEntry {
   label: string;
@@ -13,7 +13,6 @@ interface Props {
   label: string;
   entries: MenuEntry[];
   disabled?: boolean;
-  children?: ReactNode;
 }
 
 /**
