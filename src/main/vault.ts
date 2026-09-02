@@ -16,7 +16,8 @@ import type {
   NoteTypeDef,
   NoteVersion,
   OrphanedAsset,
-  Relation
+  Relation,
+  UnreadableNote
 } from '../shared/types';
 import { DEFAULT_LANGUAGE, isLanguage } from '../shared/i18n';
 import type { Language } from '../shared/i18n';
@@ -358,7 +359,7 @@ export class Vault {
    * Kampagne unlesbar macht. Stillschweigend verschwinden duerfen sie aber
    * nicht: sonst faellt der Verlust erst auf, wenn es zu spaet ist.
    */
-  async findUnreadableNotes(campaignId: string): Promise<string[]> {
+  async findUnreadableNotes(campaignId: string): Promise<UnreadableNote[]> {
     const dir = path.join(this.campaignDir(campaignId), NOTES_DIR);
 
     let entries;
@@ -368,16 +369,20 @@ export class Vault {
       return [];
     }
 
-    const broken: string[] = [];
+    const broken: UnreadableNote[] = [];
     for (const entry of entries) {
       if (!entry.isFile() || !entry.name.endsWith('.md')) continue;
+      const id = entry.name.slice(0, -3);
       try {
-        await this.getNote(campaignId, entry.name.slice(0, -3));
+        await this.getNote(campaignId, id);
       } catch {
-        broken.push(entry.name);
+        // Der Dateiname wird zur ID. Ist er der Grund, laesst sich das mit
+        // einem Umbenennen beheben; bei kaputtem Inhalt hilft nur der
+        // Texteditor. Der Unterschied gehoert in den Hinweis.
+        broken.push({ name: entry.name, reason: SAFE_ID.test(id) ? 'content' : 'name' });
       }
     }
-    return broken.sort();
+    return broken.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async getNote(campaignId: string, noteId: string): Promise<Note> {
@@ -615,9 +620,11 @@ export class Vault {
 
 // --- Hilfsfunktionen -------------------------------------------------------
 
+const SAFE_ID = /^[A-Za-z0-9_-]+$/;
+
 /** Verhindert, dass eine manipulierte ID aus dem Vault-Verzeichnis ausbricht. */
 function assertSafeId(id: string): void {
-  if (!/^[A-Za-z0-9_-]+$/.test(id)) {
+  if (!SAFE_ID.test(id)) {
     throw new VaultError('error.invalidId', { id });
   }
 }
@@ -739,7 +746,7 @@ function normalizeNote(noteId: string, data: Record<string, unknown>, body: stri
     id: noteId,
     schemaVersion: typeof data.schemaVersion === 'number' ? data.schemaVersion : SCHEMA_VERSION,
     type,
-    title: typeof data.title === 'string' && data.title.trim() ? data.title.trim() : 'Ohne Titel',
+    title: noteTitle(data.title, body),
     aliases: asStringArray(data.aliases),
     tags: asStringArray(data.tags),
     fields: asStringRecord(data.fields),
@@ -748,6 +755,22 @@ function normalizeNote(noteId: string, data: Record<string, unknown>, body: stri
     updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : now,
     body
   };
+}
+
+/**
+ * Titel einer Notiz. Steht keiner im Kopf, wird die erste Zeile genommen,
+ * wenn sie eine Ueberschrift ist: so bekommt eine Markdown-Datei, die jemand
+ * aus einem anderen Programm in den Ordner legt, einen brauchbaren Namen
+ * statt „Ohne Titel". Die Ueberschrift bleibt im Text stehen.
+ */
+function noteTitle(raw: unknown, body: string): string {
+  if (typeof raw === 'string' && raw.trim()) return raw.trim();
+
+  const heading = /^#{1,6}[ \t]+(.+?)[ \t]*#*[ \t]*$/.exec(body.split('\n', 1)[0] ?? '');
+  const found = heading?.[1].trim();
+  if (found && !hasLinkReservedChars(found)) return found;
+
+  return 'Ohne Titel';
 }
 
 const FIELD_TYPES: FieldDef['type'][] = ['text', 'textarea', 'number', 'url', 'image', 'select', 'date', 'checkbox'];

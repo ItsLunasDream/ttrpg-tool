@@ -38,6 +38,10 @@ umgesetzt zu sein.
 
 ## Bekannte Grenzen
 
+- Der Dateiname einer Notiz wird zu ihrer ID und darf deshalb nur Buchstaben
+  ohne Umlaute, Ziffern, `-` und `_` enthalten. Wer eine eigene Datei ablegt,
+  muss sie entsprechend benennen; die Notizliste sagt jetzt, dass es daran
+  liegt. Die Beschränkung bleibt, weil aus der ID ein Pfad wird
 - Der Editor vereinheitlicht beim ersten Speichern die Schreibweise des
   Markdowns: Listen bekommen drei Leerzeichen nach dem Strich und eine
   Leerzeile zwischen den Punkten, ein `*` oder `_` im Fließtext wird maskiert,

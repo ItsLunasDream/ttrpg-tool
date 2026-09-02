@@ -13,7 +13,16 @@ import { askProvider, createProvider, decryptSecret, encryptSecret, AiError } fr
 import type { AiMessage, AiTask } from './ai/provider';
 import { findNoteType } from '../shared/noteTypes';
 import { findWikiLinks, normalizeName } from '../shared/wikilinks';
-import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion, OrphanedAsset } from '../shared/types';
+import type {
+  AppSettings,
+  Campaign,
+  Note,
+  NoteType,
+  NoteTypeDef,
+  NoteVersion,
+  OrphanedAsset,
+  UnreadableNote
+} from '../shared/types';
 
 export interface IpcContext {
   vault: Vault;
@@ -122,7 +131,7 @@ export function registerIpc(context: IpcContext): void {
   );
 
   handle<[string], Note[]>('note:list', (campaignId) => vault.listNotes(campaignId));
-  handle<[string], string[]>('note:unreadable', (campaignId) => vault.findUnreadableNotes(campaignId));
+  handle<[string], UnreadableNote[]>('note:unreadable', (campaignId) => vault.findUnreadableNotes(campaignId));
   handle<[string, NoteType, string], Note>('note:create', (campaignId, type, title) =>
     vault.createNote(campaignId, type, title)
   );

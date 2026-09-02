@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion, OrphanedAsset } from '../shared/types';
+import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion, OrphanedAsset, UnreadableNote } from '../shared/types';
 import type { PromptCategory } from '../shared/writingPrompts';
 import type { AiMessage, AiTask } from '../main/ai/provider';
 
@@ -70,7 +70,7 @@ const api = {
   notes: {
     list: (campaignId: string) => invoke<Note[]>('note:list', campaignId),
     /** Dateien, die sich nicht lesen lassen und deshalb in der Liste fehlen. */
-    unreadable: (campaignId: string) => invoke<string[]>('note:unreadable', campaignId),
+    unreadable: (campaignId: string) => invoke<UnreadableNote[]>('note:unreadable', campaignId),
     create: (campaignId: string, type: NoteType, title: string) =>
       invoke<Note>('note:create', campaignId, type, title),
     save: (campaignId: string, note: Note) => invoke<Note>('note:save', campaignId, note),

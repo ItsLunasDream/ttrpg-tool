@@ -11,7 +11,8 @@ import type {
   NoteTypeDef,
   NoteVersion,
   OrphanedAsset,
-  SearchHit
+  SearchHit,
+  UnreadableNote
 } from '../shared/types';
 import type { PromptCategory } from '../shared/writingPrompts';
 import { CampaignBar } from './components/CampaignBar';
@@ -80,7 +81,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const [showGraph, setShowGraph] = useState(false);
   const [aiStatus, setAiStatus] = useState<AiStatus | null>(null);
   const [orphans, setOrphans] = useState<OrphanedAsset[] | null>(null);
-  const [unreadable, setUnreadable] = useState<string[]>([]);
+  const [unreadable, setUnreadable] = useState<UnreadableNote[]>([]);
 
   const draftRef = useRef<Note | null>(null);
   draftRef.current = draft;
