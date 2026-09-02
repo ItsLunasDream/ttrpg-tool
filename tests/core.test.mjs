@@ -836,3 +836,23 @@ test('Doppelte Klammern in einer Adresse gelten nicht als Wiki-Link', () => {
   // Der echte Wiki-Link daneben bleibt einer.
   assert.deepEqual(findWikiLinks(einmal).map((link) => link.target), ['Mira'], einmal);
 });
+
+test('Doppelte Klammern in einem ausgeschriebenen Verweis bleiben heil', () => {
+  const quelle = 'Siehe [Text](https://example.org/x?a=[[b]]) dazu.';
+  const einmal = htmlToMarkdown(markdownToHtml(quelle));
+  assert.ok(einmal.includes('%5B%5Bb%5D%5D'), einmal);
+  assert.equal(htmlToMarkdown(markdownToHtml(einmal)), einmal);
+});
+
+test('Ein Wiki-Link geht nicht ueber Zeilengrenzen', () => {
+  // Sonst verschluckt eine offene Klammer alles bis zur naechsten
+  // schliessenden, samt Absaetzen und Listenpunkten.
+  assert.deepEqual(findWikiLinks('Ein [[offener Anfang\n\nund ein Ende]] hier.'), []);
+  const quelle = 'Ein [[offener Anfang\n\nund ein Ende]] hier.';
+  assert.ok(htmlToMarkdown(markdownToHtml(quelle)).includes('\n\n'), 'Der Absatz ist verlorengegangen');
+});
+
+test('Ein Anfuehrungszeichen im Titel bricht kein HTML-Attribut auf', () => {
+  const html = markdownToHtml('![[[Bild "gross"]]](assets/a.png)');
+  assert.ok(!/alt="[^"]*"[^>]*"/.test(html), html);
+});

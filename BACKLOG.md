@@ -46,6 +46,10 @@ umgesetzt zu sein.
   nicht als Wiki-Link, die Adresse wird beim Speichern aber zur
   ausgeschriebenen Linkschreibweise `[Text](Adresse)`. Sie bleibt dabei heil
   und ändert sich danach nicht weiter
+- Steht ein Wiki-Link mit maskiertem Senkrechtstrich (`[[Mira\|ihr]]`) in
+  einem Codeblock, verliert er beim Speichern die Maskierung. Die Maskierung
+  gehört in eine Tabellenzelle, und beim Zurücksetzen der Links ist noch nicht
+  bekannt, wo sie stehen. Sehr enger Fall, aber notiert
 - Ein maskierter Senkrechtstrich in einem Code-Ausschnitt (`` `a \| b` ``)
   erscheint in der Kurzinfo ohne den Backslash. Betrifft nur Vorschau und
   Wortzahl, nicht die Datei

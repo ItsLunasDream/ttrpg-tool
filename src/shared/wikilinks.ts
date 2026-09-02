@@ -18,8 +18,11 @@
  * Der Zieltitel darf keinen Backslash enthalten, sonst schluckte er die
  * Maskierung. Titel mit Backslash sind ohnehin nicht erlaubt, siehe
  * LINK_RESERVED_PATTERN.
+ *
+ * Ueber Zeilengrenzen geht ein Link nicht: sonst verschluckte eine offene
+ * Klammer alles bis zur naechsten schliessenden, samt Absaetzen dazwischen.
  */
-export const WIKI_LINK_PATTERN = /\[\[([^[\]|\\]+?)(?:(\\?\|)([^[\]]*?))?\]\]/g;
+export const WIKI_LINK_PATTERN = /\[\[([^[\]|\\\n]+?)(?:(\\?\|)([^[\]\n]*?))?\]\]/g;
 
 export interface WikiLinkMatch {
   /** Zieltitel bzw. Alias, so wie er im Text steht. */
@@ -105,7 +108,9 @@ export interface MaskedWikiLinks {
 
 /** Steht die Fundstelle mitten in einer Adresse? */
 function insideUrl(text: string, index: number): boolean {
-  const token = /(\S+)$/.exec(text.slice(0, index))?.[1] ?? '';
+  // Bis zum letzten Leerraum oder zur oeffnenden Klammer: damit greift es
+  // auch in der Adresse eines ausgeschriebenen Verweises [Text](Adresse).
+  const token = /([^\s(]+)$/.exec(text.slice(0, index))?.[1] ?? '';
   return /^(?:[A-Za-z][A-Za-z0-9+.-]*:\/\/|www\.)/.test(token);
 }
 
