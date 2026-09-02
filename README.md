@@ -113,6 +113,10 @@ beim Umbenennen der Beschriftung unverändert, sonst gingen eingetragene Werte
 verloren. Und ein entferntes Feld löscht keine Werte: sie bleiben in der
 Notizdatei und erscheinen wieder, wenn das Feld zurückgeholt wird.
 
+**Tabellen** gibt es über den Knopf ▦ in der Werkzeugleiste. Steht der
+Cursor in einer Tabelle, erscheinen Knöpfe für Zeilen und Spalten. In der
+Datei stehen sie als gewöhnliche Markdown-Tabelle.
+
 **Links ins Netz** stehen als `[Text](https://…)`. Setzen über den Knopf in
 der Werkzeugleiste oder indem man eine Adresse über markierten Text einfügt.
 Strg+Klick öffnet sie im Systembrowser.

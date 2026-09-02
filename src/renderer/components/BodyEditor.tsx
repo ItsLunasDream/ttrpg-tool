@@ -3,6 +3,10 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
 import { SizedImage } from '../editor/sizedImage';
 import { createWikiLinkExtension, type SuggestionState } from '../editor/wikiLinkExtension';
 import { createSearchHighlightExtension, replaceMatches, selectMatch } from '../editor/searchHighlight';
@@ -156,6 +160,13 @@ export function BodyEditor({
       // Wiki-Links mit Strg+Klick, damit der Cursor sonst normal gesetzt
       // werden kann, und im Systembrowser statt im App-Fenster.
       Link.configure({ openOnClick: false, autolink: false, protocols: ['http', 'https', 'mailto'] }),
+      // Ohne Tabellen zog der Editor alle Zellen zu einer Textwurst zusammen.
+      // resizable false: Spaltenbreiten liessen sich in Markdown ohnehin nicht
+      // ablegen, sie waeren beim naechsten Laden wieder weg.
+      Table.configure({ resizable: false }),
+      TableRow,
+      TableHeader,
+      TableCell,
       wikiLink,
       searchHighlight,
       SizedImage.configure({ inline: false, allowBase64: false })

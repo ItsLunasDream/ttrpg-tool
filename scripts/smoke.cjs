@@ -984,6 +984,57 @@ app.whenReady().then(async () => {
       );
     }
 
+    // 21c. Tabelle einfuegen, fuellen und speichern
+    await selectNote(window, 'Toran');
+    await run(
+      window,
+      `const view = document.querySelector('.ProseMirror');
+       view.focus();
+       const range = document.createRange();
+       range.selectNodeContents(view);
+       range.collapse(false);
+       const selection = window.getSelection();
+       selection.removeAllRanges();
+       selection.addRange(range);
+       return true;`
+    );
+    await sleep(300);
+    await pressToolbar(window, '\u25a6');
+    await sleep(700);
+    check(
+      await run(window, `return document.querySelectorAll('.ProseMirror table th').length === 2;`),
+      'Tabelle wurde nicht eingefügt'
+    );
+    // In die erste Kopfzelle schreiben.
+    await run(
+      window,
+      `const cell = document.querySelector('.ProseMirror table th');
+       const range = document.createRange();
+       range.selectNodeContents(cell);
+       range.collapse(true);
+       const selection = window.getSelection();
+       selection.removeAllRanges();
+       selection.addRange(range);
+       document.querySelector('.ProseMirror').focus();
+       document.execCommand('insertText', false, 'Jahr');
+       return true;`
+    );
+    await sleep(500);
+    check(
+      await run(window, `return [...document.querySelectorAll('.toolbar button')].some((b) => b.textContent === '+Z');`),
+      'Tabellenknöpfe fehlen, obwohl der Cursor in der Tabelle steht'
+    );
+    await save(window);
+    await sleep(900);
+    {
+      const dateien = fs.readdirSync(notesDir).map((n) => fs.readFileSync(path.join(notesDir, n), 'utf8'));
+      const mitTabelle = dateien.find((raw) => raw.includes('| Jahr |'));
+      check(Boolean(mitTabelle), 'Die Tabelle steht nicht in der Datei');
+      if (mitTabelle) {
+        check(/\|\s*---\s*\|/.test(mitTabelle), 'Der Tabelle fehlt die Trennzeile');
+      }
+    }
+
     // 22. Hilfe: Tastenkürzel müssen auffindbar sein
     await clickButton(window, 'Hilfe');
     await sleep(600);
