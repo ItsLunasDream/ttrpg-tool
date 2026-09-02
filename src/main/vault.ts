@@ -447,6 +447,11 @@ export class Vault {
     const note = await this.getNote(campaignId, noteId);
     if (note.title === trimmed) return { note, rewritten: 0 };
 
+    // Vor dem ersten Schreibzugriff pruefen. Scheitert es erst beim Speichern
+    // am Ende, waeren die Links in anderen Notizen schon umgeschrieben, der
+    // Titel aber nicht, und ein zweiter Versuch faende nichts mehr.
+    for (const alias of note.aliases) assertLinkable(alias);
+
     let rewritten = 0;
     let ownBody = note.body;
 

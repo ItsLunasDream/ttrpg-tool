@@ -20,6 +20,9 @@ import { Toolbar } from './Toolbar';
 import { Modal } from './Modal';
 import { useT } from '../i18n';
 
+/** Was der Editor verlinken und was der Hauptprozess oeffnen darf. */
+const LINK_PROTOCOLS = ['http', 'https', 'mailto'];
+
 interface Props {
   noteId: string;
   markdown: string;
@@ -163,7 +166,7 @@ export function BodyEditor({
       // der Datei verlor beim Speichern seine Adresse. Geoeffnet wird wie bei
       // Wiki-Links mit Strg+Klick, damit der Cursor sonst normal gesetzt
       // werden kann, und im Systembrowser statt im App-Fenster.
-      Link.configure({ openOnClick: false, autolink: false, protocols: ['http', 'https', 'mailto'] }),
+      Link.configure({ openOnClick: false, autolink: false, protocols: LINK_PROTOCOLS }),
       // Ohne Tabellen zog der Editor alle Zellen zu einer Textwurst zusammen.
       // resizable false: Spaltenbreiten liessen sich in Markdown ohnehin nicht
       // ablegen, sie waeren beim naechsten Laden wieder weg.
@@ -188,6 +191,10 @@ export function BodyEditor({
         mousedown: (_view, event) => {
           const href = (event.target as HTMLElement | null)?.closest('a')?.getAttribute('href');
           if (!href || !(event.ctrlKey || event.metaKey)) return false;
+
+          // Alles andere waere ein Verweis, den der Editor gar nicht erst
+          // anlegt, und der Hauptprozess wiese ihn ohnehin ab.
+          if (!LINK_PROTOCOLS.some((scheme) => href.startsWith(`${scheme}:`))) return false;
 
           event.preventDefault();
           onOpenExternal(href);
