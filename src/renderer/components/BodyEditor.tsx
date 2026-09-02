@@ -124,6 +124,37 @@ export function BodyEditor({
     return true;
   }
 
+  /**
+   * Eingefuegter Klartext wird als Markdown gelesen: aus **fett** wird fetter
+   * Text, aus einer Tabelle eine Tabelle. Die Dateien der Anwendung sind
+   * Markdown, wer eine bestehende Backstory einfuegt, erwartet das.
+   *
+   * Nicht angefasst wird, was schon HTML mitbringt: aus dem Editor selbst
+   * oder aus einem Browser kopierter Text traegt seine Formatierung bereits,
+   * den soll ProseMirror wie gewohnt uebernehmen.
+   */
+  function pasteAsMarkdown(transfer: DataTransfer | null): boolean {
+    const editor = editorRef.current;
+    if (!editor || !transfer || transfer.types.includes('text/html')) return false;
+
+    const text = transfer.getData('text/plain');
+    if (!text.trim()) return false;
+
+    // Eine einzelne Adresse ueber markiertem Text soll ihn verlinken, das
+    // erledigt die Link-Erweiterung. Ihr nicht dazwischenfunken.
+    if (!editor.state.selection.empty && /^\S+$/.test(text.trim()) && /^[A-Za-z][A-Za-z0-9+.-]*:/.test(text.trim())) {
+      return false;
+    }
+
+    const html = markdownToHtml(text, (target) => assetUrl(importRef.current.campaignId, target));
+
+    // Text ohne eigene Absaetze bleibt im laufenden Absatz, sonst risse ein
+    // eingefuegtes Wort den Satz auseinander.
+    const single = /^<p>([\s\S]*)<\/p>\s*$/.exec(html.trim());
+    editor.chain().focus().insertContent(single ? single[1] : html).run();
+    return true;
+  }
+
   const searchHighlight = useMemo(
     () =>
       createSearchHighlightExtension({
@@ -184,7 +215,8 @@ export function BodyEditor({
     editorProps: {
       // Bilder aus der Zwischenablage oder per Ziehen und Ablegen werden in
       // die Kampagne kopiert, nicht als Base64 in den Text geschrieben.
-      handlePaste: (_view, event) => importFromDataTransfer(event.clipboardData),
+      handlePaste: (_view, event) =>
+        importFromDataTransfer(event.clipboardData) || pasteAsMarkdown(event.clipboardData),
       handleDrop: (_view, event) => importFromDataTransfer((event as DragEvent).dataTransfer),
 
       handleDOMEvents: {
