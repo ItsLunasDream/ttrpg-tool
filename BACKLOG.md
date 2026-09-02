@@ -42,6 +42,10 @@ umgesetzt zu sein.
   ohne Umlaute, Ziffern, `-` und `_` enthalten. Wer eine eigene Datei ablegt,
   muss sie entsprechend benennen; die Notizliste sagt jetzt, dass es daran
   liegt. Die Beschränkung bleibt, weil aus der ID ein Pfad wird
+- Stehen doppelte eckige Klammern in einer Adresse (`…?a=[[b]]`), zählt das
+  nicht als Wiki-Link, die Adresse wird beim Speichern aber zur
+  ausgeschriebenen Linkschreibweise `[Text](Adresse)`. Sie bleibt dabei heil
+  und ändert sich danach nicht weiter
 - Ein maskierter Senkrechtstrich in einem Code-Ausschnitt (`` `a \| b` ``)
   erscheint in der Kurzinfo ohne den Backslash. Betrifft nur Vorschau und
   Wortzahl, nicht die Datei

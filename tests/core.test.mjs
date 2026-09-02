@@ -783,8 +783,7 @@ test('Eine Adresse mit eckiger Klammer ueberlebt mehrere Rundlaeufe', () => {
 test('Ein Wiki-Link mit Sonderzeichen im Titel bleibt ein Link', () => {
   // Unterstriche, Sterne und Backticks sind in Titeln erlaubt. Werden sie
   // beim Speichern maskiert, ist der Link beim naechsten Laden keiner mehr.
-  // Stern und Backtick sind in Titeln nicht erlaubt, siehe LINK_RESERVED_PATTERN.
-  for (const titel of ['Haus_am_See', 'Ort #1', 'Fluss & Feld', 'Weg 3 - Nord']) {
+  for (const titel of ['Haus_am_See', 'Der *Turm*', 'Ort #1', 'Fluss & Feld', 'Weg 3 - Nord']) {
     const quelle = `Sie wohnt in [[${titel}]].`;
     const back = htmlToMarkdown(markdownToHtml(quelle));
     assert.deepEqual(findWikiLinks(back).map((link) => link.target), [titel], back);
@@ -796,4 +795,44 @@ test('Ein Alias im Wiki-Link ueberlebt Sonderzeichen ebenfalls', () => {
   const quelle = 'Sie wohnt in [[Haus_am_See|dort]].';
   const back = htmlToMarkdown(markdownToHtml(quelle));
   assert.equal(back, quelle);
+});
+
+test('Wiki-Links ueberstehen Sonderzeichen im Titel in beide Richtungen', () => {
+  for (const titel of ['Haus_am_See', 'Haus _am_ See', 'Der *Turm*', 'Fluss `Weiss`', 'Ort #1', 'A & B']) {
+    const quelle = `Sie wohnt in [[${titel}]].`;
+    const back = htmlToMarkdown(markdownToHtml(quelle));
+    assert.equal(back, quelle, `Rundlauf verändert: ${JSON.stringify(back)}`);
+    assert.deepEqual(findWikiLinks(back).map((link) => link.target), [titel], back);
+  }
+});
+
+test('Ein Wiki-Link wird im Editor nicht als Auszeichnung gelesen', () => {
+  // Ohne Schutz machte marked aus [[Der *Turm*]] kursiven Text, und der
+  // Link war beim Speichern nicht mehr zusammenhaengend.
+  const html = markdownToHtml('Sie wohnt in [[Der *Turm*]].');
+  assert.ok(!html.includes('<em>'), html);
+});
+
+test('Eine Adresse mit Leerzeichen im Text bleibt ein richtiger Link', () => {
+  const back = htmlToMarkdown('<p><a href="https://example.org/a%20b">https://example.org/a b</a></p>');
+  assert.equal(back, '[https://example.org/a b](https://example.org/a%20b)');
+});
+
+test('Ein Wiki-Link in einer Tabellenzelle wird nicht doppelt maskiert', () => {
+  const markdown = '| Wer | Notiz |\n| --- | --- |\n| [[Mira\\|ihr]] | dazu |';
+  assert.equal(htmlToMarkdown(markdownToHtml(markdown)), markdown);
+});
+
+test('Doppelte Klammern in einer Adresse gelten nicht als Wiki-Link', () => {
+  const quelle = 'Siehe https://example.org/x?a=[[b]] und [[Mira]].';
+  const einmal = htmlToMarkdown(markdownToHtml(quelle));
+
+  // Die Adresse wird zur ausgeschriebenen Linkschreibweise, weil die
+  // Klammern darin maskiert werden muessen. Wichtig ist, dass sie dabei
+  // heil bleibt und der Text nicht bei jedem Speichern weiter waechst.
+  assert.ok(einmal.includes('https://example.org/x?a=%5B%5Bb%5D%5D'), einmal);
+  assert.equal(htmlToMarkdown(markdownToHtml(einmal)), einmal);
+
+  // Der echte Wiki-Link daneben bleibt einer.
+  assert.deepEqual(findWikiLinks(einmal).map((link) => link.target), ['Mira'], einmal);
 });
