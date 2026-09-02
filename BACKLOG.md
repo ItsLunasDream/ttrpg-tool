@@ -5,21 +5,23 @@ eines Abschnitts ist keine Priorisierung.
 
 ## Offene Wünsche
 
-### Assistent: großes Fenster wie ein Chat
+### Assistent: großes Fenster im Schreibhilfe-Dialog
 
-Die Sidebar ist zu schmal und schlecht lesbar. Gewünscht ist derselbe
-Assistent zusätzlich als großes Fenster, aufrufbar wie die Schreibhilfe, also
-über einen Knopf in der Kopfzeile des Editors. Darstellung mehr wie ein
-KI-Chat: Frage und Antwort als abgesetzte Blasen, breiterer Textbereich, das
-Eingabefeld unten.
+Die Sidebar ist zu schmal und schlecht lesbar. Der Assistent soll zusätzlich
+als zweiter Bereich im Schreibhilfe-Dialog erscheinen, mit mehr Platz und in
+der Art eines KI-Chats: Frage und Antwort als abgesetzte Blasen, breiterer
+Textbereich, Eingabefeld unten.
 
-Die Sidebar soll bleiben. Beide Ansichten müssten sich denselben
-Gesprächsverlauf teilen, sonst stünde in der einen etwas anderes als in der
-anderen.
+Wichtig ist die Beschriftung: der KI-Teil muss klar als solcher benannt sein.
+Die Schreibhilfe kommt bewusst ohne KI aus, und wer den Dialog öffnet, muss
+auf einen Blick sehen, welcher Teil ein Modell befragt und welcher nicht. Der
+Titel des Dialogs sollte deshalb mitwachsen, „Schreibhilfe" allein deckt beide
+Teile nicht mehr ab.
 
-Offen: „unter Schreibhilfe" kann heißen „auf demselben Weg aufrufbar" oder
-„als zweiter Reiter im Schreibhilfe-Dialog". Ich habe es als Ersteres gelesen,
-bei Gelegenheit nachfragen.
+Die Sidebar bleibt. Beide Ansichten müssen sich denselben Gesprächsverlauf
+teilen, sonst steht in der einen etwas anderes als in der anderen. Der Verlauf
+liegt bisher als lokaler Zustand in `AssistantPanel.tsx` und müsste dafür eine
+Ebene höher wandern.
 
 ### Steckbrief: Knopf zum Bearbeiten direkt daneben
 
@@ -40,19 +42,27 @@ Im Kampagnen-Menü stehen die drei Exporte (ZIP, Markdown, PDF) schon
 beieinander; die Frage stellt sich dort also nur, ob sie ebenfalls unter einen
 Eintrag sollen.
 
-### Graph: Beziehungstexte überlagern sich
+### Graph: Beziehungstexte nebeneinander statt übereinander
 
-Die Beschriftungen der Kanten stehen ineinander und sind dann nicht mehr zu
-lesen. Es gibt bereits eine Notbremse (`LABEL_LIMIT` in `GraphView.tsx`): ab
-zwanzig Kanten erscheinen nur noch die der hervorgehobenen Nachbarschaft. Das
-reicht offensichtlich nicht, überlagern können sich auch wenige.
+Beide Richtungen zwischen zwei Knoten zeichnen ihre Beschriftung auf denselben
+Punkt, die Mitte der Kante (`GraphView.tsx`, die Kanten-Beschriftung). Deshalb
+stehen sie ineinander, und das schon bei zwei Notizen, nicht erst bei vielen.
 
-Denkbare Wege, in aufsteigendem Aufwand:
-- die Beschriftung entlang der Kante drehen statt waagerecht setzen
-- einen Kasten in der Hintergrundfarbe hinterlegen, damit wenigstens die
-  oberste lesbar bleibt
-- Beschriftungen weglassen, die sich mit einer bereits gesetzten überlappen
-  (Rechtecke vergleichen, wie es Kartenbeschriftungen machen)
+Gewünschte Lösung: Gibt es zwischen zwei Knoten zwei verschiedene
+Beziehungsbeschreibungen, werden zwei Pfeile gezeichnet statt einem. Sie
+liegen dicht nebeneinander, sodass sie beim Herauszoomen wieder wie eine Linie
+wirken. Jede Beschriftung steht auf der Seite ihres eigenen Pfeils, damit
+eindeutig ist, welche Bezeichnung in welche Richtung gilt.
+
+Umzusetzen wäre das als Versatz senkrecht zur Verbindungslinie: beide Pfeile
+um denselben kleinen Betrag in entgegengesetzte Richtungen verschieben, die
+Beschriftung jeweils auf der Außenseite. Die Pfeilspitze zeigt die Richtung
+ohnehin schon an.
+
+Offen bleibt der Fall vieler Kanten insgesamt: dafür gibt es die Notbremse
+`LABEL_LIMIT`, die ab zwanzig Kanten nur noch die Beschriftungen rund um den
+Knoten unter der Maus zeigt. Ob sie nach dieser Änderung noch gebraucht wird,
+zeigt sich erst in der Benutzung.
 
 ### Graph: laufende Simulation beim Ziehen
 
