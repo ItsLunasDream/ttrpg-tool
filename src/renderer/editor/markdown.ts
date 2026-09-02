@@ -1,4 +1,4 @@
-import { marked } from 'marked';
+import { Marked, marked } from 'marked';
 import TurndownService from 'turndown';
 import { maskWikiLinks, wikiLinkText } from '../../shared/wikilinks';
 
@@ -27,7 +27,11 @@ const escapeText = turndown.escape.bind(turndown);
 
 turndown.escape = (text: string) => {
   const { masked, restore } = maskWikiLinks(text);
-  return restore(escapeText(masked));
+  // Turndown maskiert die spitze Klammer nicht. Steht sie im Text, waere sie
+  // in der Datei wieder HTML, und beim naechsten Laden wuerde der Editor das
+  // Element samt Inhalt verwerfen: der Verlust waere nur aufgeschoben.
+  // Bilder mit Breite gehen nicht hier durch, die haben eine eigene Regel.
+  return restore(escapeText(masked).replace(/<(?=[A-Za-z/!?])/g, '\\<'));
 };
 
 /**
@@ -156,6 +160,18 @@ turndown.addRule('imageWithWidth', {
 marked.setOptions({ gfm: true, breaks: false });
 
 /**
+ * Zweiter Leser fuer eingefuegten Text: er gibt rohes HTML als Text aus,
+ * statt es durchzureichen.
+ */
+const plainMarked = new Marked({ gfm: true, breaks: false });
+plainMarked.use({
+  renderer: {
+    html: (token: string | { raw?: string; text?: string }) =>
+      escapeHtml(typeof token === 'string' ? token : token.raw ?? token.text ?? '')
+  }
+});
+
+/**
  * Bildverweise stehen im Markdown relativ als assets/x.png. Das haelt die
  * Dateien portabel, etwa fuer Obsidian. Zum Anzeigen im Editor muessen sie in
  * eine ladbare URL uebersetzt werden, beim Speichern wieder zurueck.
@@ -166,6 +182,22 @@ const ASSET_MARKDOWN = /(!\[[^\]]*\]\()(assets\/[^)\s]+)(\))/g;
 const ASSET_HTML = /(<img[^>]*\ssrc=")(assets\/[^"]+)(")/g;
 
 export function markdownToHtml(markdown: string, resolveAsset?: AssetResolver): string {
+  return toHtml(markdown, resolveAsset, (text) => marked.parse(text, { async: false }) as string);
+}
+
+/**
+ * Wie `markdownToHtml`, aber rohes HTML im Text bleibt Text.
+ *
+ * Fuer Eingefuegtes aus der Zwischenablage: was dort steht, hat niemand als
+ * HTML gemeint, und der Editor wuerde ein unbekanntes Element samt Inhalt
+ * verwerfen. In den eigenen Dateien ist inline-HTML dagegen erlaubt, dort
+ * steht die Breite eines Bildes so.
+ */
+export function pastedMarkdownToHtml(markdown: string, resolveAsset?: AssetResolver): string {
+  return toHtml(markdown, resolveAsset, (text) => plainMarked.parse(text, { async: false }) as string);
+}
+
+function toHtml(markdown: string, resolveAsset: AssetResolver | undefined, parse: (text: string) => string): string {
   const replace = (text: string, pattern: RegExp) =>
     text.replace(pattern, (_whole, prefix: string, target: string, suffix: string) =>
       `${prefix}${resolveAsset!(target)}${suffix}`
@@ -181,9 +213,7 @@ export function markdownToHtml(markdown: string, resolveAsset?: AssetResolver): 
   // Beim Zuruecksetzen faellt die Maskierung des Senkrechtstrichs weg: in
   // einer Tabellenzelle muss sie in der Datei stehen, im Dokument gehoert
   // dort der blosse Strich hin. Beim Speichern wird sie neu gesetzt.
-  return restore(marked.parse(masked, { async: false }) as string, (link) =>
-    escapeHtml(link.replace(/\\\|/g, '|'))
-  );
+  return restore(parse(masked), (link) => escapeHtml(link.replace(/\\\|/g, '|')));
 }
 
 /**

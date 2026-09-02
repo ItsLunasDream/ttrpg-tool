@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, layoutGraph, buildGraphEdges, buildGraphNodes, mergeNoteTypes, countMergeChanges} = entry;
+const {pastedMarkdownToHtml, findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, layoutGraph, buildGraphEdges, buildGraphNodes, mergeNoteTypes, countMergeChanges} = entry;
 
 /** Baut einen Index mit den Standardtypen. */
 function makeIndex(notes) {
@@ -861,4 +861,30 @@ test('Ein Wiki-Link direkt hinter einem Verweis bleibt ein Link', () => {
   const quelle = 'Siehe [Karte](https://example.org)[[Der *Turm*]] dazu.';
   const back = htmlToMarkdown(markdownToHtml(quelle));
   assert.deepEqual(findWikiLinks(back).map((link) => link.target), ['Der *Turm*'], back);
+});
+
+test('Eingefuegter Text: Markdown gilt, rohes HTML bleibt Text', () => {
+  assert.match(pastedMarkdownToHtml('**fett**'), /<strong>fett<\/strong>/);
+  assert.match(pastedMarkdownToHtml('> Zitat'), /<blockquote>/);
+  assert.match(pastedMarkdownToHtml('| a | b |\n| --- | --- |\n| 1 | 2 |'), /<table>/);
+
+  // Ein unbekanntes Element wuerde der Editor samt Inhalt verwerfen.
+  const html = pastedMarkdownToHtml('Ein <div>Kasten</div> hier.');
+  assert.ok(!html.includes('<div>'), html);
+  assert.match(html, /&lt;div&gt;Kasten&lt;\/div&gt;/);
+});
+
+test('Eingefuegter Text: Sonderzeichen werden nicht doppelt maskiert', () => {
+  assert.match(pastedMarkdownToHtml('`a & b`'), /<code>a &amp; b<\/code>/);
+  assert.match(pastedMarkdownToHtml('![B](assets/x.png "T")'), /<img[^>]+src="assets\/x\.png"/);
+});
+
+test('Spitze Klammern im Text ueberleben das Speichern als Text', () => {
+  // Eingefuegt bleibt <div> Text. Ohne Maskierung stuende es roh in der
+  // Datei, und der naechste Ladevorgang machte daraus wieder HTML, das der
+  // Editor verwirft: der Verlust waere nur aufgeschoben.
+  const md = htmlToMarkdown(pastedMarkdownToHtml('Ein <div>Kasten</div> hier.'));
+  const wieder = htmlToMarkdown(markdownToHtml(md));
+  assert.equal(wieder, md);
+  assert.ok(wieder.includes('Kasten'), wieder);
 });

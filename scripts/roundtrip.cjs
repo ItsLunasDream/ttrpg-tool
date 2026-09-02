@@ -49,6 +49,13 @@ const PROBEN = [
   { name: 'Blosse Adresse', text: 'Siehe https://example.org heute.' },
   { name: 'Blosse E-Mail-Adresse', text: 'Schreib an mira@example.org bitte.' },
   {
+    name: 'Spitze Klammer im Text',
+    text: 'Ein \\<div\\>Kasten\\</div\\> als Text.',
+    // Nur die oeffnende Klammer braucht die Maskierung, die schliessende
+    // beginnt kein Element.
+    erwartet: 'Ein \\<div>Kasten\\</div> als Text.'
+  },
+  {
     name: 'Wiki-Link mit Sonderzeichen im Titel',
     text: 'Sie wohnt in [[Haus_am_See]], [[Der *Turm*]] und [[Ort #1]].'
   },
