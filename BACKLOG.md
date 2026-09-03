@@ -23,28 +23,6 @@ teilen, sonst steht in der einen etwas anderes als in der anderen. Der Verlauf
 liegt bisher als lokaler Zustand in `AssistantPanel.tsx` und müsste dafür eine
 Ebene höher wandern.
 
-### Graph: Beziehungstexte nebeneinander statt übereinander
-
-Beide Richtungen zwischen zwei Knoten zeichnen ihre Beschriftung auf denselben
-Punkt, die Mitte der Kante (`GraphView.tsx`, die Kanten-Beschriftung). Deshalb
-stehen sie ineinander, und das schon bei zwei Notizen, nicht erst bei vielen.
-
-Gewünschte Lösung: Gibt es zwischen zwei Knoten zwei verschiedene
-Beziehungsbeschreibungen, werden zwei Pfeile gezeichnet statt einem. Sie
-liegen dicht nebeneinander, sodass sie beim Herauszoomen wieder wie eine Linie
-wirken. Jede Beschriftung steht auf der Seite ihres eigenen Pfeils, damit
-eindeutig ist, welche Bezeichnung in welche Richtung gilt.
-
-Umzusetzen wäre das als Versatz senkrecht zur Verbindungslinie: beide Pfeile
-um denselben kleinen Betrag in entgegengesetzte Richtungen verschieben, die
-Beschriftung jeweils auf der Außenseite. Die Pfeilspitze zeigt die Richtung
-ohnehin schon an.
-
-Offen bleibt der Fall vieler Kanten insgesamt: dafür gibt es die Notbremse
-`LABEL_LIMIT`, die ab zwanzig Kanten nur noch die Beschriftungen rund um den
-Knoten unter der Maus zeigt. Ob sie nach dieser Änderung noch gebraucht wird,
-zeigt sich erst in der Benutzung.
-
 ### Graph: laufende Simulation beim Ziehen
 
 Die Anordnung wird einmal berechnet. Zieht man einen Knoten, folgen die
@@ -137,6 +115,22 @@ Kopfzeile.
 Die beiden Knöpfe „MD" und „PDF" in der Kopfzeile des Editors liegen unter
 einem gemeinsamen „Export". Im Kampagnen-Menü standen die drei Exporte schon
 beieinander und bleiben, wo sie sind.
+
+### Graph: Beziehungstexte nebeneinander
+
+Beide Richtungen zwischen zwei Knoten zeichneten Linie und Beschriftung auf
+denselben Punkt. Deshalb standen die Texte ineinander, schon bei zwei Notizen.
+
+Gibt es die Gegenrichtung, werden beide Linien jetzt um denselben kleinen
+Betrag zur Seite versetzt, jede in ihre eigene Richtung. Die Beschriftung
+liegt außen an ihrer eigenen Linie, damit eindeutig ist, welche Bezeichnung
+wohin gilt. Der Versatz ist klein genug, dass beim Herauszoomen wieder eine
+Linie daraus wird.
+
+Die Notbremse `LABEL_LIMIT` bleibt: bei mehr als zwanzig Kanten erscheinen
+weiterhin nur die Beschriftungen rund um den Knoten unter der Maus. Der
+Versatz löst das Aufeinanderliegen zweier Richtungen, nicht das Gedränge in
+einem dichten Netz.
 
 ### Graph: verschobene Knoten behalten ihre Stelle
 

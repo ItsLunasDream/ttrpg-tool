@@ -26,6 +26,16 @@ const HEIGHT = 780;
  */
 const LABEL_LIMIT = 20;
 
+/**
+ * Abstand der beiden Linien, wenn zwischen zwei Knoten in beide Richtungen
+ * eine Verbindung besteht. Bewusst klein: beim Herauszoomen sollen sie wieder
+ * wie eine Linie wirken.
+ */
+const EDGE_GAP = 5;
+
+/** Wie weit die Beschriftung ueber ihre eigene Linie hinaus nach aussen rueckt. */
+const LABEL_SIDE = 2.4;
+
 /** Feste Farbreihe, damit Notiztypen wiedererkennbar bleiben. */
 const TYPE_COLORS = ['#c4a35a', '#8ec3e0', '#a3c48b', '#d98a7c', '#b39ddb', '#7fb3a8'];
 
@@ -102,6 +112,20 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
     },
     [index.types]
   );
+
+  /**
+   * Kanten, zu denen es eine Gegenrichtung gibt. Die beiden werden dann
+   * versetzt gezeichnet, sonst liegen Linie und Beschriftung uebereinander
+   * und es waere nicht zu erkennen, welche Bezeichnung wohin gilt.
+   */
+  const twoWay = useMemo(() => {
+    const keys = new Set(edges.map((edge) => `${edge.kind}:${edge.source}:${edge.target}`));
+    return new Set(
+      edges
+        .filter((edge) => keys.has(`${edge.kind}:${edge.target}:${edge.source}`))
+        .map((edge) => `${edge.kind}:${edge.source}:${edge.target}`)
+    );
+  }, [edges]);
 
   /** Nachbarn des Knotens unter der Maus, fuer das Hervorheben. */
   const neighbours = useMemo(() => {
@@ -279,20 +303,33 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
           const radius = 8 + Math.min(10, target.degree);
           const angle = Math.atan2(target.y - source.y, target.x - source.x);
 
+          // Zur Seite versetzen, wenn es die Gegenrichtung auch gibt. Die
+          // Senkrechte zur eigenen Richtung zeigt bei beiden Kanten
+          // auseinander, jede landet also auf ihrer Seite. Der Betrag ist
+          // klein, damit beim Herauszoomen wieder eine Linie daraus wird.
+          const apart = twoWay.has(`${edge.kind}:${edge.source}:${edge.target}`);
+          const sideX = apart ? -Math.sin(angle) * EDGE_GAP : 0;
+          const sideY = apart ? Math.cos(angle) * EDGE_GAP : 0;
+
           return (
             <g
               key={`${edge.kind}-${edge.source}-${edge.target}`}
               className={`graph__edge graph__edge--${edge.kind}${dimmed ? ' is-dimmed' : ''}`}
             >
               <line
-                x1={source.x}
-                y1={source.y}
-                x2={target.x - Math.cos(angle) * radius}
-                y2={target.y - Math.sin(angle) * radius}
+                x1={source.x + sideX}
+                y1={source.y + sideY}
+                x2={target.x - Math.cos(angle) * radius + sideX}
+                y2={target.y - Math.sin(angle) * radius + sideY}
                 markerEnd="url(#arrow)"
               />
               {edge.label && !dimmed && showLabels ? (
-                <text x={(source.x + target.x) / 2} y={(source.y + target.y) / 2 - 4}>
+                // Die Beschriftung liegt aussen an ihrer eigenen Linie, damit
+                // eindeutig ist, zu welcher Richtung sie gehoert.
+                <text
+                  x={(source.x + target.x) / 2 + sideX * LABEL_SIDE}
+                  y={(source.y + target.y) / 2 + sideY * LABEL_SIDE - (apart ? 0 : 4)}
+                >
                   {edge.label}
                 </text>
               ) : null}

@@ -206,6 +206,12 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelectorAll('.relation').length === 1;`),
       'Beziehung wurde nicht angelegt');
 
+    // Bezeichnung setzen, sonst traegt die Kante im Graphen spaeter keine.
+    await run(window, `setValue(document.querySelector('.relation__type'), 'Mentorin'); return true;`);
+    await sleep(400);
+    await save(window);
+    await sleep(400);
+
     // Die Gegenrichtung fehlt und muss angeboten werden
     check(await run(window, `return Boolean(document.querySelector('.relation__reverse'));`),
       'Fehlende Gegenrichtung wird nicht angeboten');
@@ -217,6 +223,17 @@ app.whenReady().then(async () => {
     await selectNote(window, 'Toran');
     check(await run(window, `return document.querySelectorAll('.relation').length === 1;`),
       'Gegenrichtung wurde bei Toran nicht angelegt');
+
+    // Der Gegenrichtung eine eigene Bezeichnung geben. Im Graphen muessen
+    // beide danach nebeneinander lesbar sein.
+    await run(window, `setValue(document.querySelector('.relation__type'), 'Schuldner'); return true;`);
+    await sleep(400);
+    await save(window);
+    await sleep(600);
+    check(
+      await run(window, `return document.querySelector('.relation__type').value === 'Schuldner';`),
+      'Die Bezeichnung der Gegenrichtung wurde nicht übernommen'
+    );
     await selectNote(window, 'Mira Falkenhand');
     // Jetzt gibt es keine freie Notiz mehr, statt leerer Liste muss ein Hinweis stehen
     check(await run(window, `return document.querySelector('.relations__add') === null;`),
@@ -839,6 +856,33 @@ app.whenReady().then(async () => {
     await sleep(500);
     check(await run(window, `return document.querySelector('.graph__canvas').getAttribute('viewBox') === '0 0 1200 780';`),
       'Zurücksetzen der Ansicht wirkt nicht');
+
+    // 17a. Zwei Richtungen zwischen denselben Knoten liegen nebeneinander
+    {
+      const linien = await run(
+        window,
+        `const paare = new Map();
+         for (const g of document.querySelectorAll('.graph__edge--relation')) {
+           const line = g.querySelector('line');
+           const punkte = [line.getAttribute('x1'), line.getAttribute('y1'), line.getAttribute('x2'), line.getAttribute('y2')];
+           paare.set(punkte.join(','), (paare.get(punkte.join(',')) ?? 0) + 1);
+         }
+         return [...paare.keys()];`
+      );
+      check(linien.length >= 2, `Zu wenige Beziehungslinien im Graph: ${linien.length}`);
+      check(new Set(linien).size === linien.length, 'Hin- und Rückrichtung liegen auf derselben Linie');
+
+      const beschriftungen = await run(
+        window,
+        `return [...document.querySelectorAll('.graph__edge--relation text')]
+           .map((t) => t.getAttribute('x') + ',' + t.getAttribute('y'));`
+      );
+      check(beschriftungen.length >= 2, `Zu wenige Beziehungstexte im Graph: ${JSON.stringify(beschriftungen)}`);
+      check(
+        new Set(beschriftungen).size === beschriftungen.length,
+        `Die Beziehungstexte stehen aufeinander: ${JSON.stringify(beschriftungen)}`
+      );
+    }
 
     // 17b. Ein verschobener Knoten bleibt an seiner Stelle
     const gezogen = await run(
