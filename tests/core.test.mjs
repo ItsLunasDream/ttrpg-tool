@@ -973,3 +973,31 @@ test('Freie Knoten legen sich nicht auf einen festgehaltenen', () => {
     }
   }
 });
+
+test('Knoten bleiben auch bei vielen Notizen weit genug auseinander', () => {
+  // Ein Knoten wird mit bis zu 18 Punkten Radius gezeichnet. Kommen zwei
+  // sich naeher als das Doppelte, ueberdecken sie sich.
+  for (const anzahl of [20, 40, 80]) {
+    const ids = Array.from({ length: anzahl }, (_unused, index) => ({ id: `n${index}`, degree: 2 }));
+    const edges = ids.slice(1).map((entry, index) => ({
+      source: ids[index].id,
+      target: entry.id,
+      label: '',
+      kind: 'relation'
+    }));
+
+    for (const fixed of [{}, { n0: { x: 600, y: 390 } }]) {
+      const nodes = layoutGraph(ids, edges, { width: 1200, height: 780, fixed });
+
+      let kleinster = Infinity;
+      for (let a = 0; a < nodes.length; a++) {
+        for (let b = a + 1; b < nodes.length; b++) {
+          kleinster = Math.min(kleinster, Math.hypot(nodes[a].x - nodes[b].x, nodes[a].y - nodes[b].y));
+        }
+      }
+
+      const feste = Object.keys(fixed).length ? 'mit fester Stelle' : 'ohne feste Stelle';
+      assert.ok(kleinster > 18, `${anzahl} Knoten ${feste}: nur ${Math.round(kleinster)} Punkte Abstand`);
+    }
+  }
+});

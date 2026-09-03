@@ -806,10 +806,11 @@ test('Knotenstellen werden in der Kampagne gespeichert', async () => {
   await withVault(async (vault) => {
     const campaign = await vault.createCampaign('Sturmkueste');
     assert.deepEqual(campaign.graphPositions, {});
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
 
-    const gespeichert = await vault.saveGraphPositions(campaign.id, { a: { x: 10, y: 20 } });
-    assert.deepEqual(gespeichert.graphPositions, { a: { x: 10, y: 20 } });
-    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { a: { x: 10, y: 20 } });
+    const gespeichert = await vault.saveGraphPositions(campaign.id, { [mira.id]: { x: 10, y: 20 } });
+    assert.deepEqual(gespeichert.graphPositions, { [mira.id]: { x: 10, y: 20 } });
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { [mira.id]: { x: 10, y: 20 } });
 
     // Ein leeres Objekt wirft sie weg, das macht "Neu anordnen".
     await vault.saveGraphPositions(campaign.id, {});
@@ -820,28 +821,29 @@ test('Knotenstellen werden in der Kampagne gespeichert', async () => {
 test('Kaputte Knotenstellen werden verworfen statt uebernommen', async () => {
   await withVault(async (vault, root) => {
     const campaign = await vault.createCampaign('Sturmkueste');
+    const gut = (await vault.createNote(campaign.id, 'character', 'Mira')).id;
     const file = path.join(root, 'campaigns', campaign.id, 'campaign.json');
 
     // So koennte es aussehen, wenn jemand die Datei von Hand bearbeitet.
     const raw = JSON.parse(await readFile(file, 'utf8'));
     raw.graphPositions = {
-      gut: { x: 1, y: 2 },
+      [gut]: { x: 1, y: 2 },
       ohneY: { x: 3 },
       text: { x: 'links', y: 2 },
       nichts: null
     };
     await writeFile(file, JSON.stringify(raw));
 
-    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { gut: { x: 1, y: 2 } });
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { [gut]: { x: 1, y: 2 } });
 
     // Aus der Oberflaeche koennen auch unendliche Werte kommen, die JSON
     // nicht kennt. Ein Knoten im Nirgendwo waere nicht mehr zu fassen.
     const gespeichert = await vault.saveGraphPositions(campaign.id, {
-      gut: { x: 5, y: 6 },
+      [gut]: { x: 5, y: 6 },
       unendlich: { x: Infinity, y: 0 },
       keineZahl: { x: NaN, y: 1 }
     });
-    assert.deepEqual(gespeichert.graphPositions, { gut: { x: 5, y: 6 } });
+    assert.deepEqual(gespeichert.graphPositions, { [gut]: { x: 5, y: 6 } });
   });
 });
 
@@ -860,12 +862,16 @@ test('Loeschen raeumt auch die Stelle im Graphen', async () => {
 test('Gleichzeitige Schreibvorgaenge bleiben in der Reihenfolge', async () => {
   await withVault(async (vault, root) => {
     const campaign = await vault.createCampaign('Sturmkueste');
+    const ids = [];
+    for (let index = 0; index < 8; index++) {
+      ids.push((await vault.createNote(campaign.id, 'character', `Figur ${index}`)).id);
+    }
 
     // So kommt es vor, wenn im Graphen mehrere Knoten kurz nacheinander
     // abgelegt werden: die Oberflaeche schickt jedes Mal die ganze Liste,
     // aber die Aufrufe ueberlappen sich.
     const stapel = Array.from({ length: 8 }, (_unused, index) =>
-      Object.fromEntries(Array.from({ length: index + 1 }, (_leer, key) => [`n${key}`, { x: key, y: key }]))
+      Object.fromEntries(Array.from({ length: index + 1 }, (_leer, key) => [ids[key], { x: key, y: key }]))
     );
     await Promise.all(stapel.map((positions) => vault.saveGraphPositions(campaign.id, positions)));
 
@@ -901,5 +907,25 @@ test('Loeschen kommt einer gleichzeitigen Ablage nicht dazwischen', async () => 
 
     const stellen = (await vault.getCampaign(campaign.id)).graphPositions;
     assert.deepEqual(stellen[toran.id], { x: 9, y: 9 });
+  });
+});
+
+test('Eine geloeschte Notiz kann ihre Stelle nicht zurueckbekommen', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+
+    await vault.deleteNote(campaign.id, mira.id);
+
+    // Die Oberflaeche schickt beim Ablegen die ganze Liste. Kennt sie das
+    // Loeschen noch nicht, ist Mira darin. Ohne Filter wuechse die Liste mit
+    // jeder geloeschten Notiz weiter.
+    await vault.saveGraphPositions(campaign.id, {
+      [mira.id]: { x: 1, y: 1 },
+      [toran.id]: { x: 2, y: 2 }
+    });
+
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { [toran.id]: { x: 2, y: 2 } });
   });
 });

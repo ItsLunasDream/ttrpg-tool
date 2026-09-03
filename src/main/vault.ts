@@ -310,7 +310,16 @@ export class Vault {
   async saveGraphPositions(campaignId: string, positions: Record<string, GraphPosition>): Promise<Campaign> {
     return this.inOrder(campaignId, async () => {
       const campaign = await this.readCampaign(campaignId);
-      const updated: Campaign = { ...campaign, graphPositions: normalizeGraphPositions(positions) };
+
+      // Nur Stellen zu Notizen, die es noch gibt. Die Oberflaeche schickt die
+      // ganze Liste; kennt sie eine geloeschte Notiz noch, brachte sie deren
+      // Stelle sonst zurueck und die Liste wuechse immer weiter.
+      const known = new Set((await this.listNotes(campaignId)).map((note) => note.id));
+      const kept = Object.fromEntries(
+        Object.entries(normalizeGraphPositions(positions)).filter(([noteId]) => known.has(noteId))
+      );
+
+      const updated: Campaign = { ...campaign, graphPositions: kept };
       await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
       return updated;
     });
