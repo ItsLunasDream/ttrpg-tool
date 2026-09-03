@@ -11,7 +11,6 @@ import { TokenInput } from './TokenInput';
 import { ImageField } from './ImageField';
 import { Menu } from './Menu';
 import { AssistantPanel, type AiStatus } from './AssistantPanel';
-import type { AiMessage, AiTask } from '../../main/ai/provider';
 import { useT } from '../i18n';
 
 interface Props {
@@ -29,12 +28,6 @@ interface Props {
   onReport: (text: string) => void;
   onAddReverseRelation: (targetId: string) => void;
   aiStatus: AiStatus | null;
-  onAsk: (
-    task: AiTask,
-    history: AiMessage[],
-    followUp: string,
-    onChunk: (text: string) => void
-  ) => Promise<string | null>;
   onExportMarkdown: () => void;
   onExportPdf: () => void;
   onOpenNote: (noteId: string) => void;
@@ -245,14 +238,8 @@ export function NoteEditor(props: Props) {
             onAddReverse={props.onAddReverseRelation}
           />
 
-          {/*
-            Der Schluessel setzt das Gespraech beim Notizwechsel zurueck.
-            Als Kontext geht immer die offene Notiz mit; ein Verlauf ueber
-            eine andere Notiz haette das Modell in die Irre gefuehrt, und
-            auf dem Schirm stuenden Antworten zu einer Notiz, die gar
-            nicht mehr offen ist.
-          */}
-          <AssistantPanel key={note.id} status={props.aiStatus} onAsk={props.onAsk} />
+          {/* Zurueckgesetzt wird das Gespraech im AssistantProvider. */}
+          <AssistantPanel status={props.aiStatus} />
 
           <BacklinksPanel
             backlinks={backlinks}

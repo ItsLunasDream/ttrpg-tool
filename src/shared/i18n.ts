@@ -309,8 +309,10 @@ const de = {
   'export.pdfNote': 'Notiz als PDF',
   'export.pdfCampaign': 'Kampagne als PDF',
 
-  'prompts.title': 'Schreibhilfe',
+  'prompts.title': 'Schreibhilfe und KI',
   'prompts.open': 'Schreibhilfe',
+  'prompts.tabPrompts': 'Vorschläge (ohne KI)',
+  'prompts.tabAi': 'KI-Assistent',
   'prompts.roll': 'Neu würfeln',
   'prompts.insert': 'In den Text übernehmen',
   'prompts.all': 'Alle Vorschläge',
@@ -679,7 +681,9 @@ const en: Partial<Record<MessageKey, string>> = {
   'export.pdfNote': 'Note as PDF',
   'export.pdfCampaign': 'Campaign as PDF',
 
-  'prompts.title': 'Writing prompts',
+  'prompts.title': 'Writing prompts and AI',
+  'prompts.tabPrompts': 'Suggestions (no AI)',
+  'prompts.tabAi': 'AI assistant',
   'prompts.open': 'Prompts',
   'prompts.roll': 'Roll again',
   'prompts.insert': 'Insert into the text',

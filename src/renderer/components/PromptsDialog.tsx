@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PromptCategory } from '../../shared/writingPrompts';
 import { useT } from '../i18n';
 import { Modal } from './Modal';
+import { AssistantThread, type AiStatus } from './AssistantThread';
 
 interface Props {
   categories: PromptCategory[] | null;
+  aiStatus: AiStatus | null;
   onInsert: (text: string) => void;
   onEditFile: () => void;
   onClose: () => void;
@@ -25,8 +27,9 @@ function pickRandom(options: string[], count: number): string[] {
  * Startpunkte fuers Schreiben, ohne KI. Oben eine kleine Auswahl per Zufall,
  * darunter die vollstaendige Liste zum Stoebern.
  */
-export function PromptsDialog({ categories, onInsert, onEditFile, onClose }: Props) {
+export function PromptsDialog({ categories, aiStatus, onInsert, onEditFile, onClose }: Props) {
   const t = useT();
+  const [tab, setTab] = useState<'prompts' | 'ai'>('prompts');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [rolled, setRolled] = useState<string[]>([]);
 
@@ -50,16 +53,39 @@ export function PromptsDialog({ categories, onInsert, onEditFile, onClose }: Pro
       onClose={onClose}
       footer={
         <>
-          <button type="button" onClick={onEditFile}>
-            {t('prompts.editFile')}
-          </button>
+          {tab === 'prompts' ? (
+            <button type="button" onClick={onEditFile}>
+              {t('prompts.editFile')}
+            </button>
+          ) : null}
           <button type="button" onClick={onClose}>
             {t('dialog.close')}
           </button>
         </>
       }
     >
-      {categories === null ? (
+      {/*
+        Die Vorschlaege kommen ohne KI aus, der Assistent fragt ein Modell.
+        Der Unterschied muss auf einen Blick zu sehen sein, deshalb stehen
+        beide Male ausgeschrieben in der Beschriftung.
+      */}
+      <div className="prompts__tabs">
+        {(['prompts', 'ai'] as const).map((entry) => (
+          <button
+            key={entry}
+            type="button"
+            className={tab === entry ? 'is-active' : undefined}
+            onClick={() => setTab(entry)}
+          >
+            {t(entry === 'prompts' ? 'prompts.tabPrompts' : 'prompts.tabAi')}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'ai' ? <AssistantThread status={aiStatus} variant="chat" /> : null}
+
+      {tab === 'prompts' ? (
+        categories === null ? (
         <p className="panel__empty">{t('app.loading')}</p>
       ) : categories.length === 0 ? (
         <p className="panel__empty">{t('prompts.empty')}</p>
@@ -107,9 +133,10 @@ export function PromptsDialog({ categories, onInsert, onEditFile, onClose }: Pro
             </ul>
           </div>
         </div>
-      )}
+        )
+      ) : null}
 
-      <p className="modal__hint">{t('prompts.hint')}</p>
+      {tab === 'prompts' ? <p className="modal__hint">{t('prompts.hint')}</p> : null}
     </Modal>
   );
 }

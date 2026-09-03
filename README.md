@@ -128,6 +128,9 @@ Text, aus einer eingefügten Tabelle eine Tabelle. Wer aus dem Editor selbst
 oder aus einem Browser kopiert, bringt die Formatierung ohnehin schon mit; nur
 reiner Text geht durch den Markdown-Leser.
 
+**Der KI-Assistent** steht in der Sidebar und, mit mehr Platz, im Dialog
+„Schreibhilfe und KI" unter dem zweiten Reiter. Beide zeigen dasselbe Gespräch.
+
 **Im Graphen** verschobene Knoten bleiben, wo man sie hinlegt. Die Stellen
 stehen in `campaign.json`; „Neu anordnen" verwirft sie wieder.
 
