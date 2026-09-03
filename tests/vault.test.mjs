@@ -952,3 +952,27 @@ test('Eine Notiz mit kaputtem Kopf behaelt ihre Stelle im Graphen', async () => 
     });
   });
 });
+
+test('Ein Lesefehler loescht nicht alle Knotenstellen', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    await vault.saveGraphPositions(campaign.id, { [mira.id]: { x: 1, y: 1 } });
+
+    // Der Notizordner laesst sich nicht auflisten. Wuerde das als "keine
+    // Notizen" durchgehen, waeren alle gemerkten Stellen weg.
+    const notesDir = path.join(root, 'campaigns', campaign.id, 'notes');
+    const beiseite = `${notesDir}-beiseite`;
+    await rename(notesDir, beiseite);
+    await writeFile(notesDir, 'kein Ordner');
+
+    try {
+      await assert.rejects(() => vault.saveGraphPositions(campaign.id, { [mira.id]: { x: 5, y: 5 } }));
+    } finally {
+      await fs.rm(notesDir);
+      await rename(beiseite, notesDir);
+    }
+
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { [mira.id]: { x: 1, y: 1 } });
+  });
+});
