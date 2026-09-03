@@ -935,14 +935,60 @@ app.whenReady().then(async () => {
       );
     }
 
-    // Neu anordnen wirft sie wieder weg
+    // Zwei Zuege unmittelbar hintereinander: der zweite darf den ersten nicht
+    // ueberschreiben, obwohl das Gespeicherte noch nicht zurueck ist.
+    await run(
+      window,
+      `const svg = document.querySelector('.graph__canvas');
+       const rect = svg.getBoundingClientRect();
+       const at = (x, y) => ({ clientX: rect.left + x, clientY: rect.top + y, bubbles: true });
+       const knoten = [...document.querySelectorAll('.graph__node')];
+
+       for (const [i, node] of [knoten[1], knoten[2]].entries()) {
+         node.dispatchEvent(new MouseEvent('mousedown', at(150, 150)));
+         svg.dispatchEvent(new MouseEvent('mousemove', at(400 + i * 60, 300 + i * 60)));
+         svg.dispatchEvent(new MouseEvent('mouseup', at(400 + i * 60, 300 + i * 60)));
+       }
+       return true;`
+    );
+    await sleep(1500);
+    {
+      const kampagne = JSON.parse(fs.readFileSync(kampagnenDatei, 'utf8'));
+      check(
+        Object.keys(kampagne.graphPositions ?? {}).length === 3,
+        `Drei Züge ergeben nicht drei Stellen: ${JSON.stringify(kampagne.graphPositions)}`
+      );
+    }
+
+    // Neu anordnen wirft sie wieder weg, und zwar beim ersten Druck. Geprueft
+    // wird der zuerst gezogene Knoten: die uebrigen ordnen sich ohnehin neu.
+    const stelleVon = (id) =>
+      run(
+        window,
+        `const node = document.querySelector('.graph__node[data-id=' + JSON.stringify(${JSON.stringify(id)}) + ']');
+         return node ? node.getAttribute('transform') : null;`
+      );
+
+    // Die abgelegte Stelle als Vergleich: danach darf der Knoten nicht mehr
+    // genau dort stehen.
+    const abgelegt = JSON.parse(fs.readFileSync(kampagnenDatei, 'utf8')).graphPositions[gezogen];
+    const vorNeu = await stelleVon(gezogen);
+    check(
+      vorNeu === `translate(${abgelegt.x} ${abgelegt.y})`,
+      `Der gezogene Knoten steht nicht an seiner gespeicherten Stelle: ${vorNeu}`
+    );
+
     await clickButton(window, 'Neu anordnen', "document.querySelector('.graph__bar')");
-    await sleep(1200);
+    await sleep(1500);
     {
       const kampagne = JSON.parse(fs.readFileSync(kampagnenDatei, 'utf8'));
       check(
         Object.keys(kampagne.graphPositions ?? {}).length === 0,
         'Neu anordnen hat die verschobenen Stellen nicht verworfen'
+      );
+      check(
+        (await stelleVon(gezogen)) !== vorNeu,
+        'Neu anordnen lässt den gezogenen Knoten beim ersten Druck an seiner Stelle'
       );
     }
 
