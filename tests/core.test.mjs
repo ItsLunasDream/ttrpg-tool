@@ -1001,3 +1001,28 @@ test('Knoten bleiben auch bei vielen Notizen weit genug auseinander', () => {
     }
   }
 });
+
+test('Auch kleine Netze fuellen die Flaeche noch aus', () => {
+  // Ein zu enger Wunschabstand draengt wenige Knoten in einen Klumpen. Der
+  // Graph saehe dann bei fuenf Notizen aus wie bei fuenfzig.
+  for (const anzahl of [4, 5, 8, 12]) {
+    const ids = Array.from({ length: anzahl }, (_unused, index) => ({ id: `n${index}`, degree: 2 }));
+    const edges = ids.slice(1).map((entry, index) => ({
+      source: ids[index].id,
+      target: entry.id,
+      label: '',
+      kind: 'relation'
+    }));
+
+    const nodes = layoutGraph(ids, edges, {
+      width: 1200,
+      height: 780,
+      fixed: { n0: { x: 600, y: 390 } }
+    });
+
+    const breite = Math.max(...nodes.map((n) => n.x)) - Math.min(...nodes.map((n) => n.x));
+    const hoehe = Math.max(...nodes.map((n) => n.y)) - Math.min(...nodes.map((n) => n.y));
+    assert.ok(breite > 300, `${anzahl} Knoten: nur ${Math.round(breite)} breit`);
+    assert.ok(hoehe > 150, `${anzahl} Knoten: nur ${Math.round(hoehe)} hoch`);
+  }
+});

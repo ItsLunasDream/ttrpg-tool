@@ -314,7 +314,12 @@ export class Vault {
       // Nur Stellen zu Notizen, die es noch gibt. Die Oberflaeche schickt die
       // ganze Liste; kennt sie eine geloeschte Notiz noch, brachte sie deren
       // Stelle sonst zurueck und die Liste wuechse immer weiter.
-      const known = new Set((await this.listNotes(campaignId)).map((note) => note.id));
+      //
+      // Gelesen werden nur die Dateinamen, nicht die Notizen: das Ablegen
+      // eines Knotens soll nicht die ganze Kampagne durchgehen, und eine
+      // Notiz mit kaputtem Kopf gaebe es zwar zu lesen nicht, ihre Stelle
+      // duerfte sie aber trotzdem behalten.
+      const known = await this.noteIds(campaignId);
       const kept = Object.fromEntries(
         Object.entries(normalizeGraphPositions(positions)).filter(([noteId]) => known.has(noteId))
       );
@@ -405,6 +410,20 @@ export class Vault {
    * Kampagne unlesbar macht. Stillschweigend verschwinden duerfen sie aber
    * nicht: sonst faellt der Verlust erst auf, wenn es zu spaet ist.
    */
+  /** Die IDs aller Notizdateien, ohne sie zu lesen. */
+  private async noteIds(campaignId: string): Promise<Set<string>> {
+    const dir = path.join(this.campaignDir(campaignId), NOTES_DIR);
+
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      return new Set(
+        entries.filter((entry) => entry.isFile() && entry.name.endsWith('.md')).map((entry) => entry.name.slice(0, -3))
+      );
+    } catch {
+      return new Set();
+    }
+  }
+
   async findUnreadableNotes(campaignId: string): Promise<UnreadableNote[]> {
     const dir = path.join(this.campaignDir(campaignId), NOTES_DIR);
 
