@@ -929,3 +929,26 @@ test('Eine geloeschte Notiz kann ihre Stelle nicht zurueckbekommen', async () =>
     assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { [toran.id]: { x: 2, y: 2 } });
   });
 });
+
+test('Eine Notiz mit kaputtem Kopf behaelt ihre Stelle im Graphen', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+
+    const notesDir = path.join(root, 'campaigns', campaign.id, 'notes');
+    await writeFile(path.join(notesDir, 'kaputt.md'), '---\nid: [unclosed\n---\n\nText');
+
+    // Die kaputte Datei laesst sich nicht lesen, es gibt sie aber. Ihre
+    // Stelle darf beim naechsten Ablegen nicht verschwinden, sonst waere sie
+    // nach dem Reparieren weg.
+    await vault.saveGraphPositions(campaign.id, {
+      [mira.id]: { x: 1, y: 1 },
+      kaputt: { x: 2, y: 2 }
+    });
+
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, {
+      [mira.id]: { x: 1, y: 1 },
+      kaputt: { x: 2, y: 2 }
+    });
+  });
+});

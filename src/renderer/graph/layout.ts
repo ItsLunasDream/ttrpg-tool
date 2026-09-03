@@ -49,6 +49,45 @@ export function layoutGraph(
   edges: GraphEdge[],
   options: LayoutOptions
 ): GraphNode[] {
+  const hasFixedNodes = ids.some((entry) => options.fixed?.[entry.id]);
+  if (!hasFixedNodes) return arrange(ids, edges, options, 1, false);
+
+  /*
+   * Mit festen Stellen faellt das Einpassen am Ende weg, die Rechnung muss
+   * also selbst in der Flaeche landen. Wie gross sie ausfaellt, haengt an
+   * der Knotenzahl und am Netz; eine feste Zahl passte mal fuer wenige und
+   * mal fuer viele, nie fuer beide.
+   *
+   * Deshalb wird einmal ohne Ruecksicht gerechnet, das Ergebnis gemessen und
+   * mit dem passenden Wunschabstand ein zweites Mal gerechnet. Das kostet
+   * einen zweiten Durchlauf, dafuer stimmt die Groesse in jedem Fall.
+   */
+  // Der Messlauf darf nicht begrenzt werden, sonst faende er immer genau die
+  // Flaeche vor und haette nichts zu messen. Er laeuft ueber die vollen
+  // Runden: mit der Haelfte faellt die gemessene Groesse zu klein aus, weil
+  // sich das Netz bis zuletzt weiter ausdehnt, und die Knoten landeten
+  // wieder am Rand. Der Preis ist der doppelte Rechenaufwand, sobald eine
+  // Stelle gesetzt ist.
+  const draft = arrange(ids, edges, options, 1, false);
+  const spanX = Math.max(...draft.map((node) => node.x)) - Math.min(...draft.map((node) => node.x));
+  const spanY = Math.max(...draft.map((node) => node.y)) - Math.min(...draft.map((node) => node.y));
+
+  const usable = Math.min(
+    spanX > 1 ? (options.width - EDGE_MARGIN * 2) / spanX : 1,
+    spanY > 1 ? (options.height - EDGE_MARGIN * 2) / spanY : 1
+  );
+
+  return arrange(ids, edges, options, Math.min(1, usable), true);
+}
+
+function arrange(
+  ids: { id: string; degree: number }[],
+  edges: GraphEdge[],
+  options: LayoutOptions,
+  spread: number,
+  /** Waehrend der Rechnung in der Flaeche halten. Nur mit festen Stellen. */
+  bounded: boolean
+): GraphNode[] {
   // Jede Runde vergleicht alle Knotenpaare. Bei vielen Notizen waere das mit
   // fester Rundenzahl eine spuerbare Blockade, deshalb sinkt sie mit der
   // Groesse. Das Ergebnis wird gröber, bleibt aber brauchbar.
@@ -75,11 +114,7 @@ export function layoutGraph(
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const linked = edges.filter((edge) => byId.has(edge.source) && byId.has(edge.target));
 
-  // Mit festen Stellen faellt das Einpassen weg, die Rechnung muss also
-  // selbst in der Flaeche landen. Der engere Wunschabstand ist gemessen:
-  // damit liegen die Knoten am Ende aehnlich weit auseinander wie im
-  // eingepassten Fall, statt an den Rand gedraengt zu werden.
-  const idealDistance = Math.sqrt((width * height) / nodes.length) * (hasFixed ? FIXED_SPREAD : 0.7);
+  const idealDistance = Math.sqrt((width * height) / nodes.length) * 0.7 * spread;
   const repulsion = idealDistance * idealDistance;
 
   for (let step = 0; step < iterations; step++) {
@@ -152,7 +187,7 @@ export function layoutGraph(
       // Abstossung wirksam und verteilt sie am Rand entlang. Und die
       // Abstaende zu den festen Knoten bleiben erhalten, was ein
       // nachtraegliches Einpassen der freien Knoten zerstoert haette.
-      if (hasFixed) {
+      if (bounded) {
         node.x = Math.min(width - EDGE_MARGIN, Math.max(EDGE_MARGIN, node.x));
         node.y = Math.min(height - EDGE_MARGIN, Math.max(EDGE_MARGIN, node.y));
       }
@@ -168,8 +203,7 @@ export function layoutGraph(
 /** Abstand zum Rand, damit ein Knoten nicht halb ausserhalb klebt. */
 const EDGE_MARGIN = 40;
 
-/** Wunschabstand mit festen Stellen, siehe Kommentar an der Verwendung. */
-const FIXED_SPREAD = 0.21;
+
 
 
 /**
