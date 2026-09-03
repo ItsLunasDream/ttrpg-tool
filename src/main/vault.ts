@@ -432,15 +432,18 @@ export class Vault {
    * `listNotes` uebergeht sie, damit eine einzelne Datei nicht die ganze
    * Kampagne unlesbar macht. Stillschweigend verschwinden duerfen sie aber
    * nicht: sonst faellt der Verlust erst auf, wenn es zu spaet ist.
+   *
+   * Ein Ordner, der sich nicht lesen laesst, gilt deshalb nicht als "nichts
+   * kaputt". Nur ein fehlender ist harmlos.
    */
-
   async findUnreadableNotes(campaignId: string): Promise<UnreadableNote[]> {
     const dir = path.join(this.campaignDir(campaignId), NOTES_DIR);
 
     let entries;
     try {
       entries = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
       return [];
     }
 
