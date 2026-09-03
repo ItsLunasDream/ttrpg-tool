@@ -145,25 +145,17 @@ export function layoutGraph(
     }
   }
 
-  // Mit festen Stellen darf nicht eingepasst werden: das Skalieren wuerde
-  // genau die Knoten verschieben, die stehen bleiben sollen. Die freien
-  // werden stattdessen in die Flaeche geholt, sonst treiben sie aus dem Bild
-  // und waeren nur noch ueber das Verschieben der Ansicht zu finden.
   if (!hasFixed) return fitToViewport(nodes, width, height);
 
-  return nodes.map((node) =>
-    fixed[node.id]
-      ? node
-      : {
-          ...node,
-          x: Math.min(width - EDGE_MARGIN, Math.max(EDGE_MARGIN, node.x)),
-          y: Math.min(height - EDGE_MARGIN, Math.max(EDGE_MARGIN, node.y))
-        }
-  );
+  // Mit festen Stellen wird nur eingepasst, was frei ist: die gesetzten
+  // Stellen muessen bleiben. Abschneiden waere die einfachere Rechnung,
+  // schoebe aber alle Ausreisser auf denselben Randpunkt, wo sie sich
+  // gegenseitig verdeckten.
+  const free = nodes.filter((node) => !fixed[node.id]);
+  const fitted = new Map(fitToViewport(free, width, height).map((node) => [node.id, node]));
+  return nodes.map((node) => fitted.get(node.id) ?? node);
 }
 
-/** Abstand zum Rand, damit ein Knoten nicht halb ausserhalb klebt. */
-const EDGE_MARGIN = 40;
 
 /**
  * Skaliert und zentriert das Ergebnis so, dass es die Flaeche ausfuellt.

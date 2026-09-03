@@ -295,10 +295,12 @@ export class Vault {
 
   /** Ersetzt die Notiztypen einer Kampagne, nach Pruefung auf Vollstaendigkeit. */
   async updateNoteTypes(campaignId: string, noteTypes: NoteTypeDef[]): Promise<Campaign> {
-    const campaign = await this.readCampaign(campaignId);
-    const updated: Campaign = { ...campaign, noteTypes: validateNoteTypes(noteTypes) };
-    await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
-    return updated;
+    return this.inOrder(campaignId, async () => {
+      const campaign = await this.readCampaign(campaignId);
+      const updated: Campaign = { ...campaign, noteTypes: validateNoteTypes(noteTypes) };
+      await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
+      return updated;
+    });
   }
 
   /**
@@ -306,11 +308,30 @@ export class Vault {
    * wirft sie weg, das macht "Neu anordnen".
    */
   async saveGraphPositions(campaignId: string, positions: Record<string, GraphPosition>): Promise<Campaign> {
-    const campaign = await this.readCampaign(campaignId);
-    const updated: Campaign = { ...campaign, graphPositions: normalizeGraphPositions(positions) };
-    await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
-    return updated;
+    return this.inOrder(campaignId, async () => {
+      const campaign = await this.readCampaign(campaignId);
+      const updated: Campaign = { ...campaign, graphPositions: normalizeGraphPositions(positions) };
+      await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
+      return updated;
+    });
   }
+
+  /**
+   * Reiht Aenderungen an campaign.json hintereinander auf.
+   *
+   * Jede liest den Stand, ergaenzt und schreibt zurueck. Ueberlappen sich
+   * zwei, lesen beide denselben Stand und die zweite schreibt die erste
+   * weg: beim Ablegen mehrerer Knoten kurz nacheinander waere jedes Mal
+   * eine Stelle verloren.
+   */
+  private inOrder<T>(campaignId: string, work: () => Promise<T>): Promise<T> {
+    const queued = (this.pending.get(campaignId) ?? Promise.resolve()).then(work, work);
+    // Fehler duerfen die Reihe nicht abreissen lassen, deshalb abgefangen.
+    this.pending.set(campaignId, queued.then(() => undefined, () => undefined));
+    return queued;
+  }
+
+  private readonly pending = new Map<string, Promise<void>>();
 
   async createCampaign(name: string): Promise<Campaign> {
     const trimmed = name.trim();
