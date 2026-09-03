@@ -945,13 +945,31 @@ test('Auch mit festen Knoten bleibt die Anordnung in der Flaeche', () => {
   const feste = nodes.find((node) => node.id === 'n0');
   assert.deepEqual({ x: feste.x, y: feste.y }, { x: 600, y: 400 });
 
-  // Nicht einfach an den Rand druecken: dort lägen sie uebereinander und
-  // waeren einzeln nicht mehr anzuklicken.
+  // Kein Knoten darf auf einem anderen liegen, sonst ist einer davon nicht
+  // mehr anzuklicken.
   const stellen = nodes.map((node) => `${Math.round(node.x)},${Math.round(node.y)}`);
   assert.equal(new Set(stellen).size, stellen.length, `Knoten liegen aufeinander: ${stellen.join(' ')}`);
+});
 
-  const amRand = nodes.filter(
-    (node) => node.x <= 41 || node.x >= 1159 || node.y <= 41 || node.y >= 739
-  ).length;
-  assert.ok(amRand < nodes.length / 3, `${amRand} von ${nodes.length} kleben am Rand`);
+test('Freie Knoten legen sich nicht auf einen festgehaltenen', () => {
+  // Ein Knoten wird mit hoechstens 18 Punkten Radius gezeichnet. Kommt ein
+  // freier naeher, verdeckt er den festgehaltenen.
+  for (const anzahl of [2, 4, 6, 12]) {
+    const ids = Array.from({ length: anzahl }, (_unused, index) => ({ id: `n${index}`, degree: 2 }));
+    const edges = ids.slice(1).map((entry, index) => ({
+      source: ids[index].id,
+      target: entry.id,
+      label: '',
+      kind: 'relation'
+    }));
+
+    const feste = { n0: { x: 600, y: 390 } };
+    const nodes = layoutGraph(ids, edges, { width: 1200, height: 780, fixed: feste });
+
+    for (const node of nodes) {
+      if (node.id === 'n0') continue;
+      const abstand = Math.hypot(node.x - feste.n0.x, node.y - feste.n0.y);
+      assert.ok(abstand > 40, `${anzahl} Knoten: ${node.id} liegt ${Math.round(abstand)} entfernt`);
+    }
+  }
 });

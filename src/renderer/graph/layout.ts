@@ -142,19 +142,27 @@ export function layoutGraph(
       node.x += (move.x / length) * limited;
       node.y += (move.y / length) * limited;
 
+      // Mit festen Stellen faellt das Einpassen am Ende weg, also muss schon
+      // waehrend der Rechnung begrenzt werden. Erst hinterher zu schneiden
+      // schoebe alle Ausreisser auf denselben Randpunkt; so bleibt die
+      // Abstossung wirksam und verteilt sie am Rand entlang. Und die
+      // Abstaende zu den festen Knoten bleiben erhalten, was ein
+      // nachtraegliches Einpassen der freien Knoten zerstoert haette.
+      if (hasFixed) {
+        node.x = Math.min(width - EDGE_MARGIN, Math.max(EDGE_MARGIN, node.x));
+        node.y = Math.min(height - EDGE_MARGIN, Math.max(EDGE_MARGIN, node.y));
+      }
     }
   }
 
-  if (!hasFixed) return fitToViewport(nodes, width, height);
-
-  // Mit festen Stellen wird nur eingepasst, was frei ist: die gesetzten
-  // Stellen muessen bleiben. Abschneiden waere die einfachere Rechnung,
-  // schoebe aber alle Ausreisser auf denselben Randpunkt, wo sie sich
-  // gegenseitig verdeckten.
-  const free = nodes.filter((node) => !fixed[node.id]);
-  const fitted = new Map(fitToViewport(free, width, height).map((node) => [node.id, node]));
-  return nodes.map((node) => fitted.get(node.id) ?? node);
+  // Mit festen Stellen wurde schon in jeder Runde begrenzt. Nachtraeglich
+  // einzupassen wuerde entweder die gesetzten Stellen verschieben oder die
+  // Abstaende zu ihnen zerstoeren.
+  return hasFixed ? nodes : fitToViewport(nodes, width, height);
 }
+
+/** Abstand zum Rand, damit ein Knoten nicht halb ausserhalb klebt. */
+const EDGE_MARGIN = 40;
 
 
 /**
