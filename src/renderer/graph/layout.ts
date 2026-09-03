@@ -75,7 +75,11 @@ export function layoutGraph(
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const linked = edges.filter((edge) => byId.has(edge.source) && byId.has(edge.target));
 
-  const idealDistance = Math.sqrt((width * height) / nodes.length) * 0.7;
+  // Mit festen Stellen faellt das Einpassen weg, die Rechnung muss also
+  // selbst in der Flaeche landen. Der engere Wunschabstand ist gemessen:
+  // damit liegen die Knoten am Ende aehnlich weit auseinander wie im
+  // eingepassten Fall, statt an den Rand gedraengt zu werden.
+  const idealDistance = Math.sqrt((width * height) / nodes.length) * (hasFixed ? FIXED_SPREAD : 0.7);
   const repulsion = idealDistance * idealDistance;
 
   for (let step = 0; step < iterations; step++) {
@@ -163,6 +167,9 @@ export function layoutGraph(
 
 /** Abstand zum Rand, damit ein Knoten nicht halb ausserhalb klebt. */
 const EDGE_MARGIN = 40;
+
+/** Wunschabstand mit festen Stellen, siehe Kommentar an der Verwendung. */
+const FIXED_SPREAD = 0.21;
 
 
 /**
