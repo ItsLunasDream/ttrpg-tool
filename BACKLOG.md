@@ -5,6 +5,120 @@ eines Abschnitts ist keine Priorisierung.
 
 ## Offene Wünsche
 
+### Graph: laufende Simulation beim Ziehen
+
+Die Anordnung wird einmal berechnet. Zieht man einen Knoten, folgen die
+anderen nicht nach. Eine weiterlaufende Simulation wäre schöner, kostet aber
+Rechenzeit und macht die Ansicht unruhig.
+
+### Weitere Sprachen
+
+Deutsch und Englisch sind umgesetzt. Eine weitere Sprache ist ein Eintrag in
+`LANGUAGES` und ein Wörterbuch in `src/shared/i18n.ts`, sonst nichts. Der Test
+„jeder deutsche Schlüssel hat eine englische Entsprechung" müsste dann auf
+alle Sprachen erweitert werden.
+
+Eine Stelle wäre dann noch zu ändern: die Trefferliste beschriftet Funde in
+Aliasen und Tags mit den festen Wörtern „Alias" und „Tag" (`matchNote` in
+`src/renderer/noteIndex.ts`). In beiden bisherigen Sprachen heißen sie
+zufällig gleich, deshalb fällt es nicht auf.
+
+## Bekannte Grenzen
+
+- Der Dateiname einer Notiz wird zu ihrer ID und darf deshalb nur Buchstaben
+  ohne Umlaute, Ziffern, `-` und `_` enthalten. Wer eine eigene Datei ablegt,
+  muss sie entsprechend benennen; die Notizliste sagt jetzt, dass es daran
+  liegt. Die Beschränkung bleibt, weil aus der ID ein Pfad wird
+- Stehen doppelte eckige Klammern in einer Adresse (`…?a=[[b]]`), zählt das
+  nicht als Wiki-Link, die Adresse wird beim Speichern aber zur
+  ausgeschriebenen Linkschreibweise `[Text](Adresse)`. Sie bleibt dabei heil
+  und ändert sich danach nicht weiter
+- Ein Wiki-Link, der in der Datei über zwei Zeilen umgebrochen ist, gilt nicht
+  als Link. Der Editor bricht nie um, das kann also nur aus einem anderen
+  Programm kommen. Die Beschränkung ist gewollt: ohne sie verschluckt eine
+  offene doppelte Klammer alles bis zur nächsten schließenden
+- Doppelte eckige Klammern in der Adresse eines ausgeschriebenen Verweises
+  werden erkannt und in Ruhe gelassen, außer die Adresse enthält selbst runde
+  Klammern (`[Text](…/Foo_(bar)/[[c]])`). Dann geht die Adresse beim Speichern
+  kaputt. Sehr enger Fall
+- Steht ein Wiki-Link mit maskiertem Senkrechtstrich (`[[Mira\|ihr]]`) in
+  einem Codeblock, verliert er beim Speichern die Maskierung. Die Maskierung
+  gehört in eine Tabellenzelle, und beim Zurücksetzen der Links ist noch nicht
+  bekannt, wo sie stehen. Sehr enger Fall, aber notiert
+- Ein maskierter Senkrechtstrich in einem Code-Ausschnitt (`` `a \| b` ``)
+  erscheint in der Kurzinfo ohne den Backslash. Betrifft nur Vorschau und
+  Wortzahl, nicht die Datei
+- Der Editor vereinheitlicht beim ersten Speichern die Schreibweise des
+  Markdowns: Listen bekommen drei Leerzeichen nach dem Strich und eine
+  Leerzeile zwischen den Punkten, ein `*` oder `_` im Fließtext wird maskiert,
+  ein Codeblock bekommt eine Leerzeile vor dem Schlusszaun. Am Dargestellten
+  ändert das nichts, und ein zweiter Durchlauf ändert nichts mehr; ein Test
+  hält diese Stabilität fest. Wer die Dateien parallel in Obsidian pflegt,
+  sieht die Umstellung aber einmal
+
+- Sobald eine Knotenstelle gesetzt ist, rechnet der Graph zweimal: einmal, um
+  die natürliche Größe zu messen, einmal mit dem daraus abgeleiteten
+  Wunschabstand. Bei 500 Notizen sind das rund 1,3 statt 0,6 Sekunden beim
+  Öffnen. Ein kürzerer Messlauf reicht nicht, das Netz dehnt sich bis zuletzt
+  weiter aus
+- Beim Kampagnenwechsel werden alle Notizen der Kampagne in den Speicher
+  geladen. Für einige hundert Notizen unkritisch, darüber bräuchte es einen
+  Index statt Volllast
+- Umbenennen einer Notiz schreibt alle betroffenen Dateien einzeln. Bricht es
+  mittendrin ab, zeigen einige Links schon auf den neuen Namen, der noch nicht
+  vergeben ist. Der Titel wird zuletzt gesetzt, ein erneutes Umbenennen holt
+  den Rest deshalb nach
+- Bei mehrdeutigen Namen gewinnt beim Verlinken weiterhin die erste Notiz.
+  Immerhin wird jetzt darauf hingewiesen
+- Der Versionsverlauf wächst mit und landet auch in der ZIP-Sicherung. Bei
+  vielen Notizen und hoher Höchstzahl kann das spürbar werden
+- Der PDF-Export bietet keine Auswahl von Schriftart, Rand oder Seitengröße
+- Die Windows-Anwendung ist nicht signiert, Windows zeigt beim ersten Start
+  eine SmartScreen-Warnung. Eine Signatur bräuchte ein kostenpflichtiges
+  Zertifikat
+
+## Erledigt
+
+### Assistent auch in groß, im Schreibhilfe-Dialog
+
+Der Dialog heißt jetzt „Schreibhilfe und KI" und hat zwei Reiter:
+„Vorschläge (ohne KI)" und „KI-Assistent". Beide Male steht ausgeschrieben in
+der Beschriftung, was dahintersteckt: die Vorschläge kommen ohne Modell aus,
+der Assistent fragt eines.
+
+Der KI-Reiter zeigt dasselbe Gespräch wie die Sidebar, nur mit mehr Platz:
+abgesetzte Blasen, größere Schrift, der Verlauf läuft beim Antworten mit.
+
+Das Gespräch liegt dafür in einem Kontext (`src/renderer/assistant.tsx`) statt
+im Zustand der Sidebar. Beide Ansichten holen es von dort, sonst stünde in der
+einen etwas anderes als in der anderen. Beim Notizwechsel fängt es von vorn
+an, weil als Kontext immer die offene Notiz mitgeht; eine noch laufende
+Antwort wird dabei verworfen statt in das neue Gespräch geleitet.
+
+### Eingefügtes Markdown wird ausgewertet
+
+Auf Wunsch umgesetzt: eingefügter reiner Text läuft durch den Markdown-Leser,
+aus `**fett**` wird also fetter Text. Text mit eigener Formatierung (aus dem
+Editor selbst oder aus einem Browser) bleibt unangetastet, ebenso eine einzelne
+Adresse über markiertem Text, die weiterhin verlinkt statt eingefügt wird.
+
+In einem Codeblock bleibt Eingefügtes wörtlich, und spitze Klammern im Text
+werden als Text behandelt, nicht als HTML.
+
+Der Preis, der vorher als Gegenargument notiert war, bleibt bestehen: `5 * 3
+und 2 * 4` wird beim Einfügen kursiv. Strg+Z macht es rückgängig.
+
+### Steckbrief bearbeiten und Export zusammengefasst
+
+Neben der Überschrift „Steckbrief" steht jetzt „Felder bearbeiten" und öffnet
+den Notiztypen-Dialog. Der Eintrag im Kampagnen-Menü bleibt, aber der Weg von
+„ich will dieses Feld umbenennen" zum Knopf führt nicht mehr quer über die
+Kopfzeile.
+
+Die beiden Knöpfe „MD" und „PDF" in der Kopfzeile des Editors liegen unter
+einem gemeinsamen „Export". Im Kampagnen-Menü standen die drei Exporte schon
+beieinander und bleiben, wo sie sind.
+
 ### Graph: Beziehungstexte nebeneinander
 
 Beide Richtungen zwischen zwei Knoten zeichneten Linie und Beschriftung auf
