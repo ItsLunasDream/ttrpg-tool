@@ -690,6 +690,8 @@ function versionTime(fileName: string): number {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+let writeCounter = 0;
+
 /**
  * Fehlercodes, die unter Windows eine kurzlebige Sperre bedeuten: ein
  * Virenscanner, die Dateisuche oder eine Ordnersynchronisation hat die Datei
@@ -703,7 +705,10 @@ const LOCKED_CODES = new Set(['EBUSY', 'EPERM', 'EACCES']);
  * nie ein halber.
  */
 async function writeAtomic(file: string, content: string | Buffer): Promise<void> {
-  const tmp = `${file}.tmp-${process.pid}`;
+  // Fortlaufende Nummer, nicht nur die Prozess-ID: laufen zwei Schreibvorgaenge
+  // auf dieselbe Datei gleichzeitig, schrieben sie sonst beide in dieselbe
+  // Nebendatei und das Ergebnis waere Bruch.
+  const tmp = `${file}.tmp-${process.pid}-${writeCounter++}`;
   await fs.writeFile(tmp, content);
 
   try {

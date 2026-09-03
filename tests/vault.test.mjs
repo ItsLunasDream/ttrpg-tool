@@ -856,3 +856,24 @@ test('Loeschen raeumt auch die Stelle im Graphen', async () => {
     assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { [toran.id]: { x: 3, y: 4 } });
   });
 });
+
+test('Gleichzeitige Schreibvorgaenge zerlegen die Datei nicht', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+
+    // So kommt es vor, wenn im Graphen mehrere Knoten kurz nacheinander
+    // abgelegt werden: die Aufrufe ueberlappen sich.
+    await Promise.all(
+      Array.from({ length: 8 }, (_unused, index) =>
+        vault.saveGraphPositions(campaign.id, { [`n${index}`]: { x: index, y: index } })
+      )
+    );
+
+    const datei = path.join(root, 'campaigns', campaign.id, 'campaign.json');
+    JSON.parse(await readFile(datei, 'utf8'));
+
+    // Keine Nebendateien duerfen liegenbleiben.
+    const reste = (await readdir(path.dirname(datei))).filter((name) => name.includes('.tmp-'));
+    assert.deepEqual(reste, []);
+  });
+});

@@ -58,7 +58,11 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
     const drop = dragRef.current;
     dragRef.current = null;
     setPanning(null);
-    if (drop?.at) onSavePositions({ ...savedRef.current, [drop.id]: drop.at });
+    if (!drop?.at) return;
+
+    const next = { ...savedRef.current, [drop.id]: drop.at };
+    savedRef.current = next;
+    onSavePositions(next);
   }, [onSavePositions]);
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
   const [view, setView] = useState({ x: 0, y: 0, width: WIDTH, height: HEIGHT });
@@ -83,8 +87,16 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
   // sind aber kein Anlass, sie neu zu berechnen: sonst rechnete jedes
   // Loslassen nach dem Ziehen das ganze Netz noch einmal durch. Deshalb
   // ueber eine Referenz statt ueber die Abhaengigkeiten.
+  //
+  // Die Referenz wird beim Ablegen sofort mitgeschrieben, nicht erst wenn
+  // das Gespeicherte zurueckkommt: sonst verloere ein zweiter Zug kurz nach
+  // dem ersten dessen Stelle wieder.
   const savedRef = useRef(saved);
-  savedRef.current = saved;
+  const lastProp = useRef(saved);
+  if (lastProp.current !== saved) {
+    lastProp.current = saved;
+    savedRef.current = saved;
+  }
 
   const computed = useMemo(
     () => layoutGraph(nodeSeeds, edges, { width: WIDTH, height: HEIGHT, seed, fixed: savedRef.current }),
@@ -232,8 +244,11 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
           type="button"
           onClick={() => {
             // Neu anordnen wirft die von Hand gesetzten Stellen weg, das ist
-            // der Sinn des Knopfes.
+            // der Sinn des Knopfes. Die Referenz muss vor dem neuen Anlauf
+            // leer sein, sonst haelt die Berechnung die alten Knoten weiter
+            // fest und der Knopf taete beim ersten Druck nichts.
             dragRef.current = null;
+            savedRef.current = {};
             onSavePositions({});
             setDragged({});
             setSeed((previous) => previous + 1);

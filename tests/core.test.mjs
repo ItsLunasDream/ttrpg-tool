@@ -924,3 +924,24 @@ test('Ohne feste Knoten wird weiterhin in die Flaeche eingepasst', () => {
     assert.ok(node.y >= 0 && node.y <= 780, `y ausserhalb: ${node.y}`);
   }
 });
+
+test('Auch mit festen Knoten bleibt die Anordnung in der Flaeche', () => {
+  // Ohne Begrenzung trieben die freien Knoten weit aus dem Bild, sobald ein
+  // einziger festgehalten wurde: die Einpassung faellt dann ja weg.
+  const ids = Array.from({ length: 40 }, (_unused, index) => ({ id: `n${index}`, degree: 2 }));
+  const edges = ids.slice(1).map((entry, index) => ({
+    source: ids[index].id,
+    target: entry.id,
+    label: '',
+    kind: 'relation'
+  }));
+
+  const nodes = layoutGraph(ids, edges, { width: 1200, height: 780, fixed: { n0: { x: 600, y: 400 } } });
+  for (const node of nodes) {
+    assert.ok(node.x >= 0 && node.x <= 1200, `x ausserhalb: ${node.id} ${node.x}`);
+    assert.ok(node.y >= 0 && node.y <= 780, `y ausserhalb: ${node.id} ${node.y}`);
+  }
+
+  const feste = nodes.find((node) => node.id === 'n0');
+  assert.deepEqual({ x: feste.x, y: feste.y }, { x: 600, y: 400 });
+});

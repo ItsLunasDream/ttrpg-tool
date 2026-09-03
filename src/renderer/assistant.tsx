@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { AiMessage, AiTask } from '../main/ai/provider';
 
 /** Was der Assistent gerade weiss und tut. */
@@ -42,28 +42,46 @@ export function AssistantProvider({ noteId, onAsk, children }: Props) {
   const [streaming, setStreaming] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  /**
+   * Kennung der gueltigen Anfrage. Wechselt die Notiz waehrend einer Antwort,
+   * zaehlt sie hoch, und was noch hereintropft wird verworfen: sonst liefen
+   * die Teiltexte der alten Notiz in das Gespraech der neuen und gaerten dort
+   * als Vorgeschichte weiter.
+   */
+  const runId = useRef(0);
+
   useEffect(() => {
+    runId.current += 1;
     setMessages([]);
     setStreaming(null);
+    setBusy(false);
   }, [noteId]);
 
   const ask = useCallback(
     (task: AiTask, history: AiMessage[], question: string) => {
+      runId.current += 1;
+      const mine = runId.current;
+
       setBusy(true);
       setStreaming('');
       setMessages(history);
 
       void (async () => {
         try {
-          const answer = await onAsk(task, history, question, (chunk) =>
-            setStreaming((previous) => (previous ?? '') + chunk)
-          );
+          const answer = await onAsk(task, history, question, (chunk) => {
+            if (runId.current !== mine) return;
+            setStreaming((previous) => (previous ?? '') + chunk);
+          });
+          if (runId.current !== mine) return;
+
           // Bei einem Fehler kommt null zurueck. Dann bleibt der Verlauf, wie
           // er war, statt eine leere Antwort aufzunehmen.
           setMessages(answer === null ? history : [...history, { role: 'assistant', content: answer }]);
         } finally {
-          setStreaming(null);
-          setBusy(false);
+          if (runId.current === mine) {
+            setStreaming(null);
+            setBusy(false);
+          }
         }
       })();
     },

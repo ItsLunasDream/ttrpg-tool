@@ -145,10 +145,25 @@ export function layoutGraph(
     }
   }
 
-  // Mit festen Stellen darf nicht mehr eingepasst werden: das Skalieren
-  // wuerde genau die Knoten verschieben, die stehen bleiben sollen.
-  return hasFixed ? nodes : fitToViewport(nodes, width, height);
+  // Mit festen Stellen darf nicht eingepasst werden: das Skalieren wuerde
+  // genau die Knoten verschieben, die stehen bleiben sollen. Die freien
+  // werden stattdessen in die Flaeche geholt, sonst treiben sie aus dem Bild
+  // und waeren nur noch ueber das Verschieben der Ansicht zu finden.
+  if (!hasFixed) return fitToViewport(nodes, width, height);
+
+  return nodes.map((node) =>
+    fixed[node.id]
+      ? node
+      : {
+          ...node,
+          x: Math.min(width - EDGE_MARGIN, Math.max(EDGE_MARGIN, node.x)),
+          y: Math.min(height - EDGE_MARGIN, Math.max(EDGE_MARGIN, node.y))
+        }
+  );
 }
+
+/** Abstand zum Rand, damit ein Knoten nicht halb ausserhalb klebt. */
+const EDGE_MARGIN = 40;
 
 /**
  * Skaliert und zentriert das Ergebnis so, dass es die Flaeche ausfuellt.
