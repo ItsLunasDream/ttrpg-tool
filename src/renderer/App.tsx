@@ -529,6 +529,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 onCreateNote={createNoteFromLink}
                 onHoverNote={(note, rect) => setHover(note && rect ? { note, rect } : null)}
                 onOpenExternal={(url) => void guard(() => call(api.openExternal(url)))}
+                onEditNoteTypes={() => setDialog({ kind: 'noteTypes' })}
                 searchQuery={filters.query}
                 campaignId={activeCampaignId}
                 reloadKey={reloadKey}

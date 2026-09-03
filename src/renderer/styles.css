@@ -725,6 +725,12 @@ mark {
   padding: 12px;
 }
 
+/* Schiebt eine Schaltfläche im Titel einer Leiste an deren rechten Rand. */
+.panel__action {
+  font-size: 12px;
+  margin-left: auto;
+}
+
 .panel__title {
   align-items: center;
   display: flex;

@@ -228,7 +228,9 @@ const ALLOWED_SAME = new Set([
   'toolbar.code',
   // „Link" heisst in beiden Sprachen gleich.
   'toolbar.link',
-  'link.title'
+  'link.title',
+  // „Export" auch.
+  'export.note'
 ]);
 
 test('jeder deutsche Schluessel hat eine englische Entsprechung', () => {
