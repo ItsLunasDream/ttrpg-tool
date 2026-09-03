@@ -944,4 +944,14 @@ test('Auch mit festen Knoten bleibt die Anordnung in der Flaeche', () => {
 
   const feste = nodes.find((node) => node.id === 'n0');
   assert.deepEqual({ x: feste.x, y: feste.y }, { x: 600, y: 400 });
+
+  // Nicht einfach an den Rand druecken: dort lägen sie uebereinander und
+  // waeren einzeln nicht mehr anzuklicken.
+  const stellen = nodes.map((node) => `${Math.round(node.x)},${Math.round(node.y)}`);
+  assert.equal(new Set(stellen).size, stellen.length, `Knoten liegen aufeinander: ${stellen.join(' ')}`);
+
+  const amRand = nodes.filter(
+    (node) => node.x <= 41 || node.x >= 1159 || node.y <= 41 || node.y >= 739
+  ).length;
+  assert.ok(amRand < nodes.length / 3, `${amRand} von ${nodes.length} kleben am Rand`);
 });

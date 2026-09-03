@@ -857,20 +857,26 @@ test('Loeschen raeumt auch die Stelle im Graphen', async () => {
   });
 });
 
-test('Gleichzeitige Schreibvorgaenge zerlegen die Datei nicht', async () => {
+test('Gleichzeitige Schreibvorgaenge bleiben in der Reihenfolge', async () => {
   await withVault(async (vault, root) => {
     const campaign = await vault.createCampaign('Sturmkueste');
 
     // So kommt es vor, wenn im Graphen mehrere Knoten kurz nacheinander
-    // abgelegt werden: die Aufrufe ueberlappen sich.
-    await Promise.all(
-      Array.from({ length: 8 }, (_unused, index) =>
-        vault.saveGraphPositions(campaign.id, { [`n${index}`]: { x: index, y: index } })
-      )
+    // abgelegt werden: die Oberflaeche schickt jedes Mal die ganze Liste,
+    // aber die Aufrufe ueberlappen sich.
+    const stapel = Array.from({ length: 8 }, (_unused, index) =>
+      Object.fromEntries(Array.from({ length: index + 1 }, (_leer, key) => [`n${key}`, { x: key, y: key }]))
     );
+    await Promise.all(stapel.map((positions) => vault.saveGraphPositions(campaign.id, positions)));
 
     const datei = path.join(root, 'campaigns', campaign.id, 'campaign.json');
-    JSON.parse(await readFile(datei, 'utf8'));
+    const gelesen = JSON.parse(await readFile(datei, 'utf8'));
+
+    // Der zuletzt abgeschickte Stand muss gewinnen. Ohne Reihenfolge kaeme
+    // ein aelterer, kleinerer zuletzt an und Stellen waeren weg. Mit der
+    // Aufreihung geht das immer auf; ohne sie schlaegt der Test nur manchmal
+    // fehl, er faengt den Fehler also, beweist ihn aber nicht.
+    assert.deepEqual(Object.keys(gelesen.graphPositions).sort(), Object.keys(stapel[7]).sort());
 
     // Keine Nebendateien duerfen liegenbleiben.
     const reste = (await readdir(path.dirname(datei))).filter((name) => name.includes('.tmp-'));
