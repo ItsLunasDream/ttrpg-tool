@@ -23,25 +23,6 @@ teilen, sonst steht in der einen etwas anderes als in der anderen. Der Verlauf
 liegt bisher als lokaler Zustand in `AssistantPanel.tsx` und müsste dafür eine
 Ebene höher wandern.
 
-### Steckbrief: Knopf zum Bearbeiten direkt daneben
-
-Die Notiztypen liegen im Menü „Kampagne" in der Kopfzeile. Dort findet sie
-niemand, der gerade den Steckbrief vor sich hat: der Weg von „ich will dieses
-Feld umbenennen" zum passenden Knopf führt an der falschen Stelle vorbei.
-
-Stattdessen ein Knopf „Bearbeiten" rechts neben der Überschrift „Steckbrief",
-der denselben Dialog öffnet. Der Eintrag im Menü kann bleiben.
-
-### MD und PDF unter einen Export-Knopf
-
-In der Kopfzeile des Editors stehen zwei Knöpfe „MD" und „PDF" nebeneinander.
-Beide gehören zu derselben Sache und sollten unter einem Knopf „Export"
-liegen, der die beiden Formate zur Auswahl stellt.
-
-Im Kampagnen-Menü stehen die drei Exporte (ZIP, Markdown, PDF) schon
-beieinander; die Frage stellt sich dort also nur, ob sie ebenfalls unter einen
-Eintrag sollen.
-
 ### Graph: Beziehungstexte nebeneinander statt übereinander
 
 Beide Richtungen zwischen zwei Knoten zeichnen ihre Beschriftung auf denselben
@@ -145,6 +126,17 @@ werden als Text behandelt, nicht als HTML.
 
 Der Preis, der vorher als Gegenargument notiert war, bleibt bestehen: `5 * 3
 und 2 * 4` wird beim Einfügen kursiv. Strg+Z macht es rückgängig.
+
+### Steckbrief bearbeiten und Export zusammengefasst
+
+Neben der Überschrift „Steckbrief" steht jetzt „Felder bearbeiten" und öffnet
+den Notiztypen-Dialog. Der Eintrag im Kampagnen-Menü bleibt, aber der Weg von
+„ich will dieses Feld umbenennen" zum Knopf führt nicht mehr quer über die
+Kopfzeile.
+
+Die beiden Knöpfe „MD" und „PDF" in der Kopfzeile des Editors liegen unter
+einem gemeinsamen „Export". Im Kampagnen-Menü standen die drei Exporte schon
+beieinander und bleiben, wo sie sind.
 
 ### Graph: verschobene Knoten behalten ihre Stelle
 

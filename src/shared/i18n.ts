@@ -83,6 +83,7 @@ const de = {
     'Der Name „{name}" wird von mehreren Notizen benutzt. Links darauf treffen immer dieselbe, das ist womöglich nicht die gemeinte. Vergib einen eindeutigen Titel oder Alias.',
   'editor.placeholder': 'Schreib los. Mit [[ verlinkst du andere Notizen.',
   'editor.profile': 'Steckbrief',
+  'editor.editProfile': 'Felder bearbeiten',
   'editor.aliases': 'Aliase',
   'editor.aliasesHint': 'Spitzname, Titel …',
   'editor.tags': 'Tags',
@@ -295,6 +296,7 @@ const de = {
   'settings.history': 'Versionsverlauf führen',
   'settings.historyMax': 'Höchstzahl gesicherter Fassungen je Notiz',
 
+  'export.note': 'Export',
   'export.markdownNote': 'Notiz als Markdown',
   'export.markdownCampaign': 'Kampagne als Markdown',
   'export.done': 'Exportiert nach {path}',
@@ -451,6 +453,7 @@ const en: Partial<Record<MessageKey, string>> = {
     'The name “{name}” is used by more than one note. Links to it always hit the same one, which may not be the one you meant. Give it a unique title or alias.',
   'editor.placeholder': 'Start writing. Type [[ to link another note.',
   'editor.profile': 'Profile',
+  'editor.editProfile': 'Edit the fields',
   'editor.aliases': 'Aliases',
   'editor.aliasesHint': 'Nickname, title …',
   'editor.tags': 'Tags',
@@ -663,6 +666,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'settings.history': 'Keep version history',
   'settings.historyMax': 'Maximum versions kept per note',
 
+  'export.note': 'Export',
   'export.markdownNote': 'Note as Markdown',
   'export.markdownCampaign': 'Campaign as Markdown',
   'export.done': 'Exported to {path}',

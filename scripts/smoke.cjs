@@ -308,6 +308,13 @@ app.whenReady().then(async () => {
     check(files.some((raw) => raw.includes('schemaVersion: 1')), 'schemaVersion fehlt');
 
     // 11. Notiztyp anpassen: Feld umbenennen und neues Feld anlegen
+    // Erreichbar ueber den Knopf am Steckbrief, nicht nur ueber das Menue.
+    check(
+      await run(window, `const box = [...document.querySelectorAll('.panel__title')]
+           .find((h) => h.textContent.includes('Steckbrief'));
+         return Boolean(box && box.querySelector('button'));`),
+      'Am Steckbrief fehlt der Knopf zum Bearbeiten'
+    );
     await menuAction(window, 'Notiztypen');
     await sleep(500);
     check(await run(window, `return Boolean(document.querySelector('.type-editor'));`), 'Notiztyp-Editor öffnet nicht');
@@ -677,6 +684,26 @@ app.whenReady().then(async () => {
       await clickButton(window, '\u00d7', "document.querySelector('.modal__header')");
       await sleep(400);
     }
+
+    // Beide Formate der Notiz liegen unter einem Knopf.
+    await run(
+      window,
+      `const box = [...document.querySelectorAll('.menu')]
+         .find((m) => m.querySelector('button').textContent.includes('Export'));
+       if (!box) throw new Error('Export-Menü fehlt');
+       box.querySelector('button').click();
+       return true;`
+    );
+    await sleep(400);
+    check(
+      await run(window, `const box = [...document.querySelectorAll('.menu')]
+         .find((m) => m.querySelector('button').textContent.includes('Export'));
+         const eintraege = [...box.querySelectorAll('.menu__list button')].map((b) => b.textContent);
+         box.querySelector('button').click();
+         return eintraege.includes('Notiz als Markdown') && eintraege.includes('Notiz als PDF');`),
+      'Die Notiz-Exporte liegen nicht unter einem gemeinsamen Knopf'
+    );
+    await sleep(300);
 
     // 15. Export als Markdown und PDF
     {
