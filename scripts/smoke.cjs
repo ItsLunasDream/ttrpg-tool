@@ -763,6 +763,33 @@ app.whenReady().then(async () => {
       }
     }
 
+    // 16b. Der KI-Bereich liegt im selben Dialog, klar benannt
+    await selectNote(window, 'Toran');
+    await clickButton(window, 'Schreibhilfe');
+    await sleep(700);
+    check(
+      await run(window, `return document.querySelector('.modal__header h2').textContent.includes('KI');`),
+      'Der Dialogtitel nennt den KI-Teil nicht'
+    );
+    check(
+      await run(window, `const reiter = [...document.querySelectorAll('.prompts__tabs button')].map((b) => b.textContent);
+         return reiter.some((r) => r.includes('ohne KI')) && reiter.some((r) => r.includes('KI-Assistent'));`),
+      'Die Reiter unterscheiden Vorschläge und KI nicht'
+    );
+    await run(
+      window,
+      `[...document.querySelectorAll('.prompts__tabs button')].find((b) => b.textContent.includes('KI-Assistent')).click();
+       return true;`
+    );
+    await sleep(500);
+    check(
+      await run(window, `return Boolean(document.querySelector('.assistant--chat'))
+         || document.body.textContent.includes('Keine KI-Anbindung');`),
+      'Der KI-Reiter zeigt weder Gespräch noch Hinweis'
+    );
+    await clickButton(window, '\u00d7', "document.querySelector('.modal__header')");
+    await sleep(400);
+
     // 16. Schreibhilfe: Vorschlag in den Text uebernehmen
     await selectNote(window, 'Toran');
     await clickButton(window, 'Schreibhilfe');

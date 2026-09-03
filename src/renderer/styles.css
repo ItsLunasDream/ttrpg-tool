@@ -1279,6 +1279,75 @@ mark {
   opacity: 0.2;
 }
 
+/* Reiter im Schreibhilfe-Dialog. */
+.prompts__tabs {
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.prompts__tabs button {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--text-muted);
+  padding: 6px 10px;
+}
+
+.prompts__tabs button.is-active {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+/*
+ * Die grosse Fassung des Assistenten: mehr Platz, abgesetzte Blasen und ein
+ * Verlauf, der mitlaeuft. In der Sidebar bleibt es bei der schmalen Liste.
+ */
+.assistant--chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+}
+
+.assistant--chat .assistant__actions {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.assistant--chat .assistant__thread {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.assistant--chat .assistant__turn {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+  max-width: 78%;
+}
+
+.assistant--chat .assistant__turn--user {
+  align-items: flex-end;
+  margin-left: auto;
+}
+
+.assistant--chat .assistant__answer {
+  font-size: 13px;
+  max-height: none;
+  padding: 10px 12px;
+}
+
+.assistant--chat .assistant__turn--user .assistant__answer {
+  background: var(--accent-soft);
+}
+
+.assistant--chat .assistant__followUp input {
+  font-size: 13px;
+}
+
 .assistant__actions {
   display: flex;
   flex-direction: column;
