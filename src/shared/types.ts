@@ -81,6 +81,12 @@ export interface NoteVersion {
   body: string;
 }
 
+/** Stelle eines Knotens im Graphen, von Hand gesetzt. */
+export interface GraphPosition {
+  x: number;
+  y: number;
+}
+
 export interface Campaign {
   id: string;
   schemaVersion: number;
@@ -88,6 +94,13 @@ export interface Campaign {
   createdAt: string;
   /** Notiztypen dieser Kampagne, samt ihrer Steckbrieffelder. */
   noteTypes: NoteTypeDef[];
+  /**
+   * Von Hand verschobene Knoten des Graphen, je Notiz-ID.
+   *
+   * Bewusst hier und nicht im Kopf der Notizdatei: eine Stelle im Graphen
+   * sagt nichts ueber die Notiz aus und haette dort nichts zu suchen.
+   */
+  graphPositions: Record<string, GraphPosition>;
 }
 
 export type AiProviderId = 'none' | 'ollama' | 'claude';

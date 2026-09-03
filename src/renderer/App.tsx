@@ -455,6 +455,13 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               <GraphView
                 index={index}
                 activeNoteId={draft?.id ?? null}
+                positions={activeCampaign?.graphPositions ?? {}}
+                onSavePositions={(next) =>
+                  void guard(async () => {
+                    const updated = await call(api.campaigns.saveGraphPositions(activeCampaignId, next));
+                    setCampaigns((previous) => previous.map((entry) => (entry.id === updated.id ? updated : entry)));
+                  })
+                }
                 onClose={() => setShowGraph(false)}
                 onOpenNote={(noteId) => {
                   openNote(noteId);

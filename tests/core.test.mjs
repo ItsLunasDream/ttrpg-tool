@@ -888,3 +888,37 @@ test('Spitze Klammern im Text ueberleben das Speichern als Text', () => {
   assert.equal(wieder, md);
   assert.ok(wieder.includes('Kasten'), wieder);
 });
+
+test('Feste Knoten bleiben bei der Anordnung, wo sie sind', () => {
+  const ids = [
+    { id: 'a', degree: 1 },
+    { id: 'b', degree: 1 },
+    { id: 'neu', degree: 0 }
+  ];
+  const edges = [{ source: 'a', target: 'b', label: '', kind: 'relation' }];
+  const fixed = { a: { x: 100, y: 200 }, b: { x: 900, y: 600 } };
+
+  const nodes = layoutGraph(ids, edges, { width: 1200, height: 780, fixed });
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+
+  assert.deepEqual({ x: byId.get('a').x, y: byId.get('a').y }, fixed.a);
+  assert.deepEqual({ x: byId.get('b').x, y: byId.get('b').y }, fixed.b);
+
+  // Die neue Notiz bekommt eine berechnete Stelle, irgendwo dazwischen.
+  const neu = byId.get('neu');
+  assert.ok(Number.isFinite(neu.x) && Number.isFinite(neu.y), JSON.stringify(neu));
+});
+
+test('Ohne feste Knoten wird weiterhin in die Flaeche eingepasst', () => {
+  const ids = [
+    { id: 'a', degree: 1 },
+    { id: 'b', degree: 1 }
+  ];
+  const edges = [{ source: 'a', target: 'b', label: '', kind: 'relation' }];
+  const nodes = layoutGraph(ids, edges, { width: 1200, height: 780 });
+
+  for (const node of nodes) {
+    assert.ok(node.x >= 0 && node.x <= 1200, `x ausserhalb: ${node.x}`);
+    assert.ok(node.y >= 0 && node.y <= 780, `y ausserhalb: ${node.y}`);
+  }
+});

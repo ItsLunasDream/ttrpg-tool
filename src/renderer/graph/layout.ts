@@ -19,6 +19,12 @@ export interface LayoutOptions {
   height: number;
   iterations?: number;
   seed?: number;
+  /**
+   * Von Hand gesetzte Stellen. Diese Knoten bleiben, wo sie sind, die
+   * uebrigen ordnen sich um sie herum. So verschiebt eine neu angelegte
+   * Notiz nicht das ganze Netz.
+   */
+  fixed?: Record<string, { x: number; y: number }>;
 }
 
 /** Einfacher, wiederholbarer Zufallsgenerator, damit dasselbe Netz gleich aussieht. */
@@ -47,18 +53,20 @@ export function layoutGraph(
   // fester Rundenzahl eine spuerbare Blockade, deshalb sinkt sie mit der
   // Groesse. Das Ergebnis wird gröber, bleibt aber brauchbar.
   const defaultIterations = Math.round(Math.min(300, Math.max(60, 30000 / Math.max(1, ids.length))));
-  const { width, height, iterations = defaultIterations, seed = 42 } = options;
+  const { width, height, iterations = defaultIterations, seed = 42, fixed = {} } = options;
   const random = makeRandom(seed);
+  const hasFixed = ids.some((entry) => fixed[entry.id]);
 
   // Startaufstellung auf einem Kreis, damit nichts exakt aufeinanderliegt.
   const nodes: GraphNode[] = ids.map((entry, index) => {
     const angle = (index / Math.max(1, ids.length)) * Math.PI * 2;
     const radius = Math.min(width, height) * 0.3;
+    const set = fixed[entry.id];
     return {
       id: entry.id,
       degree: entry.degree,
-      x: width / 2 + Math.cos(angle) * radius + (random() - 0.5) * 10,
-      y: height / 2 + Math.sin(angle) * radius + (random() - 0.5) * 10
+      x: set ? set.x : width / 2 + Math.cos(angle) * radius + (random() - 0.5) * 10,
+      y: set ? set.y : height / 2 + Math.sin(angle) * radius + (random() - 0.5) * 10
     };
   });
 
@@ -122,6 +130,7 @@ export function layoutGraph(
     }
 
     for (const node of nodes) {
+      if (fixed[node.id]) continue;
       const move = displacement.get(node.id)!;
 
       // Zug zur Mitte, sonst driften unverbundene Knoten ins Nichts.
@@ -136,7 +145,9 @@ export function layoutGraph(
     }
   }
 
-  return fitToViewport(nodes, width, height);
+  // Mit festen Stellen darf nicht mehr eingepasst werden: das Skalieren
+  // wuerde genau die Knoten verschieben, die stehen bleiben sollen.
+  return hasFixed ? nodes : fitToViewport(nodes, width, height);
 }
 
 /**

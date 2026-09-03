@@ -1,5 +1,15 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppSettings, Campaign, Note, NoteType, NoteTypeDef, NoteVersion, OrphanedAsset, UnreadableNote } from '../shared/types';
+import type {
+  AppSettings,
+  Campaign,
+  GraphPosition,
+  Note,
+  NoteType,
+  NoteTypeDef,
+  NoteVersion,
+  OrphanedAsset,
+  UnreadableNote
+} from '../shared/types';
 import type { PromptCategory } from '../shared/writingPrompts';
 import type { AiMessage, AiTask } from '../main/ai/provider';
 
@@ -65,7 +75,9 @@ const api = {
     remove: (id: string) => invoke<void>('campaign:delete', id),
     get: (id: string) => invoke<Campaign>('campaign:get', id),
     updateNoteTypes: (id: string, types: NoteTypeDef[]) =>
-      invoke<Campaign>('campaign:updateNoteTypes', id, types)
+      invoke<Campaign>('campaign:updateNoteTypes', id, types),
+    saveGraphPositions: (id: string, positions: Record<string, GraphPosition>) =>
+      invoke<Campaign>('campaign:graphPositions', id, positions)
   },
   notes: {
     list: (campaignId: string) => invoke<Note[]>('note:list', campaignId),

@@ -813,6 +813,41 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelector('.graph__canvas').getAttribute('viewBox') === '0 0 1200 780';`),
       'Zurücksetzen der Ansicht wirkt nicht');
 
+    // 17b. Ein verschobener Knoten bleibt an seiner Stelle
+    const gezogen = await run(
+      window,
+      `const svg = document.querySelector('.graph__canvas');
+       const node = document.querySelector('.graph__node');
+       const id = node.getAttribute('data-id');
+       const rect = svg.getBoundingClientRect();
+       const at = (x, y) => ({ clientX: rect.left + x, clientY: rect.top + y, bubbles: true });
+
+       node.dispatchEvent(new MouseEvent('mousedown', at(100, 100)));
+       svg.dispatchEvent(new MouseEvent('mousemove', at(300, 250)));
+       svg.dispatchEvent(new MouseEvent('mouseup', at(300, 250)));
+       return id;`
+    );
+    await sleep(1200);
+    const kampagnenDatei = path.join(userData, 'vault', 'campaigns', campaignId, 'campaign.json');
+    {
+      const kampagne = JSON.parse(fs.readFileSync(kampagnenDatei, 'utf8'));
+      check(
+        Boolean(kampagne.graphPositions && kampagne.graphPositions[gezogen]),
+        'Die verschobene Stelle steht nicht in campaign.json'
+      );
+    }
+
+    // Neu anordnen wirft sie wieder weg
+    await clickButton(window, 'Neu anordnen', "document.querySelector('.graph__bar')");
+    await sleep(1200);
+    {
+      const kampagne = JSON.parse(fs.readFileSync(kampagnenDatei, 'utf8'));
+      check(
+        Object.keys(kampagne.graphPositions ?? {}).length === 0,
+        'Neu anordnen hat die verschobenen Stellen nicht verworfen'
+      );
+    }
+
     // Klick auf einen Knoten oeffnet die Notiz
     await run(window, `document.querySelector('.graph__node').dispatchEvent(new MouseEvent('click', { bubbles: true })); return true;`);
     await sleep(900);
