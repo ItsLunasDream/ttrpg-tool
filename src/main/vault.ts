@@ -403,6 +403,29 @@ export class Vault {
   }
 
   /**
+   * Die IDs aller Notizdateien, ohne sie zu lesen.
+   *
+   * Ein Fehler wird nicht verschluckt: hielte man ihn fuer "keine Notizen",
+   * loeschte der naechste Schreibvorgang alle gemerkten Stellen. Nur ein
+   * fehlender Ordner ist harmlos, den gibt es vor der ersten Notiz nicht.
+   */
+  private async noteIds(campaignId: string): Promise<Set<string>> {
+    const dir = path.join(this.campaignDir(campaignId), NOTES_DIR);
+
+    let entries;
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      return new Set();
+    }
+
+    return new Set(
+      entries.filter((entry) => entry.isFile() && entry.name.endsWith('.md')).map((entry) => entry.name.slice(0, -3))
+    );
+  }
+
+  /**
    * Notizdateien, die sich nicht lesen lassen, etwa weil das Frontmatter von
    * Hand kaputt bearbeitet wurde.
    *
@@ -410,19 +433,6 @@ export class Vault {
    * Kampagne unlesbar macht. Stillschweigend verschwinden duerfen sie aber
    * nicht: sonst faellt der Verlust erst auf, wenn es zu spaet ist.
    */
-  /** Die IDs aller Notizdateien, ohne sie zu lesen. */
-  private async noteIds(campaignId: string): Promise<Set<string>> {
-    const dir = path.join(this.campaignDir(campaignId), NOTES_DIR);
-
-    try {
-      const entries = await fs.readdir(dir, { withFileTypes: true });
-      return new Set(
-        entries.filter((entry) => entry.isFile() && entry.name.endsWith('.md')).map((entry) => entry.name.slice(0, -3))
-      );
-    } catch {
-      return new Set();
-    }
-  }
 
   async findUnreadableNotes(campaignId: string): Promise<UnreadableNote[]> {
     const dir = path.join(this.campaignDir(campaignId), NOTES_DIR);
