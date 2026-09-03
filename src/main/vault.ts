@@ -15,6 +15,7 @@ import type {
   NoteType,
   NoteTypeDef,
   NoteVersion,
+  GraphPosition,
   OrphanedAsset,
   Relation,
   UnreadableNote
@@ -280,7 +281,8 @@ export class Vault {
       schemaVersion: SCHEMA_VERSION,
       name: parsed.name ?? campaignId,
       createdAt: parsed.createdAt ?? new Date().toISOString(),
-      noteTypes: migrated ? structuredClone(DEFAULT_NOTE_TYPES) : normalizeNoteTypes(parsed.noteTypes as NoteTypeDef[])
+      noteTypes: migrated ? structuredClone(DEFAULT_NOTE_TYPES) : normalizeNoteTypes(parsed.noteTypes as NoteTypeDef[]),
+      graphPositions: normalizeGraphPositions(parsed.graphPositions)
     };
 
     if (migrated) await writeJson(file, campaign);
@@ -299,6 +301,17 @@ export class Vault {
     return updated;
   }
 
+  /**
+   * Merkt sich die von Hand gesetzten Stellen der Knoten. Ein leeres Objekt
+   * wirft sie weg, das macht "Neu anordnen".
+   */
+  async saveGraphPositions(campaignId: string, positions: Record<string, GraphPosition>): Promise<Campaign> {
+    const campaign = await this.readCampaign(campaignId);
+    const updated: Campaign = { ...campaign, graphPositions: normalizeGraphPositions(positions) };
+    await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
+    return updated;
+  }
+
   async createCampaign(name: string): Promise<Campaign> {
     const trimmed = name.trim();
     if (!trimmed) throw new VaultError('error.campaignName');
@@ -308,7 +321,8 @@ export class Vault {
       schemaVersion: SCHEMA_VERSION,
       name: trimmed,
       createdAt: new Date().toISOString(),
-      noteTypes: structuredClone(DEFAULT_NOTE_TYPES)
+      noteTypes: structuredClone(DEFAULT_NOTE_TYPES),
+      graphPositions: {}
     };
     const dir = this.campaignDir(campaign.id);
     await fs.mkdir(path.join(dir, NOTES_DIR), { recursive: true });
@@ -486,6 +500,14 @@ export class Vault {
       const relations = other.relations.filter((relation) => relation.targetId !== noteId);
       if (relations.length === other.relations.length) continue;
       await this.writeNote(campaignId, { ...other, relations, updatedAt: new Date().toISOString() });
+    }
+
+    // Auch die gemerkte Stelle im Graphen raeumen, sonst waechst die Liste
+    // mit jeder geloeschten Notiz weiter.
+    const campaign = await this.readCampaign(campaignId);
+    if (campaign.graphPositions[noteId]) {
+      const { [noteId]: _entfernt, ...rest } = campaign.graphPositions;
+      await this.saveGraphPositions(campaignId, rest);
     }
   }
 
@@ -776,6 +798,24 @@ function noteTitle(raw: unknown, body: string): string {
   if (found && !hasLinkReservedChars(found)) return found;
 
   return 'Ohne Titel';
+}
+
+/**
+ * Nimmt nur Eintraege mit zwei endlichen Zahlen. Eine kaputte Angabe wuerde
+ * den Knoten sonst ins Nirgendwo setzen, wo er nicht mehr zu fassen waere.
+ */
+function normalizeGraphPositions(value: unknown): Record<string, GraphPosition> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+
+  const positions: Record<string, GraphPosition> = {};
+  for (const [id, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (!entry || typeof entry !== 'object') continue;
+    const { x, y } = entry as { x?: unknown; y?: unknown };
+    if (typeof x !== 'number' || typeof y !== 'number') continue;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    positions[id] = { x, y };
+  }
+  return positions;
 }
 
 const FIELD_TYPES: FieldDef['type'][] = ['text', 'textarea', 'number', 'url', 'image', 'select', 'date', 'checkbox'];

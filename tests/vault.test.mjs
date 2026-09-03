@@ -801,3 +801,58 @@ test('Umbenennen prueft die Aliase, bevor es Fremdes anfasst', async () => {
     assert.equal(updated.body.trim(), 'Er schuldet [[Mira]] Gold.');
   });
 });
+
+test('Knotenstellen werden in der Kampagne gespeichert', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    assert.deepEqual(campaign.graphPositions, {});
+
+    const gespeichert = await vault.saveGraphPositions(campaign.id, { a: { x: 10, y: 20 } });
+    assert.deepEqual(gespeichert.graphPositions, { a: { x: 10, y: 20 } });
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { a: { x: 10, y: 20 } });
+
+    // Ein leeres Objekt wirft sie weg, das macht "Neu anordnen".
+    await vault.saveGraphPositions(campaign.id, {});
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, {});
+  });
+});
+
+test('Kaputte Knotenstellen werden verworfen statt uebernommen', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const file = path.join(root, 'campaigns', campaign.id, 'campaign.json');
+
+    // So koennte es aussehen, wenn jemand die Datei von Hand bearbeitet.
+    const raw = JSON.parse(await readFile(file, 'utf8'));
+    raw.graphPositions = {
+      gut: { x: 1, y: 2 },
+      ohneY: { x: 3 },
+      text: { x: 'links', y: 2 },
+      nichts: null
+    };
+    await writeFile(file, JSON.stringify(raw));
+
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { gut: { x: 1, y: 2 } });
+
+    // Aus der Oberflaeche koennen auch unendliche Werte kommen, die JSON
+    // nicht kennt. Ein Knoten im Nirgendwo waere nicht mehr zu fassen.
+    const gespeichert = await vault.saveGraphPositions(campaign.id, {
+      gut: { x: 5, y: 6 },
+      unendlich: { x: Infinity, y: 0 },
+      keineZahl: { x: NaN, y: 1 }
+    });
+    assert.deepEqual(gespeichert.graphPositions, { gut: { x: 5, y: 6 } });
+  });
+});
+
+test('Loeschen raeumt auch die Stelle im Graphen', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+    await vault.saveGraphPositions(campaign.id, { [mira.id]: { x: 1, y: 2 }, [toran.id]: { x: 3, y: 4 } });
+
+    await vault.deleteNote(campaign.id, mira.id);
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { [toran.id]: { x: 3, y: 4 } });
+  });
+});

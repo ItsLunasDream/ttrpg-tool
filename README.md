@@ -128,6 +128,9 @@ Text, aus einer eingefügten Tabelle eine Tabelle. Wer aus dem Editor selbst
 oder aus einem Browser kopiert, bringt die Formatierung ohnehin schon mit; nur
 reiner Text geht durch den Markdown-Leser.
 
+**Im Graphen** verschobene Knoten bleiben, wo man sie hinlegt. Die Stellen
+stehen in `campaign.json`; „Neu anordnen" verwirft sie wieder.
+
 **Tabellen** gibt es über den Knopf ▦ in der Werkzeugleiste. Steht der
 Cursor in einer Tabelle, erscheinen Knöpfe für Zeilen und Spalten. In der
 Datei stehen sie als gewöhnliche Markdown-Tabelle.

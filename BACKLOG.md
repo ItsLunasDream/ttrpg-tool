@@ -64,26 +64,6 @@ Offen bleibt der Fall vieler Kanten insgesamt: dafür gibt es die Notbremse
 Knoten unter der Maus zeigt. Ob sie nach dieser Änderung noch gebraucht wird,
 zeigt sich erst in der Benutzung.
 
-### Graph: verschobene Knoten behalten ihre Stelle
-
-Zieht man einen Knoten an eine andere Stelle, sitzt er beim nächsten Öffnen
-wieder dort, wo die Berechnung ihn hingelegt hat. Wer sich sein Netz einmal
-ordentlich hingelegt hat, verliert das also.
-
-Die Anordnung soll gespeichert werden. Der Ort dafür ist `campaign.json`, nicht
-die Notizdateien: eine Position im Graphen sagt nichts über die Notiz aus und
-hätte im YAML-Kopf nichts zu suchen. Der Eintrag hängt an der Notiz-ID, gelöschte
-Notizen fallen beim Lesen raus.
-
-Zu klären:
-- Verschobene Knoten dürfen von „Neu anordnen" überschrieben werden, das ist
-  der Sinn des Knopfes. Vielleicht ergänzt um eine Rückfrage, wenn von Hand
-  gesetzte Stellen dabei verlorengehen
-- Ein Knoten ohne gespeicherte Stelle (neue Notiz) bekommt seine aus der
-  Berechnung. Die übrigen dürfen sich dabei nicht mitverschieben, sonst
-  wandert das ganze Netz, sobald eine Notiz dazukommt
-- Speichern erst beim Loslassen, nicht während des Ziehens
-
 ### Graph: laufende Simulation beim Ziehen
 
 Die Anordnung wird einmal berechnet. Zieht man einen Knoten, folgen die
@@ -165,6 +145,25 @@ werden als Text behandelt, nicht als HTML.
 
 Der Preis, der vorher als Gegenargument notiert war, bleibt bestehen: `5 * 3
 und 2 * 4` wird beim Einfügen kursiv. Strg+Z macht es rückgängig.
+
+### Graph: verschobene Knoten behalten ihre Stelle
+
+Wer einen Knoten verschiebt, findet ihn beim nächsten Öffnen dort wieder. Die
+Stellen liegen in `campaign.json` unter `graphPositions`, nicht in den
+Notizdateien: eine Stelle im Graphen sagt nichts über die Notiz aus.
+
+Gespeicherte Knoten gehen als feste Punkte in die Anordnung ein und werden von
+der Berechnung nicht mehr angefasst. Kommt eine Notiz dazu, ordnet sie sich um
+die vorhandenen herum ein, statt das ganze Netz zu verschieben. Das Einpassen
+in die Fläche entfällt dann, es würde genau die Knoten verschieben, die stehen
+bleiben sollen.
+
+„Neu anordnen" wirft die gesetzten Stellen weg, das ist der Sinn des Knopfes.
+Eine Rückfrage davor gibt es bewusst nicht: der Knopf heißt, was er tut, und
+ein Versehen ist mit erneutem Verschieben behoben.
+
+Gespeichert wird beim Loslassen, nicht während des Ziehens. Beim Löschen einer
+Notiz fällt ihre Stelle mit weg.
 
 ### Tabellen, Links und der Markdown-Rundlauf
 

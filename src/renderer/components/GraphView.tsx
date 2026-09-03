@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { findNoteType } from '../../shared/noteTypes';
 import type { NoteIndex } from '../noteIndex';
+import type { GraphPosition } from '../../shared/types';
 import { buildGraphEdges, buildGraphNodes, type GraphMode } from '../graph/build';
 import { layoutGraph, type GraphNode } from '../graph/layout';
 import { useT } from '../i18n';
@@ -8,6 +9,9 @@ import { useT } from '../i18n';
 interface Props {
   index: NoteIndex;
   activeNoteId: string | null;
+  /** Von Hand gesetzte Stellen aus der Kampagne. */
+  positions: Record<string, GraphPosition>;
+  onSavePositions: (positions: Record<string, GraphPosition>) => void;
   onOpenNote: (noteId: string) => void;
   onClose: () => void;
 }
@@ -25,13 +29,27 @@ const LABEL_LIMIT = 20;
 /** Feste Farbreihe, damit Notiztypen wiedererkennbar bleiben. */
 const TYPE_COLORS = ['#c4a35a', '#8ec3e0', '#a3c48b', '#d98a7c', '#b39ddb', '#7fb3a8'];
 
-export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
+export function GraphView({ index, activeNoteId, positions: saved, onSavePositions, onOpenNote, onClose }: Props) {
   const t = useT();
   const [mode, setMode] = useState<GraphMode>('both');
   const [seed, setSeed] = useState(42);
   const [hovered, setHovered] = useState<string | null>(null);
-  const [dragging, setDragging] = useState<string | null>(null);
-  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
+  /** Waehrend des Ziehens, damit der Knoten sofort folgt. */
+  const [dragged, setDragged] = useState<Record<string, GraphPosition>>({});
+  /**
+   * Dasselbe noch einmal als Referenz. Beim Loslassen muss die zuletzt
+   * gezogene Stelle sicher zur Hand sein: folgen die Ereignisse dicht
+   * aufeinander, hat React zwischen Bewegung und Loslassen noch nicht neu
+   * gezeichnet, und der Zustand waere im Handler noch der alte.
+   */
+  const dragRef = useRef<{ id: string; at: GraphPosition | null } | null>(null);
+
+  const dropNode = useCallback(() => {
+    const drop = dragRef.current;
+    dragRef.current = null;
+    setPanning(null);
+    if (drop?.at) onSavePositions({ ...savedRef.current, [drop.id]: drop.at });
+  }, [onSavePositions]);
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
   const [view, setView] = useState({ x: 0, y: 0, width: WIDTH, height: HEIGHT });
   const [panning, setPanning] = useState<{ x: number; y: number } | null>(null);
@@ -51,21 +69,28 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
   const edges = useMemo(() => buildGraphEdges(visibleIndex, mode), [visibleIndex, mode]);
   const nodeSeeds = useMemo(() => buildGraphNodes(visibleNotes, edges), [visibleNotes, edges]);
 
+  // Die gespeicherten Stellen gehen als feste Punkte in die Anordnung ein,
+  // sind aber kein Anlass, sie neu zu berechnen: sonst rechnete jedes
+  // Loslassen nach dem Ziehen das ganze Netz noch einmal durch. Deshalb
+  // ueber eine Referenz statt ueber die Abhaengigkeiten.
+  const savedRef = useRef(saved);
+  savedRef.current = saved;
+
   const computed = useMemo(
-    () => layoutGraph(nodeSeeds, edges, { width: WIDTH, height: HEIGHT, seed }),
+    () => layoutGraph(nodeSeeds, edges, { width: WIDTH, height: HEIGHT, seed, fixed: savedRef.current }),
     [nodeSeeds, edges, seed]
   );
 
-  // Nach einer Neuberechnung zaehlen wieder die berechneten Werte, von Hand
-  // verschobene Knoten werden verworfen.
+  // Nach einer Neuberechnung zaehlt wieder das Ergebnis, das gerade Gezogene
+  // ist darin schon enthalten.
   useEffect(() => {
-    setPositions({});
+    setDragged({});
     setView({ x: 0, y: 0, width: WIDTH, height: HEIGHT });
   }, [computed]);
 
   const nodes: GraphNode[] = useMemo(
-    () => computed.map((node) => ({ ...node, ...(positions[node.id] ?? {}) })),
-    [computed, positions]
+    () => computed.map((node) => ({ ...node, ...(saved[node.id] ?? {}), ...(dragged[node.id] ?? {}) })),
+    [computed, saved, dragged]
   );
 
   const byId = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
@@ -179,7 +204,17 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
         <button type="button" onClick={() => setView({ x: 0, y: 0, width: WIDTH, height: HEIGHT })}>
           {t('graph.zoomReset')}
         </button>
-        <button type="button" onClick={() => setSeed((previous) => previous + 1)}>
+        <button
+          type="button"
+          onClick={() => {
+            // Neu anordnen wirft die von Hand gesetzten Stellen weg, das ist
+            // der Sinn des Knopfes.
+            dragRef.current = null;
+            onSavePositions({});
+            setDragged({});
+            setSeed((previous) => previous + 1);
+          }}
+        >
           {t('graph.recalculate')}
         </button>
         <button type="button" onClick={onClose}>
@@ -200,9 +235,13 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
           if (event.target === event.currentTarget) setPanning(toSvgPoint(event));
         }}
         onMouseMove={(event) => {
-          if (dragging) {
+          const drag = dragRef.current;
+          if (drag) {
             const point = toSvgPoint(event);
-            if (point) setPositions((previous) => ({ ...previous, [dragging]: point }));
+            if (point) {
+              dragRef.current = { id: drag.id, at: point };
+              setDragged((previous) => ({ ...previous, [drag.id]: point }));
+            }
             return;
           }
           if (!panning) return;
@@ -215,13 +254,13 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
             y: previous.y - (point.y - panning.y)
           }));
         }}
-        onMouseUp={() => {
-          setDragging(null);
-          setPanning(null);
-        }}
+        // Erst beim Loslassen speichern, nicht bei jeder Mausbewegung.
+        onMouseUp={dropNode}
         onMouseLeave={() => {
-          setDragging(null);
-          setPanning(null);
+          // Verlaesst die Maus die Flaeche mitten im Ziehen, gilt der Knoten
+          // trotzdem als abgelegt: sonst waere die Verschiebung beim naechsten
+          // Oeffnen wieder weg.
+          dropNode();
           setHovered(null);
         }}
       >
@@ -271,13 +310,14 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
           return (
             <g
               key={node.id}
+              data-id={node.id}
               className={`graph__node${dimmed ? ' is-dimmed' : ''}${node.id === activeNoteId ? ' is-active' : ''}`}
               transform={`translate(${node.x} ${node.y})`}
               onMouseEnter={() => setHovered(node.id)}
               onMouseLeave={() => setHovered(null)}
               onMouseDown={(event) => {
                 event.preventDefault();
-                setDragging(node.id);
+                dragRef.current = { id: node.id, at: null };
               }}
               onClick={() => onOpenNote(node.id)}
             >
