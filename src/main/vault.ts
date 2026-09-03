@@ -356,10 +356,12 @@ export class Vault {
     const trimmed = name.trim();
     if (!trimmed) throw new VaultError('error.campaignName');
 
-    const campaign = await this.readCampaign(campaignId);
-    const updated: Campaign = { ...campaign, name: trimmed };
-    await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
-    return updated;
+    return this.inOrder(campaignId, async () => {
+      const campaign = await this.readCampaign(campaignId);
+      const updated: Campaign = { ...campaign, name: trimmed };
+      await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
+      return updated;
+    });
   }
 
   async deleteCampaign(campaignId: string): Promise<void> {
@@ -524,12 +526,17 @@ export class Vault {
     }
 
     // Auch die gemerkte Stelle im Graphen raeumen, sonst waechst die Liste
-    // mit jeder geloeschten Notiz weiter.
-    const campaign = await this.readCampaign(campaignId);
-    if (campaign.graphPositions[noteId]) {
+    // mit jeder geloeschten Notiz weiter. Lesen und Schreiben gehoeren dabei
+    // in denselben Schritt der Reihe: dazwischen koennte sonst eine gerade
+    // abgelegte Stelle ankommen, die dieser Schritt wieder wegschriebe.
+    await this.inOrder(campaignId, async () => {
+      const campaign = await this.readCampaign(campaignId);
+      if (!campaign.graphPositions[noteId]) return;
+
       const { [noteId]: _entfernt, ...rest } = campaign.graphPositions;
-      await this.saveGraphPositions(campaignId, rest);
-    }
+      const updated: Campaign = { ...campaign, graphPositions: rest };
+      await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
+    });
   }
 
   private async writeNote(campaignId: string, note: Note): Promise<void> {

@@ -883,3 +883,23 @@ test('Gleichzeitige Schreibvorgaenge bleiben in der Reihenfolge', async () => {
     assert.deepEqual(reste, []);
   });
 });
+
+test('Loeschen kommt einer gleichzeitigen Ablage nicht dazwischen', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+    await vault.saveGraphPositions(campaign.id, { [mira.id]: { x: 1, y: 1 }, [toran.id]: { x: 2, y: 2 } });
+
+    // Beides gleichzeitig: das Loeschen raeumt Miras Stelle, die Ablage
+    // verschiebt Toran. Liest das Loeschen dabei einen alten Stand, macht es
+    // die Verschiebung wieder rueckgaengig.
+    await Promise.all([
+      vault.deleteNote(campaign.id, mira.id),
+      vault.saveGraphPositions(campaign.id, { [mira.id]: { x: 1, y: 1 }, [toran.id]: { x: 9, y: 9 } })
+    ]);
+
+    const stellen = (await vault.getCampaign(campaign.id)).graphPositions;
+    assert.deepEqual(stellen[toran.id], { x: 9, y: 9 });
+  });
+});
