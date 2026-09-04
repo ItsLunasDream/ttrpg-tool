@@ -559,6 +559,10 @@ export class Vault {
   async deleteNote(campaignId: string, noteId: string): Promise<void> {
     await fs.rm(this.noteFile(campaignId, noteId), { force: true });
 
+    // Auch die frueheren Staende. Sonst bliebe der Text der geloeschten Notiz
+    // auf der Platte liegen, und der Ordner wuechse mit jedem Loeschen weiter.
+    await fs.rm(this.historyDir(campaignId, noteId), { recursive: true, force: true });
+
     // Beziehungen auf die geloeschte Notiz wuerden sonst ins Leere zeigen.
     for (const other of await this.listNotes(campaignId)) {
       const relations = other.relations.filter((relation) => relation.targetId !== noteId);

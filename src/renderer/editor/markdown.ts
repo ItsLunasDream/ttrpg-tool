@@ -25,13 +25,42 @@ const turndown = new TurndownService({
  */
 const escapeText = turndown.escape.bind(turndown);
 
+/**
+ * Fussnoten kennt der Editor nicht, sie bleiben blosser Text. Ohne Schutz
+ * machte die Maskierung aus `[^1]` ein `\[^1\]`, und in Obsidian waere die
+ * Fussnote danach keine mehr. Sie wird deshalb wie ein Wiki-Link beiseite
+ * gelegt und unveraendert zurueckgesetzt.
+ *
+ * Erfasst wird der Verweis `[^kennung]` und die einleitende Marke einer
+ * Fussnote `[^kennung]:`. Leerraum in der Kennung ist ausgeschlossen, sonst
+ * verschluckte das Muster gewoehnliche Klammern im Satz.
+ */
+const FOOTNOTE_PATTERN = /\[\^[^\]\s]+\]/g;
+const FOOTNOTE_OPEN = '\uE002';
+const FOOTNOTE_CLOSE = '\uE003';
+const FOOTNOTE_MASK = /\uE002(\d+)\uE003/g;
+
+function maskFootnotes(text: string): { masked: string; restore: (value: string) => string } {
+  const found: string[] = [];
+  const masked = text.replace(FOOTNOTE_PATTERN, (whole) => {
+    found.push(whole);
+    return `${FOOTNOTE_OPEN}${found.length - 1}${FOOTNOTE_CLOSE}`;
+  });
+  return {
+    masked,
+    restore: (value) =>
+      value.replace(FOOTNOTE_MASK, (whole, index: string) => found[Number(index)] ?? whole)
+  };
+}
+
 turndown.escape = (text: string) => {
-  const { masked, restore } = maskWikiLinks(text);
+  const footnotes = maskFootnotes(text);
+  const { masked, restore } = maskWikiLinks(footnotes.masked);
   // Turndown maskiert die spitze Klammer nicht. Steht sie im Text, waere sie
   // in der Datei wieder HTML, und beim naechsten Laden wuerde der Editor das
   // Element samt Inhalt verwerfen: der Verlust waere nur aufgeschoben.
   // Bilder mit Breite gehen nicht hier durch, die haben eine eigene Regel.
-  return restore(escapeText(masked).replace(/<(?=[A-Za-z/!?])/g, '\\<'));
+  return footnotes.restore(restore(escapeText(masked).replace(/<(?=[A-Za-z/!?])/g, '\\<')));
 };
 
 /**

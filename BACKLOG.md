@@ -72,6 +72,17 @@ zufällig gleich, deshalb fällt es nicht auf.
   Immerhin wird jetzt darauf hingewiesen
 - Der Versionsverlauf wächst mit und landet auch in der ZIP-Sicherung. Bei
   vielen Notizen und hoher Höchstzahl kann das spürbar werden
+- Rohes HTML in einer Datei (`<div>`, `<span style=…>`) überlebt das Öffnen
+  nicht: der Editor kennt diese Elemente nicht, es bleibt der Text darin. Die
+  Auszeichnung ist danach weg. Gewollt, weil beliebiges HTML sonst ungeprüft
+  im Dokument stünde
+- Eine Datei mit BOM oder CRLF wird beim Speichern auf UTF-8 ohne BOM und LF
+  vereinheitlicht. Am Inhalt ändert das nichts, in einem Vergleichswerkzeug
+  sieht man es aber einmal als vollständige Änderung
+- Wird eine Notizdatei außerhalb geändert, während sie im Editor offen ist,
+  gewinnt beim nächsten Speichern der Editor. Es gibt keine Überwachung der
+  Dateien; fremde YAML-Schlüssel der externen Änderung werden dagegen
+  übernommen, weil sie erst beim Schreiben gelesen werden
 - Der PDF-Export bietet keine Auswahl von Schriftart, Rand oder Seitengröße
 - Die Windows-Anwendung ist nicht signiert, Windows zeigt beim ersten Start
   eine SmartScreen-Warnung. Eine Signatur bräuchte ein kostenpflichtiges
