@@ -111,8 +111,11 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
   const shape = useMemo(
     () =>
       [
-        nodeSeeds.map((node) => node.id).join(','),
-        edges.map((edge) => `${edge.kind}:${edge.source}>${edge.target}`).join(',')
+        // Sortiert, weil nur die Menge zaehlt: die Notizen stehen nach Titel
+        // geordnet, und ein Sprachwechsel sortiert sie um, ohne dass sich am
+        // Netz etwas aendert.
+        nodeSeeds.map((node) => node.id).sort().join(','),
+        edges.map((edge) => `${edge.kind}:${edge.source}>${edge.target}`).sort().join(',')
       ].join('|'),
     [nodeSeeds, edges]
   );
@@ -121,7 +124,6 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
     () => layoutGraph(nodeSeeds, edges, { width: WIDTH, height: HEIGHT, seed, fixed: savedRef.current }),
     // nodeSeeds und edges gehen bewusst nicht in die Abhaengigkeiten ein,
     // ihr Fingerabdruck vertritt sie.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [shape, seed]
   );
 

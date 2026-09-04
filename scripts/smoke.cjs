@@ -956,6 +956,47 @@ app.whenReady().then(async () => {
       );
     }
 
+    // Auch ein Sprachwechsel darf die Anordnung nicht neu wuerfeln: die
+    // Notizen werden dabei umsortiert, am Netz aendert sich nichts.
+    {
+      const vorSprache = await run(
+        window,
+        `return [...document.querySelectorAll('.graph__node')]
+           .map((g) => g.getAttribute('data-id') + '=' + g.getAttribute('transform'));`
+      );
+
+      await clickButton(window, 'Einstellungen');
+      await sleep(500);
+      await run(
+        window,
+        `const select = document.querySelector('.modal select');
+         Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, 'en');
+         select.dispatchEvent(new Event('change', { bubbles: true }));
+         return true;`
+      );
+      await sleep(900);
+      await run(
+        window,
+        `const select = document.querySelector('.modal select');
+         Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, 'de');
+         select.dispatchEvent(new Event('change', { bubbles: true }));
+         return true;`
+      );
+      await sleep(900);
+      await clickButton(window, '\u00d7', "document.querySelector('.modal__header')");
+      await sleep(500);
+
+      const nachSprache = await run(
+        window,
+        `return [...document.querySelectorAll('.graph__node')]
+           .map((g) => g.getAttribute('data-id') + '=' + g.getAttribute('transform'));`
+      );
+      check(
+        JSON.stringify(nachSprache) === JSON.stringify(vorSprache),
+        'Ein Sprachwechsel hat die Anordnung im Graphen neu gewürfelt'
+      );
+    }
+
     // Zwei Zuege unmittelbar hintereinander: der zweite darf den ersten nicht
     // ueberschreiben, obwohl das Gespeicherte noch nicht zurueck ist.
     await run(
