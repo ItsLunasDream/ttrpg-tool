@@ -355,6 +355,34 @@ test('Wiederherstellen holt den alten Text zurueck und sichert den aktuellen', a
   });
 });
 
+test('Wiederherstellen sichert den aktuellen Stand auch im Sperrfenster', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    const first = await vault.saveNote(campaign.id, { ...note, body: 'Alter Text.' });
+
+    const historyDir = path.join(root, 'campaigns', campaign.id, 'history', note.id);
+    await backdateVersions(historyDir);
+
+    // Ab hier wird nichts mehr zurueckdatiert: der zweite Stand liegt frisch
+    // im Verlauf, das Sperrfenster ist also offen. Genau so sieht es aus, wenn
+    // jemand eine Stunde am Text sitzt und dabei immer wieder speichert.
+    await vault.saveNote(campaign.id, { ...first, body: 'Alter Text. Und viel Neues.' });
+
+    const versions = await vault.listVersions(campaign.id, note.id);
+    const oldVersion = versions.find((version) => version.body.includes('Alter Text.'));
+    assert.ok(oldVersion, 'alte Fassung fehlt im Verlauf');
+
+    await vault.restoreVersion(campaign.id, note.id, oldVersion.id);
+
+    const afterRestore = await vault.listVersions(campaign.id, note.id);
+    assert.ok(
+      afterRestore.some((version) => version.body.includes('Und viel Neues')),
+      'der ueberschriebene Stand wurde nicht gesichert, der Text ist weg'
+    );
+  });
+});
+
 test('Der Verlauf wird auf die eingestellte Hoechstzahl gekuerzt', async () => {
   await withVault(async (vault, root) => {
     vault.setHistoryOptions({ enabled: true, maxVersions: 3 });

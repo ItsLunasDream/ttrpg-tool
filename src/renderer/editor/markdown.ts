@@ -186,7 +186,57 @@ turndown.addRule('imageWithWidth', {
   }
 });
 
+/**
+ * Aufgabenlisten (`- [x] erledigt`).
+ *
+ * Der Markdown-Leser baut daraus ein Ankreuzfeld mitten im Listenpunkt. Der
+ * Editor kennt dort keines und wirft es weg: aus der Aufgabenliste wurde beim
+ * naechsten Speichern eine gewoehnliche Liste, der Haken war fort. TipTap
+ * erwartet die Angabe stattdessen als Attribut, `data-type="taskList"` an der
+ * Liste und `data-checked` am Punkt.
+ *
+ * Ob eine Liste eine Aufgabenliste ist, weiss `list` nicht: es bekommt nur den
+ * fertigen Rumpf. Deshalb setzt `listitem` eine Marke davor, die `list` liest
+ * und wieder entfernt. Verschachtelte Listen sind dabei schon gerendert und
+ * haben ihre eigenen Marken bereits abgeraeumt.
+ */
+const TASK_MARK = '\uE004';
+
+const taskListRenderer = {
+  listitem(text: string, task: boolean, checked: boolean): string {
+    if (!task) return `<li>${text}</li>\n`;
+    // Das Ankreuzfeld steht schon im Text; an seine Stelle tritt das Attribut.
+    return `${TASK_MARK}<li data-type="taskItem" data-checked="${checked}">${text.replace(/^<input[^>]*>\s?/, '')}</li>\n`;
+  },
+  list(body: string, ordered: boolean, start: number | ''): string {
+    if (body.includes(TASK_MARK)) {
+      return `<ul data-type="taskList">\n${body.split(TASK_MARK).join('')}</ul>\n`;
+    }
+    const tag = ordered ? 'ol' : 'ul';
+    const startAttribute = ordered && start !== '' && start !== 1 ? ` start="${start}"` : '';
+    return `<${tag}${startAttribute}>\n${body}</${tag}>\n`;
+  }
+};
+
+/**
+ * Umgekehrter Weg: aus dem Listenpunkt des Editors wird wieder `- [x] Text`.
+ * Ohne diese Regel bliebe nur der Text uebrig, das Ankreuzfeld des Editors
+ * steckt in einem `label`, das Turndown leer laesst.
+ */
+turndown.addRule('taskItem', {
+  filter: (node) => node.nodeName === 'LI' && (node as HTMLElement).hasAttribute('data-checked'),
+  replacement: (content, node) => {
+    const checked = (node as HTMLElement).getAttribute('data-checked') === 'true';
+    const text = content
+      .replace(/^\n+/, '')
+      .replace(/\n+$/, '\n')
+      .replace(/\n/gm, '\n    ');
+    return `- [${checked ? 'x' : ' '}] ${text}${node.nextSibling && !/\n$/.test(text) ? '\n' : ''}`;
+  }
+});
+
 marked.setOptions({ gfm: true, breaks: false });
+marked.use({ renderer: taskListRenderer });
 
 /**
  * Zweiter Leser fuer eingefuegten Text: er gibt rohes HTML als Text aus,
@@ -195,6 +245,7 @@ marked.setOptions({ gfm: true, breaks: false });
 const plainMarked = new Marked({ gfm: true, breaks: false });
 plainMarked.use({
   renderer: {
+    ...taskListRenderer,
     html: (token: string | { raw?: string; text?: string }) =>
       escapeHtml(typeof token === 'string' ? token : token.raw ?? token.text ?? '')
   }

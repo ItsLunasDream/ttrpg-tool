@@ -39,6 +39,14 @@ const PROBEN = [
     name: 'Tabelle mit Auszeichnungen',
     text: '| Wer | Was |\n| --- | --- |\n| **Mira** | ein [Link](https://example.org) |'
   },
+  {
+    name: 'Aufgabenliste',
+    text: '- [ ] Offen\n- [x] Erledigt',
+    // Der Editor setzt drei Leerzeichen hinter den Strich und eine Leerzeile
+    // zwischen die Punkte; das Kreuz und die leere Klammer bleiben.
+    erwartet: '- [ ] Offen\n\n- [x] Erledigt'
+  },
+  { name: 'Fussnote', text: 'Sie ging fort.[^1]\n\n[^1]: Wohin, sagt niemand.' },
   { name: 'Ueberschriften', text: '# Eins\n\n## Zwei\n\n### Drei' },
   { name: 'Tiefe Ueberschrift', text: '#### Vier\n\nText.' },
   { name: 'Zitat', text: '> Sie sagte nichts.\n>\n> Dann ging sie.' },

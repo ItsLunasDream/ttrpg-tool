@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {pastedMarkdownToHtml, findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, layoutGraph, buildGraphEdges, buildGraphNodes, mergeNoteTypes, countMergeChanges} = entry;
+const {pastedMarkdownToHtml, findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, layoutGraph, buildGraphEdges, buildGraphNodes, mergeNoteTypes, countMergeChanges, factoryFieldKey, finalizeNewEntries} = entry;
 
 /** Baut einen Index mit den Standardtypen. */
 function makeIndex(notes) {
@@ -487,6 +487,65 @@ test('Anordnung kommt mit einem einzelnen Knoten klar', () => {
 
 const TYPE_A = { id: 'character', label: 'Charakter', plural: 'Charaktere', fields: [{ key: 'age', label: 'Alter', type: 'text' }] };
 const TYPE_B = { id: 'item', label: 'Gegenstand', plural: 'Gegenstände', fields: [{ key: 'value', label: 'Wert', type: 'text' }] };
+
+test('Ein neuer Typ bekommt seine Kennung aus der Beschriftung, nicht aus dem Platzhalter', () => {
+  // So sieht der Entwurf aus, wenn jemand "+ Typ" klickt und "Waffe" eintippt:
+  // die Kennung stammt noch vom Platzhalter.
+  const draft = [
+    { id: 'note', label: 'Notiz', plural: 'Notizen', fields: [] },
+    { id: 'neuer_typ', label: 'Waffe', plural: 'Waffen', fields: [] }
+  ];
+
+  const final = finalizeNewEntries(draft, ['neuer_typ'], []);
+
+  assert.equal(final[1].id, 'waffe');
+  assert.equal(final[0].id, 'note', 'ein bestehender Typ wurde umbenannt');
+});
+
+test('Zwei Kampagnen mit eigenem erstem Typ lassen sich zusammenfuehren', () => {
+  const waffe = finalizeNewEntries([{ id: 'neuer_typ', label: 'Waffe', plural: 'Waffen', fields: [] }], ['neuer_typ'], []);
+  const zauber = finalizeNewEntries([{ id: 'neuer_typ', label: 'Zauber', plural: 'Zauber', fields: [] }], ['neuer_typ'], []);
+
+  // Vorher hiessen beide neuer_typ, das Uebernehmen fand deshalb nichts zu tun.
+  const merged = mergeNoteTypes(zauber, waffe);
+  assert.deepEqual(merged.map((def) => def.id).sort(), ['waffe', 'zauber']);
+});
+
+test('Ein zurueckgeholtes Werksfeld bekommt seinen alten Schluessel', () => {
+  // "Klasse" liegt beim Charakter unter dem englischen Schluessel class.
+  assert.equal(factoryFieldKey('character', 'Klasse'), 'class');
+  assert.equal(factoryFieldKey('character', 'Gibt es nicht'), undefined);
+
+  const draft = [
+    {
+      id: 'character',
+      label: 'Charakter',
+      plural: 'Charaktere',
+      fields: [{ key: 'neues_feld', label: 'Klasse', type: 'text' }]
+    }
+  ];
+
+  const final = finalizeNewEntries(draft, [], ['character:neues_feld']);
+  assert.equal(final[0].fields[0].key, 'class', 'der eingetragene Wert bliebe unerreichbar');
+});
+
+test('Ist der Werksschluessel belegt, bekommt das neue Feld einen eigenen', () => {
+  const draft = [
+    {
+      id: 'character',
+      label: 'Charakter',
+      plural: 'Charaktere',
+      fields: [
+        { key: 'class', label: 'Klasse', type: 'text' },
+        { key: 'neues_feld', label: 'Klasse', type: 'text' }
+      ]
+    }
+  ];
+
+  const final = finalizeNewEntries(draft, [], ['character:neues_feld']);
+  assert.equal(final[0].fields[0].key, 'class', 'das bestehende Feld verlor seinen Schluessel');
+  assert.equal(final[0].fields[1].key, 'klasse');
+});
 
 test('mergeNoteTypes ergaenzt fehlende Typen', () => {
   const merged = mergeNoteTypes([TYPE_A], [TYPE_B]);

@@ -90,6 +90,34 @@ zufällig gleich, deshalb fällt es nicht auf.
 
 ## Erledigt
 
+### Testrunde mit simulierten Nutzerinnen
+
+Fünf Agenten haben die gebaute Anwendung bedient, jede mit einem eigenen
+Anspruch: Anfängerin, Vielschreiberin, Ordnungsliebende, Obsidian-Umsteigerin
+und ein Chaos-Tester. Alle Funde wurden danach selbst nachgeprüft, nicht
+ungeprüft übernommen. Sechs echte Fehler kamen dabei heraus:
+
+- **Wiederherstellen löschte den Text.** Der Sicherheitsschnappschuss vor dem
+  Zurückholen lief durch dasselbe Fünf-Minuten-Sperrfenster wie ein
+  gewöhnliches Speichern. Wer eine Stunde schrieb und dabei immer wieder
+  speicherte, hatte keine Fassung im Verlauf und verlor beim Wiederherstellen
+  alles, obwohl der Dialog ausdrücklich zusagt, dass es umkehrbar ist. Der
+  Schnappschuss vor dem Zurückholen umgeht das Sperrfenster jetzt
+- **Aufgabenlisten verloren den Haken.** `- [x] erledigt` wurde beim Speichern
+  zu einer gewöhnlichen Liste, der Editor kannte kein Ankreuzfeld
+- **Notiztypen aus einer anderen Kampagne wurden verschluckt.** Der erste
+  eigene Typ jeder Kampagne hieß intern `neuer_typ`, weil die Kennung aus dem
+  Platzhalter entstand
+- **Zurückgeholte Werksfelder blieben leer**, weil sie teils englische
+  Schlüssel tragen (`class` für „Klasse")
+- **Fußnoten** `[^1]` wurden zu `\[^1\]` und waren in Obsidian keine mehr
+- **Der Versionsverlauf gelöschter Notizen** blieb für immer auf der Platte
+
+Nicht bestätigt haben sich: angeblich langsames Speichern von Aliasen und Tags
+(das ist die Entprellung, die bei jeder Änderung neu anläuft), und
+verschwindende Dateien in einem Testlauf (zwei Agenten teilten sich `/tmp`).
+
+
 ### Assistent auch in groß, im Schreibhilfe-Dialog
 
 Der Dialog heißt jetzt „Schreibhilfe und KI" und hat zwei Reiter:
