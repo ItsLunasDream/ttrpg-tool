@@ -912,6 +912,12 @@ app.whenReady().then(async () => {
     }
 
     // 17b. Ein verschobener Knoten bleibt an seiner Stelle
+    const vorherAlle = await run(
+      window,
+      `return [...document.querySelectorAll('.graph__node')]
+         .map((g) => g.getAttribute('data-id') + '=' + g.getAttribute('transform'));`
+    );
+
     const gezogen = await run(
       window,
       `const svg = document.querySelector('.graph__canvas');
@@ -932,6 +938,21 @@ app.whenReady().then(async () => {
       check(
         Boolean(kampagne.graphPositions && kampagne.graphPositions[gezogen]),
         'Die verschobene Stelle steht nicht in campaign.json'
+      );
+    }
+
+    // Die uebrigen Knoten duerfen dabei nicht mitspringen.
+    {
+      const vorherAndere = vorherAlle.filter((eintrag) => !eintrag.startsWith(gezogen + '='));
+      const nachherAlle = await run(
+        window,
+        `return [...document.querySelectorAll('.graph__node')]
+           .map((g) => g.getAttribute('data-id') + '=' + g.getAttribute('transform'));`
+      );
+      const gefiltert = nachherAlle.filter((eintrag) => !eintrag.startsWith(gezogen + '='));
+      check(
+        JSON.stringify(gefiltert) === JSON.stringify(vorherAndere),
+        `Beim Verschieben eines Knotens sind andere mitgesprungen:\n    vorher : ${JSON.stringify(vorherAndere)}\n    nachher: ${JSON.stringify(gefiltert)}`
       );
     }
 

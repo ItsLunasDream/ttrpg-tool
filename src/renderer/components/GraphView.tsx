@@ -98,9 +98,31 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
     savedRef.current = saved;
   }
 
+  /**
+   * Fingerabdruck des Netzes: welche Knoten, welche Kanten. Nur daran haengt
+   * die Anordnung.
+   *
+   * An den Objekten selbst darf sie nicht haengen: die Kampagne wird nach
+   * jedem Ablegen eines Knotens neu aus dem Hauptprozess geholt, und damit
+   * sind Notiztypen, Index und Kanten neue Objekte, ohne dass sich am Netz
+   * etwas geaendert haette. Wuerde danach neu gerechnet, sprangen beim
+   * Verschieben eines Knotens alle anderen mit.
+   */
+  const shape = useMemo(
+    () =>
+      [
+        nodeSeeds.map((node) => node.id).join(','),
+        edges.map((edge) => `${edge.kind}:${edge.source}>${edge.target}`).join(',')
+      ].join('|'),
+    [nodeSeeds, edges]
+  );
+
   const computed = useMemo(
     () => layoutGraph(nodeSeeds, edges, { width: WIDTH, height: HEIGHT, seed, fixed: savedRef.current }),
-    [nodeSeeds, edges, seed]
+    // nodeSeeds und edges gehen bewusst nicht in die Abhaengigkeiten ein,
+    // ihr Fingerabdruck vertritt sie.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [shape, seed]
   );
 
   // Nach einer Neuberechnung zaehlt wieder das Ergebnis, das gerade Gezogene
