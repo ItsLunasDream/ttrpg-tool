@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { findNoteType } from '../../shared/noteTypes';
 import type { NoteIndex } from '../noteIndex';
+import type { GraphPosition } from '../../shared/types';
 import { buildGraphEdges, buildGraphNodes, type GraphMode } from '../graph/build';
 import { layoutGraph, type GraphNode } from '../graph/layout';
 import { useT } from '../i18n';
@@ -8,6 +9,9 @@ import { useT } from '../i18n';
 interface Props {
   index: NoteIndex;
   activeNoteId: string | null;
+  /** Von Hand gesetzte Stellen aus der Kampagne. */
+  positions: Record<string, GraphPosition>;
+  onSavePositions: (positions: Record<string, GraphPosition>) => void;
   onOpenNote: (noteId: string) => void;
   onClose: () => void;
 }
@@ -22,16 +26,44 @@ const HEIGHT = 780;
  */
 const LABEL_LIMIT = 20;
 
+/**
+ * Abstand der beiden Linien, wenn zwischen zwei Knoten in beide Richtungen
+ * eine Verbindung besteht. Bewusst klein: beim Herauszoomen sollen sie wieder
+ * wie eine Linie wirken.
+ */
+const EDGE_GAP = 5;
+
+/** Wie weit die Beschriftung ueber ihre eigene Linie hinaus nach aussen rueckt. */
+const LABEL_SIDE = 2.4;
+
 /** Feste Farbreihe, damit Notiztypen wiedererkennbar bleiben. */
 const TYPE_COLORS = ['#c4a35a', '#8ec3e0', '#a3c48b', '#d98a7c', '#b39ddb', '#7fb3a8'];
 
-export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
+export function GraphView({ index, activeNoteId, positions: saved, onSavePositions, onOpenNote, onClose }: Props) {
   const t = useT();
   const [mode, setMode] = useState<GraphMode>('both');
   const [seed, setSeed] = useState(42);
   const [hovered, setHovered] = useState<string | null>(null);
-  const [dragging, setDragging] = useState<string | null>(null);
-  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
+  /** Waehrend des Ziehens, damit der Knoten sofort folgt. */
+  const [dragged, setDragged] = useState<Record<string, GraphPosition>>({});
+  /**
+   * Dasselbe noch einmal als Referenz. Beim Loslassen muss die zuletzt
+   * gezogene Stelle sicher zur Hand sein: folgen die Ereignisse dicht
+   * aufeinander, hat React zwischen Bewegung und Loslassen noch nicht neu
+   * gezeichnet, und der Zustand waere im Handler noch der alte.
+   */
+  const dragRef = useRef<{ id: string; at: GraphPosition | null } | null>(null);
+
+  const dropNode = useCallback(() => {
+    const drop = dragRef.current;
+    dragRef.current = null;
+    setPanning(null);
+    if (!drop?.at) return;
+
+    const next = { ...savedRef.current, [drop.id]: drop.at };
+    savedRef.current = next;
+    onSavePositions(next);
+  }, [onSavePositions]);
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
   const [view, setView] = useState({ x: 0, y: 0, width: WIDTH, height: HEIGHT });
   const [panning, setPanning] = useState<{ x: number; y: number } | null>(null);
@@ -51,21 +83,60 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
   const edges = useMemo(() => buildGraphEdges(visibleIndex, mode), [visibleIndex, mode]);
   const nodeSeeds = useMemo(() => buildGraphNodes(visibleNotes, edges), [visibleNotes, edges]);
 
-  const computed = useMemo(
-    () => layoutGraph(nodeSeeds, edges, { width: WIDTH, height: HEIGHT, seed }),
-    [nodeSeeds, edges, seed]
+  // Die gespeicherten Stellen gehen als feste Punkte in die Anordnung ein,
+  // sind aber kein Anlass, sie neu zu berechnen: sonst rechnete jedes
+  // Loslassen nach dem Ziehen das ganze Netz noch einmal durch. Deshalb
+  // ueber eine Referenz statt ueber die Abhaengigkeiten.
+  //
+  // Die Referenz wird beim Ablegen sofort mitgeschrieben, nicht erst wenn
+  // das Gespeicherte zurueckkommt: sonst verloere ein zweiter Zug kurz nach
+  // dem ersten dessen Stelle wieder.
+  const savedRef = useRef(saved);
+  const lastProp = useRef(saved);
+  if (lastProp.current !== saved) {
+    lastProp.current = saved;
+    savedRef.current = saved;
+  }
+
+  /**
+   * Fingerabdruck des Netzes: welche Knoten, welche Kanten. Nur daran haengt
+   * die Anordnung.
+   *
+   * An den Objekten selbst darf sie nicht haengen: die Kampagne wird nach
+   * jedem Ablegen eines Knotens neu aus dem Hauptprozess geholt, und damit
+   * sind Notiztypen, Index und Kanten neue Objekte, ohne dass sich am Netz
+   * etwas geaendert haette. Wuerde danach neu gerechnet, sprangen beim
+   * Verschieben eines Knotens alle anderen mit.
+   */
+  const shape = useMemo(
+    () =>
+      [
+        // Sortiert, weil nur die Menge zaehlt: die Notizen stehen nach Titel
+        // geordnet, und ein Sprachwechsel sortiert sie um, ohne dass sich am
+        // Netz etwas aendert.
+        nodeSeeds.map((node) => node.id).sort().join(','),
+        edges.map((edge) => `${edge.kind}:${edge.source}>${edge.target}`).sort().join(',')
+      ].join('|'),
+    [nodeSeeds, edges]
   );
 
-  // Nach einer Neuberechnung zaehlen wieder die berechneten Werte, von Hand
-  // verschobene Knoten werden verworfen.
+  const computed = useMemo(
+    () => layoutGraph(nodeSeeds, edges, { width: WIDTH, height: HEIGHT, seed, fixed: savedRef.current }),
+    // nodeSeeds und edges gehen bewusst nicht in die Abhaengigkeiten ein,
+    // ihr Fingerabdruck vertritt sie.
+    [shape, seed]
+  );
+
+  // Nach einer Neuberechnung zaehlt wieder das Ergebnis, das gerade Gezogene
+  // ist darin schon enthalten.
   useEffect(() => {
-    setPositions({});
+    setDragged({});
     setView({ x: 0, y: 0, width: WIDTH, height: HEIGHT });
   }, [computed]);
 
   const nodes: GraphNode[] = useMemo(
-    () => computed.map((node) => ({ ...node, ...(positions[node.id] ?? {}) })),
-    [computed, positions]
+    () => computed.map((node) => ({ ...node, ...(saved[node.id] ?? {}), ...(dragged[node.id] ?? {}) })),
+    [computed, saved, dragged]
   );
 
   const byId = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
@@ -77,6 +148,20 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
     },
     [index.types]
   );
+
+  /**
+   * Kanten, zu denen es eine Gegenrichtung gibt. Die beiden werden dann
+   * versetzt gezeichnet, sonst liegen Linie und Beschriftung uebereinander
+   * und es waere nicht zu erkennen, welche Bezeichnung wohin gilt.
+   */
+  const twoWay = useMemo(() => {
+    const keys = new Set(edges.map((edge) => `${edge.kind}:${edge.source}:${edge.target}`));
+    return new Set(
+      edges
+        .filter((edge) => keys.has(`${edge.kind}:${edge.target}:${edge.source}`))
+        .map((edge) => `${edge.kind}:${edge.source}:${edge.target}`)
+    );
+  }, [edges]);
 
   /** Nachbarn des Knotens unter der Maus, fuer das Hervorheben. */
   const neighbours = useMemo(() => {
@@ -179,7 +264,20 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
         <button type="button" onClick={() => setView({ x: 0, y: 0, width: WIDTH, height: HEIGHT })}>
           {t('graph.zoomReset')}
         </button>
-        <button type="button" onClick={() => setSeed((previous) => previous + 1)}>
+        <button
+          type="button"
+          onClick={() => {
+            // Neu anordnen wirft die von Hand gesetzten Stellen weg, das ist
+            // der Sinn des Knopfes. Die Referenz muss vor dem neuen Anlauf
+            // leer sein, sonst haelt die Berechnung die alten Knoten weiter
+            // fest und der Knopf taete beim ersten Druck nichts.
+            dragRef.current = null;
+            savedRef.current = {};
+            onSavePositions({});
+            setDragged({});
+            setSeed((previous) => previous + 1);
+          }}
+        >
           {t('graph.recalculate')}
         </button>
         <button type="button" onClick={onClose}>
@@ -200,9 +298,13 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
           if (event.target === event.currentTarget) setPanning(toSvgPoint(event));
         }}
         onMouseMove={(event) => {
-          if (dragging) {
+          const drag = dragRef.current;
+          if (drag) {
             const point = toSvgPoint(event);
-            if (point) setPositions((previous) => ({ ...previous, [dragging]: point }));
+            if (point) {
+              dragRef.current = { id: drag.id, at: point };
+              setDragged((previous) => ({ ...previous, [drag.id]: point }));
+            }
             return;
           }
           if (!panning) return;
@@ -215,13 +317,13 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
             y: previous.y - (point.y - panning.y)
           }));
         }}
-        onMouseUp={() => {
-          setDragging(null);
-          setPanning(null);
-        }}
+        // Erst beim Loslassen speichern, nicht bei jeder Mausbewegung.
+        onMouseUp={dropNode}
         onMouseLeave={() => {
-          setDragging(null);
-          setPanning(null);
+          // Verlaesst die Maus die Flaeche mitten im Ziehen, gilt der Knoten
+          // trotzdem als abgelegt: sonst waere die Verschiebung beim naechsten
+          // Oeffnen wieder weg.
+          dropNode();
           setHovered(null);
         }}
       >
@@ -240,20 +342,33 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
           const radius = 8 + Math.min(10, target.degree);
           const angle = Math.atan2(target.y - source.y, target.x - source.x);
 
+          // Zur Seite versetzen, wenn es die Gegenrichtung auch gibt. Die
+          // Senkrechte zur eigenen Richtung zeigt bei beiden Kanten
+          // auseinander, jede landet also auf ihrer Seite. Der Betrag ist
+          // klein, damit beim Herauszoomen wieder eine Linie daraus wird.
+          const apart = twoWay.has(`${edge.kind}:${edge.source}:${edge.target}`);
+          const sideX = apart ? -Math.sin(angle) * EDGE_GAP : 0;
+          const sideY = apart ? Math.cos(angle) * EDGE_GAP : 0;
+
           return (
             <g
               key={`${edge.kind}-${edge.source}-${edge.target}`}
               className={`graph__edge graph__edge--${edge.kind}${dimmed ? ' is-dimmed' : ''}`}
             >
               <line
-                x1={source.x}
-                y1={source.y}
-                x2={target.x - Math.cos(angle) * radius}
-                y2={target.y - Math.sin(angle) * radius}
+                x1={source.x + sideX}
+                y1={source.y + sideY}
+                x2={target.x - Math.cos(angle) * radius + sideX}
+                y2={target.y - Math.sin(angle) * radius + sideY}
                 markerEnd="url(#arrow)"
               />
               {edge.label && !dimmed && showLabels ? (
-                <text x={(source.x + target.x) / 2} y={(source.y + target.y) / 2 - 4}>
+                // Die Beschriftung liegt aussen an ihrer eigenen Linie, damit
+                // eindeutig ist, zu welcher Richtung sie gehoert.
+                <text
+                  x={(source.x + target.x) / 2 + sideX * LABEL_SIDE}
+                  y={(source.y + target.y) / 2 + sideY * LABEL_SIDE - (apart ? 0 : 4)}
+                >
                   {edge.label}
                 </text>
               ) : null}
@@ -271,13 +386,14 @@ export function GraphView({ index, activeNoteId, onOpenNote, onClose }: Props) {
           return (
             <g
               key={node.id}
+              data-id={node.id}
               className={`graph__node${dimmed ? ' is-dimmed' : ''}${node.id === activeNoteId ? ' is-active' : ''}`}
               transform={`translate(${node.x} ${node.y})`}
               onMouseEnter={() => setHovered(node.id)}
               onMouseLeave={() => setHovered(null)}
               onMouseDown={(event) => {
                 event.preventDefault();
-                setDragging(node.id);
+                dragRef.current = { id: node.id, at: null };
               }}
               onClick={() => onOpenNote(node.id)}
             >

@@ -206,6 +206,12 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelectorAll('.relation').length === 1;`),
       'Beziehung wurde nicht angelegt');
 
+    // Bezeichnung setzen, sonst traegt die Kante im Graphen spaeter keine.
+    await run(window, `setValue(document.querySelector('.relation__type'), 'Mentorin'); return true;`);
+    await sleep(400);
+    await save(window);
+    await sleep(400);
+
     // Die Gegenrichtung fehlt und muss angeboten werden
     check(await run(window, `return Boolean(document.querySelector('.relation__reverse'));`),
       'Fehlende Gegenrichtung wird nicht angeboten');
@@ -217,6 +223,17 @@ app.whenReady().then(async () => {
     await selectNote(window, 'Toran');
     check(await run(window, `return document.querySelectorAll('.relation').length === 1;`),
       'Gegenrichtung wurde bei Toran nicht angelegt');
+
+    // Der Gegenrichtung eine eigene Bezeichnung geben. Im Graphen muessen
+    // beide danach nebeneinander lesbar sein.
+    await run(window, `setValue(document.querySelector('.relation__type'), 'Schuldner'); return true;`);
+    await sleep(400);
+    await save(window);
+    await sleep(600);
+    check(
+      await run(window, `return document.querySelector('.relation__type').value === 'Schuldner';`),
+      'Die Bezeichnung der Gegenrichtung wurde nicht übernommen'
+    );
     await selectNote(window, 'Mira Falkenhand');
     // Jetzt gibt es keine freie Notiz mehr, statt leerer Liste muss ein Hinweis stehen
     check(await run(window, `return document.querySelector('.relations__add') === null;`),
@@ -308,6 +325,13 @@ app.whenReady().then(async () => {
     check(files.some((raw) => raw.includes('schemaVersion: 1')), 'schemaVersion fehlt');
 
     // 11. Notiztyp anpassen: Feld umbenennen und neues Feld anlegen
+    // Erreichbar ueber den Knopf am Steckbrief, nicht nur ueber das Menue.
+    check(
+      await run(window, `const box = [...document.querySelectorAll('.panel__title')]
+           .find((h) => h.textContent.includes('Steckbrief'));
+         return Boolean(box && box.querySelector('button'));`),
+      'Am Steckbrief fehlt der Knopf zum Bearbeiten'
+    );
     await menuAction(window, 'Notiztypen');
     await sleep(500);
     check(await run(window, `return Boolean(document.querySelector('.type-editor'));`), 'Notiztyp-Editor öffnet nicht');
@@ -678,6 +702,26 @@ app.whenReady().then(async () => {
       await sleep(400);
     }
 
+    // Beide Formate der Notiz liegen unter einem Knopf.
+    await run(
+      window,
+      `const box = [...document.querySelectorAll('.menu')]
+         .find((m) => m.querySelector('button').textContent.includes('Export'));
+       if (!box) throw new Error('Export-Menü fehlt');
+       box.querySelector('button').click();
+       return true;`
+    );
+    await sleep(400);
+    check(
+      await run(window, `const box = [...document.querySelectorAll('.menu')]
+         .find((m) => m.querySelector('button').textContent.includes('Export'));
+         const eintraege = [...box.querySelectorAll('.menu__list button')].map((b) => b.textContent);
+         box.querySelector('button').click();
+         return eintraege.includes('Notiz als Markdown') && eintraege.includes('Notiz als PDF');`),
+      'Die Notiz-Exporte liegen nicht unter einem gemeinsamen Knopf'
+    );
+    await sleep(300);
+
     // 15. Export als Markdown und PDF
     {
       const exportDir = path.join(userData, 'export');
@@ -718,6 +762,33 @@ app.whenReady().then(async () => {
         check(bytes.length > 1000, `PDF ist verdächtig klein: ${bytes.length} Bytes`);
       }
     }
+
+    // 16b. Der KI-Bereich liegt im selben Dialog, klar benannt
+    await selectNote(window, 'Toran');
+    await clickButton(window, 'Schreibhilfe');
+    await sleep(700);
+    check(
+      await run(window, `return document.querySelector('.modal__header h2').textContent.includes('KI');`),
+      'Der Dialogtitel nennt den KI-Teil nicht'
+    );
+    check(
+      await run(window, `const reiter = [...document.querySelectorAll('.prompts__tabs button')].map((b) => b.textContent);
+         return reiter.some((r) => r.includes('ohne KI')) && reiter.some((r) => r.includes('KI-Assistent'));`),
+      'Die Reiter unterscheiden Vorschläge und KI nicht'
+    );
+    await run(
+      window,
+      `[...document.querySelectorAll('.prompts__tabs button')].find((b) => b.textContent.includes('KI-Assistent')).click();
+       return true;`
+    );
+    await sleep(500);
+    check(
+      await run(window, `return Boolean(document.querySelector('.assistant--chat'))
+         || document.body.textContent.includes('Keine KI-Anbindung');`),
+      'Der KI-Reiter zeigt weder Gespräch noch Hinweis'
+    );
+    await clickButton(window, '\u00d7', "document.querySelector('.modal__header')");
+    await sleep(400);
 
     // 16. Schreibhilfe: Vorschlag in den Text uebernehmen
     await selectNote(window, 'Toran');
@@ -808,10 +879,180 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelector('.graph__canvas').getAttribute('viewBox') !== ${JSON.stringify(zoomed)};`),
       'Zoom verändert die Ansicht nicht');
 
-    await clickButton(window, 'Ansicht zurücksetzen', "document.querySelector('.graph__bar')");
+    await clickButton(window, 'Zoom zurücksetzen', "document.querySelector('.graph__bar')");
     await sleep(500);
     check(await run(window, `return document.querySelector('.graph__canvas').getAttribute('viewBox') === '0 0 1200 780';`),
       'Zurücksetzen der Ansicht wirkt nicht');
+
+    // 17a. Zwei Richtungen zwischen denselben Knoten liegen nebeneinander
+    {
+      const linien = await run(
+        window,
+        `const paare = new Map();
+         for (const g of document.querySelectorAll('.graph__edge--relation')) {
+           const line = g.querySelector('line');
+           const punkte = [line.getAttribute('x1'), line.getAttribute('y1'), line.getAttribute('x2'), line.getAttribute('y2')];
+           paare.set(punkte.join(','), (paare.get(punkte.join(',')) ?? 0) + 1);
+         }
+         return [...paare.keys()];`
+      );
+      check(linien.length >= 2, `Zu wenige Beziehungslinien im Graph: ${linien.length}`);
+      check(new Set(linien).size === linien.length, 'Hin- und Rückrichtung liegen auf derselben Linie');
+
+      const beschriftungen = await run(
+        window,
+        `return [...document.querySelectorAll('.graph__edge--relation text')]
+           .map((t) => t.getAttribute('x') + ',' + t.getAttribute('y'));`
+      );
+      check(beschriftungen.length >= 2, `Zu wenige Beziehungstexte im Graph: ${JSON.stringify(beschriftungen)}`);
+      check(
+        new Set(beschriftungen).size === beschriftungen.length,
+        `Die Beziehungstexte stehen aufeinander: ${JSON.stringify(beschriftungen)}`
+      );
+    }
+
+    // 17b. Ein verschobener Knoten bleibt an seiner Stelle
+    const vorherAlle = await run(
+      window,
+      `return [...document.querySelectorAll('.graph__node')]
+         .map((g) => g.getAttribute('data-id') + '=' + g.getAttribute('transform'));`
+    );
+
+    const gezogen = await run(
+      window,
+      `const svg = document.querySelector('.graph__canvas');
+       const node = document.querySelector('.graph__node');
+       const id = node.getAttribute('data-id');
+       const rect = svg.getBoundingClientRect();
+       const at = (x, y) => ({ clientX: rect.left + x, clientY: rect.top + y, bubbles: true });
+
+       node.dispatchEvent(new MouseEvent('mousedown', at(100, 100)));
+       svg.dispatchEvent(new MouseEvent('mousemove', at(300, 250)));
+       svg.dispatchEvent(new MouseEvent('mouseup', at(300, 250)));
+       return id;`
+    );
+    await sleep(1200);
+    const kampagnenDatei = path.join(userData, 'vault', 'campaigns', campaignId, 'campaign.json');
+    {
+      const kampagne = JSON.parse(fs.readFileSync(kampagnenDatei, 'utf8'));
+      check(
+        Boolean(kampagne.graphPositions && kampagne.graphPositions[gezogen]),
+        'Die verschobene Stelle steht nicht in campaign.json'
+      );
+    }
+
+    // Die uebrigen Knoten duerfen dabei nicht mitspringen.
+    {
+      const vorherAndere = vorherAlle.filter((eintrag) => !eintrag.startsWith(gezogen + '='));
+      const nachherAlle = await run(
+        window,
+        `return [...document.querySelectorAll('.graph__node')]
+           .map((g) => g.getAttribute('data-id') + '=' + g.getAttribute('transform'));`
+      );
+      const gefiltert = nachherAlle.filter((eintrag) => !eintrag.startsWith(gezogen + '='));
+      check(
+        JSON.stringify(gefiltert) === JSON.stringify(vorherAndere),
+        `Beim Verschieben eines Knotens sind andere mitgesprungen:\n    vorher : ${JSON.stringify(vorherAndere)}\n    nachher: ${JSON.stringify(gefiltert)}`
+      );
+    }
+
+    // Auch ein Sprachwechsel darf die Anordnung nicht neu wuerfeln: die
+    // Notizen werden dabei umsortiert, am Netz aendert sich nichts.
+    {
+      const vorSprache = await run(
+        window,
+        `return [...document.querySelectorAll('.graph__node')]
+           .map((g) => g.getAttribute('data-id') + '=' + g.getAttribute('transform'));`
+      );
+
+      await clickButton(window, 'Einstellungen');
+      await sleep(500);
+      await run(
+        window,
+        `const select = document.querySelector('.modal select');
+         Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, 'en');
+         select.dispatchEvent(new Event('change', { bubbles: true }));
+         return true;`
+      );
+      await sleep(900);
+      await run(
+        window,
+        `const select = document.querySelector('.modal select');
+         Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, 'de');
+         select.dispatchEvent(new Event('change', { bubbles: true }));
+         return true;`
+      );
+      await sleep(900);
+      await clickButton(window, '\u00d7', "document.querySelector('.modal__header')");
+      await sleep(500);
+
+      const nachSprache = await run(
+        window,
+        `return [...document.querySelectorAll('.graph__node')]
+           .map((g) => g.getAttribute('data-id') + '=' + g.getAttribute('transform'));`
+      );
+      check(
+        JSON.stringify(nachSprache) === JSON.stringify(vorSprache),
+        'Ein Sprachwechsel hat die Anordnung im Graphen neu gewürfelt'
+      );
+    }
+
+    // Zwei Zuege unmittelbar hintereinander: der zweite darf den ersten nicht
+    // ueberschreiben, obwohl das Gespeicherte noch nicht zurueck ist.
+    await run(
+      window,
+      `const svg = document.querySelector('.graph__canvas');
+       const rect = svg.getBoundingClientRect();
+       const at = (x, y) => ({ clientX: rect.left + x, clientY: rect.top + y, bubbles: true });
+       const knoten = [...document.querySelectorAll('.graph__node')];
+
+       for (const [i, node] of [knoten[1], knoten[2]].entries()) {
+         node.dispatchEvent(new MouseEvent('mousedown', at(150, 150)));
+         svg.dispatchEvent(new MouseEvent('mousemove', at(400 + i * 60, 300 + i * 60)));
+         svg.dispatchEvent(new MouseEvent('mouseup', at(400 + i * 60, 300 + i * 60)));
+       }
+       return true;`
+    );
+    await sleep(1500);
+    {
+      const kampagne = JSON.parse(fs.readFileSync(kampagnenDatei, 'utf8'));
+      check(
+        Object.keys(kampagne.graphPositions ?? {}).length === 3,
+        `Drei Züge ergeben nicht drei Stellen: ${JSON.stringify(kampagne.graphPositions)}`
+      );
+    }
+
+    // Neu anordnen wirft sie wieder weg, und zwar beim ersten Druck. Geprueft
+    // wird der zuerst gezogene Knoten: die uebrigen ordnen sich ohnehin neu.
+    const stelleVon = (id) =>
+      run(
+        window,
+        `const node = document.querySelector('.graph__node[data-id=' + JSON.stringify(${JSON.stringify(id)}) + ']');
+         return node ? node.getAttribute('transform') : null;`
+      );
+
+    // Die abgelegte Stelle als Vergleich: danach darf der Knoten nicht mehr
+    // genau dort stehen.
+    const abgelegt = JSON.parse(fs.readFileSync(kampagnenDatei, 'utf8')).graphPositions[gezogen];
+    const vorNeu = await stelleVon(gezogen);
+    check(
+      vorNeu === `translate(${abgelegt.x} ${abgelegt.y})`,
+      `Der gezogene Knoten steht nicht an seiner gespeicherten Stelle: ${vorNeu}`
+    );
+
+    await clickButton(window, 'Neu anordnen', "document.querySelector('.graph__bar')");
+    await sleep(1500);
+    {
+      const kampagne = JSON.parse(fs.readFileSync(kampagnenDatei, 'utf8'));
+      check(
+        Object.keys(kampagne.graphPositions ?? {}).length === 0,
+        'Neu anordnen hat die verschobenen Stellen nicht verworfen'
+      );
+      check(
+        (await stelleVon(gezogen)) !== vorNeu,
+        'Neu anordnen lässt den gezogenen Knoten beim ersten Druck an seiner Stelle'
+      );
+    }
 
     // Klick auf einen Knoten oeffnet die Notiz
     await run(window, `document.querySelector('.graph__node').dispatchEvent(new MouseEvent('click', { bubbles: true })); return true;`);

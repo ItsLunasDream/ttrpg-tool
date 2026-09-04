@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {pastedMarkdownToHtml, findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, layoutGraph, buildGraphEdges, buildGraphNodes, mergeNoteTypes, countMergeChanges} = entry;
+const {pastedMarkdownToHtml, findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, layoutGraph, buildGraphEdges, buildGraphNodes, mergeNoteTypes, countMergeChanges, factoryFieldKey, finalizeNewEntries} = entry;
 
 /** Baut einen Index mit den Standardtypen. */
 function makeIndex(notes) {
@@ -228,7 +228,9 @@ const ALLOWED_SAME = new Set([
   'toolbar.code',
   // „Link" heisst in beiden Sprachen gleich.
   'toolbar.link',
-  'link.title'
+  'link.title',
+  // „Export" auch.
+  'export.note'
 ]);
 
 test('jeder deutsche Schluessel hat eine englische Entsprechung', () => {
@@ -485,6 +487,65 @@ test('Anordnung kommt mit einem einzelnen Knoten klar', () => {
 
 const TYPE_A = { id: 'character', label: 'Charakter', plural: 'Charaktere', fields: [{ key: 'age', label: 'Alter', type: 'text' }] };
 const TYPE_B = { id: 'item', label: 'Gegenstand', plural: 'Gegenstände', fields: [{ key: 'value', label: 'Wert', type: 'text' }] };
+
+test('Ein neuer Typ bekommt seine Kennung aus der Beschriftung, nicht aus dem Platzhalter', () => {
+  // So sieht der Entwurf aus, wenn jemand "+ Typ" klickt und "Waffe" eintippt:
+  // die Kennung stammt noch vom Platzhalter.
+  const draft = [
+    { id: 'note', label: 'Notiz', plural: 'Notizen', fields: [] },
+    { id: 'neuer_typ', label: 'Waffe', plural: 'Waffen', fields: [] }
+  ];
+
+  const final = finalizeNewEntries(draft, ['neuer_typ'], []);
+
+  assert.equal(final[1].id, 'waffe');
+  assert.equal(final[0].id, 'note', 'ein bestehender Typ wurde umbenannt');
+});
+
+test('Zwei Kampagnen mit eigenem erstem Typ lassen sich zusammenfuehren', () => {
+  const waffe = finalizeNewEntries([{ id: 'neuer_typ', label: 'Waffe', plural: 'Waffen', fields: [] }], ['neuer_typ'], []);
+  const zauber = finalizeNewEntries([{ id: 'neuer_typ', label: 'Zauber', plural: 'Zauber', fields: [] }], ['neuer_typ'], []);
+
+  // Vorher hiessen beide neuer_typ, das Uebernehmen fand deshalb nichts zu tun.
+  const merged = mergeNoteTypes(zauber, waffe);
+  assert.deepEqual(merged.map((def) => def.id).sort(), ['waffe', 'zauber']);
+});
+
+test('Ein zurueckgeholtes Werksfeld bekommt seinen alten Schluessel', () => {
+  // "Klasse" liegt beim Charakter unter dem englischen Schluessel class.
+  assert.equal(factoryFieldKey('character', 'Klasse'), 'class');
+  assert.equal(factoryFieldKey('character', 'Gibt es nicht'), undefined);
+
+  const draft = [
+    {
+      id: 'character',
+      label: 'Charakter',
+      plural: 'Charaktere',
+      fields: [{ key: 'neues_feld', label: 'Klasse', type: 'text' }]
+    }
+  ];
+
+  const final = finalizeNewEntries(draft, [], ['character:neues_feld']);
+  assert.equal(final[0].fields[0].key, 'class', 'der eingetragene Wert bliebe unerreichbar');
+});
+
+test('Ist der Werksschluessel belegt, bekommt das neue Feld einen eigenen', () => {
+  const draft = [
+    {
+      id: 'character',
+      label: 'Charakter',
+      plural: 'Charaktere',
+      fields: [
+        { key: 'class', label: 'Klasse', type: 'text' },
+        { key: 'neues_feld', label: 'Klasse', type: 'text' }
+      ]
+    }
+  ];
+
+  const final = finalizeNewEntries(draft, [], ['character:neues_feld']);
+  assert.equal(final[0].fields[0].key, 'class', 'das bestehende Feld verlor seinen Schluessel');
+  assert.equal(final[0].fields[1].key, 'klasse');
+});
 
 test('mergeNoteTypes ergaenzt fehlende Typen', () => {
   const merged = mergeNoteTypes([TYPE_A], [TYPE_B]);
@@ -887,4 +948,140 @@ test('Spitze Klammern im Text ueberleben das Speichern als Text', () => {
   const wieder = htmlToMarkdown(markdownToHtml(md));
   assert.equal(wieder, md);
   assert.ok(wieder.includes('Kasten'), wieder);
+});
+
+test('Feste Knoten bleiben bei der Anordnung, wo sie sind', () => {
+  const ids = [
+    { id: 'a', degree: 1 },
+    { id: 'b', degree: 1 },
+    { id: 'neu', degree: 0 }
+  ];
+  const edges = [{ source: 'a', target: 'b', label: '', kind: 'relation' }];
+  const fixed = { a: { x: 100, y: 200 }, b: { x: 900, y: 600 } };
+
+  const nodes = layoutGraph(ids, edges, { width: 1200, height: 780, fixed });
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+
+  assert.deepEqual({ x: byId.get('a').x, y: byId.get('a').y }, fixed.a);
+  assert.deepEqual({ x: byId.get('b').x, y: byId.get('b').y }, fixed.b);
+
+  // Die neue Notiz bekommt eine berechnete Stelle, irgendwo dazwischen.
+  const neu = byId.get('neu');
+  assert.ok(Number.isFinite(neu.x) && Number.isFinite(neu.y), JSON.stringify(neu));
+});
+
+test('Ohne feste Knoten wird weiterhin in die Flaeche eingepasst', () => {
+  const ids = [
+    { id: 'a', degree: 1 },
+    { id: 'b', degree: 1 }
+  ];
+  const edges = [{ source: 'a', target: 'b', label: '', kind: 'relation' }];
+  const nodes = layoutGraph(ids, edges, { width: 1200, height: 780 });
+
+  for (const node of nodes) {
+    assert.ok(node.x >= 0 && node.x <= 1200, `x ausserhalb: ${node.x}`);
+    assert.ok(node.y >= 0 && node.y <= 780, `y ausserhalb: ${node.y}`);
+  }
+});
+
+test('Auch mit festen Knoten bleibt die Anordnung in der Flaeche', () => {
+  // Ohne Begrenzung trieben die freien Knoten weit aus dem Bild, sobald ein
+  // einziger festgehalten wurde: die Einpassung faellt dann ja weg.
+  const ids = Array.from({ length: 40 }, (_unused, index) => ({ id: `n${index}`, degree: 2 }));
+  const edges = ids.slice(1).map((entry, index) => ({
+    source: ids[index].id,
+    target: entry.id,
+    label: '',
+    kind: 'relation'
+  }));
+
+  const nodes = layoutGraph(ids, edges, { width: 1200, height: 780, fixed: { n0: { x: 600, y: 400 } } });
+  for (const node of nodes) {
+    assert.ok(node.x >= 0 && node.x <= 1200, `x ausserhalb: ${node.id} ${node.x}`);
+    assert.ok(node.y >= 0 && node.y <= 780, `y ausserhalb: ${node.id} ${node.y}`);
+  }
+
+  const feste = nodes.find((node) => node.id === 'n0');
+  assert.deepEqual({ x: feste.x, y: feste.y }, { x: 600, y: 400 });
+
+  // Kein Knoten darf auf einem anderen liegen, sonst ist einer davon nicht
+  // mehr anzuklicken.
+  const stellen = nodes.map((node) => `${Math.round(node.x)},${Math.round(node.y)}`);
+  assert.equal(new Set(stellen).size, stellen.length, `Knoten liegen aufeinander: ${stellen.join(' ')}`);
+});
+
+test('Freie Knoten legen sich nicht auf einen festgehaltenen', () => {
+  // Ein Knoten wird mit hoechstens 18 Punkten Radius gezeichnet. Kommt ein
+  // freier naeher, verdeckt er den festgehaltenen.
+  for (const anzahl of [2, 4, 6, 12]) {
+    const ids = Array.from({ length: anzahl }, (_unused, index) => ({ id: `n${index}`, degree: 2 }));
+    const edges = ids.slice(1).map((entry, index) => ({
+      source: ids[index].id,
+      target: entry.id,
+      label: '',
+      kind: 'relation'
+    }));
+
+    const feste = { n0: { x: 600, y: 390 } };
+    const nodes = layoutGraph(ids, edges, { width: 1200, height: 780, fixed: feste });
+
+    for (const node of nodes) {
+      if (node.id === 'n0') continue;
+      const abstand = Math.hypot(node.x - feste.n0.x, node.y - feste.n0.y);
+      assert.ok(abstand > 40, `${anzahl} Knoten: ${node.id} liegt ${Math.round(abstand)} entfernt`);
+    }
+  }
+});
+
+test('Knoten bleiben auch bei vielen Notizen weit genug auseinander', () => {
+  // Ein Knoten wird mit bis zu 18 Punkten Radius gezeichnet. Kommen zwei
+  // sich naeher als das Doppelte, ueberdecken sie sich.
+  for (const anzahl of [20, 40, 80]) {
+    const ids = Array.from({ length: anzahl }, (_unused, index) => ({ id: `n${index}`, degree: 2 }));
+    const edges = ids.slice(1).map((entry, index) => ({
+      source: ids[index].id,
+      target: entry.id,
+      label: '',
+      kind: 'relation'
+    }));
+
+    for (const fixed of [{}, { n0: { x: 600, y: 390 } }]) {
+      const nodes = layoutGraph(ids, edges, { width: 1200, height: 780, fixed });
+
+      let kleinster = Infinity;
+      for (let a = 0; a < nodes.length; a++) {
+        for (let b = a + 1; b < nodes.length; b++) {
+          kleinster = Math.min(kleinster, Math.hypot(nodes[a].x - nodes[b].x, nodes[a].y - nodes[b].y));
+        }
+      }
+
+      const feste = Object.keys(fixed).length ? 'mit fester Stelle' : 'ohne feste Stelle';
+      assert.ok(kleinster > 18, `${anzahl} Knoten ${feste}: nur ${Math.round(kleinster)} Punkte Abstand`);
+    }
+  }
+});
+
+test('Auch kleine Netze fuellen die Flaeche noch aus', () => {
+  // Ein zu enger Wunschabstand draengt wenige Knoten in einen Klumpen. Der
+  // Graph saehe dann bei fuenf Notizen aus wie bei fuenfzig.
+  for (const anzahl of [4, 5, 8, 12]) {
+    const ids = Array.from({ length: anzahl }, (_unused, index) => ({ id: `n${index}`, degree: 2 }));
+    const edges = ids.slice(1).map((entry, index) => ({
+      source: ids[index].id,
+      target: entry.id,
+      label: '',
+      kind: 'relation'
+    }));
+
+    const nodes = layoutGraph(ids, edges, {
+      width: 1200,
+      height: 780,
+      fixed: { n0: { x: 600, y: 390 } }
+    });
+
+    const breite = Math.max(...nodes.map((n) => n.x)) - Math.min(...nodes.map((n) => n.x));
+    const hoehe = Math.max(...nodes.map((n) => n.y)) - Math.min(...nodes.map((n) => n.y));
+    assert.ok(breite > 300, `${anzahl} Knoten: nur ${Math.round(breite)} breit`);
+    assert.ok(hoehe > 150, `${anzahl} Knoten: nur ${Math.round(hoehe)} hoch`);
+  }
 });

@@ -16,6 +16,7 @@ import { findWikiLinks, normalizeName } from '../shared/wikilinks';
 import type {
   AppSettings,
   Campaign,
+  GraphPosition,
   Note,
   NoteType,
   NoteTypeDef,
@@ -126,6 +127,9 @@ export function registerIpc(context: IpcContext): void {
   handle<[string, string], Campaign>('campaign:rename', (id, name) => vault.renameCampaign(id, name));
   handle<[string], void>('campaign:delete', (id) => vault.deleteCampaign(id));
   handle<[string], Campaign>('campaign:get', (id) => vault.getCampaign(id));
+  handle<[string, Record<string, GraphPosition>], Campaign>('campaign:graphPositions', (id, positions) =>
+    vault.saveGraphPositions(id, positions)
+  );
   handle<[string, NoteTypeDef[]], Campaign>('campaign:updateNoteTypes', (id, types) =>
     vault.updateNoteTypes(id, types)
   );

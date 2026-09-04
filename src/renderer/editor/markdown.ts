@@ -25,13 +25,42 @@ const turndown = new TurndownService({
  */
 const escapeText = turndown.escape.bind(turndown);
 
+/**
+ * Fussnoten kennt der Editor nicht, sie bleiben blosser Text. Ohne Schutz
+ * machte die Maskierung aus `[^1]` ein `\[^1\]`, und in Obsidian waere die
+ * Fussnote danach keine mehr. Sie wird deshalb wie ein Wiki-Link beiseite
+ * gelegt und unveraendert zurueckgesetzt.
+ *
+ * Erfasst wird der Verweis `[^kennung]` und die einleitende Marke einer
+ * Fussnote `[^kennung]:`. Leerraum in der Kennung ist ausgeschlossen, sonst
+ * verschluckte das Muster gewoehnliche Klammern im Satz.
+ */
+const FOOTNOTE_PATTERN = /\[\^[^\]\s]+\]/g;
+const FOOTNOTE_OPEN = '\uE002';
+const FOOTNOTE_CLOSE = '\uE003';
+const FOOTNOTE_MASK = /\uE002(\d+)\uE003/g;
+
+function maskFootnotes(text: string): { masked: string; restore: (value: string) => string } {
+  const found: string[] = [];
+  const masked = text.replace(FOOTNOTE_PATTERN, (whole) => {
+    found.push(whole);
+    return `${FOOTNOTE_OPEN}${found.length - 1}${FOOTNOTE_CLOSE}`;
+  });
+  return {
+    masked,
+    restore: (value) =>
+      value.replace(FOOTNOTE_MASK, (whole, index: string) => found[Number(index)] ?? whole)
+  };
+}
+
 turndown.escape = (text: string) => {
-  const { masked, restore } = maskWikiLinks(text);
+  const footnotes = maskFootnotes(text);
+  const { masked, restore } = maskWikiLinks(footnotes.masked);
   // Turndown maskiert die spitze Klammer nicht. Steht sie im Text, waere sie
   // in der Datei wieder HTML, und beim naechsten Laden wuerde der Editor das
   // Element samt Inhalt verwerfen: der Verlust waere nur aufgeschoben.
   // Bilder mit Breite gehen nicht hier durch, die haben eine eigene Regel.
-  return restore(escapeText(masked).replace(/<(?=[A-Za-z/!?])/g, '\\<'));
+  return footnotes.restore(restore(escapeText(masked).replace(/<(?=[A-Za-z/!?])/g, '\\<')));
 };
 
 /**
@@ -157,7 +186,57 @@ turndown.addRule('imageWithWidth', {
   }
 });
 
+/**
+ * Aufgabenlisten (`- [x] erledigt`).
+ *
+ * Der Markdown-Leser baut daraus ein Ankreuzfeld mitten im Listenpunkt. Der
+ * Editor kennt dort keines und wirft es weg: aus der Aufgabenliste wurde beim
+ * naechsten Speichern eine gewoehnliche Liste, der Haken war fort. TipTap
+ * erwartet die Angabe stattdessen als Attribut, `data-type="taskList"` an der
+ * Liste und `data-checked` am Punkt.
+ *
+ * Ob eine Liste eine Aufgabenliste ist, weiss `list` nicht: es bekommt nur den
+ * fertigen Rumpf. Deshalb setzt `listitem` eine Marke davor, die `list` liest
+ * und wieder entfernt. Verschachtelte Listen sind dabei schon gerendert und
+ * haben ihre eigenen Marken bereits abgeraeumt.
+ */
+const TASK_MARK = '\uE004';
+
+const taskListRenderer = {
+  listitem(text: string, task: boolean, checked: boolean): string {
+    if (!task) return `<li>${text}</li>\n`;
+    // Das Ankreuzfeld steht schon im Text; an seine Stelle tritt das Attribut.
+    return `${TASK_MARK}<li data-type="taskItem" data-checked="${checked}">${text.replace(/^<input[^>]*>\s?/, '')}</li>\n`;
+  },
+  list(body: string, ordered: boolean, start: number | ''): string {
+    if (body.includes(TASK_MARK)) {
+      return `<ul data-type="taskList">\n${body.split(TASK_MARK).join('')}</ul>\n`;
+    }
+    const tag = ordered ? 'ol' : 'ul';
+    const startAttribute = ordered && start !== '' && start !== 1 ? ` start="${start}"` : '';
+    return `<${tag}${startAttribute}>\n${body}</${tag}>\n`;
+  }
+};
+
+/**
+ * Umgekehrter Weg: aus dem Listenpunkt des Editors wird wieder `- [x] Text`.
+ * Ohne diese Regel bliebe nur der Text uebrig, das Ankreuzfeld des Editors
+ * steckt in einem `label`, das Turndown leer laesst.
+ */
+turndown.addRule('taskItem', {
+  filter: (node) => node.nodeName === 'LI' && (node as HTMLElement).hasAttribute('data-checked'),
+  replacement: (content, node) => {
+    const checked = (node as HTMLElement).getAttribute('data-checked') === 'true';
+    const text = content
+      .replace(/^\n+/, '')
+      .replace(/\n+$/, '\n')
+      .replace(/\n/gm, '\n    ');
+    return `- [${checked ? 'x' : ' '}] ${text}${node.nextSibling && !/\n$/.test(text) ? '\n' : ''}`;
+  }
+});
+
 marked.setOptions({ gfm: true, breaks: false });
+marked.use({ renderer: taskListRenderer });
 
 /**
  * Zweiter Leser fuer eingefuegten Text: er gibt rohes HTML als Text aus,
@@ -166,6 +245,7 @@ marked.setOptions({ gfm: true, breaks: false });
 const plainMarked = new Marked({ gfm: true, breaks: false });
 plainMarked.use({
   renderer: {
+    ...taskListRenderer,
     html: (token: string | { raw?: string; text?: string }) =>
       escapeHtml(typeof token === 'string' ? token : token.raw ?? token.text ?? '')
   }

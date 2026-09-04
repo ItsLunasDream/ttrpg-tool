@@ -15,6 +15,7 @@ import type {
   NoteType,
   NoteTypeDef,
   NoteVersion,
+  GraphPosition,
   OrphanedAsset,
   Relation,
   UnreadableNote
@@ -280,7 +281,8 @@ export class Vault {
       schemaVersion: SCHEMA_VERSION,
       name: parsed.name ?? campaignId,
       createdAt: parsed.createdAt ?? new Date().toISOString(),
-      noteTypes: migrated ? structuredClone(DEFAULT_NOTE_TYPES) : normalizeNoteTypes(parsed.noteTypes as NoteTypeDef[])
+      noteTypes: migrated ? structuredClone(DEFAULT_NOTE_TYPES) : normalizeNoteTypes(parsed.noteTypes as NoteTypeDef[]),
+      graphPositions: normalizeGraphPositions(parsed.graphPositions)
     };
 
     if (migrated) await writeJson(file, campaign);
@@ -293,11 +295,57 @@ export class Vault {
 
   /** Ersetzt die Notiztypen einer Kampagne, nach Pruefung auf Vollstaendigkeit. */
   async updateNoteTypes(campaignId: string, noteTypes: NoteTypeDef[]): Promise<Campaign> {
-    const campaign = await this.readCampaign(campaignId);
-    const updated: Campaign = { ...campaign, noteTypes: validateNoteTypes(noteTypes) };
-    await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
-    return updated;
+    return this.inOrder(campaignId, async () => {
+      const campaign = await this.readCampaign(campaignId);
+      const updated: Campaign = { ...campaign, noteTypes: validateNoteTypes(noteTypes) };
+      await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
+      return updated;
+    });
   }
+
+  /**
+   * Merkt sich die von Hand gesetzten Stellen der Knoten. Ein leeres Objekt
+   * wirft sie weg, das macht "Neu anordnen".
+   */
+  async saveGraphPositions(campaignId: string, positions: Record<string, GraphPosition>): Promise<Campaign> {
+    return this.inOrder(campaignId, async () => {
+      const campaign = await this.readCampaign(campaignId);
+
+      // Nur Stellen zu Notizen, die es noch gibt. Die Oberflaeche schickt die
+      // ganze Liste; kennt sie eine geloeschte Notiz noch, brachte sie deren
+      // Stelle sonst zurueck und die Liste wuechse immer weiter.
+      //
+      // Gelesen werden nur die Dateinamen, nicht die Notizen: das Ablegen
+      // eines Knotens soll nicht die ganze Kampagne durchgehen, und eine
+      // Notiz mit kaputtem Kopf gaebe es zwar zu lesen nicht, ihre Stelle
+      // duerfte sie aber trotzdem behalten.
+      const known = await this.noteIds(campaignId);
+      const kept = Object.fromEntries(
+        Object.entries(normalizeGraphPositions(positions)).filter(([noteId]) => known.has(noteId))
+      );
+
+      const updated: Campaign = { ...campaign, graphPositions: kept };
+      await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
+      return updated;
+    });
+  }
+
+  /**
+   * Reiht Aenderungen an campaign.json hintereinander auf.
+   *
+   * Jede liest den Stand, ergaenzt und schreibt zurueck. Ueberlappen sich
+   * zwei, lesen beide denselben Stand und die zweite schreibt die erste
+   * weg: beim Ablegen mehrerer Knoten kurz nacheinander waere jedes Mal
+   * eine Stelle verloren.
+   */
+  private inOrder<T>(campaignId: string, work: () => Promise<T>): Promise<T> {
+    const queued = (this.pending.get(campaignId) ?? Promise.resolve()).then(work, work);
+    // Fehler duerfen die Reihe nicht abreissen lassen, deshalb abgefangen.
+    this.pending.set(campaignId, queued.then(() => undefined, () => undefined));
+    return queued;
+  }
+
+  private readonly pending = new Map<string, Promise<void>>();
 
   async createCampaign(name: string): Promise<Campaign> {
     const trimmed = name.trim();
@@ -308,7 +356,8 @@ export class Vault {
       schemaVersion: SCHEMA_VERSION,
       name: trimmed,
       createdAt: new Date().toISOString(),
-      noteTypes: structuredClone(DEFAULT_NOTE_TYPES)
+      noteTypes: structuredClone(DEFAULT_NOTE_TYPES),
+      graphPositions: {}
     };
     const dir = this.campaignDir(campaign.id);
     await fs.mkdir(path.join(dir, NOTES_DIR), { recursive: true });
@@ -321,10 +370,12 @@ export class Vault {
     const trimmed = name.trim();
     if (!trimmed) throw new VaultError('error.campaignName');
 
-    const campaign = await this.readCampaign(campaignId);
-    const updated: Campaign = { ...campaign, name: trimmed };
-    await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
-    return updated;
+    return this.inOrder(campaignId, async () => {
+      const campaign = await this.readCampaign(campaignId);
+      const updated: Campaign = { ...campaign, name: trimmed };
+      await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
+      return updated;
+    });
   }
 
   async deleteCampaign(campaignId: string): Promise<void> {
@@ -352,12 +403,38 @@ export class Vault {
   }
 
   /**
+   * Die IDs aller Notizdateien, ohne sie zu lesen.
+   *
+   * Ein Fehler wird nicht verschluckt: hielte man ihn fuer "keine Notizen",
+   * loeschte der naechste Schreibvorgang alle gemerkten Stellen. Nur ein
+   * fehlender Ordner ist harmlos, den gibt es vor der ersten Notiz nicht.
+   */
+  private async noteIds(campaignId: string): Promise<Set<string>> {
+    const dir = path.join(this.campaignDir(campaignId), NOTES_DIR);
+
+    let entries;
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      return new Set();
+    }
+
+    return new Set(
+      entries.filter((entry) => entry.isFile() && entry.name.endsWith('.md')).map((entry) => entry.name.slice(0, -3))
+    );
+  }
+
+  /**
    * Notizdateien, die sich nicht lesen lassen, etwa weil das Frontmatter von
    * Hand kaputt bearbeitet wurde.
    *
    * `listNotes` uebergeht sie, damit eine einzelne Datei nicht die ganze
    * Kampagne unlesbar macht. Stillschweigend verschwinden duerfen sie aber
    * nicht: sonst faellt der Verlust erst auf, wenn es zu spaet ist.
+   *
+   * Ein Ordner, der sich nicht lesen laesst, gilt deshalb nicht als "nichts
+   * kaputt". Nur ein fehlender ist harmlos.
    */
   async findUnreadableNotes(campaignId: string): Promise<UnreadableNote[]> {
     const dir = path.join(this.campaignDir(campaignId), NOTES_DIR);
@@ -365,7 +442,8 @@ export class Vault {
     let entries;
     try {
       entries = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
       return [];
     }
 
@@ -481,12 +559,29 @@ export class Vault {
   async deleteNote(campaignId: string, noteId: string): Promise<void> {
     await fs.rm(this.noteFile(campaignId, noteId), { force: true });
 
+    // Auch die frueheren Staende. Sonst bliebe der Text der geloeschten Notiz
+    // auf der Platte liegen, und der Ordner wuechse mit jedem Loeschen weiter.
+    await fs.rm(this.historyDir(campaignId, noteId), { recursive: true, force: true });
+
     // Beziehungen auf die geloeschte Notiz wuerden sonst ins Leere zeigen.
     for (const other of await this.listNotes(campaignId)) {
       const relations = other.relations.filter((relation) => relation.targetId !== noteId);
       if (relations.length === other.relations.length) continue;
       await this.writeNote(campaignId, { ...other, relations, updatedAt: new Date().toISOString() });
     }
+
+    // Auch die gemerkte Stelle im Graphen raeumen, sonst waechst die Liste
+    // mit jeder geloeschten Notiz weiter. Lesen und Schreiben gehoeren dabei
+    // in denselben Schritt der Reihe: dazwischen koennte sonst eine gerade
+    // abgelegte Stelle ankommen, die dieser Schritt wieder wegschriebe.
+    await this.inOrder(campaignId, async () => {
+      const campaign = await this.readCampaign(campaignId);
+      if (!campaign.graphPositions[noteId]) return;
+
+      const { [noteId]: _entfernt, ...rest } = campaign.graphPositions;
+      const updated: Campaign = { ...campaign, graphPositions: rest };
+      await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
+    });
   }
 
   private async writeNote(campaignId: string, note: Note): Promise<void> {
@@ -555,14 +650,22 @@ export class Vault {
     }
     if (current === nextContent) return;
 
+    const newest = (await this.listVersionFiles(campaignId, noteId))[0];
+    if (newest && Date.now() - versionTime(newest) < HISTORY_MIN_INTERVAL_MS) return;
+
+    await this.writeVersion(campaignId, noteId, current);
+  }
+
+  /**
+   * Legt den uebergebenen Stand als Version ab und raeumt die aeltesten weg.
+   * Ohne Sperrfenster: wer das braucht, prueft es vorher selbst.
+   */
+  private async writeVersion(campaignId: string, noteId: string, content: string): Promise<void> {
     const dir = this.historyDir(campaignId, noteId);
     const versions = await this.listVersionFiles(campaignId, noteId);
 
-    const newest = versions[0];
-    if (newest && Date.now() - versionTime(newest) < HISTORY_MIN_INTERVAL_MS) return;
-
     await fs.mkdir(dir, { recursive: true });
-    await writeAtomic(path.join(dir, `${new Date().toISOString().replace(/[:.]/g, '-')}.md`), current);
+    await writeAtomic(path.join(dir, `${new Date().toISOString().replace(/[:.]/g, '-')}.md`), content);
 
     for (const stale of versions.slice(this.history.maxVersions - 1)) {
       await fs.rm(path.join(dir, stale), { force: true });
@@ -618,6 +721,20 @@ export class Vault {
     const restored = normalizeNote(noteId, data, body);
     const current = await this.getNote(campaignId, noteId);
 
+    // Der Stand von jetzt muss in den Verlauf, bevor er ueberschrieben wird,
+    // und zwar ohne Ruecksicht auf das Sperrfenster. Sonst waere gerade das
+    // Zurueckholen nicht umkehrbar, obwohl der Dialog genau das zusagt: wer
+    // eine Stunde schreibt und dabei jede Minute speichert, hat innerhalb des
+    // Fensters keine Version, und der ganze Text waere weg. Der Schnappschuss
+    // aus writeNote greift danach nicht mehr, er sieht die frische Fassung.
+    if (this.history.enabled) {
+      try {
+        await this.writeVersion(campaignId, noteId, await fs.readFile(this.noteFile(campaignId, noteId), 'utf8'));
+      } catch {
+        // Keine Datei auf der Platte, dann gibt es nichts zu sichern.
+      }
+    }
+
     // Erstellungszeit und Notiz-ID bleiben die der lebenden Notiz.
     return this.saveNote(campaignId, { ...restored, id: noteId, createdAt: current.createdAt });
   }
@@ -668,6 +785,8 @@ function versionTime(fileName: string): number {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+let writeCounter = 0;
+
 /**
  * Fehlercodes, die unter Windows eine kurzlebige Sperre bedeuten: ein
  * Virenscanner, die Dateisuche oder eine Ordnersynchronisation hat die Datei
@@ -681,7 +800,10 @@ const LOCKED_CODES = new Set(['EBUSY', 'EPERM', 'EACCES']);
  * nie ein halber.
  */
 async function writeAtomic(file: string, content: string | Buffer): Promise<void> {
-  const tmp = `${file}.tmp-${process.pid}`;
+  // Fortlaufende Nummer, nicht nur die Prozess-ID: laufen zwei Schreibvorgaenge
+  // auf dieselbe Datei gleichzeitig, schrieben sie sonst beide in dieselbe
+  // Nebendatei und das Ergebnis waere Bruch.
+  const tmp = `${file}.tmp-${process.pid}-${writeCounter++}`;
   await fs.writeFile(tmp, content);
 
   try {
@@ -776,6 +898,24 @@ function noteTitle(raw: unknown, body: string): string {
   if (found && !hasLinkReservedChars(found)) return found;
 
   return 'Ohne Titel';
+}
+
+/**
+ * Nimmt nur Eintraege mit zwei endlichen Zahlen. Eine kaputte Angabe wuerde
+ * den Knoten sonst ins Nirgendwo setzen, wo er nicht mehr zu fassen waere.
+ */
+function normalizeGraphPositions(value: unknown): Record<string, GraphPosition> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+
+  const positions: Record<string, GraphPosition> = {};
+  for (const [id, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (!entry || typeof entry !== 'object') continue;
+    const { x, y } = entry as { x?: unknown; y?: unknown };
+    if (typeof x !== 'number' || typeof y !== 'number') continue;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    positions[id] = { x, y };
+  }
+  return positions;
 }
 
 const FIELD_TYPES: FieldDef['type'][] = ['text', 'textarea', 'number', 'url', 'image', 'select', 'date', 'checkbox'];

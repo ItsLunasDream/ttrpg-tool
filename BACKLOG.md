@@ -56,6 +56,11 @@ zufällig gleich, deshalb fällt es nicht auf.
   hält diese Stabilität fest. Wer die Dateien parallel in Obsidian pflegt,
   sieht die Umstellung aber einmal
 
+- Sobald eine Knotenstelle gesetzt ist, rechnet der Graph zweimal: einmal, um
+  die natürliche Größe zu messen, einmal mit dem daraus abgeleiteten
+  Wunschabstand. Bei 500 Notizen sind das rund 1,3 statt 0,6 Sekunden beim
+  Öffnen. Ein kürzerer Messlauf reicht nicht, das Netz dehnt sich bis zuletzt
+  weiter aus
 - Beim Kampagnenwechsel werden alle Notizen der Kampagne in den Speicher
   geladen. Für einige hundert Notizen unkritisch, darüber bräuchte es einen
   Index statt Volllast
@@ -67,12 +72,67 @@ zufällig gleich, deshalb fällt es nicht auf.
   Immerhin wird jetzt darauf hingewiesen
 - Der Versionsverlauf wächst mit und landet auch in der ZIP-Sicherung. Bei
   vielen Notizen und hoher Höchstzahl kann das spürbar werden
+- Rohes HTML in einer Datei (`<div>`, `<span style=…>`) überlebt das Öffnen
+  nicht: der Editor kennt diese Elemente nicht, es bleibt der Text darin. Die
+  Auszeichnung ist danach weg. Gewollt, weil beliebiges HTML sonst ungeprüft
+  im Dokument stünde
+- Eine Datei mit BOM oder CRLF wird beim Speichern auf UTF-8 ohne BOM und LF
+  vereinheitlicht. Am Inhalt ändert das nichts, in einem Vergleichswerkzeug
+  sieht man es aber einmal als vollständige Änderung
+- Wird eine Notizdatei außerhalb geändert, während sie im Editor offen ist,
+  gewinnt beim nächsten Speichern der Editor. Es gibt keine Überwachung der
+  Dateien; fremde YAML-Schlüssel der externen Änderung werden dagegen
+  übernommen, weil sie erst beim Schreiben gelesen werden
 - Der PDF-Export bietet keine Auswahl von Schriftart, Rand oder Seitengröße
 - Die Windows-Anwendung ist nicht signiert, Windows zeigt beim ersten Start
   eine SmartScreen-Warnung. Eine Signatur bräuchte ein kostenpflichtiges
   Zertifikat
 
 ## Erledigt
+
+### Testrunde mit simulierten Nutzerinnen
+
+Fünf Agenten haben die gebaute Anwendung bedient, jede mit einem eigenen
+Anspruch: Anfängerin, Vielschreiberin, Ordnungsliebende, Obsidian-Umsteigerin
+und ein Chaos-Tester. Alle Funde wurden danach selbst nachgeprüft, nicht
+ungeprüft übernommen. Sechs echte Fehler kamen dabei heraus:
+
+- **Wiederherstellen löschte den Text.** Der Sicherheitsschnappschuss vor dem
+  Zurückholen lief durch dasselbe Fünf-Minuten-Sperrfenster wie ein
+  gewöhnliches Speichern. Wer eine Stunde schrieb und dabei immer wieder
+  speicherte, hatte keine Fassung im Verlauf und verlor beim Wiederherstellen
+  alles, obwohl der Dialog ausdrücklich zusagt, dass es umkehrbar ist. Der
+  Schnappschuss vor dem Zurückholen umgeht das Sperrfenster jetzt
+- **Aufgabenlisten verloren den Haken.** `- [x] erledigt` wurde beim Speichern
+  zu einer gewöhnlichen Liste, der Editor kannte kein Ankreuzfeld
+- **Notiztypen aus einer anderen Kampagne wurden verschluckt.** Der erste
+  eigene Typ jeder Kampagne hieß intern `neuer_typ`, weil die Kennung aus dem
+  Platzhalter entstand
+- **Zurückgeholte Werksfelder blieben leer**, weil sie teils englische
+  Schlüssel tragen (`class` für „Klasse")
+- **Fußnoten** `[^1]` wurden zu `\[^1\]` und waren in Obsidian keine mehr
+- **Der Versionsverlauf gelöschter Notizen** blieb für immer auf der Platte
+
+Nicht bestätigt haben sich: angeblich langsames Speichern von Aliasen und Tags
+(das ist die Entprellung, die bei jeder Änderung neu anläuft), und
+verschwindende Dateien in einem Testlauf (zwei Agenten teilten sich `/tmp`).
+
+
+### Assistent auch in groß, im Schreibhilfe-Dialog
+
+Der Dialog heißt jetzt „Schreibhilfe und KI" und hat zwei Reiter:
+„Vorschläge (ohne KI)" und „KI-Assistent". Beide Male steht ausgeschrieben in
+der Beschriftung, was dahintersteckt: die Vorschläge kommen ohne Modell aus,
+der Assistent fragt eines.
+
+Der KI-Reiter zeigt dasselbe Gespräch wie die Sidebar, nur mit mehr Platz:
+abgesetzte Blasen, größere Schrift, der Verlauf läuft beim Antworten mit.
+
+Das Gespräch liegt dafür in einem Kontext (`src/renderer/assistant.tsx`) statt
+im Zustand der Sidebar. Beide Ansichten holen es von dort, sonst stünde in der
+einen etwas anderes als in der anderen. Beim Notizwechsel fängt es von vorn
+an, weil als Kontext immer die offene Notiz mitgeht; eine noch laufende
+Antwort wird dabei verworfen statt in das neue Gespräch geleitet.
 
 ### Eingefügtes Markdown wird ausgewertet
 
@@ -86,6 +146,52 @@ werden als Text behandelt, nicht als HTML.
 
 Der Preis, der vorher als Gegenargument notiert war, bleibt bestehen: `5 * 3
 und 2 * 4` wird beim Einfügen kursiv. Strg+Z macht es rückgängig.
+
+### Steckbrief bearbeiten und Export zusammengefasst
+
+Neben der Überschrift „Steckbrief" steht jetzt „Felder bearbeiten" und öffnet
+den Notiztypen-Dialog. Der Eintrag im Kampagnen-Menü bleibt, aber der Weg von
+„ich will dieses Feld umbenennen" zum Knopf führt nicht mehr quer über die
+Kopfzeile.
+
+Die beiden Knöpfe „MD" und „PDF" in der Kopfzeile des Editors liegen unter
+einem gemeinsamen „Export". Im Kampagnen-Menü standen die drei Exporte schon
+beieinander und bleiben, wo sie sind.
+
+### Graph: Beziehungstexte nebeneinander
+
+Beide Richtungen zwischen zwei Knoten zeichneten Linie und Beschriftung auf
+denselben Punkt. Deshalb standen die Texte ineinander, schon bei zwei Notizen.
+
+Gibt es die Gegenrichtung, werden beide Linien jetzt um denselben kleinen
+Betrag zur Seite versetzt, jede in ihre eigene Richtung. Die Beschriftung
+liegt außen an ihrer eigenen Linie, damit eindeutig ist, welche Bezeichnung
+wohin gilt. Der Versatz ist klein genug, dass beim Herauszoomen wieder eine
+Linie daraus wird.
+
+Die Notbremse `LABEL_LIMIT` bleibt: bei mehr als zwanzig Kanten erscheinen
+weiterhin nur die Beschriftungen rund um den Knoten unter der Maus. Der
+Versatz löst das Aufeinanderliegen zweier Richtungen, nicht das Gedränge in
+einem dichten Netz.
+
+### Graph: verschobene Knoten behalten ihre Stelle
+
+Wer einen Knoten verschiebt, findet ihn beim nächsten Öffnen dort wieder. Die
+Stellen liegen in `campaign.json` unter `graphPositions`, nicht in den
+Notizdateien: eine Stelle im Graphen sagt nichts über die Notiz aus.
+
+Gespeicherte Knoten gehen als feste Punkte in die Anordnung ein und werden von
+der Berechnung nicht mehr angefasst. Kommt eine Notiz dazu, ordnet sie sich um
+die vorhandenen herum ein, statt das ganze Netz zu verschieben. Das Einpassen
+in die Fläche entfällt dann, es würde genau die Knoten verschieben, die stehen
+bleiben sollen.
+
+„Neu anordnen" wirft die gesetzten Stellen weg, das ist der Sinn des Knopfes.
+Eine Rückfrage davor gibt es bewusst nicht: der Knopf heißt, was er tut, und
+ein Versehen ist mit erneutem Verschieben behoben.
+
+Gespeichert wird beim Loslassen, nicht während des Ziehens. Beim Löschen einer
+Notiz fällt ihre Stelle mit weg.
 
 ### Tabellen, Links und der Markdown-Rundlauf
 

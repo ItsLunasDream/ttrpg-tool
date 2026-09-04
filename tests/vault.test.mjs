@@ -355,6 +355,34 @@ test('Wiederherstellen holt den alten Text zurueck und sichert den aktuellen', a
   });
 });
 
+test('Wiederherstellen sichert den aktuellen Stand auch im Sperrfenster', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const note = await vault.createNote(campaign.id, 'character', 'Mira');
+    const first = await vault.saveNote(campaign.id, { ...note, body: 'Alter Text.' });
+
+    const historyDir = path.join(root, 'campaigns', campaign.id, 'history', note.id);
+    await backdateVersions(historyDir);
+
+    // Ab hier wird nichts mehr zurueckdatiert: der zweite Stand liegt frisch
+    // im Verlauf, das Sperrfenster ist also offen. Genau so sieht es aus, wenn
+    // jemand eine Stunde am Text sitzt und dabei immer wieder speichert.
+    await vault.saveNote(campaign.id, { ...first, body: 'Alter Text. Und viel Neues.' });
+
+    const versions = await vault.listVersions(campaign.id, note.id);
+    const oldVersion = versions.find((version) => version.body.includes('Alter Text.'));
+    assert.ok(oldVersion, 'alte Fassung fehlt im Verlauf');
+
+    await vault.restoreVersion(campaign.id, note.id, oldVersion.id);
+
+    const afterRestore = await vault.listVersions(campaign.id, note.id);
+    assert.ok(
+      afterRestore.some((version) => version.body.includes('Und viel Neues')),
+      'der ueberschriebene Stand wurde nicht gesichert, der Text ist weg'
+    );
+  });
+});
+
 test('Der Verlauf wird auf die eingestellte Hoechstzahl gekuerzt', async () => {
   await withVault(async (vault, root) => {
     vault.setHistoryOptions({ enabled: true, maxVersions: 3 });
@@ -799,5 +827,180 @@ test('Umbenennen prueft die Aliase, bevor es Fremdes anfasst', async () => {
     // aber nicht. Ein zweiter Versuch fuehrt dann zu nichts.
     const updated = await vault.getNote(campaign.id, toran.id);
     assert.equal(updated.body.trim(), 'Er schuldet [[Mira]] Gold.');
+  });
+});
+
+test('Knotenstellen werden in der Kampagne gespeichert', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    assert.deepEqual(campaign.graphPositions, {});
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+
+    const gespeichert = await vault.saveGraphPositions(campaign.id, { [mira.id]: { x: 10, y: 20 } });
+    assert.deepEqual(gespeichert.graphPositions, { [mira.id]: { x: 10, y: 20 } });
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { [mira.id]: { x: 10, y: 20 } });
+
+    // Ein leeres Objekt wirft sie weg, das macht "Neu anordnen".
+    await vault.saveGraphPositions(campaign.id, {});
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, {});
+  });
+});
+
+test('Kaputte Knotenstellen werden verworfen statt uebernommen', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const gut = (await vault.createNote(campaign.id, 'character', 'Mira')).id;
+    const file = path.join(root, 'campaigns', campaign.id, 'campaign.json');
+
+    // So koennte es aussehen, wenn jemand die Datei von Hand bearbeitet.
+    const raw = JSON.parse(await readFile(file, 'utf8'));
+    raw.graphPositions = {
+      [gut]: { x: 1, y: 2 },
+      ohneY: { x: 3 },
+      text: { x: 'links', y: 2 },
+      nichts: null
+    };
+    await writeFile(file, JSON.stringify(raw));
+
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { [gut]: { x: 1, y: 2 } });
+
+    // Aus der Oberflaeche koennen auch unendliche Werte kommen, die JSON
+    // nicht kennt. Ein Knoten im Nirgendwo waere nicht mehr zu fassen.
+    const gespeichert = await vault.saveGraphPositions(campaign.id, {
+      [gut]: { x: 5, y: 6 },
+      unendlich: { x: Infinity, y: 0 },
+      keineZahl: { x: NaN, y: 1 }
+    });
+    assert.deepEqual(gespeichert.graphPositions, { [gut]: { x: 5, y: 6 } });
+  });
+});
+
+test('Loeschen raeumt auch die Stelle im Graphen', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+    await vault.saveGraphPositions(campaign.id, { [mira.id]: { x: 1, y: 2 }, [toran.id]: { x: 3, y: 4 } });
+
+    await vault.deleteNote(campaign.id, mira.id);
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { [toran.id]: { x: 3, y: 4 } });
+  });
+});
+
+test('Gleichzeitige Schreibvorgaenge bleiben in der Reihenfolge', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const ids = [];
+    for (let index = 0; index < 8; index++) {
+      ids.push((await vault.createNote(campaign.id, 'character', `Figur ${index}`)).id);
+    }
+
+    // So kommt es vor, wenn im Graphen mehrere Knoten kurz nacheinander
+    // abgelegt werden: die Oberflaeche schickt jedes Mal die ganze Liste,
+    // aber die Aufrufe ueberlappen sich.
+    const stapel = Array.from({ length: 8 }, (_unused, index) =>
+      Object.fromEntries(Array.from({ length: index + 1 }, (_leer, key) => [ids[key], { x: key, y: key }]))
+    );
+    await Promise.all(stapel.map((positions) => vault.saveGraphPositions(campaign.id, positions)));
+
+    const datei = path.join(root, 'campaigns', campaign.id, 'campaign.json');
+    const gelesen = JSON.parse(await readFile(datei, 'utf8'));
+
+    // Der zuletzt abgeschickte Stand muss gewinnen. Ohne Reihenfolge kaeme
+    // ein aelterer, kleinerer zuletzt an und Stellen waeren weg. Mit der
+    // Aufreihung geht das immer auf; ohne sie schlaegt der Test nur manchmal
+    // fehl, er faengt den Fehler also, beweist ihn aber nicht.
+    assert.deepEqual(Object.keys(gelesen.graphPositions).sort(), Object.keys(stapel[7]).sort());
+
+    // Keine Nebendateien duerfen liegenbleiben.
+    const reste = (await readdir(path.dirname(datei))).filter((name) => name.includes('.tmp-'));
+    assert.deepEqual(reste, []);
+  });
+});
+
+test('Loeschen kommt einer gleichzeitigen Ablage nicht dazwischen', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+    await vault.saveGraphPositions(campaign.id, { [mira.id]: { x: 1, y: 1 }, [toran.id]: { x: 2, y: 2 } });
+
+    // Beides gleichzeitig: das Loeschen raeumt Miras Stelle, die Ablage
+    // verschiebt Toran. Liest das Loeschen dabei einen alten Stand, macht es
+    // die Verschiebung wieder rueckgaengig.
+    await Promise.all([
+      vault.deleteNote(campaign.id, mira.id),
+      vault.saveGraphPositions(campaign.id, { [mira.id]: { x: 1, y: 1 }, [toran.id]: { x: 9, y: 9 } })
+    ]);
+
+    const stellen = (await vault.getCampaign(campaign.id)).graphPositions;
+    assert.deepEqual(stellen[toran.id], { x: 9, y: 9 });
+  });
+});
+
+test('Eine geloeschte Notiz kann ihre Stelle nicht zurueckbekommen', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+
+    await vault.deleteNote(campaign.id, mira.id);
+
+    // Die Oberflaeche schickt beim Ablegen die ganze Liste. Kennt sie das
+    // Loeschen noch nicht, ist Mira darin. Ohne Filter wuechse die Liste mit
+    // jeder geloeschten Notiz weiter.
+    await vault.saveGraphPositions(campaign.id, {
+      [mira.id]: { x: 1, y: 1 },
+      [toran.id]: { x: 2, y: 2 }
+    });
+
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { [toran.id]: { x: 2, y: 2 } });
+  });
+});
+
+test('Eine Notiz mit kaputtem Kopf behaelt ihre Stelle im Graphen', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+
+    const notesDir = path.join(root, 'campaigns', campaign.id, 'notes');
+    await writeFile(path.join(notesDir, 'kaputt.md'), '---\nid: [unclosed\n---\n\nText');
+
+    // Die kaputte Datei laesst sich nicht lesen, es gibt sie aber. Ihre
+    // Stelle darf beim naechsten Ablegen nicht verschwinden, sonst waere sie
+    // nach dem Reparieren weg.
+    await vault.saveGraphPositions(campaign.id, {
+      [mira.id]: { x: 1, y: 1 },
+      kaputt: { x: 2, y: 2 }
+    });
+
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, {
+      [mira.id]: { x: 1, y: 1 },
+      kaputt: { x: 2, y: 2 }
+    });
+  });
+});
+
+test('Ein Lesefehler loescht nicht alle Knotenstellen', async () => {
+  await withVault(async (vault, root) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    await vault.saveGraphPositions(campaign.id, { [mira.id]: { x: 1, y: 1 } });
+
+    // Der Notizordner laesst sich nicht auflisten. Wuerde das als "keine
+    // Notizen" durchgehen, waeren alle gemerkten Stellen weg.
+    const notesDir = path.join(root, 'campaigns', campaign.id, 'notes');
+    const beiseite = `${notesDir}-beiseite`;
+    await rename(notesDir, beiseite);
+    await writeFile(notesDir, 'kein Ordner');
+
+    try {
+      await assert.rejects(() => vault.saveGraphPositions(campaign.id, { [mira.id]: { x: 5, y: 5 } }));
+    } finally {
+      await fs.rm(notesDir);
+      await rename(beiseite, notesDir);
+    }
+
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { [mira.id]: { x: 1, y: 1 } });
   });
 });

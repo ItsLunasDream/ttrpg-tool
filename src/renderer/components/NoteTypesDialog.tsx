@@ -1,5 +1,11 @@
 import { useMemo, useState } from 'react';
-import { FIELD_TYPES as FIELD_TYPE_IDS, countMergeChanges, mergeNoteTypes, toKey } from '../../shared/noteTypes';
+import {
+  FIELD_TYPES as FIELD_TYPE_IDS,
+  countMergeChanges,
+  finalizeNewEntries,
+  mergeNoteTypes,
+  toKey
+} from '../../shared/noteTypes';
 import type { MessageKey } from '../../shared/i18n';
 import { useT } from '../i18n';
 import type { Campaign, FieldDef, Note, NoteTypeDef } from '../../shared/types';
@@ -41,6 +47,14 @@ export function NoteTypesDialog({ types, notes, otherCampaigns, onSave, onClose 
   const [sourceId, setSourceId] = useState('');
   const [note, setNote] = useState<string | null>(null);
 
+  /**
+   * Was in diesem Dialog neu entstanden ist. Kennung und Feldschluessel
+   * werden fuer diese Eintraege erst beim Uebernehmen aus der Beschriftung
+   * gebildet, siehe `submit`.
+   */
+  const [createdTypes, setCreatedTypes] = useState<string[]>([]);
+  const [createdFields, setCreatedFields] = useState<string[]>([]);
+
   const selected = draft.find((def) => def.id === selectedId) ?? draft[0] ?? null;
 
   const usage = useMemo(() => {
@@ -75,12 +89,14 @@ export function NoteTypesDialog({ types, notes, otherCampaigns, onSave, onClose 
     if (!selected) return;
     const label = t('types.newField');
     const key = toKey(label, selected.fields.map((field) => field.key));
+    setCreatedFields([...createdFields, `${selected.id}:${key}`]);
     updateSelected({ fields: [...selected.fields, { key, label, type: 'text' }] });
   }
 
   function addType() {
     const id = toKey(t('types.newType'), draft.map((def) => def.id));
     const created: NoteTypeDef = { id, label: t('types.newType'), plural: t('types.newTypePlural'), fields: [] };
+    setCreatedTypes([...createdTypes, id]);
     setDraft([...draft, created]);
     setSelectedId(id);
   }
@@ -123,8 +139,9 @@ export function NoteTypesDialog({ types, notes, otherCampaigns, onSave, onClose 
       setError(t('error.selectNeedsOptions', { label: emptySelect.label }));
       return;
     }
-    onSave(draft);
+    onSave(finalizeNewEntries(draft, createdTypes, createdFields));
   }
+
 
   return (
     <Modal

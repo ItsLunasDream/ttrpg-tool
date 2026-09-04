@@ -9,8 +9,8 @@ import { RelationsPanel } from './RelationsPanel';
 import { BacklinksPanel } from './BacklinksPanel';
 import { TokenInput } from './TokenInput';
 import { ImageField } from './ImageField';
+import { Menu } from './Menu';
 import { AssistantPanel, type AiStatus } from './AssistantPanel';
-import type { AiMessage, AiTask } from '../../main/ai/provider';
 import { useT } from '../i18n';
 
 interface Props {
@@ -28,18 +28,13 @@ interface Props {
   onReport: (text: string) => void;
   onAddReverseRelation: (targetId: string) => void;
   aiStatus: AiStatus | null;
-  onAsk: (
-    task: AiTask,
-    history: AiMessage[],
-    followUp: string,
-    onChunk: (text: string) => void
-  ) => Promise<string | null>;
   onExportMarkdown: () => void;
   onExportPdf: () => void;
   onOpenNote: (noteId: string) => void;
   onCreateNote: (title: string) => void;
   onHoverNote: (note: Note | null, rect: DOMRect | null) => void;
   onOpenExternal: (url: string) => void;
+  onEditNoteTypes: () => void;
   /** Suchbegriff aus der Seitenleiste, fuer die Hervorhebung im Text. */
   searchQuery: string;
   campaignId: string;
@@ -96,12 +91,14 @@ export function NoteEditor(props: Props) {
         <button type="button" onClick={props.onOpenHistory}>
           {t('history.open')}
         </button>
-        <button type="button" onClick={props.onExportMarkdown} title={t('export.markdownNote')}>
-          MD
-        </button>
-        <button type="button" onClick={props.onExportPdf} title={t('export.pdfNote')}>
-          PDF
-        </button>
+        {/* Beide Formate gehoeren zur selben Sache, deshalb unter einem Knopf. */}
+        <Menu
+          label={t('export.note')}
+          entries={[
+            { label: t('export.markdownNote'), onSelect: props.onExportMarkdown },
+            { label: t('export.pdfNote'), onSelect: props.onExportPdf }
+          ]}
+        />
         <button type="button" className="danger" onClick={onDelete}>
           {t('editor.delete')}
         </button>
@@ -145,7 +142,17 @@ export function NoteEditor(props: Props) {
 
         <aside className="note-editor__side">
           <section className="panel">
-            <h3 className="panel__title">{t('editor.profile')}</h3>
+            <h3 className="panel__title">
+              {t('editor.profile')}
+              {/*
+                Der Dialog liegt auch im Kampagnen-Menue. Dort findet ihn
+                niemand, der gerade den Steckbrief vor sich hat und ein Feld
+                umbenennen will.
+              */}
+              <button type="button" className="link-button panel__action" onClick={props.onEditNoteTypes}>
+                {t('editor.editProfile')}
+              </button>
+            </h3>
             {def.fields.map((field) => {
               const value = note.fields[field.key] ?? '';
               const setValue = (next: string) => onPatch({ fields: { ...note.fields, [field.key]: next } });
@@ -231,14 +238,8 @@ export function NoteEditor(props: Props) {
             onAddReverse={props.onAddReverseRelation}
           />
 
-          {/*
-            Der Schluessel setzt das Gespraech beim Notizwechsel zurueck.
-            Als Kontext geht immer die offene Notiz mit; ein Verlauf ueber
-            eine andere Notiz haette das Modell in die Irre gefuehrt, und
-            auf dem Schirm stuenden Antworten zu einer Notiz, die gar
-            nicht mehr offen ist.
-          */}
-          <AssistantPanel key={note.id} status={props.aiStatus} onAsk={props.onAsk} />
+          {/* Zurueckgesetzt wird das Gespraech im AssistantProvider. */}
+          <AssistantPanel status={props.aiStatus} />
 
           <BacklinksPanel
             backlinks={backlinks}

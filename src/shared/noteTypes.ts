@@ -91,6 +91,22 @@ export function fieldLabel(types: NoteTypeDef[], typeId: NoteType, key: string):
 }
 
 /**
+ * Schluessel, unter dem ein Werksfeld mit dieser Beschriftung liegt.
+ *
+ * Die Werksfelder tragen teils englische Schluessel (`class` fuer „Klasse"),
+ * die sich aus ihrer Beschriftung nicht ableiten lassen. Wer ein solches Feld
+ * entfernt und spaeter wieder anlegt, bekaeme sonst `klasse` und saehe die
+ * bereits eingetragenen Werte nicht wieder, obwohl sie in der Datei stehen.
+ */
+export function factoryFieldKey(typeId: string, label: string): string | undefined {
+  const wanted = label.trim().toLocaleLowerCase('de-DE');
+  if (!wanted) return undefined;
+  return DEFAULT_NOTE_TYPES.find((def) => def.id === typeId)?.fields.find(
+    (field) => field.label.toLocaleLowerCase('de-DE') === wanted
+  )?.key;
+}
+
+/**
  * Erzeugt aus einer Beschriftung einen stabilen Schluessel. Der Schluessel
  * bleibt danach unveraendert, auch wenn die Beschriftung umbenannt wird,
  * sonst gingen bereits eingetragene Werte verloren.
@@ -112,6 +128,54 @@ export function toKey(label: string, taken: Iterable<string> = []): string {
   let counter = 2;
   while (used.has(`${base}_${counter}`)) counter += 1;
   return `${base}_${counter}`;
+}
+
+/**
+ * Vergibt Kennung und Feldschluessel der im Dialog neu angelegten Eintraege
+ * endgueltig, aus ihrer Beschriftung.
+ *
+ * Beim Anlegen steht in der Beschriftung noch der Platzhalter („Neuer Typ",
+ * „Neues Feld"), ein daraus gebildeter Schluessel haette also nichts mit dem
+ * zu tun, was danach eingetippt wird. Der jeweils erste eigene Typ jeder
+ * Kampagne hiess so ueberall `neuer_typ`; das Uebernehmen aus einer anderen
+ * Kampagne vergleicht Kennungen und hielt zwei voellig verschiedene Typen
+ * fuer denselben.
+ *
+ * Bestehende Eintraege bleiben unangetastet: an ihrem Schluessel haengen
+ * bereits eingetragene Werte. Neue koennen noch keine haben, ein Typ aus
+ * diesem Dialog hat noch keine Notiz.
+ *
+ * @param createdTypes Kennungen der neu angelegten Typen.
+ * @param createdFields Neue Felder als `typKennung:feldSchluessel`.
+ */
+export function finalizeNewEntries(
+  draft: NoteTypeDef[],
+  createdTypes: string[],
+  createdFields: string[]
+): NoteTypeDef[] {
+  const takenIds = new Set(draft.filter((def) => !createdTypes.includes(def.id)).map((def) => def.id));
+
+  return draft.map((def) => {
+    const isNewField = (field: FieldDef) => createdFields.includes(`${def.id}:${field.key}`);
+    const takenKeys = new Set(def.fields.filter((field) => !isNewField(field)).map((field) => field.key));
+
+    const fields = def.fields.map((field) => {
+      if (!isNewField(field)) return field;
+      // Traegt das Feld die Beschriftung eines Werksfeldes, bekommt es dessen
+      // Schluessel zurueck. Sonst blieben die Werte eines versehentlich
+      // entfernten Feldes unerreichbar in der Datei stehen.
+      const fromFactory = factoryFieldKey(def.id, field.label);
+      const key = fromFactory && !takenKeys.has(fromFactory) ? fromFactory : toKey(field.label, takenKeys);
+      takenKeys.add(key);
+      return { ...field, key };
+    });
+
+    if (!createdTypes.includes(def.id)) return { ...def, fields };
+
+    const id = toKey(def.label, takenIds);
+    takenIds.add(id);
+    return { ...def, id, fields };
+  });
 }
 
 /**

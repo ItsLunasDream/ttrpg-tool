@@ -32,6 +32,7 @@ import { GraphView } from './components/GraphView';
 import { CleanupDialog } from './components/CleanupDialog';
 import { HelpDialog } from './components/HelpDialog';
 import type { AiStatus } from './components/AssistantPanel';
+import { AssistantProvider } from './assistant';
 import type { AiMessage, AiTask } from '../main/ai/provider';
 
 type Dialog =
@@ -377,11 +378,42 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     [guard, onLanguageChange]
   );
 
+  /**
+   * Eine Frage an den Assistenten. Liegt hier statt im Assistenten selbst,
+   * weil vorher gespeichert werden muss: als Kontext geht der Stand auf der
+   * Platte mit, nicht der im Editor.
+   */
+  const askAssistant = useCallback(
+    async (
+      task: AiTask,
+      history: AiMessage[],
+      question: string,
+      onChunk: (text: string) => void
+    ): Promise<string | null> => {
+      const campaignId = activeCampaignId;
+      const noteId = draftRef.current?.id;
+      if (!campaignId || !noteId) return null;
+      await persist();
+
+      // Eigene Kennung je Anfrage, damit Teiltexte einer alten Anfrage nicht
+      // in einer neuen Antwort landen.
+      const streamId = crypto.randomUUID();
+      const unsubscribe = api.ai.onChunk(streamId, onChunk);
+      try {
+        return await guard(() => call(api.ai.ask(campaignId, noteId, task, streamId, history, question)));
+      } finally {
+        unsubscribe();
+      }
+    },
+    [activeCampaignId, guard, persist]
+  );
+
   if (!settings) {
     return <div className="boot">{t('app.loading')}</div>;
   }
 
   return (
+    <AssistantProvider noteId={draft?.id ?? null} onAsk={askAssistant}>
     <div className="app" onMouseLeave={() => setHover(null)}>
       <CampaignBar
         campaigns={campaigns}
@@ -455,6 +487,13 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               <GraphView
                 index={index}
                 activeNoteId={draft?.id ?? null}
+                positions={activeCampaign?.graphPositions ?? {}}
+                onSavePositions={(next) =>
+                  void guard(async () => {
+                    const updated = await call(api.campaigns.saveGraphPositions(activeCampaignId, next));
+                    setCampaigns((previous) => previous.map((entry) => (entry.id === updated.id ? updated : entry)));
+                  })
+                }
                 onClose={() => setShowGraph(false)}
                 onOpenNote={(noteId) => {
                   openNote(noteId);
@@ -474,28 +513,6 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 onDelete={() => setDialog({ kind: 'deleteNote', note: draft })}
                 onOpenHistory={() => void openHistory(draft)}
                 aiStatus={aiStatus}
-                onAsk={async (
-                  task: AiTask,
-                  history: AiMessage[],
-                  followUp: string,
-                  onChunk: (text: string) => void
-                ) => {
-                  const campaignId = activeCampaignId;
-                  if (!campaignId) return null;
-                  await persist();
-
-                  // Eigene Kennung je Anfrage, damit Teiltexte einer alten
-                  // Anfrage nicht in einer neuen Antwort landen.
-                  const streamId = crypto.randomUUID();
-                  const unsubscribe = api.ai.onChunk(streamId, onChunk);
-                  try {
-                    return await guard(() =>
-                      call(api.ai.ask(campaignId, draft.id, task, streamId, history, followUp))
-                    );
-                  } finally {
-                    unsubscribe();
-                  }
-                }}
                 onOpenPrompts={() => {
                   setDialog({ kind: 'prompts' });
                   if (!prompts) void guard(async () => setPrompts(await call(api.prompts.get())));
@@ -522,6 +539,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 onCreateNote={createNoteFromLink}
                 onHoverNote={(note, rect) => setHover(note && rect ? { note, rect } : null)}
                 onOpenExternal={(url) => void guard(() => call(api.openExternal(url)))}
+                onEditNoteTypes={() => setDialog({ kind: 'noteTypes' })}
                 searchQuery={filters.query}
                 campaignId={activeCampaignId}
                 reloadKey={reloadKey}
@@ -620,6 +638,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       {dialog.kind === 'prompts' ? (
         <PromptsDialog
           categories={prompts}
+          aiStatus={aiStatus}
           onClose={() => setDialog({ kind: 'none' })}
           onEditFile={() => void guard(() => call(api.prompts.reveal()))}
           onInsert={(text) => {
@@ -774,6 +793,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         />
       ) : null}
     </div>
+    </AssistantProvider>
   );
 }
 

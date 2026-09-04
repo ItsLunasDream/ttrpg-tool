@@ -1,6 +1,15 @@
 // Sammelpunkt fuer die Tests: buendelt die reinen Logikmodule ohne Electron.
 export { findWikiLinks, rewriteWikiLinks, normalizeName } from '../src/shared/wikilinks';
-export { DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, mergeNoteTypes, countMergeChanges } from '../src/shared/noteTypes';
+export {
+  DEFAULT_NOTE_TYPES,
+  findNoteType,
+  fieldLabel,
+  toKey,
+  factoryFieldKey,
+  finalizeNewEntries,
+  mergeNoteTypes,
+  countMergeChanges
+} from '../src/shared/noteTypes';
 export { translate, isLanguage, LANGUAGES, MESSAGE_KEYS } from '../src/shared/i18n';
 export { parseFrontmatter, stringifyFrontmatter } from '../src/main/frontmatter';
 export {
