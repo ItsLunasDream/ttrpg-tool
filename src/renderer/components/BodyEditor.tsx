@@ -7,6 +7,8 @@ import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import { SizedImage } from '../editor/sizedImage';
 import { createWikiLinkExtension, type SuggestionState } from '../editor/wikiLinkExtension';
 import { createSearchHighlightExtension, replaceMatches, selectMatch } from '../editor/searchHighlight';
@@ -214,6 +216,11 @@ export function BodyEditor({
       TableRow,
       TableHeader,
       TableCell,
+      // Ohne diese beiden kennt der Editor `- [x] erledigt` nicht: das
+      // Ankreuzfeld faellt beim Laden weg und die Aufgabenliste waere beim
+      // naechsten Speichern eine gewoehnliche Liste.
+      TaskList,
+      TaskItem.configure({ nested: true }),
       wikiLink,
       searchHighlight,
       SizedImage.configure({ inline: false, allowBase64: false })

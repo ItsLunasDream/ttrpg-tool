@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   FIELD_TYPES as FIELD_TYPE_IDS,
   countMergeChanges,
-  factoryFieldKey,
+  finalizeNewEntries,
   mergeNoteTypes,
   toKey
 } from '../../shared/noteTypes';
@@ -139,50 +139,9 @@ export function NoteTypesDialog({ types, notes, otherCampaigns, onSave, onClose 
       setError(t('error.selectNeedsOptions', { label: emptySelect.label }));
       return;
     }
-    onSave(withFinalKeys());
+    onSave(finalizeNewEntries(draft, createdTypes, createdFields));
   }
 
-  /**
-   * Vergibt Kennung und Feldschluessel der neuen Eintraege endgueltig.
-   *
-   * Beim Anlegen steht in der Beschriftung noch der Platzhalter, ein daraus
-   * gebildeter Schluessel haette also nichts mit dem zu tun, was danach
-   * eingetippt wird. Zwei Kampagnen bekaemen fuer ihren jeweils ersten
-   * eigenen Typ dieselbe Kennung `neuer_typ`, und das Uebernehmen aus einer
-   * anderen Kampagne hielte die beiden fuer denselben Typ und ergaenzte
-   * nichts. Deshalb faellt die Entscheidung erst hier, wo die Beschriftung
-   * feststeht.
-   *
-   * Bestehende Eintraege bleiben unangetastet: an ihrem Schluessel haengen
-   * bereits eingetragene Werte. Neue koennen noch keine haben, ein Typ aus
-   * diesem Dialog hat noch keine Notiz.
-   */
-  function withFinalKeys(): NoteTypeDef[] {
-    const takenIds = new Set(draft.filter((def) => !createdTypes.includes(def.id)).map((def) => def.id));
-
-    return draft.map((def) => {
-      const takenKeys = new Set(
-        def.fields.filter((field) => !createdFields.includes(`${def.id}:${field.key}`)).map((field) => field.key)
-      );
-
-      const fields = def.fields.map((field) => {
-        if (!createdFields.includes(`${def.id}:${field.key}`)) return field;
-        // Traegt das Feld die Beschriftung eines Werksfeldes, bekommt es
-        // dessen Schluessel zurueck. Sonst blieben die Werte eines
-        // versehentlich entfernten Feldes unerreichbar in der Datei.
-        const fromFactory = factoryFieldKey(def.id, field.label);
-        const key = fromFactory && !takenKeys.has(fromFactory) ? fromFactory : toKey(field.label, takenKeys);
-        takenKeys.add(key);
-        return { ...field, key };
-      });
-
-      if (!createdTypes.includes(def.id)) return { ...def, fields };
-
-      const id = toKey(def.label, takenIds);
-      takenIds.add(id);
-      return { ...def, id, fields };
-    });
-  }
 
   return (
     <Modal

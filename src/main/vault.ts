@@ -650,14 +650,22 @@ export class Vault {
     }
     if (current === nextContent) return;
 
+    const newest = (await this.listVersionFiles(campaignId, noteId))[0];
+    if (newest && Date.now() - versionTime(newest) < HISTORY_MIN_INTERVAL_MS) return;
+
+    await this.writeVersion(campaignId, noteId, current);
+  }
+
+  /**
+   * Legt den uebergebenen Stand als Version ab und raeumt die aeltesten weg.
+   * Ohne Sperrfenster: wer das braucht, prueft es vorher selbst.
+   */
+  private async writeVersion(campaignId: string, noteId: string, content: string): Promise<void> {
     const dir = this.historyDir(campaignId, noteId);
     const versions = await this.listVersionFiles(campaignId, noteId);
 
-    const newest = versions[0];
-    if (newest && Date.now() - versionTime(newest) < HISTORY_MIN_INTERVAL_MS) return;
-
     await fs.mkdir(dir, { recursive: true });
-    await writeAtomic(path.join(dir, `${new Date().toISOString().replace(/[:.]/g, '-')}.md`), current);
+    await writeAtomic(path.join(dir, `${new Date().toISOString().replace(/[:.]/g, '-')}.md`), content);
 
     for (const stale of versions.slice(this.history.maxVersions - 1)) {
       await fs.rm(path.join(dir, stale), { force: true });
@@ -712,6 +720,20 @@ export class Vault {
     const { data, body } = parseFrontmatter(raw);
     const restored = normalizeNote(noteId, data, body);
     const current = await this.getNote(campaignId, noteId);
+
+    // Der Stand von jetzt muss in den Verlauf, bevor er ueberschrieben wird,
+    // und zwar ohne Ruecksicht auf das Sperrfenster. Sonst waere gerade das
+    // Zurueckholen nicht umkehrbar, obwohl der Dialog genau das zusagt: wer
+    // eine Stunde schreibt und dabei jede Minute speichert, hat innerhalb des
+    // Fensters keine Version, und der ganze Text waere weg. Der Schnappschuss
+    // aus writeNote greift danach nicht mehr, er sieht die frische Fassung.
+    if (this.history.enabled) {
+      try {
+        await this.writeVersion(campaignId, noteId, await fs.readFile(this.noteFile(campaignId, noteId), 'utf8'));
+      } catch {
+        // Keine Datei auf der Platte, dann gibt es nichts zu sichern.
+      }
+    }
 
     // Erstellungszeit und Notiz-ID bleiben die der lebenden Notiz.
     return this.saveNote(campaignId, { ...restored, id: noteId, createdAt: current.createdAt });
