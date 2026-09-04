@@ -462,6 +462,36 @@ test('Anordnung ist wiederholbar und bleibt in der Fläche', () => {
   }
 });
 
+test('Reihenfolge der Notizen ändert die Anordnung nicht', () => {
+  // Beim Verlassen und erneuten Oeffnen des Graphen wird das Netz aus dem
+  // Notizindex neu aufgebaut. Zwei Notizen mit gleichem Titel koennen dabei
+  // in vertauschter Reihenfolge aus dem Verzeichnis kommen, ohne dass sich
+  // am Netz selbst etwas geaendert haette. Fruehher haengte die
+  // Startaufstellung an der Stelle in der Liste, und schon eine vertauschte
+  // Reihenfolge liess das halbe Netz springen.
+  const ids = Array.from({ length: 10 }, (_unused, index) => ({ id: `n${index}`, degree: 2 }));
+  const edges = ids.map((entry, index) => ({
+    source: entry.id,
+    target: ids[(index + 1) % ids.length].id,
+    label: '',
+    kind: 'relation'
+  }));
+  const options = { width: 1200, height: 780, seed: 42 };
+
+  const normal = layoutGraph(ids, edges, options);
+  const vertauscht = layoutGraph([...ids].reverse(), edges, options);
+
+  const byId = new Map(normal.map((node) => [node.id, node]));
+  const byIdVertauscht = new Map(vertauscht.map((node) => [node.id, node]));
+
+  for (const id of byId.keys()) {
+    const a = byId.get(id);
+    const b = byIdVertauscht.get(id);
+    const abstand = Math.hypot(a.x - b.x, a.y - b.y);
+    assert.ok(abstand < 5, `${id} sprang um ${abstand.toFixed(1)} Punkte nur wegen der Reihenfolge`);
+  }
+});
+
 test('Verbundene Knoten landen näher beieinander als unverbundene', () => {
   const ids = [
     { id: 'a', degree: 1 },

@@ -37,6 +37,81 @@ function makeRandom(seed: number): () => number {
 }
 
 /**
+ * Stellt aus einer Kennung eine Zahl zwischen 0 und 1, immer dieselbe fuer
+ * dieselbe Kennung.
+ *
+ * Die Startaufstellung haengt daran statt an der Stelle der Notiz in der
+ * Liste: sonst verschoebe schon eine einzige neu angelegte oder geloeschte
+ * Notiz die Startwinkel aller anderen, weil sich deren Index in der Liste
+ * verschiebt. Damit spraenge beim naechsten Oeffnen des Graphen fast das
+ * ganze Netz, obwohl nur eine Notiz dazukam.
+ */
+function hashUnit(value: string): number {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index++) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return ((hash >>> 0) % 1_000_000) / 1_000_000;
+}
+
+/**
+ * Reihenfolge fuer die Startaufstellung: dem Netz entlang statt rein nach
+ * Kennung gewuerfelt. Verbundene Knoten bekommen so von Anfang an
+ * benachbarte Plaetze auf dem Kreis, sonst muessten sie sich erst quer durchs
+ * Bild zueinander vorarbeiten, und bei vielen Knoten reicht die Rechenzeit
+ * dafuer nicht.
+ *
+ * Haengt nur an der Kennung und am Netz, nicht an der Reihenfolge der
+ * uebergebenen Liste: dieselbe Notiz bekommt so immer denselben Platz, egal
+ * in welcher Reihenfolge sie diesmal ankam.
+ */
+function stableOrder(ids: { id: string }[], edges: GraphEdge[]): string[] {
+  const known = new Set(ids.map((entry) => entry.id));
+  const neighbours = new Map<string, string[]>();
+  for (const id of known) neighbours.set(id, []);
+  for (const edge of edges) {
+    if (!known.has(edge.source) || !known.has(edge.target)) continue;
+    neighbours.get(edge.source)!.push(edge.target);
+    neighbours.get(edge.target)!.push(edge.source);
+  }
+  // Sortiert, damit die Besuchsreihenfolge nicht an der Reihenfolge der
+  // Kanten haengt.
+  for (const list of neighbours.values()) list.sort();
+
+  const remaining = new Set(known);
+  const order: string[] = [];
+
+  while (remaining.size > 0) {
+    // Startpunkt je Teilnetz: die Kennung mit dem kleinsten Fingerabdruck,
+    // damit auch der Anfang unabhaengig von der Ankunftsreihenfolge ist.
+    let root = '';
+    let smallest = Infinity;
+    for (const id of remaining) {
+      const value = hashUnit(id);
+      if (value < smallest) {
+        smallest = value;
+        root = id;
+      }
+    }
+
+    const queue = [root];
+    remaining.delete(root);
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      order.push(current);
+      for (const neighbour of neighbours.get(current) ?? []) {
+        if (!remaining.has(neighbour)) continue;
+        remaining.delete(neighbour);
+        queue.push(neighbour);
+      }
+    }
+  }
+
+  return order;
+}
+
+/**
  * Kraeftebasierte Anordnung, von Hand statt mit einer Bibliothek: das Netz
  * einer Kampagne ist klein, und so bleibt die Anwendung ohne zusaetzliche
  * Abhaengigkeit.
@@ -96,16 +171,23 @@ function arrange(
   const random = makeRandom(seed);
   const hasFixed = ids.some((entry) => fixed[entry.id]);
 
+  // Reihenfolge auf dem Kreis: dem Netz entlang und nach Kennung, statt nach
+  // der Stelle in der uebergebenen Liste. So bekommt jede Notiz immer
+  // denselben Platz im Kreis, gleich in welcher Reihenfolge sie ankommt, und
+  // verbundene Notizen starten nah beieinander.
+  const rank = new Map(stableOrder(ids, edges).map((id, index) => [id, index]));
+
   // Startaufstellung auf einem Kreis, damit nichts exakt aufeinanderliegt.
-  const nodes: GraphNode[] = ids.map((entry, index) => {
-    const angle = (index / Math.max(1, ids.length)) * Math.PI * 2;
+  const nodes: GraphNode[] = ids.map((entry) => {
+    const angle = (rank.get(entry.id)! / Math.max(1, ids.length)) * Math.PI * 2;
     const radius = Math.min(width, height) * 0.3;
+    const jitter = hashUnit(`${entry.id}:jitter`);
     const set = fixed[entry.id];
     return {
       id: entry.id,
       degree: entry.degree,
-      x: set ? set.x : width / 2 + Math.cos(angle) * radius + (random() - 0.5) * 10,
-      y: set ? set.y : height / 2 + Math.sin(angle) * radius + (random() - 0.5) * 10
+      x: set ? set.x : width / 2 + Math.cos(angle) * radius + (jitter - 0.5) * 10,
+      y: set ? set.y : height / 2 + Math.sin(angle) * radius + (jitter - 0.5) * 10
     };
   });
 
@@ -197,15 +279,85 @@ function arrange(
   // Mit festen Stellen wurde schon in jeder Runde begrenzt. Nachtraeglich
   // einzupassen wuerde entweder die gesetzten Stellen verschieben oder die
   // Abstaende zu ihnen zerstoeren.
-  return hasFixed ? nodes : fitToViewport(nodes, width, height);
+  const placed = hasFixed ? nodes : fitToViewport(nodes, width, height);
+
+  // Die Kraeftesimulation findet nicht in jeder Netzform von selbst genug
+  // Abstand: bei einer langen Kette etwa bleibt schon mal ein Paar zu nah
+  // beieinander haengen, auch nach vielen Runden. Ein letzter Durchgang
+  // trennt solche Reste, ohne feste Stellen zu verschieben.
+  return resolveOverlaps(placed, fixed, width, height, hasFixed);
 }
 
 /** Abstand zum Rand, damit ein Knoten nicht halb ausserhalb klebt. */
 const EDGE_MARGIN = 40;
 
+/** Mindestabstand, den kein Knotenpaar unterschreiten darf. */
+const MIN_NODE_GAP = 28;
 
+/**
+ * Trennt Knotenpaare, die sich trotz der Simulation noch zu nah gekommen
+ * sind. Feste Stellen bleiben unangetastet, ein zu nah geratener freier
+ * Knoten weicht ganz allein aus.
+ */
+function resolveOverlaps(
+  nodes: GraphNode[],
+  fixed: Record<string, { x: number; y: number }>,
+  width: number,
+  height: number,
+  bounded: boolean
+): GraphNode[] {
+  for (let pass = 0; pass < 20; pass++) {
+    let moved = false;
 
+    for (let a = 0; a < nodes.length; a++) {
+      for (let b = a + 1; b < nodes.length; b++) {
+        const first = nodes[a];
+        const second = nodes[b];
+        const firstFixed = Boolean(fixed[first.id]);
+        const secondFixed = Boolean(fixed[second.id]);
+        if (firstFixed && secondFixed) continue;
 
+        let dx = first.x - second.x;
+        let dy = first.y - second.y;
+        let distance = Math.hypot(dx, dy);
+        if (distance >= MIN_NODE_GAP) continue;
+
+        if (distance < 0.01) {
+          dx = 1;
+          dy = 0;
+          distance = 0.01;
+        }
+
+        const ux = dx / distance;
+        const uy = dy / distance;
+        // Ist nur eine Seite fest, weicht die andere ganz alleine aus.
+        const share = firstFixed || secondFixed ? MIN_NODE_GAP - distance : (MIN_NODE_GAP - distance) / 2;
+
+        if (!firstFixed) {
+          first.x += ux * share;
+          first.y += uy * share;
+        }
+        if (!secondFixed) {
+          second.x -= ux * share;
+          second.y -= uy * share;
+        }
+        moved = true;
+      }
+    }
+
+    if (bounded) {
+      for (const node of nodes) {
+        if (fixed[node.id]) continue;
+        node.x = Math.min(width - EDGE_MARGIN, Math.max(EDGE_MARGIN, node.x));
+        node.y = Math.min(height - EDGE_MARGIN, Math.max(EDGE_MARGIN, node.y));
+      }
+    }
+
+    if (!moved) break;
+  }
+
+  return nodes;
+}
 /**
  * Skaliert und zentriert das Ergebnis so, dass es die Flaeche ausfuellt.
  * Ohne diesen Schritt haengt die Groesse des Netzes davon ab, wie stark
