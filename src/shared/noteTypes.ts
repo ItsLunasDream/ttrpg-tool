@@ -91,6 +91,22 @@ export function fieldLabel(types: NoteTypeDef[], typeId: NoteType, key: string):
 }
 
 /**
+ * Schluessel, unter dem ein Werksfeld mit dieser Beschriftung liegt.
+ *
+ * Die Werksfelder tragen teils englische Schluessel (`class` fuer „Klasse"),
+ * die sich aus ihrer Beschriftung nicht ableiten lassen. Wer ein solches Feld
+ * entfernt und spaeter wieder anlegt, bekaeme sonst `klasse` und saehe die
+ * bereits eingetragenen Werte nicht wieder, obwohl sie in der Datei stehen.
+ */
+export function factoryFieldKey(typeId: string, label: string): string | undefined {
+  const wanted = label.trim().toLocaleLowerCase('de-DE');
+  if (!wanted) return undefined;
+  return DEFAULT_NOTE_TYPES.find((def) => def.id === typeId)?.fields.find(
+    (field) => field.label.toLocaleLowerCase('de-DE') === wanted
+  )?.key;
+}
+
+/**
  * Erzeugt aus einer Beschriftung einen stabilen Schluessel. Der Schluessel
  * bleibt danach unveraendert, auch wenn die Beschriftung umbenannt wird,
  * sonst gingen bereits eingetragene Werte verloren.

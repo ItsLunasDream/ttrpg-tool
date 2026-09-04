@@ -1,5 +1,11 @@
 import { useMemo, useState } from 'react';
-import { FIELD_TYPES as FIELD_TYPE_IDS, countMergeChanges, mergeNoteTypes, toKey } from '../../shared/noteTypes';
+import {
+  FIELD_TYPES as FIELD_TYPE_IDS,
+  countMergeChanges,
+  factoryFieldKey,
+  mergeNoteTypes,
+  toKey
+} from '../../shared/noteTypes';
 import type { MessageKey } from '../../shared/i18n';
 import { useT } from '../i18n';
 import type { Campaign, FieldDef, Note, NoteTypeDef } from '../../shared/types';
@@ -41,6 +47,14 @@ export function NoteTypesDialog({ types, notes, otherCampaigns, onSave, onClose 
   const [sourceId, setSourceId] = useState('');
   const [note, setNote] = useState<string | null>(null);
 
+  /**
+   * Was in diesem Dialog neu entstanden ist. Kennung und Feldschluessel
+   * werden fuer diese Eintraege erst beim Uebernehmen aus der Beschriftung
+   * gebildet, siehe `submit`.
+   */
+  const [createdTypes, setCreatedTypes] = useState<string[]>([]);
+  const [createdFields, setCreatedFields] = useState<string[]>([]);
+
   const selected = draft.find((def) => def.id === selectedId) ?? draft[0] ?? null;
 
   const usage = useMemo(() => {
@@ -75,12 +89,14 @@ export function NoteTypesDialog({ types, notes, otherCampaigns, onSave, onClose 
     if (!selected) return;
     const label = t('types.newField');
     const key = toKey(label, selected.fields.map((field) => field.key));
+    setCreatedFields([...createdFields, `${selected.id}:${key}`]);
     updateSelected({ fields: [...selected.fields, { key, label, type: 'text' }] });
   }
 
   function addType() {
     const id = toKey(t('types.newType'), draft.map((def) => def.id));
     const created: NoteTypeDef = { id, label: t('types.newType'), plural: t('types.newTypePlural'), fields: [] };
+    setCreatedTypes([...createdTypes, id]);
     setDraft([...draft, created]);
     setSelectedId(id);
   }
@@ -123,7 +139,49 @@ export function NoteTypesDialog({ types, notes, otherCampaigns, onSave, onClose 
       setError(t('error.selectNeedsOptions', { label: emptySelect.label }));
       return;
     }
-    onSave(draft);
+    onSave(withFinalKeys());
+  }
+
+  /**
+   * Vergibt Kennung und Feldschluessel der neuen Eintraege endgueltig.
+   *
+   * Beim Anlegen steht in der Beschriftung noch der Platzhalter, ein daraus
+   * gebildeter Schluessel haette also nichts mit dem zu tun, was danach
+   * eingetippt wird. Zwei Kampagnen bekaemen fuer ihren jeweils ersten
+   * eigenen Typ dieselbe Kennung `neuer_typ`, und das Uebernehmen aus einer
+   * anderen Kampagne hielte die beiden fuer denselben Typ und ergaenzte
+   * nichts. Deshalb faellt die Entscheidung erst hier, wo die Beschriftung
+   * feststeht.
+   *
+   * Bestehende Eintraege bleiben unangetastet: an ihrem Schluessel haengen
+   * bereits eingetragene Werte. Neue koennen noch keine haben, ein Typ aus
+   * diesem Dialog hat noch keine Notiz.
+   */
+  function withFinalKeys(): NoteTypeDef[] {
+    const takenIds = new Set(draft.filter((def) => !createdTypes.includes(def.id)).map((def) => def.id));
+
+    return draft.map((def) => {
+      const takenKeys = new Set(
+        def.fields.filter((field) => !createdFields.includes(`${def.id}:${field.key}`)).map((field) => field.key)
+      );
+
+      const fields = def.fields.map((field) => {
+        if (!createdFields.includes(`${def.id}:${field.key}`)) return field;
+        // Traegt das Feld die Beschriftung eines Werksfeldes, bekommt es
+        // dessen Schluessel zurueck. Sonst blieben die Werte eines
+        // versehentlich entfernten Feldes unerreichbar in der Datei.
+        const fromFactory = factoryFieldKey(def.id, field.label);
+        const key = fromFactory && !takenKeys.has(fromFactory) ? fromFactory : toKey(field.label, takenKeys);
+        takenKeys.add(key);
+        return { ...field, key };
+      });
+
+      if (!createdTypes.includes(def.id)) return { ...def, fields };
+
+      const id = toKey(def.label, takenIds);
+      takenIds.add(id);
+      return { ...def, id, fields };
+    });
   }
 
   return (
