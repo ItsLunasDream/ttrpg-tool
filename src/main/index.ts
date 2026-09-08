@@ -39,7 +39,7 @@ async function createWindow(): Promise<void> {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: true
     }
   });
 
@@ -69,6 +69,21 @@ async function createWindow(): Promise<void> {
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http:') || url.startsWith('https:')) void shell.openExternal(url);
     return { action: 'deny' };
+  });
+
+  // Dasselbe fuer Links, die das Fenster selbst wegnavigieren wuerden. Ohne
+  // das laege auf der fremden Seite dieselbe Bruecke zum Dateisystem wie auf
+  // der eigenen: die Voreinstellungen des Fensters, und damit das Preload,
+  // gelten fuer alles, was darin geladen wird.
+  window.webContents.on('will-navigate', (event, url) => {
+    // Einzige erlaubte Navigation ist der Entwicklungsserver, der sich beim
+    // Neuaufbau selbst neu laedt. Die gepackte Anwendung laedt ihre Seite
+    // ueber loadFile und navigiert von sich aus nie wieder.
+    if (devServerUrl && url.startsWith(devServerUrl)) return;
+
+    event.preventDefault();
+    const target = new URL(url);
+    if (target.protocol === 'http:' || target.protocol === 'https:') void shell.openExternal(target.href);
   });
 
   try {

@@ -66,10 +66,16 @@ jobs:
           name: package-verify-log
           path: package-verify.log
           if-no-files-found: ignore
+          retention-days: 1
 
   windows:
     name: Windows-Anwendung
     needs: package-check
+    # Windows-Laeufer zaehlen doppelt auf das Kontingent. Die fertige
+    # Anwendung wird nur dort gebaut, wo sie auch gebraucht wird: auf main,
+    # fuer eine Veroeffentlichung und wenn jemand den Lauf von Hand startet.
+    # Auf Zweigen genuegen die Tests darueber.
+    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,7 +94,7 @@ jobs:
           name: backstory-creator-windows
           path: release/*.exe
           if-no-files-found: error
-          retention-days: 90
+          retention-days: 1
 
       - name: An Release anhängen
         if: github.event_name == 'release'

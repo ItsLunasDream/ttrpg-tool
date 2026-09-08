@@ -23,6 +23,20 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
+/**
+ * Der Notiztext geht als Markdown durch `marked`, und Markdown darf rohes
+ * HTML enthalten. Steht in einer Notiz ein `<script>`, liefe das beim Drucken
+ * mit: das Fenster laedt eine Datei, hat also keine Beschraenkung von sich
+ * aus. Eigene Notizen sind harmlos, eine geteilte oder heruntergeladene
+ * Kampagne muss es nicht sein.
+ *
+ * Diese Regel erlaubt genau das, was der Druck braucht: das eingebettete
+ * Stylesheet und Bilder von der Platte. Skripte und jede Verbindung nach
+ * aussen sind ausgeschlossen, ein solches Skript kaeme also weder zur
+ * Ausfuehrung noch an die Notizen heran.
+ */
+const PRINT_CSP = "default-src 'none'; img-src file: data:; style-src 'unsafe-inline'; font-src file:";
+
 const PRINT_STYLE = `
   :root { color-scheme: light; }
   body {
@@ -126,7 +140,9 @@ function renderNote(note: Note, context: PdfContext): string {
  */
 export async function exportNotesToPdf(notes: Note[], context: PdfContext, targetFile: string): Promise<void> {
   const html = `<!doctype html>
-<html lang="de"><head><meta charset="utf-8"><style>${PRINT_STYLE}</style></head>
+<html lang="de"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="${PRINT_CSP}">
+<style>${PRINT_STYLE}</style></head>
 <body>${notes.map((note) => renderNote(note, context)).join('\n')}</body></html>`;
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'backstory-pdf-'));
