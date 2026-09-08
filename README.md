@@ -52,15 +52,35 @@ Wurzel und delegieren an die passenden Ordner:
 
 ```
 apps/backstory/    Der Backstory Creator selbst (Electron-Anwendung)
+apps/shell/        TTRPG-Tools: die Hülle, in die die Werkzeuge eingebettet werden
 packages/dice/     Geteiltes Paket: Würfelausdrücke lesen und werfen
 ```
 
-`npm install` an der Wurzel richtet beide ein. `npm run dev`, `npm start`,
+`npm install` an der Wurzel richtet alle ein. `npm run dev`, `npm start`,
 `npm run smoke`, `npm run roundtrip`, `npm run dist:win` und
-`npm run dist:linux` betreffen ausschließlich `apps/backstory`. `npm run
-typecheck` und `npm test` laufen dagegen über alle Workspaces, App und
-Pakete eingeschlossen. Ein Befehl gezielt für einen Workspace: `npm run
-<skript> -w apps/backstory` bzw. `-w packages/dice`.
+`npm run dist:linux` betreffen ausschließlich `apps/backstory`; für die Hülle
+gibt es `npm run dev:shell`, `npm run start:shell` und `npm run smoke:shell`.
+`npm run build`, `npm run typecheck` und `npm test` laufen dagegen über alle
+Workspaces, Apps und Pakete eingeschlossen. Ein Befehl gezielt für einen
+Workspace: `npm run <skript> -w apps/backstory` bzw. `-w packages/dice`.
+
+### TTRPG-Tools: die Hülle
+
+`apps/shell` ist der gemeinsame Rahmen, in dem die einzelnen Werkzeuge später
+laufen sollen — ein Fenster, ein Startmenü, eine Schiene zum Wechseln. Der
+Arbeitstitel und die Symbole sind vorläufig.
+
+Aufbau: ein rahmenloses `BaseWindow`. Zuunterst liegt die Ansicht mit der Hülle
+selbst über die volle Fensterfläche. Wird ein Werkzeug eingebettet, kommt dessen
+Ansicht *darüber* und lässt oben und links genau so viel frei, wie Titelleiste
+und Schiene brauchen — die Hülle schaut also als L-Form darunter hervor. Eine
+Ansicht ist immer ein Rechteck; eine L-Form ließe sich nur aus zwei Ansichten
+bauen, die dann zwei getrennte Dokumente wären.
+
+Stand: die Hülle steht, eingebettet ist noch nichts. Werkzeuge mit dem Zustand
+`vorbereitet` lassen sich schon anwählen und führen auf eine Fläche, die genau
+das sagt. Was es gibt und wie weit es ist, steht an einer Stelle:
+`apps/shell/src/shared/apps.ts`.
 
 ## Bedienung
 

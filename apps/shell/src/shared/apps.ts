@@ -1,0 +1,123 @@
+/**
+ * Das Verzeichnis der Werkzeuge, die die Huelle kennt.
+ *
+ * Es steht in `shared`, weil beide Seiten es brauchen und beide dieselbe
+ * Wahrheit sehen muessen: die Oberflaeche zeichnet daraus Kacheln und
+ * Schiene, der Hauptprozess entscheidet daraus, welche Anwendung er
+ * montiert. Zwei getrennte Listen wuerden frueher oder spaeter
+ * auseinanderlaufen.
+ *
+ * Kein `electron`, kein `node:*` — die Datei wird in beide Prozesse
+ * gebuendelt.
+ */
+
+/**
+ * Wie weit ein Werkzeug ist.
+ *
+ * `bereit`      — eingebettet und benutzbar.
+ * `vorbereitet` — die Anwendung gibt es, die Huelle kann sie aber noch nicht
+ *                 einbetten. Die Kachel laesst sich trotzdem anklicken und
+ *                 fuehrt auf eine Flaeche, die genau das sagt. Damit ist der
+ *                 Wechsel selbst schon benutzbar und pruefbar, statt bis zum
+ *                 Einbetten tot dazuliegen.
+ * `geplant`     — noch nicht gebaut, Kachel sichtbar, aber nicht anklickbar.
+ *                 Sie steht bewusst jetzt schon da: die Huelle soll zeigen,
+ *                 wohin die Sammlung waechst, statt spaeter ueberraschend
+ *                 Knoepfe nachwachsen zu lassen.
+ */
+export type AppStatus = 'bereit' | 'vorbereitet' | 'geplant';
+
+/** Ob eine Kachel oder ein Schieneneintrag angeklickt werden darf. */
+export function istWaehlbar(status: AppStatus): boolean {
+  return status !== 'geplant';
+}
+
+/** Was auf der Kachel unten steht. */
+export const STATUS_MARKE: Record<AppStatus, string> = {
+  bereit: 'bereit',
+  vorbereitet: 'in Arbeit',
+  geplant: 'später'
+};
+
+export interface AppEntry {
+  /** Stabiler Bezeichner. Wird zum Praefix der IPC-Kanaele und zum Schluessel im Fensterzustand. */
+  readonly id: string;
+  /** Anzeigename. Arbeitstitel — die endgueltigen Namen kommen spaeter. */
+  readonly name: string;
+  /** Ein Satz, der auf der Kachel unter dem Namen steht. */
+  readonly beschreibung: string;
+  readonly status: AppStatus;
+}
+
+export const APPS: readonly AppEntry[] = [
+  {
+    id: 'backstory',
+    name: 'Backstory',
+    beschreibung: 'Figuren, Orte und ihre Beziehungen aufschreiben',
+    status: 'vorbereitet'
+  },
+  {
+    id: 'mapmaker',
+    name: 'Karten',
+    beschreibung: 'Karten zeichnen und erzeugen',
+    status: 'vorbereitet'
+  },
+  {
+    id: 'initiative',
+    name: 'Initiative',
+    beschreibung: 'Zugreihenfolge im Kampf verwalten',
+    status: 'geplant'
+  },
+  {
+    id: 'dice',
+    name: 'Würfel',
+    beschreibung: 'Würfelausdrücke werfen, mit Vorteil und Nachteil',
+    status: 'geplant'
+  },
+  {
+    id: 'encounter',
+    name: 'Begegnungen',
+    beschreibung: 'Kämpfe planen und ausbalancieren',
+    status: 'geplant'
+  }
+];
+
+/** Liefert den Eintrag zu einer ID, oder `undefined`, wenn es ihn nicht gibt. */
+export function findApp(id: string): AppEntry | undefined {
+  return APPS.find((entry) => entry.id === id);
+}
+
+/**
+ * Masse der Huelle in CSS-Pixeln. Der Hauptprozess rechnet damit die Flaeche
+ * der eingebetteten Anwendung aus, die Oberflaeche zeichnet damit Titelleiste
+ * und Schiene. Beide muessen exakt dieselben Zahlen benutzen, sonst klafft
+ * eine Luecke oder die Schiene liegt unter der Anwendung.
+ */
+export const CHROME = {
+  titelleisteHoehe: 40,
+  schieneBreite: 56
+} as const;
+
+/**
+ * Die Flaeche, die einer eingebetteten Anwendung im Fenster bleibt: alles
+ * unterhalb der Titelleiste und rechts der Schiene.
+ *
+ * Steht hier und nicht im Hauptprozess, weil die Zahlen dieselben sein muessen
+ * wie die, mit denen die Oberflaeche ihre Titelleiste und Schiene zeichnet.
+ * Zwei Rechnungen an zwei Orten waeren genau die Art Fehler, die sich als
+ * Ein-Pixel-Spalt zeigt und niemand findet.
+ */
+export function berechneAppFlaeche(
+  fensterBreite: number,
+  fensterHoehe: number
+): { x: number; y: number; width: number; height: number } {
+  return {
+    x: CHROME.schieneBreite,
+    y: CHROME.titelleisteHoehe,
+    // Sehr kleine Fenster sind durch minWidth/minHeight ausgeschlossen, aber
+    // waehrend eines Wechsels kann kurz eine Groesse von 0 durchlaufen. Eine
+    // negative Breite wuerde Electron werfen lassen.
+    width: Math.max(0, fensterBreite - CHROME.schieneBreite),
+    height: Math.max(0, fensterHoehe - CHROME.titelleisteHoehe)
+  };
+}

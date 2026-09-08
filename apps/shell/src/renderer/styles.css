@@ -1,0 +1,345 @@
+/*
+ * Aussehen der Huelle. Dunkel, zurueckhaltend: die Huelle ist Rahmen, nicht
+ * Inhalt. Sie soll neben der Oberflaeche der eingebetteten Anwendung nicht um
+ * Aufmerksamkeit konkurrieren.
+ */
+
+:root {
+  --grund: #14161c;
+  --grund-hoch: #1b1e26;
+  --rand: #2a2e39;
+  --text: #e6e8ee;
+  --text-leise: #939aab;
+  --betont: #7aa2f7;
+  --schliessen: #e5484d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Chromiums Standard-Fokusring ist auf dunklem Grund ein greller gelber
+   Kasten. Ersetzt, nicht abgeschaltet: ohne sichtbaren Fokus waere die Huelle
+   mit der Tastatur nicht mehr bedienbar. */
+:focus-visible {
+  outline: 2px solid var(--betont);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--grund);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  /* Die Huelle scrollt nie. Sie ist ein Rahmen fester Groesse; was scrollt,
+     ist die Anwendung darin. */
+  overflow: hidden;
+  user-select: none;
+}
+
+.huelle {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ---------- Titelleiste ---------- */
+
+.titelleiste {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  background: var(--grund-hoch);
+  border-bottom: 1px solid var(--rand);
+  flex: 0 0 auto;
+  /* Das Fenster ist rahmenlos, also muss die Leiste selbst ziehbar sein. */
+  -webkit-app-region: drag;
+}
+
+.titelleiste__marke {
+  display: flex;
+  color: var(--betont);
+}
+
+.titelleiste__name {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.titelleiste__pfad {
+  color: var(--text-leise);
+}
+
+.titelleiste__fueller {
+  flex: 1;
+}
+
+/* Alles Anklickbare muss die Ziehflaeche wieder aufheben, sonst zieht ein
+   Klick darauf das Fenster, statt den Knopf auszuloesen. */
+.titelleiste__knopf,
+.fensterknoepfe {
+  -webkit-app-region: no-drag;
+}
+
+.titelleiste__knopf {
+  background: none;
+  border: 0;
+  color: var(--text-leise);
+  font: inherit;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.titelleiste__knopf:hover:not(:disabled) {
+  background: #23273244;
+  color: var(--text);
+}
+
+.titelleiste__knopf:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.fensterknoepfe {
+  display: flex;
+  height: 100%;
+  margin-left: 8px;
+}
+
+.fensterknopf {
+  width: 44px;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  color: var(--text-leise);
+  cursor: pointer;
+}
+
+.fensterknopf:hover {
+  background: #ffffff14;
+  color: var(--text);
+}
+
+.fensterknopf--schliessen:hover {
+  background: var(--schliessen);
+  color: #fff;
+}
+
+/* ---------- Startmenue ---------- */
+
+.menue {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  gap: 4px;
+  min-height: 0;
+}
+
+.menue__frage {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.menue__hinweis {
+  color: var(--text-leise);
+  margin: 0 0 28px;
+}
+
+.menue__version {
+  color: var(--text-leise);
+  font-size: 12px;
+  margin: 28px 0 0;
+}
+
+.kacheln {
+  display: grid;
+  /* Die Spaltenzahl richtet sich nach der Breite, nicht nach einer festen
+     Zahl: so passt das Menue vom kleinsten erlaubten Fenster bis zum
+     Vollbild, ohne Umbruchregeln je Groesse. */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 200px));
+  gap: 16px;
+  justify-content: center;
+  max-width: 900px;
+}
+
+.kachel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px 18px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 120ms, transform 120ms, background 120ms;
+}
+
+.kachel--bereit:hover,
+.kachel--vorbereitet:hover {
+  border-color: var(--betont);
+  background: #1f2430;
+  transform: translateY(-2px);
+}
+
+.kachel--bereit:focus-visible,
+.kachel--vorbereitet:focus-visible {
+  outline: 2px solid var(--betont);
+  outline-offset: 2px;
+}
+
+.kachel--geplant {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.kachel__icon {
+  color: var(--betont);
+  display: flex;
+}
+
+.kachel--geplant .kachel__icon {
+  color: var(--text-leise);
+}
+
+/* In Arbeit: sichtbar anklickbar, aber erkennbar noch nicht fertig. */
+.kachel--vorbereitet {
+  opacity: 0.8;
+}
+
+.kachel--vorbereitet .kachel__icon {
+  color: #b6a06a;
+}
+
+.kachel--vorbereitet .kachel__marke {
+  color: #b6a06a;
+}
+
+.kachel__name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.kachel__text {
+  color: var(--text-leise);
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.kachel__marke {
+  margin-top: 4px;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-leise);
+}
+
+.kachel--bereit .kachel__marke {
+  color: var(--betont);
+}
+
+/* ---------- Buehne: Schiene und Anwendungsflaeche ---------- */
+
+.buehne {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.schiene {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  background: var(--grund-hoch);
+  border-right: 1px solid var(--rand);
+}
+
+.schiene__heim,
+.schiene__eintrag {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  color: var(--text-leise);
+  cursor: pointer;
+}
+
+.schiene__heim {
+  color: var(--betont);
+}
+
+.schiene__eintrag:hover:not(:disabled),
+.schiene__heim:hover {
+  background: #ffffff12;
+  color: var(--text);
+}
+
+.schiene__eintrag--an {
+  background: #ffffff16;
+  color: var(--betont);
+}
+
+.schiene__eintrag--geplant {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.schiene__trenner {
+  width: 24px;
+  height: 1px;
+  background: var(--rand);
+  margin: 4px 0;
+}
+
+.platzhalter {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-leise);
+  min-width: 0;
+}
+
+.platzhalter__name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.platzhalter__text,
+.platzhalter__hinweis {
+  margin: 0;
+}
+
+.platzhalter__hinweis {
+  font-size: 12px;
+  margin-top: 10px;
+}

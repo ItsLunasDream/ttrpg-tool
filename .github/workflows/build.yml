@@ -40,6 +40,10 @@ jobs:
         run: npm run smoke
       - name: Markdown-Rundlauf
         run: npm run roundtrip
+      # Die Huelle startet ihren eigenen Hauptprozess. Ihre Modultests sehen
+      # nur reine Funktionen, nicht das Fenster.
+      - name: Rauchtest der Huelle
+        run: npm run smoke:shell
 
   package-check:
     name: Gepacktes Paket prüfen
