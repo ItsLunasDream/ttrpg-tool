@@ -5,6 +5,21 @@ eines Abschnitts ist keine Priorisierung.
 
 ## Offene Wünsche
 
+### Zoom mit dem Mausrad im Editor, GUI-Größe separat in den Einstellungen
+
+Zwei getrennte Wünsche:
+
+- Im Textfeld des Editors soll das Mausrad, gehalten mit einer Modifikatortaste
+  (z. B. Strg, analog zu Browsern), die Schriftgröße des bearbeiteten Textes
+  ändern. Das gilt NUR innerhalb des Editorfelds, nicht für die restliche
+  Oberfläche (Seitenleiste, Kopfzeile, Dialoge).
+- Unabhängig davon soll es in den Einstellungen eine eigene Option geben, mit
+  der sich die Größe der gesamten Oberfläche (GUI) ändern lässt, nicht nur die
+  des Editortextes.
+
+Beides sollte dauerhaft gespeichert werden (wie die übrigen Einstellungen),
+nicht nur für die laufende Sitzung gelten.
+
 ### Graph: laufende Simulation beim Ziehen
 
 Die Anordnung wird einmal berechnet. Zieht man einen Knoten, folgen die

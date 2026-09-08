@@ -289,6 +289,30 @@ button:focus-visible {
   margin-bottom: 3px;
 }
 
+.about__author {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 2px;
+}
+
+.about__version {
+  color: var(--text-muted);
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  margin: 0 0 16px;
+}
+
+.about__license {
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.about__links {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
 /* --- Notizliste --- */
 
 .note-list {

@@ -33,6 +33,17 @@ const de = {
   'bar.settings': 'Einstellungen',
   'bar.campaign': 'Kampagne',
   'bar.help': 'Hilfe',
+  'bar.about': 'Über',
+
+  'about.title': 'Über Backstory Creator',
+  'about.author': 'Von ItsLunasDream',
+  'about.version': 'Version {version}',
+  'about.license': 'Lizenz: GNU Affero General Public License v3.0 (oder neuer)',
+  'about.licenseDetail':
+    'Freie Software: du darfst sie benutzen, verändern und weitergeben. Wird eine veränderte Fassung über ein Netzwerk angeboten, muss ihr Quelltext ebenfalls offenstehen.',
+  'about.warranty': 'Ohne jede Gewährleistung, wie in der Lizenz beschrieben.',
+  'about.sourceLink': 'Quelltext auf GitHub',
+  'about.licenseLink': 'Vollständigen Lizenztext lesen',
 
   'help.title': 'Tastenkürzel und Handgriffe',
   'help.ctrl': 'Strg',
@@ -405,6 +416,17 @@ const en: Partial<Record<MessageKey, string>> = {
   'bar.settings': 'Settings',
   'bar.campaign': 'Campaign',
   'bar.help': 'Help',
+  'bar.about': 'About',
+
+  'about.title': 'About Backstory Creator',
+  'about.author': 'By ItsLunasDream',
+  'about.version': 'Version {version}',
+  'about.license': 'License: GNU Affero General Public License v3.0 (or later)',
+  'about.licenseDetail':
+    'Free software: you may use, change and redistribute it. If a modified version is offered over a network, its source must be made available too.',
+  'about.warranty': 'Provided with no warranty, as described in the license.',
+  'about.sourceLink': 'Source code on GitHub',
+  'about.licenseLink': 'Read the full license text',
 
   'help.title': 'Shortcuts and handling',
   'help.ctrl': 'Ctrl',

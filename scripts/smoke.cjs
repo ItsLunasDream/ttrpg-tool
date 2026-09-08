@@ -1373,6 +1373,18 @@ app.whenReady().then(async () => {
     await clickButton(window, '×', "document.querySelector('.modal__header')");
     await sleep(400);
 
+    // 22b. Über: Name, Version und Lizenz müssen auffindbar sein
+    await clickButton(window, 'Über');
+    await sleep(600);
+    check(await run(window, `return document.querySelector('.about')?.textContent.includes('ItsLunasDream');`),
+      'Über-Dialog nennt nicht ItsLunasDream');
+    check(await run(window, `return /Version \\d+\\.\\d+\\.\\d+/.test(document.querySelector('.about')?.textContent ?? '');`),
+      'Über-Dialog zeigt keine Versionsnummer');
+    check(await run(window, `return document.querySelector('.about')?.textContent.includes('Affero');`),
+      'Über-Dialog nennt nicht die AGPL');
+    await clickButton(window, '×', "document.querySelector('.modal__header')");
+    await sleep(400);
+
     // 23. Das Fenster muss sich mit ungespeicherten Aenderungen schliessen
     // lassen. Frueher brach beforeunload das Schliessen ohne Dialog ab.
     await selectNote(window, 'Toran');
