@@ -37,3 +37,4 @@ export { renderNoteMarkdown, referencedAssets, toFileName } from '../src/main/ma
 export { defaultPrompts } from '../src/shared/writingPrompts';
 export { layoutGraph } from '../src/renderer/graph/layout';
 export { buildGraphEdges, buildGraphNodes } from '../src/renderer/graph/build';
+export { CHANNEL_PREFIX, channel } from '../src/shared/channels';

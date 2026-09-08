@@ -1,8 +1,13 @@
-import path from 'node:path';
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
-import { Vault, readSettings } from './vault';
-import { registerIpc } from './ipc';
-import { handleAssetProtocol, registerAssetScheme } from './assetProtocol';
+/**
+ * Hauptprozess des eigenstaendigen Backstory Creators.
+ *
+ * Das Einrichten selbst — Einstellungen, Speicherort, Protokoll, IPC — steht
+ * nicht hier, sondern in `embed.ts`, und wird von der Huelle genauso
+ * aufgerufen. Diese Datei kuemmert sich nur um das, was es allein zusaetzlich
+ * gibt: ein eigenes Fenster, die Einzelinstanz-Sperre und das Beenden.
+ */
+import { app, BrowserWindow, shell } from 'electron';
+import { mountBackstory, registerAssetScheme, type BackstoryEmbed } from './embed';
 
 const devServerUrl = process.env.VITE_DEV_SERVER_URL;
 
@@ -27,7 +32,7 @@ if (!gotLock) {
   });
 }
 
-async function createWindow(): Promise<void> {
+async function createWindow(embed: BackstoryEmbed): Promise<void> {
   const window = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -36,7 +41,7 @@ async function createWindow(): Promise<void> {
     backgroundColor: '#16141c',
     title: 'Backstory Creator',
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: embed.preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true
@@ -44,25 +49,16 @@ async function createWindow(): Promise<void> {
   });
 
   // Vor dem Schliessen dem Renderer Zeit geben, Ungespeichertes zu sichern.
-  // Ueber beforeunload geht das nicht: Electron bricht damit das Schliessen
-  // ab, ohne einen Dialog zu zeigen, und das Fenster liesse sich nicht mehr
-  // schliessen.
+  // Das Warten selbst steckt in embed.flush, damit die Huelle es genauso
+  // macht.
   let mayClose = false;
   window.on('close', (event) => {
     if (mayClose || window.webContents.isDestroyed()) return;
     event.preventDefault();
-
-    const finish = () => {
-      clearTimeout(timer);
-      ipcMain.removeListener('app:flushed', finish);
+    void embed.flush(window.webContents).then(() => {
       mayClose = true;
       window.close();
-    };
-
-    // Sicherheitsnetz: antwortet der Renderer nicht, wird trotzdem geschlossen.
-    const timer = setTimeout(finish, 3000);
-    ipcMain.once('app:flushed', finish);
-    window.webContents.send('app:flush');
+    });
   });
 
   // Externe Links gehoeren in den Systembrowser, nicht in ein App-Fenster.
@@ -79,7 +75,7 @@ async function createWindow(): Promise<void> {
     // Einzige erlaubte Navigation ist der Entwicklungsserver, der sich beim
     // Neuaufbau selbst neu laedt. Die gepackte Anwendung laedt ihre Seite
     // ueber loadFile und navigiert von sich aus nie wieder.
-    if (devServerUrl && url.startsWith(devServerUrl)) return;
+    if (embed.devServerUrl && url.startsWith(embed.devServerUrl)) return;
 
     event.preventDefault();
     const target = new URL(url);
@@ -87,11 +83,11 @@ async function createWindow(): Promise<void> {
   });
 
   try {
-    if (devServerUrl) {
-      await window.loadURL(devServerUrl);
+    if (embed.devServerUrl) {
+      await window.loadURL(embed.devServerUrl);
       window.webContents.openDevTools({ mode: 'detach' });
     } else {
-      await window.loadFile(path.join(__dirname, '../renderer/index.html'));
+      await window.loadFile(embed.indexFile!);
     }
   } catch (error) {
     // Ein Reload waehrend des Ladens bricht die Navigation ab. Das ist kein Fehler,
@@ -105,21 +101,15 @@ void app.whenReady().then(async () => {
   // gar nicht erst anfassen.
   if (!gotLock) return;
 
-  const settingsFile = path.join(app.getPath('userData'), 'settings.json');
-  const defaultRoot = path.join(app.getPath('userData'), 'vault');
-  const settings = await readSettings(settingsFile, defaultRoot);
+  const embed = await mountBackstory({
+    userDataDir: app.getPath('userData'),
+    devServerUrl
+  });
 
-  const vault = new Vault(settings.vaultRoot);
-  vault.setHistoryOptions({ enabled: settings.historyEnabled, maxVersions: settings.historyMaxVersions });
-  await vault.init();
-  handleAssetProtocol(vault);
-
-  registerIpc({ vault, settingsFile, settings });
-
-  await createWindow();
+  await createWindow(embed);
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) void createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) void createWindow(embed);
   });
 });
 

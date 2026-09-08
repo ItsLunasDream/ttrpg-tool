@@ -78,10 +78,23 @@ und Schiene brauchen — die Hülle schaut also als L-Form darunter hervor. Eine
 Ansicht ist immer ein Rechteck; eine L-Form ließe sich nur aus zwei Ansichten
 bauen, die dann zwei getrennte Dokumente wären.
 
-Stand: die Hülle steht, eingebettet ist noch nichts. Werkzeuge mit dem Zustand
-`vorbereitet` lassen sich schon anwählen und führen auf eine Fläche, die genau
-das sagt. Was es gibt und wie weit es ist, steht an einer Stelle:
-`apps/shell/src/shared/apps.ts`.
+Eingebettet wird über `apps/backstory/src/main/embed.ts` — eine Datei, die
+alles kapselt, was zum Einrichten gehört, und Preload, Oberfläche und das
+Sichern vor dem Schließen zurückgibt. Der eigenständige Hauptprozess des
+Backstory Creators benutzt dieselbe Datei; beide Wege laufen also durch
+denselben Code. Die Anwendung selbst merkt nicht, dass sie in einer Hülle
+läuft.
+
+Einmal geöffnete Anwendungen bleiben geladen und werden beim Wechseln nur
+unsichtbar gestellt. Deshalb geht beim Wechseln nichts verloren: eine halb
+getippte Notiz, die Scrollposition, ein offener Dialog stehen beim
+Zurückkommen noch da. Der Preis ist Arbeitsspeicher, gemessen rund 130 MB je
+zusätzlich geöffneter Anwendung.
+
+Stand: der Backstory Creator läuft eingebettet. Werkzeuge mit dem Zustand
+`vorbereitet` lassen sich anwählen und führen auf eine Fläche, die sagt, dass
+das Einbetten noch aussteht. Was es gibt und wie weit es ist, steht an einer
+Stelle: `apps/shell/src/shared/apps.ts`.
 
 ## Bedienung
 

@@ -20,6 +20,8 @@
 import { app, BaseWindow, WebContentsView, ipcMain, screen, shell, type IpcMainInvokeEvent } from 'electron';
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
+import { berechneAppFlaeche } from '../shared/apps';
+import { mountApp, registerSchemes, type MontierteApp } from './apps';
 import {
   readWindowState,
   writeWindowState,
@@ -31,11 +33,27 @@ import {
 
 const devServerUrl = process.env.SHELL_DEV_SERVER_URL;
 
+// Muss vor app.whenReady stehen: danach nimmt Electron keine Schemata mehr
+// an, und die eingebetteten Anwendungen koennten ihre Bilder nicht liefern.
+registerSchemes();
+
 let fenster: BaseWindow | null = null;
 let huelle: WebContentsView | null = null;
+/**
+ * Die bereits geoeffneten Anwendungen, nach ID.
+ *
+ * Sie bleiben geladen, wenn man wegwechselt, und werden nur unsichtbar
+ * gestellt. Das ist der Grund, warum ein Wechsel nichts verliert: eine
+ * halb getippte Notiz, die Scrollposition, ein offener Dialog stehen beim
+ * Zurueckkommen noch da. Der Preis ist Arbeitsspeicher — gemessen rund
+ * 130 MB je zusaetzlich geoeffneter Anwendung.
+ */
+const offen = new Map<string, MontierteApp>();
 let zustandsDatei = '';
 /** Zeitgeber, der das Speichern der Fensterlage buendelt. */
 let speicherZeitgeber: NodeJS.Timeout | null = null;
+/** Wird gesetzt, sobald die Anwendungen ihr Ungespeichertes gesichert haben. */
+let darfSchliessen = false;
 
 /**
  * Legt die Huellenansicht auf die volle Fenstergroesse.
@@ -48,6 +66,15 @@ function legeHuelleAus(): void {
   if (!fenster || !huelle) return;
   const { width, height } = fenster.getContentBounds();
   huelle.setBounds({ x: 0, y: 0, width, height });
+
+  // Die Anwendungen liegen darueber und lassen Titelleiste und Schiene frei.
+  // Auch die unsichtbaren werden mitgelegt: sonst stuenden sie beim naechsten
+  // Hervorholen in der Groesse von vorletzter Woche da und muessten erst
+  // umbrechen.
+  const flaeche = berechneAppFlaeche(width, height);
+  for (const montiert of offen.values()) {
+    montiert.sicht.setBounds(flaeche);
+  }
 }
 
 function merkeFensterlage(): void {
@@ -59,6 +86,13 @@ function merkeFensterlage(): void {
     const zustand = aktuelleLage();
     if (zustand) void writeWindowState(zustandsDatei, zustand);
   }, 400);
+}
+
+/** Stellt alle eingebetteten Anwendungen unsichtbar. */
+function verbergeAlle(): void {
+  for (const montiert of offen.values()) {
+    montiert.sicht.setVisible(false);
+  }
 }
 
 /** Die Lage, wie sie gemerkt werden soll — oder `null`, wenn kein Fenster da ist. */
@@ -142,10 +176,21 @@ async function erzeugeFenster(): Promise<void> {
   // ausstehender Zeitgeber kaeme nach dem Ende des Prozesses nicht mehr zum
   // Zug. Ohne das ginge die Lage verloren, wenn jemand das Fenster zieht und
   // sofort schliesst — oder es nie bewegt und trotzdem eine Lage erwartet.
-  fenster.on('close', () => {
+  fenster.on('close', (event: Electron.Event) => {
     if (speicherZeitgeber) clearTimeout(speicherZeitgeber);
     const zustand = aktuelleLage();
     if (zustand) writeWindowStateSync(zustandsDatei, zustand);
+
+    // Den eingebetteten Anwendungen Gelegenheit geben, Ungespeichertes zu
+    // sichern. Das geht nur asynchron, das Schliessen wird deshalb einmal
+    // aufgehalten und danach wiederholt. `darfSchliessen` verhindert, dass
+    // sich das im Kreis dreht.
+    if (darfSchliessen || offen.size === 0) return;
+    event.preventDefault();
+    void Promise.all([...offen.values()].map((montiert) => montiert.flush())).then(() => {
+      darfSchliessen = true;
+      fenster?.close();
+    });
   });
 
   fenster.on('closed', () => {
@@ -196,6 +241,44 @@ function registriereKanaele(): void {
   });
   handle('fenster:ist-maximiert', () => fenster?.isMaximized() ?? false);
   handle('app:version', () => eigeneFassung());
+
+  /**
+   * Zeigt eine Anwendung an und montiert sie beim ersten Mal.
+   *
+   * Antwortet mit `true`, wenn eine Ansicht davorliegt, und mit `false`, wenn
+   * die Huelle diese Anwendung noch nicht einbetten kann. Die Oberflaeche
+   * zeigt dann ihre Platzhalterflaeche weiter — sie muss dafuer wissen, ob
+   * hinter ihr etwas liegt, sonst schriebe sie ihren Text unter eine
+   * laufende Anwendung.
+   */
+  handle('app:zeigen', async (_event, id: string) => {
+    if (!fenster) return false;
+
+    verbergeAlle();
+
+    let montiert = offen.get(id);
+    if (!montiert) {
+      montiert = (await mountApp(id)) ?? undefined;
+      if (!montiert) return false;
+      offen.set(id, montiert);
+      fenster.contentView.addChildView(montiert.sicht);
+    }
+
+    // Nach dem Wechsel neu auslegen: das Fenster kann seit dem letzten Mal
+    // eine andere Groesse haben.
+    legeHuelleAus();
+    montiert.sicht.setVisible(true);
+    // Ohne das behielte die Huelle die Tastatur, und Tippen im Editor kaeme
+    // nicht an.
+    montiert.sicht.webContents.focus();
+    return true;
+  });
+
+  /** Zurueck ins Startmenue: alle Anwendungen bleiben geladen, aber unsichtbar. */
+  handle('app:startmenue', () => {
+    verbergeAlle();
+    huelle?.webContents.focus();
+  });
   handle('app:plattform', () => process.platform);
 }
 

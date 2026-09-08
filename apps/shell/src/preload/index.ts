@@ -33,7 +33,16 @@ const api = {
   },
   app: {
     version: () => ipcRenderer.invoke('app:version') as Promise<string>,
-    plattform: () => ipcRenderer.invoke('app:plattform') as Promise<string>
+    plattform: () => ipcRenderer.invoke('app:plattform') as Promise<string>,
+    /**
+     * Holt eine Anwendung nach vorn und montiert sie beim ersten Mal.
+     *
+     * Antwortet mit `false`, wenn die Huelle sie noch nicht einbetten kann.
+     * Die Oberflaeche zeigt dann weiter ihre Platzhalterflaeche.
+     */
+    zeigen: (id: string) => ipcRenderer.invoke('app:zeigen', id) as Promise<boolean>,
+    /** Zurueck ins Startmenue. Die Anwendungen bleiben geladen. */
+    startmenue: () => ipcRenderer.invoke('app:startmenue') as Promise<void>
   }
 };
 

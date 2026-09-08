@@ -12,11 +12,14 @@ import type {
 } from '../shared/types';
 import type { PromptCategory } from '../shared/writingPrompts';
 import type { AiMessage, AiTask } from '../main/ai/provider';
+import { channel } from '../shared/channels';
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
-const invoke = <T>(channel: string, ...args: unknown[]): Promise<IpcResult<T>> =>
-  ipcRenderer.invoke(channel, ...args) as Promise<IpcResult<T>>;
+// Die kurzen Namen unten werden hier zu den vollen Kanalnamen. Siehe
+// shared/channels.ts, warum es das Praefix gibt.
+const invoke = <T>(name: string, ...args: unknown[]): Promise<IpcResult<T>> =>
+  ipcRenderer.invoke(channel(name), ...args) as Promise<IpcResult<T>>;
 
 /**
  * Einzige Bruecke zwischen Renderer und Dateisystem. Der Renderer bekommt
@@ -40,10 +43,10 @@ const api = {
    */
   onFlush: (callback: () => void) => {
     const listener = () => callback();
-    ipcRenderer.on('app:flush', listener);
-    return () => ipcRenderer.off('app:flush', listener);
+    ipcRenderer.on(channel('app:flush'), listener);
+    return () => ipcRenderer.off(channel('app:flush'), listener);
   },
-  flushed: () => ipcRenderer.send('app:flushed'),
+  flushed: () => ipcRenderer.send(channel('app:flushed')),
   ai: {
     status: () => invoke<{ provider: string; ready: boolean; detail: string; hasKey: boolean }>('ai:status'),
     setApiKey: (apiKey: string) => invoke<AppSettings>('ai:setApiKey', apiKey),
@@ -63,8 +66,8 @@ const api = {
       const listener = (_event: unknown, id: string, text: string) => {
         if (id === streamId) callback(text);
       };
-      ipcRenderer.on('ai:chunk', listener);
-      return () => ipcRenderer.off('ai:chunk', listener);
+      ipcRenderer.on(channel('ai:chunk'), listener);
+      return () => ipcRenderer.off(channel('ai:chunk'), listener);
     }
   },
   prompts: {

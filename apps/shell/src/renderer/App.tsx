@@ -31,6 +31,14 @@ type Uebersetzer = (key: MessageKey, params?: MessageParams) => string;
 
 export function App() {
   const [aktiv, setAktiv] = useState<string | null>(null);
+  /**
+   * Ob hinter der Buehne wirklich eine Anwendung liegt.
+   *
+   * Die Huelle kann noch nicht jede einbetten. Ohne diese Auskunft schriebe
+   * die Oberflaeche ihren Platzhaltertext unter eine laufende Anwendung — zu
+   * sehen waere er nicht, aber Vorlesewerkzeuge laesen ihn vor.
+   */
+  const [eingebettet, setEingebettet] = useState(false);
   const [maximiert, setMaximiert] = useState(false);
   const [version, setVersion] = useState('');
   // Fest auf der Voreinstellung, bis es Einstellungen gibt: die Huelle hat
@@ -61,6 +69,22 @@ export function App() {
 
   const umschalten = useCallback(() => {
     void window.shell.fenster.maximierenUmschalten().then(setMaximiert);
+  }, []);
+
+  /**
+   * Wechselt das Werkzeug. Der Hauptprozess montiert beim ersten Mal und legt
+   * die Ansicht ueber die Huelle; hier wird nur noch gemerkt, was sichtbar
+   * ist.
+   */
+  const waehle = useCallback((id: string | null) => {
+    setAktiv(id);
+    if (id === null) {
+      setEingebettet(false);
+      void window.shell.app.startmenue();
+      return;
+    }
+    setEingebettet(false);
+    void window.shell.app.zeigen(id).then(setEingebettet);
   }, []);
 
   const eintrag = aktiv ? findApp(aktiv) : undefined;
@@ -127,9 +151,15 @@ export function App() {
       </header>
 
       {eintrag ? (
-        <Buehne eintrag={eintrag} aktiv={aktiv!} setAktiv={setAktiv} t={t} />
+        <Buehne
+          eintrag={eintrag}
+          aktiv={aktiv!}
+          setAktiv={waehle}
+          eingebettet={eingebettet}
+          t={t}
+        />
       ) : (
-        <Startmenue setAktiv={setAktiv} version={version} t={t} />
+        <Startmenue setAktiv={waehle} version={version} t={t} />
       )}
     </div>
   );
@@ -181,11 +211,13 @@ function Buehne({
   eintrag,
   aktiv,
   setAktiv,
+  eingebettet,
   t
 }: {
   eintrag: { id: string };
   aktiv: string;
   setAktiv: (id: string | null) => void;
+  eingebettet: boolean;
   t: Uebersetzer;
 }) {
   return (
@@ -224,15 +256,19 @@ function Buehne({
       </nav>
 
       {/*
-        Ab dem naechsten Bauabschnitt liegt hier die Ansicht der eingebetteten
-        Anwendung darueber. Bis dahin steht hier, was dort hinkommt — besser
-        als eine leere Flaeche, die wie ein Fehler aussieht.
+        Liegt eine Anwendung vor der Huelle, ist hier nichts zu zeigen: ihre
+        Ansicht deckt die Flaeche vollstaendig ab. Der Platzhalter steht nur
+        fuer die Werkzeuge, die noch nicht eingebettet werden koennen.
       */}
-      <main className="platzhalter">
-        <p className="platzhalter__name">{t(nameKey(eintrag.id))}</p>
-        <p className="platzhalter__text">{t(descriptionKey(eintrag.id))}</p>
-        <p className="platzhalter__hinweis">{t('stage.placeholder')}</p>
-      </main>
+      {eingebettet ? (
+        <div className="buehne__flaeche" aria-hidden="true" />
+      ) : (
+        <main className="platzhalter">
+          <p className="platzhalter__name">{t(nameKey(eintrag.id))}</p>
+          <p className="platzhalter__text">{t(descriptionKey(eintrag.id))}</p>
+          <p className="platzhalter__hinweis">{t('stage.placeholder')}</p>
+        </main>
+      )}
     </div>
   );
 }

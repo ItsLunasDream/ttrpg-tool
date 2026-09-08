@@ -16,7 +16,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "smoke": "npm run smoke -w apps/backstory",
-    "smoke:shell": "npm run smoke -w apps/shell",
+    "smoke:shell": "npm run build && npm run smoke -w apps/shell",
     "roundtrip": "npm run roundtrip -w apps/backstory",
     "icon": "npm run icon -w apps/backstory",
     "dist:win": "npm run dist:win -w apps/backstory",

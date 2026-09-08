@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {pastedMarkdownToHtml, findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, DEFAULT_LANGUAGE, layoutGraph, buildGraphEdges, buildGraphNodes, mergeNoteTypes, countMergeChanges, factoryFieldKey, finalizeNewEntries} = entry;
+const {pastedMarkdownToHtml, findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, DEFAULT_LANGUAGE, CHANNEL_PREFIX, channel, layoutGraph, buildGraphEdges, buildGraphNodes, mergeNoteTypes, countMergeChanges, factoryFieldKey, finalizeNewEntries} = entry;
 
 /** Baut einen Index mit den Standardtypen. */
 function makeIndex(notes) {
@@ -245,6 +245,16 @@ test('jeder deutsche Schluessel hat eine englische Entsprechung', () => {
     if (german === english && !ALLOWED_SAME.has(key)) missing.push(key);
   }
   assert.deepEqual(missing, [], `ohne englische Fassung: ${missing.join(', ')}`);
+});
+
+test('jeder IPC-Kanal traegt das Praefix der Anwendung', () => {
+  // In der Huelle laufen mehrere Anwendungen im selben Hauptprozess, und
+  // ipcMain.handle ist global. Zwei Anwendungen mit einem Kanal namens
+  // „settings:get" wuerden sich nicht ergaenzen: die zweite Registrierung
+  // bricht ab. Deshalb das Praefix.
+  assert.equal(CHANNEL_PREFIX, 'backstory:');
+  assert.equal(channel('settings:get'), 'backstory:settings:get');
+  assert.equal(channel('app:flush'), 'backstory:app:flush');
 });
 
 test('die Anwendung startet auf Englisch', () => {

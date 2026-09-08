@@ -13,6 +13,7 @@ import { askProvider, createProvider, decryptSecret, encryptSecret, AiError } fr
 import type { AiMessage, AiTask } from './ai/provider';
 import { findNoteType } from '../shared/noteTypes';
 import { findWikiLinks, normalizeName } from '../shared/wikilinks';
+import { channel } from '../shared/channels';
 import type {
   AppSettings,
   Campaign,
@@ -34,10 +35,10 @@ export interface IpcContext {
 /** Fehler aus dem Main-Prozess kommen im Renderer als lesbare Meldung an. */
 function makeHandler(context: IpcContext) {
   return function handle<Args extends unknown[], Result>(
-    channel: string,
+    name: string,
     fn: (...args: Args) => Promise<Result>
   ): void {
-    ipcMain.handle(channel, async (_event, ...args) => {
+    ipcMain.handle(channel(name), async (_event, ...args) => {
       try {
         return { ok: true as const, value: await fn(...(args as Args)) };
       } catch (error) {
@@ -46,7 +47,7 @@ function makeHandler(context: IpcContext) {
           error instanceof VaultError
             ? translate(language, error.key, error.params)
             : translate(language, 'error.unexpected', { detail: String(error) });
-        if (!(error instanceof VaultError)) console.error(`[ipc] ${channel}`, error);
+        if (!(error instanceof VaultError)) console.error(`[ipc] ${name}`, error);
         return { ok: false as const, error: message };
       }
     });
@@ -56,10 +57,10 @@ function makeHandler(context: IpcContext) {
 /** Wie makeHandler, reicht aber das IPC-Ereignis durch, etwa fuer Teilantworten. */
 function makeEventHandler(context: IpcContext) {
   return function handle<Args extends unknown[], Result>(
-    channel: string,
+    name: string,
     fn: (event: IpcMainInvokeEvent, ...args: Args) => Promise<Result>
   ): void {
-    ipcMain.handle(channel, async (event, ...args) => {
+    ipcMain.handle(channel(name), async (event, ...args) => {
       try {
         return { ok: true as const, value: await fn(event, ...(args as Args)) };
       } catch (error) {
@@ -68,7 +69,7 @@ function makeEventHandler(context: IpcContext) {
           error instanceof VaultError
             ? translate(language, error.key, error.params)
             : translate(language, 'error.unexpected', { detail: String(error) });
-        if (!(error instanceof VaultError)) console.error(`[ipc] ${channel}`, error);
+        if (!(error instanceof VaultError)) console.error(`[ipc] ${name}`, error);
         return { ok: false as const, error: message };
       }
     });
@@ -231,7 +232,7 @@ export function registerIpc(context: IpcContext): void {
           // Teiltexte gehen als eigenes Ereignis an genau das Fenster, das
           // gefragt hat. Die Kennung ordnet sie der laufenden Anfrage zu.
           (chunk) => {
-            if (!event.sender.isDestroyed()) event.sender.send('ai:chunk', streamId, chunk);
+            if (!event.sender.isDestroyed()) event.sender.send(channel('ai:chunk'), streamId, chunk);
           }
         );
       } catch (error) {

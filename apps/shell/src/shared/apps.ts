@@ -63,7 +63,7 @@ export const STATUS_KEY: Record<AppStatus, MessageKey> = {
 };
 
 export const APPS: readonly AppEntry[] = [
-  { id: 'backstory', status: 'vorbereitet' },
+  { id: 'backstory', status: 'bereit' },
   { id: 'mapmaker', status: 'vorbereitet' },
   { id: 'initiative', status: 'geplant' },
   { id: 'dice', status: 'geplant' },

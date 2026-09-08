@@ -131,6 +131,73 @@ app.whenReady().then(async () => {
     console.log('  --   Kachelwechsel uebersprungen: keine waehlbare Kachel');
   }
 
+  // ---- Die eingebettete Anwendung ----
+  //
+  // Der Teil oben sieht nur die Huelle. Ob die Anwendung darin wirklich
+  // hochkommt, ihr Preload ankommt und die IPC-Kanaele antworten, kann nur
+  // eine Pruefung in ihrer eigenen Ansicht beantworten.
+  const bereiteKachel = "document.querySelector('.kachel--bereit')";
+  if (await js(`Boolean(${bereiteKachel})`)) {
+    await js(`${bereiteKachel}.click()`);
+    // Der Backstory Creator liest beim Start Einstellungen und Speicherort.
+    await warte(5000);
+
+    const eingebettet = fenster.contentView.children[1];
+    pruefe(Boolean(eingebettet), 'die Anwendung haengt als eigene Ansicht im Fenster');
+
+    if (eingebettet) {
+      const appJs = (ausdruck) => eingebettet.webContents.executeJavaScript(ausdruck);
+      const appFehler = [];
+      eingebettet.webContents.on('console-message', (_e, level, text) => {
+        if (level >= 2) appFehler.push(text.slice(0, 200));
+      });
+
+      pruefe(await appJs('typeof window.api === "object"'), 'ihr Preload ist angekommen');
+      pruefe(
+        await appJs("Boolean(document.querySelector('.campaign-bar'))"),
+        'ihre Oberflaeche ist da'
+      );
+      // Die schaerfste Pruefung: der Wert kommt ueber einen IPC-Kanal aus dem
+      // Hauptprozess der Huelle. Antwortet er nicht, bleibt die Anwendung im
+      // Ladezustand stehen.
+      const geladen = await appJs(
+        "document.body.innerText.includes('No campaign yet.') || " +
+          "document.body.innerText.includes('Keine Kampagne vorhanden.')"
+      );
+      pruefe(geladen, 'ihre IPC-Kanaele antworten (Speicherort gelesen)');
+
+      // Die Flaeche muss unter Titelleiste und Schiene liegen, nicht darueber.
+      const b = eingebettet.getBounds();
+      pruefe(b.x === 56 && b.y === 40, `ihre Flaeche laesst die Huelle frei (x=${b.x}, y=${b.y})`);
+
+      // Wegwechseln und zurueck: der Zustand muss stehen bleiben. Das ist der
+      // Grund, warum die Ansichten geladen bleiben statt neu zu laden.
+      await appJs('window.__marke = 4711; window.__marke');
+      await js("document.querySelector('.schiene__heim').click()");
+      await warte(800);
+      // `getVisible` gibt es auf einer WebContentsView in Electron 33 nicht.
+      // Ersatzweise wird geprueft, was die Huelle selbst zeigt: im Startmenue
+      // steht ihr Menue wieder da, also liegt nichts davor.
+      pruefe(await js("Boolean(document.querySelector('.menue'))"), 'im Startmenue liegt sie hinten');
+      await js(`${bereiteKachel}.click()`);
+      await warte(1500);
+      pruefe(
+        await js("Boolean(document.querySelector('.buehne__flaeche'))"),
+        'nach dem Zurueckwechseln liegt sie wieder vorn'
+      );
+      pruefe(
+        (await appJs('window.__marke ?? null')) === 4711,
+        'ihr Zustand hat den Wechsel ueberstanden'
+      );
+      pruefe(
+        fenster.contentView.children.length === 2,
+        'sie wurde nicht ein zweites Mal montiert'
+      );
+
+      pruefe(appFehler.length === 0, `keine Konsolenfehler in ihr (${appFehler.join(' | ') || 'keine'})`);
+    }
+  }
+
   // Die Fensterlage muss nach einem Verschieben auf der Platte stehen. Der
   // Schreibvorgang ist gebuendelt, deshalb das Warten.
   const zustandsDatei = path.join(app.getPath('userData'), 'fenster.json');
