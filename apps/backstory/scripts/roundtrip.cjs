@@ -17,6 +17,12 @@ const crypto = require('node:crypto');
 
 const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'backstory-roundtrip-'));
 app.setPath('userData', userData);
+// Dieser Test klickt auf deutsche Beschriftungen. Ausgeliefert wird aber
+// Englisch (Konvention 6), deshalb wird die Sprache hier vorab gesetzt statt
+// jedes Label doppelt zu fuehren. Der uebrige Teil der Einstellungen bleibt
+// leer und wird beim Lesen mit den Standardwerten aufgefuellt.
+fs.writeFileSync(path.join(userData, 'settings.json'), JSON.stringify({ language: 'de' }), 'utf8');
+
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

@@ -9,7 +9,12 @@
  *
  * Kein `electron`, kein `node:*` — die Datei wird in beide Prozesse
  * gebuendelt.
+ *
+ * Namen und Beschreibungen stehen nicht hier, sondern im Woerterbuch unter
+ * `app.<id>.name` und `app.<id>.description`. Sonst gaebe es die Texte in
+ * zwei Sprachen an zwei Orten.
  */
+import type { MessageKey } from './i18n';
 
 /**
  * Wie weit ein Werkzeug ist.
@@ -32,54 +37,37 @@ export function istWaehlbar(status: AppStatus): boolean {
   return status !== 'geplant';
 }
 
-/** Was auf der Kachel unten steht. */
-export const STATUS_MARKE: Record<AppStatus, string> = {
-  bereit: 'bereit',
-  vorbereitet: 'in Arbeit',
-  geplant: 'später'
-};
+
 
 export interface AppEntry {
   /** Stabiler Bezeichner. Wird zum Praefix der IPC-Kanaele und zum Schluessel im Fensterzustand. */
   readonly id: string;
-  /** Anzeigename. Arbeitstitel — die endgueltigen Namen kommen spaeter. */
-  readonly name: string;
-  /** Ein Satz, der auf der Kachel unter dem Namen steht. */
-  readonly beschreibung: string;
   readonly status: AppStatus;
 }
 
+/** Schluessel des Anzeigenamens. Arbeitstitel — die endgueltigen Namen kommen spaeter. */
+export function nameKey(id: string): MessageKey {
+  return `app.${id}.name` as MessageKey;
+}
+
+/** Schluessel des Satzes, der auf der Kachel unter dem Namen steht. */
+export function descriptionKey(id: string): MessageKey {
+  return `app.${id}.description` as MessageKey;
+}
+
+/** Schluessel der Marke, die unten auf der Kachel steht. */
+export const STATUS_KEY: Record<AppStatus, MessageKey> = {
+  bereit: 'status.ready',
+  vorbereitet: 'status.inProgress',
+  geplant: 'status.planned'
+};
+
 export const APPS: readonly AppEntry[] = [
-  {
-    id: 'backstory',
-    name: 'Backstory',
-    beschreibung: 'Figuren, Orte und ihre Beziehungen aufschreiben',
-    status: 'vorbereitet'
-  },
-  {
-    id: 'mapmaker',
-    name: 'Karten',
-    beschreibung: 'Karten zeichnen und erzeugen',
-    status: 'vorbereitet'
-  },
-  {
-    id: 'initiative',
-    name: 'Initiative',
-    beschreibung: 'Zugreihenfolge im Kampf verwalten',
-    status: 'geplant'
-  },
-  {
-    id: 'dice',
-    name: 'Würfel',
-    beschreibung: 'Würfelausdrücke werfen, mit Vorteil und Nachteil',
-    status: 'geplant'
-  },
-  {
-    id: 'encounter',
-    name: 'Begegnungen',
-    beschreibung: 'Kämpfe planen und ausbalancieren',
-    status: 'geplant'
-  }
+  { id: 'backstory', status: 'vorbereitet' },
+  { id: 'mapmaker', status: 'vorbereitet' },
+  { id: 'initiative', status: 'geplant' },
+  { id: 'dice', status: 'geplant' },
+  { id: 'encounter', status: 'geplant' }
 ];
 
 /** Liefert den Eintrag zu einer ID, oder `undefined`, wenn es ihn nicht gibt. */

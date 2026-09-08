@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { APPS, CHROME, STATUS_MARKE, findApp, istWaehlbar, berechneAppFlaeche } =
+const { APPS, CHROME, STATUS_KEY, findApp, istWaehlbar, berechneAppFlaeche } =
   require('../dist/tests/entry.cjs');
 
 test('jede App hat eine eindeutige ID', () => {
@@ -19,10 +19,8 @@ test('IDs taugen als Praefix fuer Kanaele und Dateinamen', () => {
   }
 });
 
-test('jede App hat Namen, Beschreibung und einen bekannten Zustand', () => {
+test('jede App hat einen bekannten Zustand', () => {
   for (const app of APPS) {
-    assert.ok(app.name.length > 0, `${app.id} hat keinen Namen`);
-    assert.ok(app.beschreibung.length > 0, `${app.id} hat keine Beschreibung`);
     assert.ok(
       ['bereit', 'vorbereitet', 'geplant'].includes(app.status),
       `${app.id} hat Zustand ${app.status}`
@@ -31,7 +29,7 @@ test('jede App hat Namen, Beschreibung und einen bekannten Zustand', () => {
 });
 
 test('findApp findet und liefert sonst undefined', () => {
-  assert.equal(findApp('backstory')?.name, 'Backstory');
+  assert.equal(findApp('backstory')?.id, 'backstory');
   assert.equal(findApp('gibt-es-nicht'), undefined);
 });
 
@@ -58,8 +56,8 @@ test('nur geplante Werkzeuge sind gesperrt', () => {
   assert.equal(istWaehlbar('geplant'), false);
 });
 
-test('jeder Zustand hat eine Marke fuer die Kachel', () => {
+test('jeder Zustand hat einen Textschluessel fuer die Kachel', () => {
   for (const app of APPS) {
-    assert.ok(STATUS_MARKE[app.status], `keine Marke fuer ${app.status}`);
+    assert.ok(STATUS_KEY[app.status], `kein Schluessel fuer ${app.status}`);
   }
 });

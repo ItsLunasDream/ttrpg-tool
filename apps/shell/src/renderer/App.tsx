@@ -10,8 +10,15 @@
  * stattdessen, was als naechstes hineinkommt. Der Wechsel selbst,
  * Fensterknoepfe und Fensterlage sind aber schon echt.
  */
-import { useCallback, useEffect, useState } from 'react';
-import { APPS, CHROME, STATUS_MARKE, findApp, istWaehlbar } from '../shared/apps';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { APPS, CHROME, STATUS_KEY, descriptionKey, findApp, istWaehlbar, nameKey } from '../shared/apps';
+import {
+  DEFAULT_LANGUAGE,
+  translate,
+  type Language,
+  type MessageKey,
+  type MessageParams
+} from '../shared/i18n';
 import { iconFuer, SuiteIcon } from './icons';
 
 declare global {
@@ -20,10 +27,18 @@ declare global {
   }
 }
 
+type Uebersetzer = (key: MessageKey, params?: MessageParams) => string;
+
 export function App() {
   const [aktiv, setAktiv] = useState<string | null>(null);
   const [maximiert, setMaximiert] = useState(false);
   const [version, setVersion] = useState('');
+  // Fest auf der Voreinstellung, bis es Einstellungen gibt: die Huelle hat
+  // noch keinen Ort, an dem man umschalten koennte. Die deutschen Texte stehen
+  // trotzdem schon im Woerterbuch und werden von einem Test vollstaendig
+  // gehalten — sonst waeren sie an dem Tag, an dem der Schalter kommt, zur
+  // Haelfte veraltet.
+  const sprache: Language = DEFAULT_LANGUAGE;
 
   useEffect(() => {
     void window.shell.app.version().then(setVersion);
@@ -32,6 +47,17 @@ export function App() {
     // zeigte der Knopf danach das falsche Symbol.
     return window.shell.fenster.beiZustandswechsel(({ maximiert: m }) => setMaximiert(m));
   }, []);
+
+  const t = useMemo<Uebersetzer>(
+    () => (key, params) => translate(sprache, key, params),
+    [sprache]
+  );
+
+  // Die Seite traegt die gewaehlte Sprache, damit Vorlesewerkzeuge und die
+  // Silbentrennung des Browsers wissen, woran sie sind.
+  useEffect(() => {
+    document.documentElement.lang = sprache;
+  }, [sprache]);
 
   const umschalten = useCallback(() => {
     void window.shell.fenster.maximierenUmschalten().then(setMaximiert);
@@ -50,19 +76,19 @@ export function App() {
           <SuiteIcon size={18} />
         </span>
         <span className="titelleiste__name">TTRPG-Tools</span>
-        {eintrag && <span className="titelleiste__pfad">› {eintrag.name}</span>}
+        {eintrag && <span className="titelleiste__pfad">› {t(nameKey(eintrag.id))}</span>}
         <span className="titelleiste__fueller" />
         <button type="button" className="titelleiste__knopf" disabled>
-          Einstellungen
+          {t('title.settings')}
         </button>
         <button type="button" className="titelleiste__knopf" disabled>
-          Über
+          {t('title.about')}
         </button>
         <div className="fensterknoepfe">
           <button
             type="button"
             className="fensterknopf"
-            aria-label="Minimieren"
+            aria-label={t('window.minimize')}
             onClick={() => void window.shell.fenster.minimieren()}
           >
             <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
@@ -72,7 +98,7 @@ export function App() {
           <button
             type="button"
             className="fensterknopf"
-            aria-label={maximiert ? 'Wiederherstellen' : 'Maximieren'}
+            aria-label={maximiert ? t('window.restore') : t('window.maximize')}
             onClick={umschalten}
           >
             {maximiert ? (
@@ -89,7 +115,7 @@ export function App() {
           <button
             type="button"
             className="fensterknopf fensterknopf--schliessen"
-            aria-label="Schließen"
+            aria-label={t('window.close')}
             onClick={() => void window.shell.fenster.schliessen()}
           >
             <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
@@ -101,9 +127,9 @@ export function App() {
       </header>
 
       {eintrag ? (
-        <Buehne eintrag={eintrag} aktiv={aktiv!} setAktiv={setAktiv} />
+        <Buehne eintrag={eintrag} aktiv={aktiv!} setAktiv={setAktiv} t={t} />
       ) : (
-        <Startmenue setAktiv={setAktiv} version={version} />
+        <Startmenue setAktiv={setAktiv} version={version} t={t} />
       )}
     </div>
   );
@@ -111,17 +137,17 @@ export function App() {
 
 function Startmenue({
   setAktiv,
-  version
+  version,
+  t
 }: {
   setAktiv: (id: string) => void;
   version: string;
+  t: Uebersetzer;
 }) {
   return (
     <main className="menue">
-      <h1 className="menue__frage">Womit möchtest du arbeiten?</h1>
-      <p className="menue__hinweis">
-        Alles liegt im selben Speicherort. Wechseln geht jederzeit, nichts geht dabei verloren.
-      </p>
+      <h1 className="menue__frage">{t('menu.question')}</h1>
+      <p className="menue__hinweis">{t('menu.hint')}</p>
 
       <div className="kacheln">
         {APPS.map((app) => {
@@ -138,15 +164,15 @@ function Startmenue({
               <span className="kachel__icon">
                 <Icon size={64} />
               </span>
-              <span className="kachel__name">{app.name}</span>
-              <span className="kachel__text">{app.beschreibung}</span>
-              <span className="kachel__marke">{STATUS_MARKE[app.status]}</span>
+              <span className="kachel__name">{t(nameKey(app.id))}</span>
+              <span className="kachel__text">{t(descriptionKey(app.id))}</span>
+              <span className="kachel__marke">{t(STATUS_KEY[app.status])}</span>
             </button>
           );
         })}
       </div>
 
-      {version && <p className="menue__version">Fassung {version}</p>}
+      {version && <p className="menue__version">{t('menu.version', { version })}</p>}
     </main>
   );
 }
@@ -154,20 +180,22 @@ function Startmenue({
 function Buehne({
   eintrag,
   aktiv,
-  setAktiv
+  setAktiv,
+  t
 }: {
-  eintrag: { name: string; beschreibung: string };
+  eintrag: { id: string };
   aktiv: string;
   setAktiv: (id: string | null) => void;
+  t: Uebersetzer;
 }) {
   return (
     <div className="buehne">
-      <nav className="schiene" style={{ width: CHROME.schieneBreite }} aria-label="Werkzeuge">
+      <nav className="schiene" style={{ width: CHROME.schieneBreite }} aria-label="TTRPG-Tools">
         <button
           type="button"
           className="schiene__heim"
-          aria-label="Zurück zum Startmenü"
-          title="Startmenü"
+          aria-label={t('rail.home')}
+          title={t('rail.homeShort')}
           onClick={() => setAktiv(null)}
         >
           <SuiteIcon size={22} />
@@ -176,6 +204,7 @@ function Buehne({
         {APPS.map((app) => {
           const Icon = iconFuer(app.id);
           const waehlbar = istWaehlbar(app.status);
+          const name = t(nameKey(app.id));
           return (
             <button
               key={app.id}
@@ -185,7 +214,7 @@ function Buehne({
               }`}
               disabled={!waehlbar}
               aria-current={app.id === aktiv ? 'page' : undefined}
-              title={waehlbar ? app.name : `${app.name} — ${STATUS_MARKE[app.status]}`}
+              title={waehlbar ? name : `${name} — ${t(STATUS_KEY[app.status])}`}
               onClick={() => setAktiv(app.id)}
             >
               <Icon size={26} />
@@ -200,11 +229,9 @@ function Buehne({
         als eine leere Flaeche, die wie ein Fehler aussieht.
       */}
       <main className="platzhalter">
-        <p className="platzhalter__name">{eintrag.name}</p>
-        <p className="platzhalter__text">{eintrag.beschreibung}</p>
-        <p className="platzhalter__hinweis">
-          Hier wird die Anwendung eingebettet. Die Hülle steht, das Einbetten kommt als Nächstes.
-        </p>
+        <p className="platzhalter__name">{t(nameKey(eintrag.id))}</p>
+        <p className="platzhalter__text">{t(descriptionKey(eintrag.id))}</p>
+        <p className="platzhalter__hinweis">{t('stage.placeholder')}</p>
       </main>
     </div>
   );

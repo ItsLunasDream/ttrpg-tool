@@ -54,6 +54,7 @@ Wurzel und delegieren an die passenden Ordner:
 apps/backstory/    Der Backstory Creator selbst (Electron-Anwendung)
 apps/shell/        TTRPG-Tools: die Hülle, in die die Werkzeuge eingebettet werden
 packages/dice/     Geteiltes Paket: Würfelausdrücke lesen und werfen
+packages/i18n/     Geteiltes Paket: Sprachwahl und Textersetzung
 ```
 
 `npm install` an der Wurzel richtet alle ein. `npm run dev`, `npm start`,
@@ -206,11 +207,17 @@ der Autosave im Sekundentakt hunderte fast gleicher Stände anlegen. Beim
 Wiederherstellen wandert der aktuelle Stand vorher in den Verlauf, das
 Zurückholen ist also selbst umkehrbar.
 
-**Sprache** ist umschaltbar zwischen Deutsch und Englisch. Alle festen Texte
-liegen in `apps/backstory/src/shared/i18n.ts`, auch die Fehlermeldungen des Hauptprozesses:
-`VaultError` trägt einen Schlüssel, übersetzt wird erst in der IPC-Schicht.
-Selbst vergebene Bezeichnungen wie eigene Notiztypen und Feldnamen bleiben
-unverändert, die kann das Programm nicht übersetzen.
+**Sprache** ist umschaltbar zwischen Englisch und Deutsch. Voreingestellt ist
+Englisch (Konvention 6, gilt für alle Programme der Sammlung); wer Deutsch
+will, stellt es unter Einstellungen → Sprache einmal um, und die Wahl bleibt.
+Eine bereits getroffene Wahl bleibt von der Voreinstellung unberührt — sie
+gilt nur dort, wo noch keine steht.
+
+Alle festen Texte liegen in `apps/backstory/src/shared/i18n.ts`, auch die
+Fehlermeldungen des Hauptprozesses: `VaultError` trägt einen Schlüssel,
+übersetzt wird erst in der IPC-Schicht. Selbst vergebene Bezeichnungen wie
+eigene Notiztypen und Feldnamen bleiben unverändert, die kann das Programm
+nicht übersetzen.
 
 **Beziehungen** hängen am Notizpaar, nicht an der einzelnen Textstelle, und
 sind gerichtet: A sieht B als Mentorin, B sieht A als Bedrohung. Sie werden im

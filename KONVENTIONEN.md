@@ -37,3 +37,21 @@ sein eigenes Datenformat und seine eigenen Annahmen mitbringt.
    Beziehungsarten für sie Sinn ergeben (verbündet mit, untergeordnet,
    verfeindet mit, …), statt an eine im Werkzeug fest einprogrammierte Liste
    gebunden zu sein.
+
+6. **Englisch ist die voreingestellte Sprache, Deutsch eine Wahl.**
+   Jedes Programm der Sammlung startet auf Englisch, solange niemand etwas
+   anderes eingestellt hat. Die Programme werden veröffentlicht, und die
+   meisten Menschen, die sie finden, lesen kein Deutsch. Wer Deutsch will,
+   stellt es einmal um; die Wahl wird gespeichert und gilt weiter.
+
+   Sprachliste, Voreinstellung und Platzhalterregeln kommen aus
+   `packages/i18n` und stehen damit an einer Stelle. Die Texte selbst
+   gehören zu der Anwendung, die sie anzeigt — ein gemeinsames Wörterbuch
+   über alle Programme hinweg wäre schnell ein Sammelsurium aus Begriffen,
+   die anderswo nicht passen.
+
+   Kein Text steht fest in der Oberfläche. Jede Anwendung führt ihre
+   Schlüssel vollständig in beiden Sprachen und hält das mit einem Test
+   fest, auch dann, wenn es noch gar keinen Schalter zum Umstellen gibt:
+   sonst ist die zweite Sprache an dem Tag, an dem der Schalter kommt, zur
+   Hälfte veraltet.

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {pastedMarkdownToHtml, findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, layoutGraph, buildGraphEdges, buildGraphNodes, mergeNoteTypes, countMergeChanges, factoryFieldKey, finalizeNewEntries} = entry;
+const {pastedMarkdownToHtml, findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, DEFAULT_LANGUAGE, layoutGraph, buildGraphEdges, buildGraphNodes, mergeNoteTypes, countMergeChanges, factoryFieldKey, finalizeNewEntries} = entry;
 
 /** Baut einen Index mit den Standardtypen. */
 function makeIndex(notes) {
@@ -245,6 +245,13 @@ test('jeder deutsche Schluessel hat eine englische Entsprechung', () => {
     if (german === english && !ALLOWED_SAME.has(key)) missing.push(key);
   }
   assert.deepEqual(missing, [], `ohne englische Fassung: ${missing.join(', ')}`);
+});
+
+test('die Anwendung startet auf Englisch', () => {
+  // Voreinstellung der ganzen Sammlung, siehe packages/i18n. Eine bereits
+  // getroffene Wahl bleibt davon unberuehrt: sie steht in den Einstellungen
+  // der Person und wird beim Start gelesen.
+  assert.equal(DEFAULT_LANGUAGE, 'en');
 });
 
 test('isLanguage erkennt nur bekannte Sprachen', () => {

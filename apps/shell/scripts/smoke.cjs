@@ -77,6 +77,13 @@ app.whenReady().then(async () => {
   // Prueft, dass die Kanaele wirklich registriert sind: die Fassung kommt aus
   // dem Hauptprozess.
   pruefe(await js("Boolean(document.querySelector('.menue__version'))"), 'Fassung aus dem Hauptprozess');
+  // Voreingestellt ist Englisch. Stuende hier Deutsch, waere die
+  // Sprachwahl irgendwo ueberschrieben worden.
+  pruefe(
+    (await js("document.querySelector('.menue__frage').textContent")) ===
+      'What would you like to work on?',
+    'Oberflaeche startet auf Englisch'
+  );
 
   // Fensterknoepfe echt betaetigen. Die IPC-Kanaele sind der Teil, den die
   // Modultests nicht sehen koennen.
@@ -93,11 +100,11 @@ app.whenReady().then(async () => {
   fenster.unmaximize();
   await warte(400);
 
-  await js("document.querySelector('[aria-label=\"Maximieren\"]').click()");
+  await js("document.querySelector('[aria-label=\"Maximize\"]').click()");
   await warte(700);
   if (maximierenMoeglich) {
     pruefe(fenster.isMaximized(), 'Maximieren-Knopf maximiert das Fenster');
-    await js("document.querySelector('[aria-label=\"Wiederherstellen\"]').click()");
+    await js("document.querySelector('[aria-label=\"Restore\"]').click()");
     await warte(700);
     pruefe(!fenster.isMaximized(), 'Wiederherstellen-Knopf stellt wieder her');
   } else {

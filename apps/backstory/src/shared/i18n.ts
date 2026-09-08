@@ -1,21 +1,29 @@
-export type Language = 'de' | 'en';
+/**
+ * Die Texte dieser Anwendung. Sprachliste, Voreinstellung und die Regeln fuer
+ * Platzhalter kommen aus @suite/i18n und gelten fuer alle Programme der
+ * Sammlung gleich; hier stehen nur die Texte selbst.
+ */
+import {
+  DEFAULT_LANGUAGE,
+  LANGUAGES,
+  fillPlaceholders,
+  isLanguage,
+  type Language,
+  type MessageParams
+} from '@suite/i18n';
 
-export const LANGUAGES: { id: Language; label: string }[] = [
-  { id: 'de', label: 'Deutsch' },
-  { id: 'en', label: 'English' }
-];
-
-export const DEFAULT_LANGUAGE: Language = 'de';
-
-export type MessageParams = Record<string, string | number>;
+export { DEFAULT_LANGUAGE, LANGUAGES, isLanguage };
+export type { Language, MessageParams };
 
 /**
  * Alle festen Texte der Anwendung. Vom Nutzer vergebene Bezeichnungen, etwa
  * eigene Notiztypen und Feldnamen, bleiben unveraendert: die kann das
  * Programm nicht uebersetzen.
  *
- * Deutsch ist die Leitsprache. Fehlt ein Schluessel in einer anderen Sprache,
- * wird der deutsche Text benutzt, damit nie ein roher Schluessel erscheint.
+ * Deutsch bleibt die Sprache, in der die Schluessel gefuehrt werden — jeder
+ * Schluessel, den es gibt, steht hier. Angezeigt wird ohne eigene Wahl aber
+ * Englisch, und beim Nachschlagen wird auch zuerst dort gesucht: siehe
+ * `translate` weiter unten.
  */
 const de = {
   'app.loading': 'Lädt …',
@@ -783,19 +791,20 @@ const en: Partial<Record<MessageKey, string>> = {
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { de, en };
 
-/** Ersetzt Platzhalter der Form {name} durch die uebergebenen Werte. */
+/**
+ * Liefert den Text zu einem Schluessel in der gewaehlten Sprache.
+ *
+ * Fehlt er dort, wird der englische genommen und erst danach der deutsche.
+ * Diese Reihenfolge zaehlt nur fuer Luecken — ein Test prueft, dass es keine
+ * gibt. Sie steht so herum, weil Englisch die voreingestellte Sprache ist:
+ * ein einzelner deutscher Satz mitten in einer englischen Oberflaeche waere
+ * fuer die meisten unlesbar, umgekehrt eher nicht.
+ */
 export function translate(language: Language, key: MessageKey, params?: MessageParams): string {
-  const template = MESSAGES[language]?.[key] ?? de[key] ?? key;
-  if (!params) return template;
-
-  return template.replace(/\{(\w+)\}/g, (whole, name: string) =>
-    name in params ? String(params[name]) : whole
-  );
+  const template = MESSAGES[language]?.[key] ?? en[key] ?? de[key] ?? key;
+  return fillPlaceholders(template, params);
 }
 
 /** Alle bekannten Textschluessel, fuer Vollstaendigkeitspruefungen. */
 export const MESSAGE_KEYS = Object.keys(de) as MessageKey[];
 
-export function isLanguage(value: unknown): value is Language {
-  return value === 'de' || value === 'en';
-}

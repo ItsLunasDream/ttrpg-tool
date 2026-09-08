@@ -10,7 +10,7 @@ export {
   mergeNoteTypes,
   countMergeChanges
 } from '../src/shared/noteTypes';
-export { translate, isLanguage, LANGUAGES, MESSAGE_KEYS } from '../src/shared/i18n';
+export { translate, isLanguage, LANGUAGES, MESSAGE_KEYS, DEFAULT_LANGUAGE } from '../src/shared/i18n';
 export { parseFrontmatter, stringifyFrontmatter } from '../src/main/frontmatter';
 export {
   countWords,

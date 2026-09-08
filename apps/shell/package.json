@@ -28,5 +28,8 @@
   "author": {
     "name": "ItsLunasDream"
   },
-  "license": "AGPL-3.0-or-later"
+  "license": "AGPL-3.0-or-later",
+  "dependencies": {
+    "@suite/i18n": "*"
+  }
 }

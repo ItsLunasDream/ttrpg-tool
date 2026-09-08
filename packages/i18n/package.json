@@ -1,0 +1,18 @@
+{
+  "name": "@suite/i18n",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sprachwahl und Textersetzung — plattformfreies, geteiltes Paket",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node scripts/build-tests.mjs && node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2"
+  }
+}
