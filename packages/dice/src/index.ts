@@ -18,7 +18,15 @@ export interface RollResult {
   readonly rolls: readonly number[];
   /** Der additive Modifikator aus dem Ausdruck (0, wenn keiner angegeben war). */
   readonly modifier: number;
-  /** Summe aller Wuerfe plus Modifikator. */
+  /**
+   * Das gewertete Ergebnis samt Modifikator.
+   *
+   * Bei einem gewoehnlichen Ausdruck ist das die Summe aller Wuerfe plus
+   * Modifikator. Bei Vorteil und Nachteil zaehlt dagegen nur der gewaehlte
+   * der beiden Wuerfe — `rolls` enthaelt dann beide, `total` aber nur den
+   * hoeheren beziehungsweise niedrigeren. `total` ist also nicht in jedem
+   * Fall die Summe von `rolls`.
+   */
   readonly total: number;
 }
 
