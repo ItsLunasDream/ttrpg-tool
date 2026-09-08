@@ -58,13 +58,13 @@ jobs:
       # Faengt fehlende Abhaengigkeiten im asar-Paket ab. Die Tests oben
       # laufen gegen die Quelle und koennen das nicht sehen.
       - name: Gepackte Anwendung starten
-        run: xvfb-run -a npm run verify:package -- "$PWD/release/linux-unpacked/backstory-creator"
+        run: xvfb-run -a npm run verify:package -w apps/backstory -- "$PWD/apps/backstory/release/linux-unpacked/backstory-creator"
       - name: Log bei Fehler sichern
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: package-verify-log
-          path: package-verify.log
+          path: apps/backstory/package-verify.log
           if-no-files-found: ignore
           retention-days: 1
 
@@ -87,12 +87,12 @@ jobs:
       - run: npm run icon
       - run: npm run dist:win
       - name: Gepackte Anwendung starten
-        run: npm run verify:package -- "${{ github.workspace }}\release\win-unpacked\Backstory Creator.exe"
+        run: npm run verify:package -w apps/backstory -- "${{ github.workspace }}\apps\backstory\release\win-unpacked\Backstory Creator.exe"
       - name: Ergebnis hochladen
         uses: actions/upload-artifact@v4
         with:
           name: backstory-creator-windows
-          path: release/*.exe
+          path: apps/backstory/release/*.exe
           if-no-files-found: error
           retention-days: 1
 
@@ -100,4 +100,4 @@ jobs:
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*.exe
+          files: apps/backstory/release/*.exe
