@@ -230,7 +230,9 @@ const ALLOWED_SAME = new Set([
   'toolbar.link',
   'link.title',
   // „Export" auch.
-  'export.note'
+  'export.note',
+  // „Version" auch.
+  'about.version'
 ]);
 
 test('jeder deutsche Schluessel hat eine englische Entsprechung', () => {

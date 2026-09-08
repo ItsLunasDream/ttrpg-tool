@@ -31,6 +31,7 @@ import { PromptsDialog } from './components/PromptsDialog';
 import { GraphView } from './components/GraphView';
 import { CleanupDialog } from './components/CleanupDialog';
 import { HelpDialog } from './components/HelpDialog';
+import { AboutDialog } from './components/AboutDialog';
 import type { AiStatus } from './components/AssistantPanel';
 import { AssistantProvider } from './assistant';
 import type { AiMessage, AiTask } from '../main/ai/provider';
@@ -47,7 +48,8 @@ type Dialog =
   | { kind: 'history'; note: Note }
   | { kind: 'prompts' }
   | { kind: 'cleanup' }
-  | { kind: 'help' };
+  | { kind: 'help' }
+  | { kind: 'about' };
 
 const EMPTY_FILTERS: SearchFilters = { query: '', type: 'all', tag: null };
 
@@ -461,6 +463,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
           })
         }
         onOpenHelp={() => setDialog({ kind: 'help' })}
+        onOpenAbout={() => setDialog({ kind: 'about' })}
         onOpenSettings={() => setDialog({ kind: 'settings' })}
         onEditNoteTypes={() => setDialog({ kind: 'noteTypes' })}
       />
@@ -619,6 +622,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       ) : null}
 
       {dialog.kind === 'help' ? <HelpDialog onClose={() => setDialog({ kind: 'none' })} /> : null}
+
+      {dialog.kind === 'about' ? <AboutDialog onClose={() => setDialog({ kind: 'none' })} /> : null}
 
       {dialog.kind === 'cleanup' && activeCampaignId ? (
         <CleanupDialog

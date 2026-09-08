@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "description": "Desktop-Tool zum Schreiben von D&D-Charakter-Backstorys",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ItsLunasDream/backstory-creator"
+  },
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "node scripts/dev.mjs",

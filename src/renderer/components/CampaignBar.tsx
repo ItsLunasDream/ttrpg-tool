@@ -18,6 +18,7 @@ interface Props {
   onCleanup: () => void;
   onToggleGraph: () => void;
   onOpenHelp: () => void;
+  onOpenAbout: () => void;
   onOpenSettings: () => void;
 }
 
@@ -82,6 +83,9 @@ export function CampaignBar(props: Props) {
       </span>
       <button type="button" onClick={props.onOpenHelp}>
         {t('bar.help')}
+      </button>
+      <button type="button" onClick={props.onOpenAbout}>
+        {t('bar.about')}
       </button>
       <button type="button" onClick={props.onOpenSettings}>
         {t('bar.settings')}

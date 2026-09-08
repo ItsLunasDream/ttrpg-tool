@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
 import { Vault, VaultError, writeSettings } from './vault';
 import { translate } from '../shared/i18n';
@@ -81,6 +81,9 @@ export function registerIpc(context: IpcContext): void {
   const handleWithEvent = makeEventHandler(context);
 
   handle<[], AppSettings>('settings:get', async () => context.settings);
+
+  /** Fuer den Über-Dialog: welche Fassung gerade läuft. */
+  handle<[], string>('app:version', async () => app.getVersion());
 
   handle<[Partial<AppSettings>], AppSettings>('settings:update', async (patch) => {
     const next: AppSettings = { ...context.settings, ...patch, vaultRoot: context.settings.vaultRoot };

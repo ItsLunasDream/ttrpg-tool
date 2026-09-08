@@ -28,6 +28,9 @@ const api = {
     update: (patch: Partial<AppSettings>) => invoke<AppSettings>('settings:update', patch),
     chooseVaultRoot: () => invoke<AppSettings | null>('settings:chooseVaultRoot')
   },
+  app: {
+    version: () => invoke<string>('app:version')
+  },
   vault: {
     reveal: () => invoke<void>('vault:reveal')
   },
