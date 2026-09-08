@@ -42,8 +42,25 @@ npm test          # Tests der Kernlogik
 npm run smoke     # Rauchtest der gebauten App
 npm run roundtrip # prüft, ob Speichern am Markdown etwas verändert
 npm run typecheck
-npm run dist:win  # Windows-Installer und portable exe nach release/
+npm run dist:win  # Windows-Installer und portable exe nach apps/backstory/release/
 ```
+
+### Workspace-Aufbau
+
+Das Repository ist ein npm-Workspace-Monorepo. Die Befehle oben laufen an der
+Wurzel und delegieren an die passenden Ordner:
+
+```
+apps/backstory/    Der Backstory Creator selbst (Electron-Anwendung)
+packages/dice/     Geteiltes Paket: Würfelausdrücke lesen und werfen
+```
+
+`npm install` an der Wurzel richtet beide ein. `npm run dev`, `npm start`,
+`npm run smoke`, `npm run roundtrip`, `npm run dist:win` und
+`npm run dist:linux` betreffen ausschließlich `apps/backstory`. `npm run
+typecheck` und `npm test` laufen dagegen über alle Workspaces, App und
+Pakete eingeschlossen. Ein Befehl gezielt für einen Workspace: `npm run
+<skript> -w apps/backstory` bzw. `-w packages/dice`.
 
 ## Bedienung
 
@@ -116,7 +133,7 @@ kein Code, sondern gehört der Kampagne: es liegt in `campaign.json` und wird
 über Menü „Kampagne" → „Notiztypen" bearbeitet. Typen und Felder lassen sich
 anlegen, umbenennen, umsortieren und entfernen. Feldarten sind Text,
 mehrzeilig, Zahl, Link, Bild, Auswahlliste, Datum und Ankreuzfeld.
-`src/shared/noteTypes.ts` liefert nur noch die Vorlage für neue Kampagnen.
+`apps/backstory/src/shared/noteTypes.ts` liefert nur noch die Vorlage für neue Kampagnen.
 
 Zwei Regeln schützen dabei bestehende Daten. Der Schlüssel eines Felds bleibt
 beim Umbenennen der Beschriftung unverändert, sonst gingen eingetragene Werte
@@ -158,7 +175,7 @@ Editors und stellt Fragen, prüft gegen verlinkte Notizen und gibt
 Stilrückmeldung. Er schreibt nichts in den Text: das ist in der
 Systemanweisung festgeschrieben und dadurch, dass die Antwort nur in der
 Sidebar erscheint. Anbieter sind Ollama (lokal, kostenlos) oder die Claude API
-(kostenpflichtig), hinter einem gemeinsamen Interface in `src/main/ai/`.
+(kostenpflichtig), hinter einem gemeinsamen Interface in `apps/backstory/src/main/ai/`.
 
 Alle Netzaufrufe laufen im Hauptprozess. Der API-Schlüssel wird mit dem
 Schlüsselbund des Systems verschlüsselt und erreicht den Renderer nie.
@@ -170,7 +187,7 @@ Wiederherstellen wandert der aktuelle Stand vorher in den Verlauf, das
 Zurückholen ist also selbst umkehrbar.
 
 **Sprache** ist umschaltbar zwischen Deutsch und Englisch. Alle festen Texte
-liegen in `src/shared/i18n.ts`, auch die Fehlermeldungen des Hauptprozesses:
+liegen in `apps/backstory/src/shared/i18n.ts`, auch die Fehlermeldungen des Hauptprozesses:
 `VaultError` trägt einen Schlüssel, übersetzt wird erst in der IPC-Schicht.
 Selbst vergebene Bezeichnungen wie eigene Notiztypen und Feldnamen bleiben
 unverändert, die kann das Programm nicht übersetzen.
@@ -185,15 +202,15 @@ die Graph-Ansicht in Phase 3.
 ## Aufbau
 
 ```
-src/shared/     Datenmodell, Notiztyp-Vorlage, Wiki-Link-Parsing, Texte
-src/main/       Electron-Hauptprozess: Dateisystem, IPC, Export, KI-Anbindung
-src/preload/    Einzige Brücke zum Renderer (contextIsolation aktiv)
-src/renderer/   React-Oberfläche, TipTap-Editor, Notizindex, Graph
-tests/          Tests der Kernlogik und der Vault-Schicht
+apps/backstory/src/shared/     Datenmodell, Notiztyp-Vorlage, Wiki-Link-Parsing, Texte
+apps/backstory/src/main/       Electron-Hauptprozess: Dateisystem, IPC, Export, KI-Anbindung
+apps/backstory/src/preload/    Einzige Brücke zum Renderer (contextIsolation aktiv)
+apps/backstory/src/renderer/   React-Oberfläche, TipTap-Editor, Notizindex, Graph
+apps/backstory/tests/          Tests der Kernlogik und der Vault-Schicht
 ```
 
 Der Renderer hat bewusst keinen Node-Zugriff. Alle Dateioperationen laufen über
-die typisierten IPC-Kanäle in `src/preload/index.ts`.
+die typisierten IPC-Kanäle in `apps/backstory/src/preload/index.ts`.
 
 ## Stand und nächste Schritte
 
@@ -239,18 +256,18 @@ Offene Aufgaben, geplante Phasen und bekannte Grenzen stehen in
 
 Der Rauchtest unten laeuft gegen die ungepackte App. Fehlt eine Abhaengigkeit
 erst im fertigen Installationspaket, sieht er das nicht. Dafuer gibt es
-`scripts/verify-package.mjs`: das Skript startet die **gepackte** Anwendung und
+`apps/backstory/scripts/verify-package.mjs`: das Skript startet die **gepackte** Anwendung und
 prueft, dass sie ohne fehlende Module hochkommt.
 
 ```bash
 npm run dist:linux:dir
-xvfb-run -a npm run verify:package -- "$PWD/release/linux-unpacked/backstory-creator"
+xvfb-run -a npm run verify:package -w apps/backstory -- "$PWD/apps/backstory/release/linux-unpacked/backstory-creator"
 ```
 
 Unter Windows nach `npm run dist:win`:
 
 ```bash
-npm run verify:package -- "release\win-unpacked\Backstory Creator.exe"
+npm run verify:package -w apps/backstory -- "apps\backstory\release\win-unpacked\Backstory Creator.exe"
 ```
 
 Beide Prüfungen laufen in der CI, bevor die Windows-Anwendung hochgeladen wird.
@@ -261,7 +278,7 @@ keine Abhängigkeit mehr fehlen.
 
 ## Rauchtest
 
-`scripts/smoke.cjs` startet die gebaute App, legt eine Kampagne und zwei
+`apps/backstory/scripts/smoke.cjs` startet die gebaute App, legt eine Kampagne und zwei
 Notizen an, tippt einen Wiki-Link, speichert und prüft die Dateien auf der
 Platte, inklusive Umbenennen mit Link-Rewrite. Unter Linux mit Xvfb:
 
@@ -272,12 +289,12 @@ npm run smoke
 Unter Windows und macOS direkt ohne Xvfb:
 
 ```bash
-npm run build && npx electron scripts/smoke.cjs
+npm run build && npx electron scripts/smoke.cjs  # innerhalb von apps/backstory
 ```
 
 ## Markdown-Rundlauf
 
-`scripts/roundtrip.cjs` legt Notizen mit verschiedenen Markdown-Bestandteilen
+`apps/backstory/scripts/roundtrip.cjs` legt Notizen mit verschiedenen Markdown-Bestandteilen
 hinter dem Rücken der Anwendung an, lässt sie laden, ändert eine Kleinigkeit,
 speichert und vergleicht die Datei.
 
