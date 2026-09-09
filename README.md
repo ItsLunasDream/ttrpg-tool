@@ -3,6 +3,8 @@
 Werkzeuge für Pen-&-Paper-Kampagnen, die nebeneinander in einem Fenster
 laufen. Alles bleibt lokal auf der eigenen Platte.
 
+- **Initiative Tracker** — Kampfreihenfolge, Trefferpunkte und Zustände am
+  Spieltisch verfolgen. Systemneutral, mit Gruppen für Monsterhorden.
 - **Backstory Creator** — Figuren, Orte und ihre Beziehungen aufschreiben:
   Rich-Text-Editor, Wiki-Verlinkung zwischen Notizen, strukturierte
   Steckbrieffelder und gerichtete Beziehungen, gespeichert als Markdown.
@@ -75,6 +77,7 @@ Wurzel und delegieren an die passenden Ordner:
 apps/backstory/    Der Backstory Creator selbst (Electron-Anwendung)
 apps/shell/        TTRPG-Tools: die Hülle, in die die Werkzeuge eingebettet werden
 apps/mapmaker/     TTRPG Map Editor: Kartenzeichner (Tauri-Anwendung), siehe unten
+apps/initiative/   Initiative Tracker: Kampfreihenfolge am Spieltisch, siehe unten
 packages/dice/     Geteiltes Paket: Würfelausdrücke lesen und werfen
 packages/i18n/     Geteiltes Paket: Sprachwahl und Textersetzung
 packages/motion/   Geteiltes Paket: Zeiten, Kurven und Grundanimationen der Oberfläche
@@ -85,8 +88,9 @@ packages/motion/   Geteiltes Paket: Zeiten, Kurven und Grundanimationen der Ober
 Haupteinstieg, in ihr laufen die Werkzeuge eingebettet. Für den Backstory
 Creator für sich gibt es `npm run dev:backstory`, `npm run start:backstory`,
 `npm run smoke:backstory`, `npm run roundtrip`, `npm run dist:win` und
-`npm run dist:linux`; für den Kartenmacher `npm run dev:mapmaker`. `npm run
-build`, `npm run typecheck` und `npm test` laufen dagegen über alle
+`npm run dist:linux`; für den Kartenmacher `npm run dev:mapmaker`, für den
+Initiative Tracker `npm run dev:initiative`. `npm run build`, `npm run
+typecheck` und `npm test` laufen dagegen über alle
 Workspaces, Apps und Pakete eingeschlossen. Ein Befehl gezielt für einen
 Workspace: `npm run <skript> -w apps/backstory` bzw. `-w packages/dice`.
 
@@ -118,6 +122,39 @@ Systembibliotheken, die dort fehlen. Ebenso noch nicht angeschlossen: der
 End-to-End-Lauf unter `e2e/` (braucht einen installierten Browser) und die
 `build:portable`-Variante. Alle drei funktionieren lokal unverändert, siehe
 `apps/mapmaker/CLAUDE.md`.
+
+### Initiative Tracker
+
+`apps/initiative` verfolgt die Zugreihenfolge im Kampf. Systemneutral: ein
+Eintrag hat eine Initiative, Trefferpunkte und Zustände — was die Zahlen
+bedeuten, entscheidet der Tisch. Das Würfeln der Initiative (über
+`packages/dice`, mit dem Feinwert als Modifikator) ist eine Zugabe, keine
+Voraussetzung, und läuft nur für Gegner: Spielerfiguren würfeln am Tisch
+selbst.
+
+Die Regeln stehen in `src/shared/kampf.ts` als reine Funktionen, ohne
+Oberfläche und ohne Dateien. Am Spieltisch fällt ein Fehler in der
+Zugreihenfolge niemandem sofort auf, und wenn doch, lässt er sich nicht
+nachstellen — er muss sich prüfen lassen, bevor er passiert.
+
+**Gruppen** sind der Grund, warum die Trefferpunkte nicht am Eintrag hängen:
+sechs Goblins würfeln *eine* Initiative und haben sechs getrennte
+Trefferpunktsätze. Ein Eintrag mit einem Körper ist der Normalfall und sieht
+aus wie eine einzelne Kreatur.
+
+**Zwei Sorten Daten, bewusst verschieden behandelt:** Begegnungen sind
+Dokumente (Markdown mit YAML-Kopf, der Rumpf trägt die Taktiknotiz); der
+laufende Kampf ist Sitzungszustand und liegt als JSON daneben. Ihn als
+Markdown zu führen hätte den Anschein erweckt, man solle ihn aufheben.
+
+**Bilder** werden in den eigenen Ordner kopiert, nicht verlinkt: ein Verweis
+irgendwohin zeigt ins Leere, sobald jemand aufräumt — und das fällt erst
+mitten im Kampf auf. Der Dateiname kommt aus dem Inhalt, und `bildPfad` prüft
+ihn, bevor er in einen Pfad wandert.
+
+Bedienung: **Leertaste heißt weiter**, die eine Handlung, die hundertmal pro
+Abend passiert. Schaden wird eingetippt und mit Enter angewendet, nicht über
+Plus- und Minusknöpfe geklickt — Schaden ist selten eins.
 
 ### TTRPG-Tools: die Hülle
 

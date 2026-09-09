@@ -25,3 +25,4 @@ export {
   zuId,
   istGueltigeId
 } from '../src/shared/format';
+export { Ablage } from '../src/main/ablage';

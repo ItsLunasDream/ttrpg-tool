@@ -46,6 +46,15 @@ export function App() {
   const [zeigeBegegnungen, setZeigeBegegnungen] = useState(false);
   /** Teilnehmer, dessen Zeile gerade aufgeklappt ist. */
   const [offen, setOffen] = useState<string | null>(null);
+  /**
+   * Der Rumpf der geladenen Begegnung: Taktik, Plan, was der Tisch braucht.
+   *
+   * Steht getrennt vom Kampf, weil er zum *Dokument* gehoert und nicht zum
+   * laufenden Gefecht — ein Kampf, den man aus einer Begegnung startet, aendert
+   * die Trefferpunkte, aber nicht den Plan.
+   */
+  const [taktik, setTaktik] = useState('');
+  const [zeigeTaktik, setZeigeTaktik] = useState(false);
 
   // Die Sprache kann von der Huelle gesetzt werden, ohne dass hier jemand
   // klickt. Ohne diesen Anschluss bliebe die Oberflaeche auf dem alten Stand.
@@ -167,7 +176,7 @@ export function App() {
         })),
         zustaende: []
       })),
-      taktik: ''
+      taktik
     };
     await api.begegnungen.speichern(begegnung);
     setKampf((vorher) => ({ ...vorher, name, begegnungId: begegnung.id }));
@@ -184,6 +193,7 @@ export function App() {
         name: begegnung.name,
         teilnehmer: begegnung.teilnehmer
       });
+      setTaktik(begegnung.taktik);
       setZeigeBegegnungen(false);
       melde(t('msg.geladen'));
     },
@@ -227,6 +237,14 @@ export function App() {
         <button type="button" onClick={() => void speichereBegegnung()} disabled={sortiert.length === 0}>
           {t('knopf.speichern')}
         </button>
+        <button
+          type="button"
+          className={zeigeTaktik ? 'knopf--an' : ''}
+          onClick={() => setZeigeTaktik((vorher) => !vorher)}
+          aria-pressed={zeigeTaktik}
+        >
+          {t('feld.taktik')}
+        </button>
         <select
           className="leiste__sprache"
           value={sprache}
@@ -250,6 +268,15 @@ export function App() {
             setBegegnungen(await api.begegnungen.liste());
           }}
           onSchliessen={() => setZeigeBegegnungen(false)}
+        />
+      ) : null}
+
+      {zeigeTaktik ? (
+        <textarea
+          className="taktik motion-eintritt"
+          placeholder={t('feld.taktik')}
+          value={taktik}
+          onChange={(ereignis) => setTaktik(ereignis.target.value)}
         />
       ) : null}
 

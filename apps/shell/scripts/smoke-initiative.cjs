@@ -94,6 +94,37 @@ app.whenReady().then(async () => {
     pruefe(gespeichert.laeuft === true, 'und weiss, dass der Kampf laeuft');
   }
 
+  // --- Sprachkopplung ---------------------------------------------------
+  // Bei den anderen beiden Werkzeugen war genau das die Fehlerquelle: die
+  // Modelltests sahen die Kopplung nicht, und im Fenster blieb ein Werkzeug
+  // auf der alten Sprache stehen.
+  const spracheJetzt = () =>
+    js("document.querySelector('.leiste__sprache')?.value ?? ''");
+  const vorher = await spracheJetzt();
+  const andere = vorher === 'de' ? 'en' : 'de';
+  await js(`(() => { const s = document.querySelector('.leiste__sprache');
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(s, '${andere}');
+    s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+  await warte(900);
+  pruefe((await spracheJetzt()) === andere, `der Tracker stellt selbst um (${vorher} -> ${andere})`);
+
+  // Die Huelle muss es mitbekommen haben und ihre eigene Titelleiste umstellen.
+  const huelle = fenster.contentView.children[0];
+  const huellenText = await huelle.webContents.executeJavaScript(
+    "document.querySelector('.titelleiste__knopf')?.textContent ?? ''"
+  );
+  pruefe(
+    andere === 'de' ? huellenText === 'Einstellungen' : huellenText === 'Settings',
+    `die Huelle ist mitgegangen (\"${huellenText}\")`
+  );
+
+  // Und zurueck, von der Huelle aus: der Tracker muss folgen.
+  await huelle.webContents.executeJavaScript(
+    `window.shell.einstellungen.schreiben({ language: '${vorher}' })`
+  );
+  await warte(900);
+  pruefe((await spracheJetzt()) === vorher, 'und folgt der Huelle wieder zurueck');
+
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' | ') || 'keine'})`);
 
   console.log(fehler.length ? `\n${fehler.length} Pruefung(en) fehlgeschlagen.` : '\nTracker in der Huelle bestanden.');
