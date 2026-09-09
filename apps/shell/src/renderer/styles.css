@@ -391,6 +391,66 @@ body {
   margin-top: 10px;
 }
 
+/*
+ * Stoerung: das Werkzeug liess sich nicht oeffnen.
+ *
+ * Bewusst nicht der Platzhalter mit anderer Farbe. Der Platzhalter sagt „noch
+ * nicht fertig", und das ist hier falsch — etwas Fertiges ist kaputt, und die
+ * Person kann etwas dagegen tun.
+ */
+.stoerung {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  min-width: 0;
+  text-align: center;
+}
+
+.stoerung__titel {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--schliessen);
+}
+
+.stoerung__text {
+  margin: 0;
+  max-width: 46ch;
+  line-height: 1.5;
+}
+
+/* Die Rohmeldung: klein, aber lesbar und markierbar. Sie ist das Einzige,
+   womit sich ein unbekannter Fall weiterverfolgen laesst. */
+.stoerung__detail {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--text-leise);
+  font-size: 12px;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  word-break: break-all;
+  user-select: text;
+}
+
+.stoerung__knopf {
+  margin-top: 8px;
+  background: #2b3140;
+  border: 1px solid var(--rand);
+  color: var(--text);
+  font: inherit;
+  padding: 6px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background var(--motion-feedback) var(--motion-ease-standard);
+}
+
+.stoerung__knopf:hover {
+  background: #343b4d;
+}
+
 /* ---------- Dialoge ---------- */
 
 .dialog__grund {

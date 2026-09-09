@@ -26,7 +26,14 @@ const en = {
   'status.inProgress': 'in progress',
   'status.planned': 'later',
 
-  'stage.placeholder': 'This is where the application gets embedded. The shell is done, embedding is next.',
+  'stage.placeholder': 'This tool is not ready to be embedded yet.',
+
+  'stage.failed.title': '{name} could not be opened',
+  'stage.failed.missing':
+    'Its build output is missing. Run "npm run build" in the project folder, then try again.',
+  'stage.failed.other': 'The tool reported an error while loading.',
+  'stage.failed.detail': 'Details: {detail}',
+  'stage.failed.retry': 'Try again',
 
   'dialog.close': 'Close',
 
@@ -81,7 +88,14 @@ const de: Partial<Record<MessageKey, string>> = {
   'status.inProgress': 'in Arbeit',
   'status.planned': 'später',
 
-  'stage.placeholder': 'Hier wird die Anwendung eingebettet. Die Hülle steht, das Einbetten kommt als Nächstes.',
+  'stage.placeholder': 'Dieses Werkzeug lässt sich noch nicht einbetten.',
+
+  'stage.failed.title': '{name} ließ sich nicht öffnen',
+  'stage.failed.missing':
+    'Die gebauten Dateien fehlen. Führe im Projektordner „npm run build" aus und versuche es noch einmal.',
+  'stage.failed.other': 'Das Werkzeug hat beim Laden einen Fehler gemeldet.',
+  'stage.failed.detail': 'Einzelheiten: {detail}',
+  'stage.failed.retry': 'Noch einmal versuchen',
 
   'dialog.close': 'Schließen',
 

@@ -6,9 +6,9 @@
  * Menue zur schmalen Schiene links, dieselben Symbole in klein, und rechts
  * daneben bleibt die Flaeche fuer die Anwendung frei.
  *
- * In diesem Bauabschnitt wird dort noch nichts eingebettet — die Flaeche zeigt
- * stattdessen, was als naechstes hineinkommt. Der Wechsel selbst,
- * Fensterknoepfe und Fensterlage sind aber schon echt.
+ * Auf dieser Flaeche liegt die Ansicht der Anwendung. Sichtbar wird hier nur
+ * etwas, wenn keine daraufliegt: weil das Werkzeug noch nicht einbettbar ist,
+ * oder weil es sich nicht oeffnen liess.
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { APPS, CHROME, STATUS_KEY, descriptionKey, findApp, istWaehlbar, nameKey } from '../shared/apps';
@@ -31,16 +31,31 @@ declare global {
 
 type Uebersetzer = (key: MessageKey, params?: MessageParams) => string;
 
+/**
+ * Was auf der Buehne los ist: das Ergebnis des Hauptprozesses, um den
+ * Zwischenzustand `laedt` erweitert. Den kennt nur die Oberflaeche — der
+ * Hauptprozess antwortet erst, wenn er fertig ist.
+ */
+type BuehnenZustand =
+  | { zustand: 'laedt' }
+  | import('../main/index').ZeigenErgebnis;
+
 export function App() {
   const [aktiv, setAktiv] = useState<string | null>(null);
   /**
-   * Ob hinter der Buehne wirklich eine Anwendung liegt.
+   * Was auf der Buehne los ist.
    *
-   * Die Huelle kann noch nicht jede einbetten. Ohne diese Auskunft schriebe
-   * die Oberflaeche ihren Platzhaltertext unter eine laufende Anwendung — zu
-   * sehen waere er nicht, aber Vorlesewerkzeuge laesen ihn vor.
+   * Frueher stand hier ein `boolean`. Der beantwortete zwei verschiedene
+   * Fragen mit demselben Wort: „dieses Werkzeug gibt es noch nicht" und
+   * „es liess sich nicht oeffnen" fuehrten beide zum selben Platzhalter,
+   * und der behauptete, das Einbetten sei noch nicht gebaut. Wer mit einem
+   * ungebauten Werkzeug darauf stiess, suchte den Fehler an der falschen
+   * Stelle.
+   *
+   * `laedt` ist der Zustand zwischen Klick und Antwort. Ohne ihn zeigte die
+   * Flaeche in dieser Zeit die Meldung des *vorigen* Versuchs.
    */
-  const [eingebettet, setEingebettet] = useState(false);
+  const [buehne, setBuehne] = useState<BuehnenZustand>({ zustand: 'laedt' });
   const [maximiert, setMaximiert] = useState(false);
   const [version, setVersion] = useState('');
   const [sprache, setSprache] = useState<Language>(DEFAULT_LANGUAGE);
@@ -76,7 +91,7 @@ export function App() {
     // ein zweites Mal anfordern.
     const abmeldenStart = window.shell.app.beiStartMitWerkzeug((id) => {
       setAktiv(id);
-      setEingebettet(true);
+      setBuehne({ zustand: 'offen' });
     });
     // Eine der eingebetteten Anwendungen (oder eine andere Sitzung dieses
     // Fensters) kann die Sprache aendern, ohne dass hier der
@@ -130,20 +145,24 @@ export function App() {
   const waehle = useCallback((id: string | null) => {
     setAktiv(id);
     if (id === null) {
-      setEingebettet(false);
+      setBuehne({ zustand: 'laedt' });
       void window.shell.app.startmenue();
       return;
     }
-    setEingebettet(false);
-    // Ohne dieses catch blieb ein Fehlschlag beim Einbetten (etwa fehlende
-    // Build-Dateien der Anwendung) eine unbehandelte Ablehnung im Renderer —
-    // die Flaeche stand fuer immer beim Platzhalter, ohne jeden Hinweis.
+    setBuehne({ zustand: 'laedt' });
     window.shell.app
       .zeigen(id)
-      .then(setEingebettet)
+      .then(setBuehne)
+      // Der Hauptprozess faengt Montagefehler selbst ab und meldet sie als
+      // Zustand. Bleibt trotzdem eine Ablehnung uebrig, ist etwas an der
+      // Bruecke kaputt — auch das gehoert auf den Schirm und nicht ins Nichts.
       .catch((fehler: unknown) => {
         console.error(`[shell] Werkzeug "${id}" liess sich nicht einbetten:`, fehler);
-        setEingebettet(false);
+        setBuehne({
+          zustand: 'fehler',
+          grund: 'sonst',
+          detail: fehler instanceof Error ? fehler.message : String(fehler)
+        });
       });
   }, []);
 
@@ -222,13 +241,7 @@ export function App() {
       </header>
 
       {eintrag ? (
-        <Buehne
-          eintrag={eintrag}
-          aktiv={aktiv!}
-          setAktiv={waehle}
-          eingebettet={eingebettet}
-          t={t}
-        />
+        <Buehne eintrag={eintrag} aktiv={aktiv!} setAktiv={waehle} buehne={buehne} t={t} />
       ) : (
         <Startmenue setAktiv={waehle} version={version} t={t} />
       )}
@@ -298,13 +311,13 @@ function Buehne({
   eintrag,
   aktiv,
   setAktiv,
-  eingebettet,
+  buehne,
   t
 }: {
   eintrag: { id: string };
   aktiv: string;
   setAktiv: (id: string | null) => void;
-  eingebettet: boolean;
+  buehne: BuehnenZustand;
   t: Uebersetzer;
 }) {
   const schiene = useRef<HTMLElement>(null);
@@ -383,11 +396,27 @@ function Buehne({
 
       {/*
         Liegt eine Anwendung vor der Huelle, ist hier nichts zu zeigen: ihre
-        Ansicht deckt die Flaeche vollstaendig ab. Der Platzhalter steht nur
-        fuer die Werkzeuge, die noch nicht eingebettet werden koennen.
+        Ansicht deckt die Flaeche vollstaendig ab. Ein Text an dieser Stelle
+        waere unsichtbar, aber Vorlesewerkzeuge laesen ihn vor.
       */}
-      {eingebettet ? (
+      {buehne.zustand === 'offen' || buehne.zustand === 'laedt' ? (
         <div className="buehne__flaeche" aria-hidden="true" />
+      ) : buehne.zustand === 'fehler' ? (
+        <main className="stoerung" role="alert">
+          <p className="stoerung__titel">
+            {t('stage.failed.title', { name: t(nameKey(eintrag.id)) })}
+          </p>
+          <p className="stoerung__text">
+            {t(buehne.grund === 'dateien-fehlen' ? 'stage.failed.missing' : 'stage.failed.other')}
+          </p>
+          {/* Die Rohmeldung bleibt sichtbar: sie ist das Einzige, womit sich
+              ein Fall weiterverfolgen laesst, den die beiden Saetze oben nicht
+              treffen. */}
+          <p className="stoerung__detail">{t('stage.failed.detail', { detail: buehne.detail })}</p>
+          <button type="button" className="stoerung__knopf" onClick={() => setAktiv(eintrag.id)}>
+            {t('stage.failed.retry')}
+          </button>
+        </main>
       ) : (
         <main className="platzhalter">
           <p className="platzhalter__name">{t(nameKey(eintrag.id))}</p>
