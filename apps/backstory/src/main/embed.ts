@@ -47,6 +47,12 @@ export interface BackstoryEmbedOptions {
    * Start richtig ist.
    */
   readonly distDir?: string;
+  /**
+   * Sitzung, in der die Anwendung laeuft. Die Huelle gibt jeder Anwendung eine
+   * eigene; ohne Angabe gilt die Standardsitzung, wie beim eigenstaendigen
+   * Start.
+   */
+  readonly partition?: string;
 }
 
 export interface BackstoryEmbed {
@@ -88,7 +94,7 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
     maxVersions: settings.historyMaxVersions
   });
   await vault.init();
-  handleAssetProtocol(vault);
+  handleAssetProtocol(vault, options.partition);
 
   registerIpc({ vault, settingsFile, settings });
 

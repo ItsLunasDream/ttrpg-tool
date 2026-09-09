@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { net, protocol } from 'electron';
+import { net, protocol, session as electronSession } from 'electron';
 import type { Vault } from './vault';
 
 export const ASSET_SCHEME = 'backstory-asset';
@@ -26,9 +26,17 @@ export function registerAssetScheme(): void {
  * Der Renderer bekommt bewusst keinen direkten Dateizugriff. Kampagnen-ID und
  * Dateiname werden von der Vault-Schicht geprueft, ein Ausbruch aus dem
  * Verzeichnis ist damit nicht moeglich.
+ *
+ * `partition` benennt die Sitzung, in der die Anwendung laeuft. In der Huelle
+ * bekommt jede Anwendung eine eigene, damit sie sich localStorage und
+ * IndexedDB nicht teilen — unter file:// waere das sonst derselbe Speicher.
+ * Ein Protokoll gilt immer nur fuer eine Sitzung; ohne diese Angabe waere es
+ * dort nicht angemeldet und jedes Bild bliebe leer. Ohne `partition` gilt die
+ * Standardsitzung, wie beim eigenstaendigen Start.
  */
-export function handleAssetProtocol(vault: Vault): void {
-  protocol.handle(ASSET_SCHEME, async (request) => {
+export function handleAssetProtocol(vault: Vault, partition?: string): void {
+  const ziel = partition ? electronSession.fromPartition(partition).protocol : protocol;
+  ziel.handle(ASSET_SCHEME, async (request) => {
     try {
       const url = new URL(request.url);
       const campaignId = url.hostname;

@@ -1,11 +1,17 @@
 /**
  * Das Einbetten der Anwendungen.
  *
- * Jede Anwendung bringt eine Montage-Schnittstelle mit (beim Backstory
- * Creator `src/main/embed.ts`). Die Huelle ruft sie auf, bekommt Preload und
- * Oberflaeche zurueck und haengt eine Ansicht ins Fenster. Der Code der
- * Anwendung bleibt dabei unveraendert: sie merkt nicht, dass sie in einer
- * Huelle laeuft.
+ * Jede Anwendung bringt eine Montage-Schnittstelle mit (Konvention 7). Die
+ * Huelle ruft sie auf, bekommt Preload und Oberflaeche zurueck und haengt eine
+ * Ansicht ins Fenster. Der Code der Anwendung bleibt dabei unveraendert: sie
+ * merkt nicht, dass sie in einer Huelle laeuft.
+ *
+ * Wie verschieden die Anwendungen darunter gebaut sind, sieht man an den zwei
+ * bisherigen: der Backstory Creator bringt einen ganzen Hauptprozess mit,
+ * Speicherort und knapp vierzig IPC-Kanaele; der Karteneditor ist eine reine
+ * Web-Anwendung ohne Preload, die ueber die File System Access API speichert.
+ * Fuer die Huelle sind beide dasselbe — eine Ansicht, die sie laedt, zeigt und
+ * versteckt.
  *
  * Der Import geht quer ueber die Anwendungsgrenze, mit relativem Pfad. Das
  * ist Absicht und die einzige erlaubte Richtung: die Huelle darf in eine
@@ -20,6 +26,7 @@ import {
   mountBackstory,
   registerAssetScheme as registerBackstoryScheme
 } from '../../../backstory/src/main/embed';
+import { mountMapmaker } from '../../../mapmaker/src/embed';
 
 export interface MontierteApp {
   readonly id: string;
@@ -51,8 +58,8 @@ export function registerSchemes(): void {
  * angepasst werden. Ein Test haelt fest, dass die Dateien dort auch wirklich
  * liegen.
  */
-export function appDistDir(id: string): string {
-  return join(__dirname, '..', '..', '..', id, 'dist', 'main');
+export function appDistDir(id: string, ...weiter: string[]): string {
+  return join(__dirname, '..', '..', '..', id, 'dist', ...weiter);
 }
 
 /** Wohin eine Anwendung ihre Daten legt. */
@@ -64,6 +71,48 @@ function datenordner(id: string): string {
 }
 
 /**
+ * Die Sitzung, in der eine Anwendung laeuft.
+ *
+ * Jede bekommt ihre eigene. Alle Ansichten laden ueber `file://`, und dort ist
+ * der Ursprung fuer alle derselbe — ohne getrennte Sitzungen teilten sich die
+ * Anwendungen also localStorage, IndexedDB und Zwischenspeicher. Der
+ * Karteneditor legt dort seine Prop-Bibliothek, seine Tastenbelegung und die
+ * zuletzt geoeffneten Karten ab; ein zweites Programm mit einem gleich
+ * benannten Schluessel wuerde ihm hineinschreiben.
+ *
+ * `persist:` heisst, dass der Inhalt einen Neustart uebersteht. Ohne das waere
+ * jede Einstellung nach dem Schliessen weg.
+ */
+function sitzung(id: string): string {
+  return `persist:${id}`;
+}
+
+/** Gemeinsame Absicherung fuer jede eingebettete Ansicht. */
+function sichereAb(sicht: WebContentsView, devServerUrl: string | null): void {
+  // Externe Links gehoeren in den Systembrowser. Ohne das laege auf einer
+  // fremden Seite dieselbe Bruecke zum Dateisystem wie auf der eigenen.
+  sicht.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http:') || url.startsWith('https:')) void shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  sicht.webContents.on('will-navigate', (event, url) => {
+    if (devServerUrl && url.startsWith(devServerUrl)) return;
+    event.preventDefault();
+    const ziel = new URL(url);
+    if (ziel.protocol === 'http:' || ziel.protocol === 'https:') void shell.openExternal(ziel.href);
+  });
+}
+
+/** Laedt in eine Ansicht, was die Montage-Schnittstelle angegeben hat. */
+async function lade(
+  sicht: WebContentsView,
+  quelle: { devServerUrl: string | null; indexFile: string | null }
+): Promise<void> {
+  if (quelle.devServerUrl) await sicht.webContents.loadURL(quelle.devServerUrl);
+  else await sicht.webContents.loadFile(quelle.indexFile!);
+}
+
+/**
  * Baut die Ansicht einer Anwendung und laedt sie.
  *
  * Gibt `null` zurueck, wenn die Huelle die Anwendung noch nicht einbetten
@@ -71,46 +120,58 @@ function datenordner(id: string): string {
  * Fehler fuer etwas, das erklaertermassen noch nicht fertig ist.
  */
 export async function mountApp(id: string): Promise<MontierteApp | null> {
-  if (id !== 'backstory') return null;
+  if (id === 'backstory') return montiereBackstory(id);
+  if (id === 'mapmaker') return montiereMapmaker(id);
+  return null;
+}
 
+async function montiereBackstory(id: string): Promise<MontierteApp> {
   const eingebettet = await mountBackstory({
     userDataDir: datenordner(id),
-    distDir: appDistDir(id),
+    distDir: appDistDir(id, 'main'),
+    partition: sitzung(id),
     devServerUrl: process.env.BACKSTORY_DEV_SERVER_URL
   });
 
   const sicht = new WebContentsView({
     webPreferences: {
       preload: eingebettet.preloadPath,
+      partition: sitzung(id),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true
     }
   });
 
-  // Externe Links gehoeren in den Systembrowser. Dieselbe Absicherung wie im
-  // eigenstaendigen Fenster: ohne sie laege auf einer fremden Seite dieselbe
-  // Bruecke zum Dateisystem wie auf der eigenen.
-  sicht.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('http:') || url.startsWith('https:')) void shell.openExternal(url);
-    return { action: 'deny' };
-  });
-  sicht.webContents.on('will-navigate', (event, url) => {
-    if (eingebettet.devServerUrl && url.startsWith(eingebettet.devServerUrl)) return;
-    event.preventDefault();
-    const ziel = new URL(url);
-    if (ziel.protocol === 'http:' || ziel.protocol === 'https:') void shell.openExternal(ziel.href);
-  });
-
-  if (eingebettet.devServerUrl) {
-    await sicht.webContents.loadURL(eingebettet.devServerUrl);
-  } else {
-    await sicht.webContents.loadFile(eingebettet.indexFile!);
-  }
+  sichereAb(sicht, eingebettet.devServerUrl);
+  await lade(sicht, eingebettet);
 
   return {
     id,
     sicht,
     flush: () => eingebettet.flush(sicht.webContents as WebContents)
   };
+}
+
+async function montiereMapmaker(id: string): Promise<MontierteApp> {
+  const eingebettet = mountMapmaker({
+    // Der Karteneditor hat keinen Hauptprozess; sein Vite-Build liegt direkt
+    // in dist/, nicht in dist/renderer/ wie beim Backstory Creator.
+    distDir: appDistDir(id),
+    devServerUrl: process.env.MAPMAKER_DEV_SERVER_URL
+  });
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+  await lade(sicht, eingebettet);
+
+  return { id, sicht, flush: () => eingebettet.flush() };
 }

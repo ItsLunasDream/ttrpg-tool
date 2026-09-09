@@ -54,17 +54,27 @@ async function warteAufFenster(versuche = 40) {
  * Wert hat er trotzdem: laufen die Pfade auseinander, bleibt die Ansicht sonst
  * einfach leer, ohne Fehlermeldung. Hier steht dann, welche Datei fehlt.
  */
-function pruefeDateienDerApp(id) {
-  const dir = path.join(__dirname, '..', 'dist', 'main', '..', '..', '..', id, 'dist', 'main');
-  pruefe(fs.existsSync(path.join(dir, 'preload.js')), `${id}: preload.js liegt unter ${dir}`);
+function appDist(id, ...weiter) {
+  return path.join(__dirname, '..', 'dist', 'main', '..', '..', '..', id, 'dist', ...weiter);
+}
+
+function pruefeDateienDerApps() {
+  // Backstory Creator: eigener Hauptprozess, also Preload und eine Oberflaeche
+  // unter dist/renderer.
+  const bs = appDist('backstory', 'main');
+  pruefe(fs.existsSync(path.join(bs, 'preload.js')), `backstory: preload.js liegt unter ${bs}`);
   pruefe(
-    fs.existsSync(path.join(dir, '..', 'renderer', 'index.html')),
-    `${id}: index.html liegt neben ${dir}`
+    fs.existsSync(path.join(bs, '..', 'renderer', 'index.html')),
+    `backstory: index.html liegt neben ${bs}`
   );
+
+  // Karteneditor: reine Web-Anwendung, sein Vite-Build liegt direkt in dist/.
+  const mm = appDist('mapmaker');
+  pruefe(fs.existsSync(path.join(mm, 'index.html')), `mapmaker: index.html liegt unter ${mm}`);
 }
 
 app.whenReady().then(async () => {
-  pruefeDateienDerApp('backstory');
+  pruefeDateienDerApps();
 
   const { fenster, sicht } = await warteAufFenster();
   if (!fenster || !sicht) {
@@ -217,6 +227,60 @@ app.whenReady().then(async () => {
       );
 
       pruefe(appFehler.length === 0, `keine Konsolenfehler in ihr (${appFehler.join(' | ') || 'keine'})`);
+    }
+  }
+
+  // ---- Die zweite Anwendung: der Karteneditor ----
+  //
+  // Er ist anders gebaut als der Backstory Creator — kein Hauptprozess, kein
+  // Preload, er speichert ueber die File System Access API und den
+  // Browserspeicher. Genau deshalb steht er hier: die Huelle soll beide gleich
+  // behandeln koennen.
+  // Gewechselt wird ueber die Schiene, nicht ueber eine Kachel: an dieser
+  // Stelle liegt der Backstory Creator vorn, und im Startmenue war die Huelle
+  // zuletzt nicht mehr.
+  const kartenEintrag = "[...document.querySelectorAll('.schiene__eintrag')][1]";
+  if (await js(`Boolean(${kartenEintrag})`)) {
+    await js(`${kartenEintrag}.click()`);
+    // PixiJS baut seinen Renderer auf, das dauert.
+    await warte(6000);
+
+    const karten = fenster.contentView.children[2];
+    pruefe(Boolean(karten), 'der Karteneditor haengt als eigene Ansicht im Fenster');
+
+    if (karten) {
+      const kartenJs = (ausdruck) => karten.webContents.executeJavaScript(ausdruck);
+      pruefe(
+        (await kartenJs("document.getElementById('root')?.children.length ?? 0")) > 0,
+        'seine Oberflaeche ist da'
+      );
+      // Die schaerfste Pruefung fuer ihn: ohne Renderer gibt es kein Canvas,
+      // und ohne relative Pfade im Buendel laedt unter file:// gar nichts.
+      pruefe(await kartenJs('Boolean(document.querySelector("canvas"))'), 'seine Zeichenflaeche steht');
+
+      // Getrennte Sitzungen: was er in den Browserspeicher legt, darf beim
+      // Backstory Creator nicht auftauchen.
+      await kartenJs("localStorage.setItem('probe.trennung', 'karten'); true");
+      const bs = fenster.contentView.children[1];
+      const fremd = await bs.webContents.executeJavaScript(
+        "localStorage.getItem('probe.trennung')"
+      );
+      pruefe(fremd === null, `getrennter Browserspeicher (beim Nachbarn: ${JSON.stringify(fremd)})`);
+      await kartenJs("localStorage.removeItem('probe.trennung'); true");
+
+      // Hin und her: beide bleiben geladen, keine wird neu aufgebaut.
+      await js("document.querySelector('.schiene__eintrag').click()");
+      await warte(1500);
+      await js("[...document.querySelectorAll('.schiene__eintrag')][1].click()");
+      await warte(1500);
+      pruefe(
+        fenster.contentView.children.length === 3,
+        `nach dem Hin und Her immer noch drei Ansichten (${fenster.contentView.children.length})`
+      );
+      pruefe(
+        await kartenJs('Boolean(document.querySelector("canvas"))'),
+        'seine Zeichenflaeche hat den Wechsel ueberstanden'
+      );
     }
   }
 
