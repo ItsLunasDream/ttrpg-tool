@@ -41,7 +41,13 @@ const api = {
      * Antwortet mit `false`, wenn die Huelle sie noch nicht einbetten kann.
      * Die Oberflaeche zeigt dann weiter ihre Platzhalterflaeche.
      */
-    zeigen: (id: string) => ipcRenderer.invoke('app:zeigen', id) as Promise<boolean>,
+    /**
+     * Holt ein Werkzeug nach vorn. Antwortet mit dem Zustand, nicht mit
+     * „ging / ging nicht": ein Werkzeug, das es noch nicht gibt, und eines,
+     * dessen Dateien fehlen, brauchen verschiedene Antworten auf dem Schirm.
+     */
+    zeigen: (id: string) =>
+      ipcRenderer.invoke('app:zeigen', id) as Promise<import('../main/index').ZeigenErgebnis>,
     /** Zurueck ins Startmenue. Die Anwendungen bleiben geladen. */
     startmenue: () => ipcRenderer.invoke('app:startmenue') as Promise<void>,
     /**

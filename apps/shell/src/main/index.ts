@@ -325,6 +325,7 @@ async function starteMitWerkzeug(): Promise<void> {
     console.error(`[shell] Unbekanntes Werkzeug in TTRPG_TOOLS_START_APP: ${id}`);
     return;
   }
+  await montiert.nachladen();
   offen.set(id, montiert);
   aktiveApp = id;
   fenster.contentView.addChildView(montiert.sicht);
@@ -363,6 +364,28 @@ function eigeneFassung(): string {
 /** Registriert einen Kanal und faengt Fehler ab, statt sie zum Renderer zu werfen. */
 function handle<T>(kanal: string, fn: (event: IpcMainInvokeEvent, ...args: any[]) => T | Promise<T>): void {
   ipcMain.handle(kanal, async (event, ...args) => fn(event, ...args));
+}
+
+/**
+ * Was aus `app:zeigen` zurueckkommt.
+ *
+ * Bewusst kein `boolean` mehr: „falsch" beantwortete zwei ganz verschiedene
+ * Fragen — „dieses Werkzeug gibt es noch nicht" und „es ist kaputt" — und
+ * die Oberflaeche zeigte fuer beide denselben Platzhalter.
+ */
+export type ZeigenErgebnis =
+  | { zustand: 'offen' }
+  | { zustand: 'nicht-einbettbar' }
+  | { zustand: 'fehler'; grund: 'dateien-fehlen' | 'sonst'; detail: string };
+
+/** Uebersetzt einen Montagefehler in etwas, das die Oberflaeche zeigen kann. */
+function fehlerErgebnis(fehler: unknown): ZeigenErgebnis {
+  const text = fehler instanceof Error ? fehler.message : String(fehler);
+  console.error('[shell] Werkzeug liess sich nicht montieren:', fehler);
+  // ERR_FILE_NOT_FOUND heisst hier immer dasselbe: die Anwendung wurde nicht
+  // gebaut. Das ist der eine Fall, zu dem sich etwas Hilfreiches sagen laesst.
+  const dateienFehlen = text.includes('ERR_FILE_NOT_FOUND') || text.includes('ENOENT');
+  return { zustand: 'fehler', grund: dateienFehlen ? 'dateien-fehlen' : 'sonst', detail: text };
 }
 
 function registriereKanaele(): void {
@@ -411,8 +434,8 @@ function registriereKanaele(): void {
    * hinter ihr etwas liegt, sonst schriebe sie ihren Text unter eine
    * laufende Anwendung.
    */
-  handle('app:zeigen', async (_event, id: string) => {
-    if (!fenster) return false;
+  handle('app:zeigen', async (_event, id: string): Promise<ZeigenErgebnis> => {
+    if (!fenster) return { zustand: 'nicht-einbettbar' };
 
     verbergeAlle();
     aktiveApp = id;
@@ -420,16 +443,46 @@ function registriereKanaele(): void {
     let montiert = offen.get(id);
     if (!montiert) {
       const einstellungen = await readSettings(einstellungsDatei);
-      montiert = (await mountApp(id, montageHaken(id, einstellungen.language))) ?? undefined;
-      if (!montiert) return false;
+      try {
+        montiert = (await mountApp(id, montageHaken(id, einstellungen.language))) ?? undefined;
+      } catch (fehler) {
+        aktiveApp = null;
+        return fehlerErgebnis(fehler);
+      }
+      if (!montiert) return { zustand: 'nicht-einbettbar' };
+      // Auch eine Anwendung, deren Oberflaeche gleich nicht laedt, bleibt hier
+      // stehen. Ihre Kanaele und ihr Protokoll sind angemeldet, und beides
+      // laesst sich nicht ein zweites Mal anmelden — sie noch einmal zu
+      // montieren scheiterte an „Failed to register protocol", und das
+      // Werkzeug waere bis zum Neustart der Huelle unbrauchbar, selbst wenn
+      // die fehlenden Dateien inzwischen da sind.
       offen.set(id, montiert);
       fenster.contentView.addChildView(montiert.sicht);
+    }
+
+    try {
+      // Nur laden, wenn noch nichts drin ist: beim ersten Mal, oder beim
+      // zweiten Versuch nach einem Fehlschlag. Bei jedem Wechsel neu zu laden
+      // waere bequemer zu schreiben und falsch — es wuerfe den Zustand der
+      // Anwendung weg, offene Notiz und Auswahl mitsamt. Der Rauchtest der
+      // Huelle prueft genau das.
+      if (!montiert.istGeladen()) await montiert.nachladen();
+    } catch (fehler) {
+      // Der haeufigste Grund ist banal: die Anwendung wurde nie gebaut, ihre
+      // index.html gibt es nicht. Frueher warf dieser Kanal die Ablehnung bis
+      // in die Oberflaeche durch, wo sie niemand auffing — die Flaeche blieb
+      // beim Platzhalter stehen, und der behauptete obendrein, das Einbetten
+      // sei noch gar nicht gebaut. Wer das sah, suchte den Fehler an der
+      // falschen Stelle. Jetzt kommt heraus, *was* fehlt.
+      montiert.sicht.setVisible(false);
+      aktiveApp = null;
+      return fehlerErgebnis(fehler);
     }
 
     // `holeNachVorn` legt vorher neu aus: das Fenster kann seit dem letzten
     // Mal eine andere Groesse haben.
     holeNachVorn(montiert, true);
-    return true;
+    return { zustand: 'offen' };
   });
 
   /** Zurueck ins Startmenue: alle Anwendungen bleiben geladen, aber unsichtbar. */

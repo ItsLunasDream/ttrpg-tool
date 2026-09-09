@@ -32,6 +32,28 @@ import type { Language } from '../shared/i18n';
 export interface MontierteApp {
   readonly id: string;
   readonly sicht: WebContentsView;
+  /**
+   * Laedt die Oberflaeche der Anwendung in ihre Ansicht — und noch einmal,
+   * wenn es beim ersten Mal nicht ging.
+   *
+   * Getrennt vom Montieren, und das ist keine Kosmetik. Beim Montieren
+   * entstehen Dinge, die es *einmal* geben darf: die IPC-Kanaele der
+   * Anwendung und ihr eigenes Protokoll. Solange beides am Laden hing, riss
+   * ein Ladefehler die ganze Montage mit — und der naechste Versuch scheiterte
+   * dann nicht mehr an der fehlenden Datei, sondern an
+   * „Failed to register protocol". Ein Werkzeug, das einmal nicht hochkam,
+   * blieb bis zum Neustart der Huelle kaputt, selbst nachdem die fehlenden
+   * Dateien gebaut waren.
+   */
+  nachladen(): Promise<void>;
+  /**
+   * Ob die Oberflaeche schon drin ist.
+   *
+   * Die Huelle darf nur nachladen, wenn noch nichts geladen ist: ein erneutes
+   * Laden wirft den Zustand der Anwendung weg — offene Notiz, Auswahl,
+   * Bildlauf. Beim Wechsel hin und her waere jedes Mal alles zurueckgesetzt.
+   */
+  istGeladen(): boolean;
   /** Sichert Ungespeichertes und wartet darauf. Vor dem Schliessen aufzurufen. */
   flush(): Promise<void>;
   /**
@@ -200,11 +222,16 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
   });
 
   sichereAb(sicht, eingebettet.devServerUrl);
-  await lade(sicht, eingebettet);
 
+  let geladen = false;
   return {
     id,
     sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
     flush: () => eingebettet.flush(sicht.webContents as WebContents),
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
   };
@@ -234,16 +261,21 @@ async function montiereMapmaker(id: string, haken: MontageHaken): Promise<Montie
   });
 
   sichereAb(sicht, eingebettet.devServerUrl);
-  await lade(sicht, eingebettet);
-  // Der Karteneditor liest seine Sprache beim Start aus seinem eigenen
-  // Browserspeicher, bevor die Huelle ihm etwas sagen kann — anders als beim
-  // Backstory Creator gibt es hier keine gemeinsam gelesene Einstellungsdatei.
-  // Dieser Aufruf gleicht das nach dem Laden einmal an.
-  await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
 
+  let geladen = false;
   return {
     id,
     sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      // Der Karteneditor liest seine Sprache beim Start aus seinem eigenen
+      // Browserspeicher, bevor die Huelle ihm etwas sagen kann — anders als
+      // beim Backstory Creator gibt es hier keine gemeinsam gelesene
+      // Einstellungsdatei. Dieser Aufruf gleicht das nach jedem Laden an.
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
   };
