@@ -43,13 +43,13 @@ jobs:
       # gegen einzelne Module und sehen weder die Oberflaeche noch das Schema
       # des Editors.
       - name: Rauchtest
-        run: npm run smoke
+        run: npm run smoke:backstory
       - name: Markdown-Rundlauf
         run: npm run roundtrip
       # Die Huelle startet ihren eigenen Hauptprozess. Ihre Modultests sehen
       # nur reine Funktionen, nicht das Fenster.
       - name: Rauchtest der Huelle
-        run: npm run smoke:shell
+        run: npm run smoke
       # Nur das Web-Buendel. Der Tauri-Build braucht Systembibliotheken
       # (libgtk-3-dev, libwebkit2gtk-4.1-dev, ...), die hier fehlen; sein
       # Rust-Anteil bleibt vorerst ungeprueft in der CI. Der End-to-End-Lauf

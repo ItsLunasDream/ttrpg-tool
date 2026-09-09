@@ -45,14 +45,18 @@ mit `cd` in den Ordner, in dem diese README liegt.
 ```bash
 cd Pfad\zum\Projektordner
 npm install
-npm run dev       # Entwicklungsmodus mit Hot Reload
-npm start         # Produktionsbuild starten
-npm test          # Tests der Kernlogik
-npm run smoke     # Rauchtest der gebauten App
-npm run roundtrip # prüft, ob Speichern am Markdown etwas verändert
+npm run dev             # TTRPG-Tools (die Hülle) im Entwicklungsmodus mit Hot Reload
+npm start               # TTRPG-Tools, Produktionsbuild starten
+npm test                # Tests der Kernlogik, über alle Workspaces
+npm run smoke           # Rauchtest der gebauten Hülle
 npm run typecheck
-npm run dist:win  # Windows-Installer und portable exe nach apps/backstory/release/
+npm run dist:suite:win  # Windows-Installer der ganzen Sammlung nach apps/shell/release/
 ```
+
+Nur den Backstory Creator für sich, ohne die Hülle: `npm run dev:backstory`,
+`npm run start:backstory`, `npm run smoke:backstory`, `npm run roundtrip`
+(prüft, ob Speichern am Markdown etwas verändert), `npm run dist:win`
+(Windows-Installer und portable exe nach `apps/backstory/release/`).
 
 ### Workspace-Aufbau
 
@@ -68,14 +72,15 @@ packages/i18n/     Geteiltes Paket: Sprachwahl und Textersetzung
 packages/motion/   Geteiltes Paket: Zeiten, Kurven und Grundanimationen der Oberfläche
 ```
 
-`npm install` an der Wurzel richtet alle ein. `npm run dev`, `npm start`,
-`npm run smoke`, `npm run roundtrip`, `npm run dist:win` und
-`npm run dist:linux` betreffen ausschließlich `apps/backstory`; für die Hülle
-gibt es `npm run dev:shell`, `npm run start:shell` und `npm run smoke:shell`,
-für den Kartenmacher `npm run dev:mapmaker`. `npm run build`, `npm run
-typecheck` und `npm test` laufen dagegen über alle Workspaces, Apps und
-Pakete eingeschlossen. Ein Befehl gezielt für einen Workspace: `npm run
-<skript> -w apps/backstory` bzw. `-w packages/dice`.
+`npm install` an der Wurzel richtet alle ein. `npm run dev`, `npm start` und
+`npm run smoke` betreffen die Hülle (`apps/shell`) — sie ist der
+Haupteinstieg, in ihr laufen die Werkzeuge eingebettet. Für den Backstory
+Creator für sich gibt es `npm run dev:backstory`, `npm run start:backstory`,
+`npm run smoke:backstory`, `npm run roundtrip`, `npm run dist:win` und
+`npm run dist:linux`; für den Kartenmacher `npm run dev:mapmaker`. `npm run
+build`, `npm run typecheck` und `npm test` laufen dagegen über alle
+Workspaces, Apps und Pakete eingeschlossen. Ein Befehl gezielt für einen
+Workspace: `npm run <skript> -w apps/backstory` bzw. `-w packages/dice`.
 
 ### TTRPG Map Editor
 
@@ -403,7 +408,7 @@ Notizen an, tippt einen Wiki-Link, speichert und prüft die Dateien auf der
 Platte, inklusive Umbenennen mit Link-Rewrite. Unter Linux mit Xvfb:
 
 ```bash
-npm run smoke
+npm run smoke:backstory
 ```
 
 Unter Windows und macOS direkt ohne Xvfb:
