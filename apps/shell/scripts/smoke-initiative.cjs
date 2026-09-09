@@ -94,6 +94,40 @@ app.whenReady().then(async () => {
     pruefe(gespeichert.laeuft === true, 'und weiss, dass der Kampf laeuft');
   }
 
+  // --- Begegnung speichern und laden --------------------------------------
+  // Diese beiden Knoepfe hat der Rauchtest zuerst nicht gedrueckt — und genau
+  // dort steckte ein Fehler, den keine Modellpruefung sehen konnte: die
+  // Namensabfrage lief ueber `window.prompt`, und das wirft in Electron
+  // („prompt() is not supported"). Das Speichern waere schlicht gestorben.
+  await js(`[...document.querySelectorAll('button')].find(b => /Save encounter|Begegnung speichern/.test(b.textContent)).click(); true`);
+  await warte(600);
+  pruefe(await js("Boolean(document.querySelector('.dialog'))"), 'die Namensabfrage geht auf');
+  await js(`(() => { const f = document.querySelector('.dialog input');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(f, 'Testbegegnung');
+    f.dispatchEvent(new Event('input',{bubbles:true}));
+    [...document.querySelectorAll('.dialog__knoepfe button')].pop().click(); return true; })()`);
+  await warte(900);
+  pruefe(!(await js("Boolean(document.querySelector('.dialog'))")), 'und schliesst sich wieder');
+
+  const begegnungsOrdner = path.join(tmp, 'userData', 'initiative', 'begegnungen');
+  const dateien = fs.existsSync(begegnungsOrdner) ? fs.readdirSync(begegnungsOrdner) : [];
+  pruefe(dateien.length === 1, `die Begegnung liegt als Datei (${dateien.join(', ') || 'keine'})`);
+  if (dateien.length) {
+    const inhalt = fs.readFileSync(path.join(begegnungsOrdner, dateien[0]), 'utf8');
+    pruefe(inhalt.startsWith('---'), 'als Markdown mit Kopf');
+    pruefe(inhalt.includes('Goblin'), 'und mit den Teilnehmern darin');
+  }
+
+  // --- Kampf beenden ------------------------------------------------------
+  // Auch das lief ueber einen Browser-Dialog (`confirm`) und haette den
+  // Renderer angehalten.
+  await js(`[...document.querySelectorAll('button')].find(b => /End combat|Kampf beenden/.test(b.textContent)).click(); true`);
+  await warte(500);
+  pruefe(await js("Boolean(document.querySelector('.dialog'))"), 'die Rueckfrage vor dem Beenden kommt');
+  await js(`[...document.querySelectorAll('.dialog__knoepfe button')].pop().click(); true`);
+  await warte(600);
+  pruefe(!(await js("Boolean(document.querySelector('.leiste__runde'))")), 'der Kampf ist beendet');
+
   // --- Sprachkopplung ---------------------------------------------------
   // Bei den anderen beiden Werkzeugen war genau das die Fehlerquelle: die
   // Modelltests sahen die Kopplung nicht, und im Fenster blieb ein Werkzeug

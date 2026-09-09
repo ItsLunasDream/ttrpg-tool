@@ -36,6 +36,7 @@ import type { Begegnung, Kampf } from '../shared/types';
 import { BILD_SCHEMA } from '../shared/kanaele';
 import { Zeile } from './Zeile';
 import { Begegnungen } from './Begegnungen';
+import { Dialog } from './Dialog';
 
 export function App() {
   const [kampf, setKampf] = useState<Kampf>(leererKampf);
@@ -55,6 +56,13 @@ export function App() {
    */
   const [taktik, setTaktik] = useState('');
   const [zeigeTaktik, setZeigeTaktik] = useState(false);
+  /**
+   * Der offene Dialog.
+   *
+   * Eigene statt `window.prompt`/`window.confirm`: `prompt()` wirft in
+   * Electron, und `confirm()` haelt den ganzen Renderer an.
+   */
+  const [dialog, setDialog] = useState<'speichern' | 'beenden' | null>(null);
 
   // Die Sprache kann von der Huelle gesetzt werden, ohne dass hier jemand
   // klickt. Ohne diesen Anschluss bliebe die Oberflaeche auf dem alten Stand.
@@ -150,16 +158,17 @@ export function App() {
 
   const starteOderBeende = useCallback(() => {
     if (kampf.laeuft) {
-      if (!window.confirm(t('bestaetigen.beenden'))) return;
-      setzeUndSichere((vorher) => ({ ...vorher, laeuft: false, amZug: -1, runde: 0 }));
+      setDialog('beenden');
       return;
     }
     setzeUndSichere((vorher) => beginne(vorher));
   }, [kampf.laeuft, setzeUndSichere]);
 
-  const speichereBegegnung = useCallback(async () => {
-    const name = window.prompt(t('begegnung.name'), kampf.name || '');
-    if (!name) return;
+  const beende = useCallback(() => {
+    setzeUndSichere((vorher) => ({ ...vorher, laeuft: false, amZug: -1, runde: 0 }));
+  }, [setzeUndSichere]);
+
+  const speichereBegegnung = useCallback(async (name: string) => {
     const begegnung: Begegnung = {
       schemaVersion: 1,
       id: kampf.begegnungId ?? zuId(name),
@@ -182,7 +191,7 @@ export function App() {
     setKampf((vorher) => ({ ...vorher, name, begegnungId: begegnung.id }));
     setBegegnungen(await api.begegnungen.liste());
     melde(t('msg.gespeichert'));
-  }, [kampf, melde]);
+  }, [kampf, taktik, melde]);
 
   const ladeBegegnung = useCallback(
     async (id: string) => {
@@ -234,7 +243,7 @@ export function App() {
         <button type="button" onClick={() => setZeigeBegegnungen((vorher) => !vorher)}>
           {t('knopf.oeffnen')}
         </button>
-        <button type="button" onClick={() => void speichereBegegnung()} disabled={sortiert.length === 0}>
+        <button type="button" onClick={() => setDialog('speichern')} disabled={sortiert.length === 0}>
           {t('knopf.speichern')}
         </button>
         <button
@@ -349,6 +358,28 @@ export function App() {
           </span>
         ) : null}
       </footer>
+
+      {dialog === 'speichern' ? (
+        <Dialog
+          titel={t('begegnung.name')}
+          vorgabe={kampf.name}
+          bestaetigen={t('knopf.speichern')}
+          onAbschluss={(wert) => {
+            setDialog(null);
+            if (wert) void speichereBegegnung(wert);
+          }}
+        />
+      ) : null}
+      {dialog === 'beenden' ? (
+        <Dialog
+          titel={t('bestaetigen.beenden')}
+          bestaetigen={t('ja')}
+          onAbschluss={(wert) => {
+            setDialog(null);
+            if (wert) beende();
+          }}
+        />
+      ) : null}
 
       {meldung ? <div className="meldung motion-eintritt">{meldung}</div> : null}
     </div>

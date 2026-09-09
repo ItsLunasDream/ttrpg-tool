@@ -25,6 +25,7 @@ export const texte = {
   'knopf.speichern': ['Begegnung speichern', 'Save encounter'],
   'knopf.oeffnen': ['Oeffnen', 'Open'],
   'knopf.bild': ['Bild waehlen', 'Choose image'],
+  'knopf.bildAendern': ['Bild aendern', 'Change image'],
   'knopf.bildWeg': ['Bild entfernen', 'Remove image'],
   'knopf.zustand': ['Zustand', 'Condition'],
   'feld.name': ['Name', 'Name'],

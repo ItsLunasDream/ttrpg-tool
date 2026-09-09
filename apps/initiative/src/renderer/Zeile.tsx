@@ -328,7 +328,7 @@ function Ausklapp({
 
       <div className="ausklapp__knoepfe">
         <button type="button" onClick={onBild}>
-          {hatBild ? t('knopf.bild') : t('knopf.bild')}
+          {hatBild ? t('knopf.bildAendern') : t('knopf.bild')}
         </button>
         {hatBild ? (
           <button type="button" onClick={() => onAendern((alt) => ({ ...alt, bild: null }))}>
