@@ -71,6 +71,19 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const [notes, setNotes] = useState<Note[]>([]);
   const [draft, setDraft] = useState<Note | null>(null);
   const [dirty, setDirty] = useState(false);
+  /**
+   * Geaenderte Notizen, die noch nicht auf der Platte stehen — nach ID.
+   *
+   * Bei ausgeschaltetem Autosave schreibt nichts mehr von allein, auch nicht
+   * der Wechsel auf eine andere Notiz. Der bisherige Zustand kannte nur *eine*
+   * offene Notiz; wer zwei anfasste, verlor die erste oder erzwang ein
+   * Schreiben. Hier stehen sie alle, bis Strg+S oder der Dialog beim
+   * Schliessen sie loswird.
+   *
+   * Bei eingeschaltetem Autosave bleibt der Speicher leer: dort wird
+   * geschrieben wie eh und je.
+   */
+  const [entwuerfe, setEntwuerfe] = useState<Map<string, Note>>(() => new Map());
   const [saving, setSaving] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>(EMPTY_FILTERS);
   const [hover, setHover] = useState<{ note: Note; rect: DOMRect } | null>(null);
@@ -93,6 +106,18 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const notesRef = useRef<Note[]>([]);
   notesRef.current = notes;
   const savingRef = useRef(false);
+  const entwuerfeRef = useRef<Map<string, Note>>(new Map());
+  entwuerfeRef.current = entwuerfe;
+  /**
+   * Ob ueberhaupt automatisch geschrieben werden darf.
+   *
+   * `settings` ist beim ersten Zeichnen `null`. Dann *nicht* schreiben: eine
+   * ausgeschaltete Einstellung, die noch nicht geladen ist, darf nicht kurz
+   * als eingeschaltet gelten und Ungespeichertes wegschreiben.
+   */
+  const autosaveAn = settings?.autosaveEnabled ?? false;
+  const autosaveAnRef = useRef(false);
+  autosaveAnRef.current = autosaveAn;
 
   const activeCampaign = campaigns.find((campaign) => campaign.id === activeCampaignId) ?? null;
   const noteTypes: NoteTypeDef[] = activeCampaign?.noteTypes ?? DEFAULT_NOTE_TYPES;
@@ -105,6 +130,18 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     if (!filters.query.trim()) return new Map<string, SearchHit>();
     return new Map(searchNotes(index, filters.query).map((hit) => [hit.noteId, hit]));
   }, [index, filters.query]);
+
+  /**
+   * Alle Notizen mit ungespeicherten Aenderungen: die beiseitegelegten *und*
+   * die gerade offene, wenn sie schmutzig ist. Die offene steht nicht im
+   * Entwurfsspeicher — dort landet sie erst beim Wechsel —, gehoert in der
+   * Liste aber genauso markiert.
+   */
+  const ungespeicherteIds = useMemo(() => {
+    const ids = new Set(entwuerfe.keys());
+    if (dirty && draft) ids.add(draft.id);
+    return ids;
+  }, [entwuerfe, dirty, draft]);
 
   const report = useCallback((text: string, tone: 'info' | 'error' = 'info') => {
     setMessage({ text, tone });
@@ -184,6 +221,29 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
 
   // --- Speichern -----------------------------------------------------------
 
+  const loescheEntwurf = useCallback((noteId: string) => {
+    setEntwuerfe((vorher) => {
+      if (!vorher.has(noteId)) return vorher;
+      const naechste = new Map(vorher);
+      naechste.delete(noteId);
+      return naechste;
+    });
+  }, []);
+
+  /**
+   * Legt den offenen Entwurf beiseite, ohne ihn zu schreiben.
+   *
+   * Das Gegenstueck zu `persist` fuer ausgeschalteten Autosave: der Text ist
+   * weiter da, nur eben im Arbeitsspeicher statt auf der Platte. Verloren geht
+   * er erst, wenn das Programm abstuerzt — und beim geordneten Schliessen
+   * fragt der Dialog danach.
+   */
+  const parke = useCallback(() => {
+    const aktuell = draftRef.current;
+    if (!aktuell || !dirtyRef.current) return;
+    setEntwuerfe((vorher) => new Map(vorher).set(aktuell.id, aktuell));
+  }, []);
+
   const persist = useCallback(async (): Promise<Note | null> => {
     const current = draftRef.current;
     const campaignId = activeCampaignId;
@@ -215,14 +275,33 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
 
       setDraft((previous) => (previous && previous.id === saved.id ? saved : previous));
       setDirty(false);
+      // Steht auf der Platte, gehoert also nicht mehr in den Entwurfsspeicher.
+      loescheEntwurf(saved.id);
       return saved;
     } finally {
       savingRef.current = false;
       setSaving(false);
     }
-  }, [activeCampaignId, reloadNotes, report]);
+  }, [activeCampaignId, reloadNotes, report, loescheEntwurf]);
 
   const save = useCallback(() => guard(persist), [guard, persist]);
+
+  /**
+   * Was vor einem Wechsel passiert — der offenen Notiz, der Kampagne, der
+   * Anwendung.
+   *
+   * Mit Autosave: schreiben wie bisher. Ohne: beiseitelegen. Das ist die eine
+   * Stelle, an der diese Entscheidung faellt; jeder Aufrufer, der frueher
+   * `persist()` rief, um vor einem Wechsel nichts zu verlieren, ruft jetzt
+   * das hier.
+   */
+  const sichereVorWechsel = useCallback(async (): Promise<void> => {
+    if (autosaveAnRef.current) {
+      await persist();
+      return;
+    }
+    parke();
+  }, [persist, parke]);
 
   // Titel und Aliase mit [ ] oder | lehnt der Vault ab. Der Editor weist
   // darauf hin; der Autosave wuerde bis zur Korrektur im Sekundentakt
@@ -249,10 +328,19 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   }, [save]);
 
   useEffect(() => {
-    // Beim Wegklicken sichern. Deckt Alt-Tab und den Wechsel in ein anderes
-    // Fenster ab.
+    /**
+     * Beim Wegklicken sichern — Alt-Tab, ein anderes Fenster, der Wechsel auf
+     * ein anderes Werkzeug in der Huelle.
+     *
+     * Nur mit Autosave. Ohne ihn wird der Entwurf beiseitegelegt, nicht
+     * geschrieben: „Autosave aus" hiess hier frueher trotzdem „beim
+     * Wegklicken schreibe ich", was die Einstellung an der Stelle
+     * wirkungslos machte, an der sie am meisten auffaellt.
+     */
     function onBlur() {
-      if (dirtyRef.current) void save();
+      if (!dirtyRef.current) return;
+      if (autosaveAnRef.current) void save();
+      else parke();
     }
 
     window.addEventListener('blur', onBlur);
@@ -272,7 +360,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       window.removeEventListener('blur', onBlur);
       stopListening();
     };
-  }, [save, persist]);
+  }, [save, persist, parke]);
 
   useEffect(() => {
     if (!message) return;
@@ -325,15 +413,21 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     (noteId: string) => {
       if (draftRef.current?.id === noteId) return;
       void guard(async () => {
-        await persist();
-        const target = notesRef.current.find((note) => note.id === noteId);
+        await sichereVorWechsel();
+        // Liegt fuer diese Notiz ein Entwurf bereit, gilt der und nicht der
+        // Stand von der Platte — sonst waere der ungespeicherte Text beim
+        // Zurueckkommen verschwunden, obwohl er nie verworfen wurde.
+        const geparkt = entwuerfeRef.current.get(noteId);
+        const target = geparkt ?? notesRef.current.find((note) => note.id === noteId);
         if (!target) return;
         setDraft(target);
-        setDirty(false);
+        // Ein zurueckgeholter Entwurf ist weiterhin ungespeichert. Ohne das
+        // haelte der Editor ihn fuer sauber, und Strg+S taete nichts.
+        setDirty(Boolean(geparkt));
         setHover(null);
       });
     },
-    [guard, persist]
+    [guard, sichereVorWechsel]
   );
 
   const createNote = useCallback(
@@ -432,6 +526,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         campaigns={campaigns}
         activeCampaignId={activeCampaignId}
         settings={settings}
+        ungespeichertAnzahl={ungespeicherteIds.size}
         onSelect={switchCampaign}
         onCreate={() => setDialog({ kind: 'newCampaign' })}
         onRename={() => activeCampaign && setDialog({ kind: 'renameCampaign', campaign: activeCampaign })}
@@ -487,6 +582,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               notes={visibleNotes}
               hits={searchHits}
               activeNoteId={draft?.id ?? null}
+              ungespeichert={ungespeicherteIds}
               filters={filters}
               onFiltersChange={setFilters}
               onSelect={openNote}

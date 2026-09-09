@@ -16,7 +16,7 @@
     "start": "npm run build && electron .",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "node scripts/build-tests.mjs && node --test tests/*.test.mjs",
-    "smoke": "npm run build && xvfb-run -a electron scripts/smoke.cjs --no-sandbox",
+    "smoke": "npm run build && xvfb-run -a electron scripts/smoke.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-autosave.cjs --no-sandbox",
     "roundtrip": "npm run build && xvfb-run -a electron scripts/roundtrip.cjs --no-sandbox",
     "icon": "node scripts/make-icon.mjs",
     "dist:win": "npm run build && electron-builder --win --publish never",

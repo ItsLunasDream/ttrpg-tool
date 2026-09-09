@@ -10,6 +10,14 @@ interface Props {
   /** Treffer der Volltextsuche, nach Notiz-ID. Leer, wenn nicht gesucht wird. */
   hits: Map<string, SearchHit>;
   activeNoteId: string | null;
+  /**
+   * IDs der Notizen mit ungespeicherten Aenderungen.
+   *
+   * Ohne Autosave koennen mehrere Notizen gleichzeitig ungespeichert sein.
+   * Ohne Markierung in der Liste findet man sie nicht wieder — man muesste
+   * sich merken, was man angefasst hat.
+   */
+  ungespeichert: ReadonlySet<string>;
   filters: SearchFilters;
   onFiltersChange: (filters: SearchFilters) => void;
   onSelect: (noteId: string) => void;
@@ -24,6 +32,7 @@ export function NoteList({
   notes,
   hits,
   activeNoteId,
+  ungespeichert,
   filters,
   onFiltersChange,
   onSelect,
@@ -131,6 +140,15 @@ export function NoteList({
                           ) : (
                             note.title
                           )}
+                          {ungespeichert.has(note.id) ? (
+                            <span
+                              className="note-list__ungespeichert"
+                              title={t('list.unsaved')}
+                              aria-label={t('list.unsaved')}
+                            >
+                              •
+                            </span>
+                          ) : null}
                         </span>
 
                         {hit && hit.field !== 'title' ? (
