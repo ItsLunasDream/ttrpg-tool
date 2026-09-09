@@ -53,6 +53,7 @@ Wurzel und delegieren an die passenden Ordner:
 ```
 apps/backstory/    Der Backstory Creator selbst (Electron-Anwendung)
 apps/shell/        TTRPG-Tools: die Hülle, in die die Werkzeuge eingebettet werden
+apps/mapmaker/     TTRPG Map Editor: Kartenzeichner (Tauri-Anwendung), siehe unten
 packages/dice/     Geteiltes Paket: Würfelausdrücke lesen und werfen
 packages/i18n/     Geteiltes Paket: Sprachwahl und Textersetzung
 ```
@@ -60,10 +61,40 @@ packages/i18n/     Geteiltes Paket: Sprachwahl und Textersetzung
 `npm install` an der Wurzel richtet alle ein. `npm run dev`, `npm start`,
 `npm run smoke`, `npm run roundtrip`, `npm run dist:win` und
 `npm run dist:linux` betreffen ausschließlich `apps/backstory`; für die Hülle
-gibt es `npm run dev:shell`, `npm run start:shell` und `npm run smoke:shell`.
-`npm run build`, `npm run typecheck` und `npm test` laufen dagegen über alle
-Workspaces, Apps und Pakete eingeschlossen. Ein Befehl gezielt für einen
-Workspace: `npm run <skript> -w apps/backstory` bzw. `-w packages/dice`.
+gibt es `npm run dev:shell`, `npm run start:shell` und `npm run smoke:shell`,
+für den Kartenmacher `npm run dev:mapmaker`. `npm run build`, `npm run
+typecheck` und `npm test` laufen dagegen über alle Workspaces, Apps und
+Pakete eingeschlossen. Ein Befehl gezielt für einen Workspace: `npm run
+<skript> -w apps/backstory` bzw. `-w packages/dice`.
+
+### TTRPG Map Editor
+
+`apps/mapmaker` kam als eigenständiges Repository dazu (Bauabschnitt 4) und
+bringt eine eigene Historie, eigene Konventionen und eine eigene `CLAUDE.md`
+mit — dort steht das Eigentliche zur Anwendung. An zwei Stellen musste der
+Umzug in den Workspace etwas anfassen:
+
+- **`vite.config.ts` setzt jetzt `base: './'`.** Ohne das verweist die gebaute
+  `index.html` absolut auf `/assets/…`, was unter `file://` und in einer
+  eingebetteten `WebContentsView` gleichermaßen ins Leere zeigt — ein
+  Prototyp hatte das vor dem Umzug an genau dieser Stelle scheitern sehen.
+  Für Tauri, das sein Bündel über einen eigenen Host ausliefert, ändert sich
+  dadurch nichts.
+- **Die Vite-Plugins tragen eine Typ-Notlösung** (`as Plugin[]` in
+  `vite.config.ts`): der Workspace teilt sich `@vitejs/plugin-react` mit
+  `apps/backstory` und `apps/shell`, die auf Vite 5 stehen, während diese
+  Anwendung Vite 6 benutzt. npm hält eine gemeinsame Kopie für kompatibel und
+  installiert sie nur einmal — TypeScript löst deren eigene `vite`-Typen
+  darum gegen die andere, ältere Installation auf. Zur Laufzeit ist das
+  folgenlos, betroffen sind nur zwei einander fremde Typ-Instanzen derselben
+  Struktur.
+
+Der Rust-Anteil (`src-tauri/`, `npm run tauri:dev`/`tauri:build`) läuft
+unverändert, ist aber nicht Teil der CI dieses Repositories: das bräuchte
+Systembibliotheken, die dort fehlen. Ebenso noch nicht angeschlossen: der
+End-to-End-Lauf unter `e2e/` (braucht einen installierten Browser) und die
+`build:portable`-Variante. Alle drei funktionieren lokal unverändert, siehe
+`apps/mapmaker/CLAUDE.md`.
 
 ### TTRPG-Tools: die Hülle
 

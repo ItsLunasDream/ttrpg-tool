@@ -1,0 +1,10 @@
+# Ergaenzt die Wurzel-.gitignore um das, was nur hier vorkommt: den
+# Rust-Build von Tauri und die Ausgaben von Playwright.
+target/
+dist-portable/
+.vite/
+.dev-shots/
+test-results/
+playwright-report/
+blob-report/
+.playwright/

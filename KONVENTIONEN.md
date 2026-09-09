@@ -81,3 +81,19 @@ sein eigenes Datenformat und seine eigenen Annahmen mitbringt.
    hineingreifen, eine Anwendung nie in die Hülle und nie in eine andere.
    Sonst wären sie nicht mehr einzeln lauffähig, und genau das sollen sie
    bleiben.
+
+8. **`overrides` in der package.json der Wurzel gilt für alle — und nur dort.**
+   npm beachtet das `overrides`-Feld ausschließlich in der Wurzel des
+   Workspace-Baums; in der `package.json` eines einzelnen Apps oder Pakets
+   trägt es nichts bei. Braucht eine Anwendung eine erzwungene Abhängigkeit
+   (`apps/mapmaker` etwa bindet `rollup` per Alias auf `@rollup/wasm-node`,
+   weil eine native `rollup.*.node`-Datei auf einem Entwicklungsrechner durch
+   eine Windows-Application-Control-Richtlinie blockiert wird, siehe
+   `apps/mapmaker/CLAUDE.md`), muss dieser Eintrag an der Wurzel stehen, sonst
+   verschwindet der Schutz kommentarlos, sobald die Anwendung Teil des
+   Workspace wird.
+
+   Das gilt zwangsläufig für den ganzen Baum, nicht nur für die eine
+   Anwendung — npm kennt keine Workspace-genauen Overrides. Wer eine
+   Abhängigkeit hier einträgt, prüft deshalb Typecheck, Tests und Build aller
+   Workspaces, nicht nur des eigenen.

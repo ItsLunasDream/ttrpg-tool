@@ -22,10 +22,14 @@
     "dist:win": "npm run dist:win -w apps/backstory",
     "dist:linux": "npm run dist:linux -w apps/backstory",
     "dist:linux:dir": "npm run dist:linux:dir -w apps/backstory",
-    "verify:package": "npm run verify:package -w apps/backstory"
+    "verify:package": "npm run verify:package -w apps/backstory",
+    "dev:mapmaker": "npm run dev -w apps/mapmaker"
   },
   "author": {
     "name": "ItsLunasDream"
   },
-  "license": "AGPL-3.0-or-later"
+  "license": "AGPL-3.0-or-later",
+  "overrides": {
+    "rollup": "npm:@rollup/wasm-node@^4.63.1"
+  }
 }
