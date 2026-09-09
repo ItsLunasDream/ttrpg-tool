@@ -250,6 +250,10 @@ app.whenReady().then(async () => {
 
     if (karten) {
       const kartenJs = (ausdruck) => karten.webContents.executeJavaScript(ausdruck);
+    const appFehlerKarten = [];
+    karten.webContents.on('console-message', (_e, level, text) => {
+      if (level >= 2) appFehlerKarten.push(text.slice(0, 200));
+    });
       pruefe(
         (await kartenJs("document.getElementById('root')?.children.length ?? 0")) > 0,
         'seine Oberflaeche ist da'
@@ -281,6 +285,42 @@ app.whenReady().then(async () => {
         await kartenJs('Boolean(document.querySelector("canvas"))'),
         'seine Zeichenflaeche hat den Wechsel ueberstanden'
       );
+
+      // Die Huelle legt ihm eine Content-Security-Policy ueber die Sitzung.
+      // Dass die Zeichenflaeche oben steht, ist schon der halbe Beleg: ohne
+      // das eval-freie Pixi-Modul liesse sie sich unter dieser Richtlinie gar
+      // nicht aufbauen. Hier kommt der Rest.
+      pruefe(
+        (await kartenJs(
+          "document.querySelector('meta[http-equiv=\"Content-Security-Policy\"]') === null"
+        )),
+        'seine Seite bringt selbst keine Richtlinie mit (die kommt aus der Huelle)'
+      );
+      // Vor der Probe unten festhalten: die weist absichtlich ein Skript ab
+      // und erzeugt damit selbst eine Meldung, die hier nicht mitzaehlen darf.
+      pruefe(
+        appFehlerKarten.filter((m) => /Content Security Policy/i.test(m)).length === 0,
+        'die Anwendung selbst verstoesst nicht gegen die Richtlinie'
+      );
+
+      const cspVerstoss = await kartenJs(`(async () => {
+        // Der Beweis, dass die Richtlinie wirklich greift: ein Skript von
+        // einer fremden Adresse muss abgewiesen werden.
+        try {
+          await new Promise((fertig, daneben) => {
+            const s = document.createElement('script');
+            s.src = 'https://example.invalid/x.js';
+            s.onload = () => fertig();
+            s.onerror = () => daneben(new Error('abgewiesen'));
+            document.head.appendChild(s);
+            setTimeout(() => daneben(new Error('Zeit abgelaufen')), 2000);
+          });
+          return 'DURCHGELASSEN';
+        } catch {
+          return 'abgewiesen';
+        }
+      })()`);
+      pruefe(cspVerstoss === 'abgewiesen', `fremde Skripte werden abgewiesen (${cspVerstoss})`);
     }
   }
 

@@ -6,6 +6,21 @@
  * verschobenes Prop aktualisiert genau ein Sprite, nicht die ganze Szene.
  */
 
+/**
+ * Muss vor jedem anderen Pixi-Import stehen.
+ *
+ * Pixi baut seine Shader-Programme zur Laufzeit mit `new Function` zusammen.
+ * Unter einer Content-Security-Policy ohne `unsafe-eval` verweigert der
+ * Browser das, und die Bühne startet gar nicht erst — mit genau dem Hinweis
+ * auf dieses Modul. Es ersetzt die erzeugten Funktionen durch eine langsamere,
+ * aber gleichwertige Variante ohne Codeerzeugung.
+ *
+ * Der Name führt in die Irre: das Modul *erlaubt* kein `unsafe-eval`, es macht
+ * es überflüssig. Ohne diesen Import müsste die Richtlinie in
+ * `vite.config.ts` `unsafe-eval` zulassen — und damit die eine Regel
+ * aufweichen, deretwegen es sie gibt.
+ */
+import 'pixi.js/unsafe-eval';
 import {
   Application,
   Container,

@@ -20,7 +20,7 @@
  * das sollen sie bleiben.
  */
 import { join } from 'node:path';
-import { app, WebContentsView, shell } from 'electron';
+import { app, session as electronSession, WebContentsView, shell } from 'electron';
 import type { WebContents } from 'electron';
 import {
   mountBackstory,
@@ -98,6 +98,30 @@ function sitzung(id: string): string {
   return `persist:${id}`;
 }
 
+/**
+ * Legt die Content-Security-Policy einer Anwendung ueber ihre Sitzung.
+ *
+ * Als Kopfzeile und nicht als <meta> im HTML, weil dieselbe gebaute Seite auch
+ * ausserhalb der Huelle laeuft — der Karteneditor etwa unter Tauri, dessen
+ * Aufrufe an den nativen Teil ueber eigene Protokolle gehen. Was hier gilt,
+ * gilt damit nur hier.
+ *
+ * Ohne Richtlinie darf eine Seite Code von ueberall nachladen und Text als
+ * Code ausfuehren. In einer Huelle mit Dateizugriff waere das der Weg, auf dem
+ * eine praeparierte Kartendatei fremden Code mit den Rechten der Anwendung
+ * laufen liesse.
+ */
+function setzeCsp(partition: string, richtlinie: string): void {
+  electronSession.fromPartition(partition).webRequest.onHeadersReceived((details, weiter) => {
+    weiter({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [richtlinie]
+      }
+    });
+  });
+}
+
 /** Gemeinsame Absicherung fuer jede eingebettete Ansicht. */
 function sichereAb(sicht: WebContentsView, devServerUrl: string | null): void {
   // Externe Links gehoeren in den Systembrowser. Ohne das laege auf einer
@@ -171,6 +195,9 @@ async function montiereMapmaker(id: string): Promise<MontierteApp> {
     distDir: appDistDir(id),
     devServerUrl: process.env.MAPMAKER_DEV_SERVER_URL
   });
+
+  // Vor dem Laden: die Kopfzeile muss stehen, bevor die erste Antwort kommt.
+  setzeCsp(sitzung(id), eingebettet.csp);
 
   const sicht = new WebContentsView({
     webPreferences: {

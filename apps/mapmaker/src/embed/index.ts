@@ -37,6 +37,17 @@ export interface MapmakerEmbed {
   readonly indexFile: string | null;
   readonly devServerUrl: string | null;
   /**
+   * Die Content-Security-Policy, unter der diese Anwendung laufen soll.
+   *
+   * Sie steht hier und nicht in der index.html, weil dieselbe gebaute Seite
+   * auch unter Tauri und im Browser laeuft. Tauri leitet seine Aufrufe an den
+   * nativen Teil ueber eigene Protokolle, die eine hier passende Richtlinie
+   * abweisen wuerde — und ein Tauri-Build laesst sich in dieser Umgebung nicht
+   * pruefen. Die Huelle setzt sie deshalb selbst, fuer ihre Sitzung, und die
+   * anderen Wege bleiben unberuehrt.
+   */
+  readonly csp: string;
+  /**
    * Diese Anwendung braucht kein Preload.
    *
    * Steht ausdruecklich hier und nicht als Schweigen: die Huelle soll den
@@ -53,8 +64,37 @@ export interface MapmakerEmbed {
   flush(): Promise<void>;
 }
 
+/**
+ * Was der Karteneditor braucht — und nicht mehr.
+ *
+ * Jede Lockerung ist einzeln begruendet. Eine Richtlinie, die man ohne Grund
+ * weit macht, ist keine. Geprueft wurde sie gegen die laufende Anwendung:
+ * Buehne, Prop-Vorschauen, Bildimport.
+ */
+const CSP = [
+  "default-src 'self'",
+  // Kein 'unsafe-eval': Pixi baut seine Shader zur Laufzeit mit `new Function`
+  // zusammen und faende hier ein Verbot vor. Deshalb laedt engine/renderer.ts
+  // 'pixi.js/unsafe-eval', das dieselbe Arbeit ohne Codeerzeugung erledigt.
+  "script-src 'self'",
+  // Pixi und React setzen Stilangaben zur Laufzeit, teils als eingespritzte
+  // <style>-Bloecke.
+  "style-src 'self' 'unsafe-inline'",
+  // blob: fuer importierte Bilder (URL.createObjectURL in
+  // assets/importStore.ts), data: fuer die gebackenen Prop-Texturen.
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self' data: blob:",
+  // Pixi startet Arbeiter fuer das Laden von Bildern.
+  "worker-src 'self' blob:",
+  // Braucht die Anwendung beides nicht, und beides sind bekannte Einfallstore.
+  "object-src 'none'",
+  "base-uri 'none'"
+].join('; ');
+
 export function mountMapmaker(options: MapmakerEmbedOptions): MapmakerEmbed {
   return {
+    csp: CSP,
     indexFile: options.devServerUrl ? null : path.join(options.distDir, 'index.html'),
     devServerUrl: options.devServerUrl ?? null,
     preloadPath: null,
