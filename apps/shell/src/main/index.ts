@@ -126,6 +126,33 @@ function holeNachVorn(montiert: MontierteApp, mitFahrt: boolean): void {
   montiert.sicht.webContents.focus();
 }
 
+/**
+ * Fragt jede offene Anwendung, ob geschlossen werden darf.
+ *
+ * Der Reihe nach und nicht nebenlaeufig: jede kann einen Dialog aufmachen,
+ * und zwei gleichzeitig waeren nicht zu bedienen. Sagt eine nein, wird sofort
+ * abgebrochen — die uebrigen werden dann gar nicht erst gefragt, sonst
+ * beantwortete man Fragen zu einem Schliessen, das schon abgesagt ist.
+ */
+async function frageAlleVorDemSchliessen(): Promise<boolean> {
+  for (const montiert of offen.values()) {
+    if (!montiert.darfSchliessen) {
+      await montiert.flush();
+      continue;
+    }
+    // Die fragende Anwendung nach vorn holen, sonst zeigt der Dialog auf ein
+    // Werkzeug, das gar nicht zu sehen ist.
+    if (fenster && montiert.id !== aktiveApp) {
+      verbergeAlle();
+      aktiveApp = montiert.id;
+      holeNachVorn(montiert, false);
+    }
+    if (!fenster) return true;
+    if (!(await montiert.darfSchliessen(fenster))) return false;
+  }
+  return true;
+}
+
 function merkeFensterlage(): void {
   if (!fenster) return;
   if (speicherZeitgeber) clearTimeout(speicherZeitgeber);
@@ -279,7 +306,10 @@ async function erzeugeFenster(): Promise<void> {
     // sich das im Kreis dreht.
     if (darfSchliessen || offen.size === 0) return;
     event.preventDefault();
-    void Promise.all([...offen.values()].map((montiert) => montiert.flush())).then(() => {
+    void frageAlleVorDemSchliessen().then((erlaubt) => {
+      // Abgebrochen: das Fenster bleibt offen, und `darfSchliessen` bleibt
+      // falsch, damit der naechste Versuch wieder fragt.
+      if (!erlaubt) return;
       darfSchliessen = true;
       fenster?.close();
     });

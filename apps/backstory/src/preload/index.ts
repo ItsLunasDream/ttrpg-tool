@@ -48,6 +48,27 @@ const api = {
   },
   flushed: () => ipcRenderer.send(channel('app:flushed')),
   /**
+   * Der Hauptprozess fragt vor dem Schliessen, was ungespeichert ist.
+   *
+   * Der Rueckruf liefert die Titel der betroffenen Notizen. Leer heisst: es
+   * kann geschlossen werden, ohne jemanden zu fragen. `flush` beantwortet
+   * diese Frage nicht — es speichert, und genau das soll bei
+   * ausgeschaltetem Autosave nicht mehr ungefragt passieren.
+   */
+  onUngespeichertGefragt: (callback: () => string[]) => {
+    const listener = () => ipcRenderer.send(channel('app:ungespeichert'), callback());
+    ipcRenderer.on(channel('app:frage-ungespeichert'), listener);
+    return () => ipcRenderer.off(channel('app:frage-ungespeichert'), listener);
+  },
+  /** Alles Ungespeicherte schreiben — die Antwort „Speichern" aus dem Dialog. */
+  onSpeichereAlles: (callback: () => Promise<void>) => {
+    const listener = () => {
+      void callback().finally(() => ipcRenderer.send(channel('app:alles-gespeichert')));
+    };
+    ipcRenderer.on(channel('app:speichere-alles'), listener);
+    return () => ipcRenderer.off(channel('app:speichere-alles'), listener);
+  },
+  /**
    * Die Sprache wurde von aussen gesetzt (aus der Huelle). Liefert eine
    * Funktion zum Abmelden zurueck.
    */

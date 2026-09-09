@@ -21,6 +21,7 @@
  */
 import { join } from 'node:path';
 import { app, session as electronSession, WebContentsView, shell } from 'electron';
+import type { BaseWindow } from 'electron';
 import type { WebContents } from 'electron';
 import {
   mountBackstory,
@@ -54,8 +55,18 @@ export interface MontierteApp {
    * Bildlauf. Beim Wechsel hin und her waere jedes Mal alles zurueckgesetzt.
    */
   istGeladen(): boolean;
-  /** Sichert Ungespeichertes und wartet darauf. Vor dem Schliessen aufzurufen. */
+  /** Sichert Ungespeichertes und wartet darauf. */
   flush(): Promise<void>;
+  /**
+   * Fragt vor dem Schliessen nach Ungespeichertem und antwortet, ob
+   * geschlossen werden darf.
+   *
+   * Fehlt bei Anwendungen, die nichts zu verlieren haben — die Huelle wertet
+   * ein fehlendes `darfSchliessen` als „ja". `flush` reicht dafuer nicht: es
+   * schreibt kommentarlos, und wer den Autosave ausschaltet, will gefragt
+   * werden.
+   */
+  darfSchliessen?(elternfenster: BaseWindow): Promise<boolean>;
   /**
    * Setzt die Sprache dieser Anwendung von aussen — fehlt, wenn eine
    * Anwendung das (noch) nicht unterstuetzt. Die Huelle ruft das bei jeder
@@ -258,6 +269,8 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
     },
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(sicht.webContents as WebContents),
+    darfSchliessen: (elternfenster) =>
+      eingebettet.darfSchliessen(sicht.webContents as WebContents, elternfenster),
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
   };
 }

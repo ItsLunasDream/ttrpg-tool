@@ -137,6 +137,14 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
    * Entwurfsspeicher — dort landet sie erst beim Wechsel —, gehoert in der
    * Liste aber genauso markiert.
    */
+  /**
+   * `speichereAlles` haengt an fast jedem Zustand und bekaeme bei jeder
+   * Aenderung eine neue Identitaet. Ueber diese Referenz bleibt der
+   * IPC-Anschluss unten stehen, statt sich staendig ab- und wieder
+   * anzumelden — waehrenddessen ginge eine Frage des Hauptprozesses ins Leere.
+   */
+  const speichereAllesRef = useRef<() => Promise<void>>(async () => {});
+
   const ungespeicherteIds = useMemo(() => {
     const ids = new Set(entwuerfe.keys());
     if (dirty && draft) ids.add(draft.id);
@@ -244,6 +252,39 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     setEntwuerfe((vorher) => new Map(vorher).set(aktuell.id, aktuell));
   }, []);
 
+  /**
+   * Schreibt eine Notiz auf die Platte, mit allem, was dazugehoert.
+   *
+   * Herausgeloest aus `persist`, weil es jetzt zwei Aufrufer gibt: die offene
+   * Notiz beim Speichern, und beim Schliessen jeder beiseitegelegte Entwurf.
+   * Die Umbenennung darf dabei nicht verlorengehen — sie zieht die [[Links]]
+   * der ganzen Kampagne mit, und ein Entwurf mit geaendertem Titel, der ohne
+   * sie geschrieben wird, hinterlaesst tote Links.
+   */
+  const schreibe = useCallback(
+    async (notiz: Note, campaignId: string): Promise<Note> => {
+      const persisted = notesRef.current.find((note) => note.id === notiz.id);
+      const umbenannt = Boolean(persisted && persisted.title !== notiz.title);
+
+      if (umbenannt && persisted) {
+        // Erst den Inhalt unter dem alten Titel sichern, dann umbenennen.
+        await call(api.notes.save(campaignId, { ...notiz, title: persisted.title }));
+        const result = await call(api.notes.rename(campaignId, notiz.id, notiz.title));
+        await reloadNotes(campaignId);
+        if (result.rewritten > 0) {
+          report(result.rewritten === 1 ? t('msg.renamedOne') : t('msg.renamed', { count: result.rewritten }));
+        }
+        return result.note;
+      }
+
+      const saved = await call(api.notes.save(campaignId, notiz));
+      notesRef.current = notesRef.current.map((note) => (note.id === saved.id ? saved : note));
+      setNotes(notesRef.current);
+      return saved;
+    },
+    [reloadNotes, report, t]
+  );
+
   const persist = useCallback(async (): Promise<Note | null> => {
     const current = draftRef.current;
     const campaignId = activeCampaignId;
@@ -252,27 +293,10 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     savingRef.current = true;
     setSaving(true);
     try {
-      const persisted = notesRef.current.find((note) => note.id === current.id);
-      const renamed = Boolean(persisted && persisted.title !== current.title);
-
-      let saved: Note;
-      if (renamed && persisted) {
-        // Erst den Inhalt unter dem alten Titel sichern, dann umbenennen.
-        // Das Umbenennen zieht die [[Links]] in der ganzen Kampagne mit.
-        await call(api.notes.save(campaignId, { ...current, title: persisted.title }));
-        const result = await call(api.notes.rename(campaignId, current.id, current.title));
-        saved = result.note;
-        await reloadNotes(campaignId);
-        if (saved.body !== current.body) setReloadKey((previous) => previous + 1);
-        if (result.rewritten > 0) {
-          report(result.rewritten === 1 ? t('msg.renamedOne') : t('msg.renamed', { count: result.rewritten }));
-        }
-      } else {
-        saved = await call(api.notes.save(campaignId, current));
-        notesRef.current = notesRef.current.map((note) => (note.id === saved.id ? saved : note));
-        setNotes(notesRef.current);
-      }
-
+      const saved = await schreibe(current, campaignId);
+      // Beim Umbenennen kann der Rumpf von der Platte anders aussehen als im
+      // Editor (die Links wurden mitgezogen).
+      if (saved.body !== current.body) setReloadKey((previous) => previous + 1);
       setDraft((previous) => (previous && previous.id === saved.id ? saved : previous));
       setDirty(false);
       // Steht auf der Platte, gehoert also nicht mehr in den Entwurfsspeicher.
@@ -282,9 +306,30 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       savingRef.current = false;
       setSaving(false);
     }
-  }, [activeCampaignId, reloadNotes, report, loescheEntwurf]);
+  }, [activeCampaignId, schreibe, loescheEntwurf]);
 
   const save = useCallback(() => guard(persist), [guard, persist]);
+
+  /**
+   * Schreibt alles Ungespeicherte: die offene Notiz und jeden
+   * beiseitegelegten Entwurf.
+   *
+   * Fuer den Dialog beim Schliessen. Der Reihe nach und nicht nebenlaeufig:
+   * `schreibe` fasst dieselbe Notizliste an, und beim Umbenennen laedt es sie
+   * neu — parallele Laeufe wuerden sich gegenseitig ueberholen.
+   */
+  const speichereAlles = useCallback(async (): Promise<void> => {
+    const campaignId = activeCampaignId;
+    if (!campaignId) return;
+    await persist();
+    for (const entwurf of [...entwuerfeRef.current.values()]) {
+      await guard(async () => {
+        const gespeichert = await schreibe(entwurf, campaignId);
+        loescheEntwurf(gespeichert.id);
+      });
+    }
+  }, [activeCampaignId, persist, schreibe, guard, loescheEntwurf]);
+  speichereAllesRef.current = speichereAlles;
 
   /**
    * Was vor einem Wechsel passiert — der offenen Notiz, der Kampagne, der
@@ -345,6 +390,25 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
 
     window.addEventListener('blur', onBlur);
 
+    // Vor dem Schliessen fragt der Hauptprozess, was ungespeichert ist, und
+    // zeigt danach gegebenenfalls den Dialog. Geantwortet wird mit Titeln,
+    // nicht mit einer Zahl: der Dialog nennt sie, damit man weiss, worum es
+    // geht, bevor man „Nicht speichern" drueckt.
+    const stopFrage = api.onUngespeichertGefragt(() => {
+      // Mit Autosave wird nicht gefragt. Wer ihn anlaesst, hat gesagt, dass
+      // von allein gespeichert werden soll — ein Dialog beim Schliessen
+      // waere dort eine Frage, die niemand gestellt haben wollte. Die leere
+      // Liste fuehrt zum bisherigen Weg: still sichern und schliessen.
+      if (autosaveAnRef.current) return [];
+      const titel = [...entwuerfeRef.current.values()].map((notiz) => notiz.title);
+      const offen = draftRef.current;
+      if (dirtyRef.current && offen && !entwuerfeRef.current.has(offen.id)) titel.push(offen.title);
+      return titel;
+    });
+
+    // Die Antwort „Speichern" aus dem Dialog.
+    const stopAlles = api.onSpeichereAlles(() => speichereAllesRef.current());
+
     // Beim Schliessen wartet der Hauptprozess auf diese Rueckmeldung.
     const stopListening = api.onFlush(() => {
       void (async () => {
@@ -359,6 +423,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     return () => {
       window.removeEventListener('blur', onBlur);
       stopListening();
+      stopFrage();
+      stopAlles();
     };
   }, [save, persist, parke]);
 
