@@ -261,6 +261,13 @@ async function erzeugeFenster(): Promise<void> {
 }
 
 /**
+ * Zeile, mit der die Startfolge meldet, dass das vorgeoeffnete Werkzeug steht.
+ * Wird von apps/shell/scripts/verify-package.mjs gelesen — wer sie aendert,
+ * aendert sie dort mit.
+ */
+const BEREIT_MARKE = '[shell] bereit-mit';
+
+/**
  * Oeffnet beim Start gleich ein Werkzeug, wenn TTRPG_TOOLS_START_APP eine ID
  * nennt.
  *
@@ -288,6 +295,14 @@ async function starteMitWerkzeug(): Promise<void> {
   montiert.sicht.setVisible(true);
   montiert.sicht.webContents.focus();
   huelle?.webContents.send('app:gestartet-mit', id);
+  // Erst hier ist das Werkzeug wirklich geladen und sichtbar — `mountApp`
+  // wartet auf `loadFile`. Die Pruefung des gepackten Pakets beendet den
+  // Prozess, sobald sie ihr Signal sieht; nimmt sie ein frueheres (die
+  // Einstellungsdatei, spaeter der Speicherort des Werkzeugs), trifft sie
+  // mitten ins Laden, und `loadFile` bricht mit ERR_FAILED ab. Zweimal
+  // dieselbe Falle, beim zweiten Mal nur eine Stufe spaeter. Ein Signal muss
+  // *nach* dem stehen, was es bezeugt.
+  console.log(`${BEREIT_MARKE} ${id}`);
 }
 
 /**

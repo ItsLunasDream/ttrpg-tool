@@ -61,29 +61,49 @@ child.once('error', (error) => {
 });
 
 /**
- * Gewartet wird auf den Speicherort des Backstory Creators unter
- * <userData>/backstory/vault. Er entsteht, wenn die Huelle ihn montiert —
- * also ganz am Ende der Startfolge, nach dem Laden ihrer eigenen Oberflaeche.
+ * Gewartet wird auf die Bereitmeldung der Huelle: `[shell] bereit-mit <id>`.
+ * Sie steht am Ende der Startfolge, nach `loadFile`.
  *
- * Die naheliegende einstellungen.json taugt dafuer nicht: die schreibt die
- * Huelle, *bevor* sie ihr Fenster baut. Dieses Skript beendet den Prozess,
- * sobald das Signal da ist — und tat das damit mitten im Laden. Die Anwendung
- * brach mit ERR_FAILED ab, und die Pruefung meldete trotzdem „PAKET OK",
- * weil sie ja gefunden hatte, worauf sie wartete. Ein Signal, das zu frueh
- * kommt, ist schlimmer als keines.
+ * Zwei fruehere Signale waren falsch, beide auf dieselbe Weise. Die
+ * einstellungen.json schreibt die Huelle, *bevor* sie ihr Fenster baut. Der
+ * Speicherort <userData>/backstory/vault entsteht beim Montieren, *bevor* die
+ * Oberflaeche geladen ist. Dieses Skript beendet den Prozess, sobald sein
+ * Signal da ist — es traf damit jedes Mal mitten ins Laden, `loadFile` brach
+ * mit ERR_FAILED ab, und ob die Pruefung das meldete oder nicht, entschied
+ * die Tagesform des Rechners. Ein Signal, das zu frueh kommt, ist schlimmer
+ * als keines.
+ *
+ * Der Speicherort wird trotzdem noch beobachtet, aber nur als Rueckfall: die
+ * Bereitmeldung geht ueber stdout, und ob eine gepackte GUI-Anwendung unter
+ * Windows dorthin schreiben kann, haengt an der Konsole, die sie vorfindet.
+ * Bleibt die Meldung aus, obwohl der Speicherort da ist, bekommt das Laden
+ * eine Gnadenfrist statt eines Fehlurteils.
  */
-async function waitForBoot() {
+const BEREIT_MARKE = '[shell] bereit-mit';
+const GNADENFRIST_MS = 8_000;
+
+async function warteAufBoot() {
   const deadline = Date.now() + BOOT_TIMEOUT_MS;
+  let speicherortGesehen = false;
   while (Date.now() < deadline) {
-    if (spawnError || exitCode !== null) return false;
-    try {
-      if ((await readdir(path.join(userDataDir, 'backstory'))).includes('vault')) return true;
-    } catch {
-      // Verzeichnis noch nicht da, weiter warten.
+    if (spawnError || exitCode !== null) return { bereit: false, ueberRueckfall: false };
+    if (output.join('').includes(BEREIT_MARKE)) return { bereit: true, ueberRueckfall: false };
+    if (!speicherortGesehen) {
+      try {
+        speicherortGesehen = (await readdir(path.join(userDataDir, 'backstory'))).includes('vault');
+      } catch {
+        // Verzeichnis noch nicht da, weiter warten.
+      }
     }
     await sleep(POLL_INTERVAL_MS);
   }
-  return false;
+  if (speicherortGesehen) {
+    await sleep(GNADENFRIST_MS);
+    const log = output.join('');
+    if (log.includes(BEREIT_MARKE)) return { bereit: true, ueberRueckfall: false };
+    return { bereit: !/ERR_FAILED/.test(log), ueberRueckfall: true };
+  }
+  return { bereit: false, ueberRueckfall: false };
 }
 
 /**
@@ -140,7 +160,12 @@ async function pruefeEingebetteteDateien() {
     : [];
 }
 
-const booted = await waitForBoot();
+const { bereit, ueberRueckfall } = await warteAufBoot();
+if (ueberRueckfall) {
+  console.warn(
+    `Hinweis: keine Bereitmeldung "${BEREIT_MARKE}" auf stdout, geurteilt wurde ueber den Rueckfall.`
+  );
+}
 
 if (exitCode === null && !spawnError) {
   child.kill();
@@ -170,7 +195,7 @@ if (/UnhandledPromiseRejection/.test(log)) {
   problems.push('Unbehandelte Promise-Ablehnung im Hauptprozess');
 }
 
-if (!booted && !spawnError) {
+if (!bereit && !spawnError) {
   let found = '(nicht lesbar)';
   try {
     found = (await readdir(userDataDir)).join(', ') || '(leer)';
@@ -178,8 +203,8 @@ if (!booted && !spawnError) {
     // Meldung unten reicht.
   }
   problems.push(
-    'Das mit TTRPG_TOOLS_START_APP geoeffnete Werkzeug ist nicht hochgekommen: kein Speicherort ' +
-      `unter <userData>/backstory/vault innerhalb von ${BOOT_TIMEOUT_MS / 1000} s. ` +
+    'Das mit TTRPG_TOOLS_START_APP geoeffnete Werkzeug ist nicht hochgekommen: keine ' +
+      `Bereitmeldung "${BEREIT_MARKE}" innerhalb von ${BOOT_TIMEOUT_MS / 1000} s. ` +
       `Im Datenverzeichnis gefunden: ${found}`
   );
 }
