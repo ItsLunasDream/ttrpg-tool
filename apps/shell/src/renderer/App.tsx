@@ -135,7 +135,16 @@ export function App() {
       return;
     }
     setEingebettet(false);
-    void window.shell.app.zeigen(id).then(setEingebettet);
+    // Ohne dieses catch blieb ein Fehlschlag beim Einbetten (etwa fehlende
+    // Build-Dateien der Anwendung) eine unbehandelte Ablehnung im Renderer —
+    // die Flaeche stand fuer immer beim Platzhalter, ohne jeden Hinweis.
+    window.shell.app
+      .zeigen(id)
+      .then(setEingebettet)
+      .catch((fehler: unknown) => {
+        console.error(`[shell] Werkzeug "${id}" liess sich nicht einbetten:`, fehler);
+        setEingebettet(false);
+      });
   }, []);
 
   const setzeSprache = useCallback(async (neu: Language) => {
