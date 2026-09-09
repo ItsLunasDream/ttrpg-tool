@@ -284,6 +284,69 @@ app.whenReady().then(async () => {
     }
   }
 
+  // ---- Dialoge der Huelle ----
+  //
+  // Sie liegen in der Ansicht der Huelle, und die liegt *unter* den
+  // Anwendungen. Der interessante Fall ist deshalb der mit einer geoeffneten
+  // Anwendung: ohne das Zuruecktreten waere der Dialog im DOM und trotzdem
+  // nicht zu sehen.
+  await js("[...document.querySelectorAll('.titelleiste__knopf')][0].click()");
+  await warte(900);
+  pruefe(await js("Boolean(document.querySelector('.dialog'))"), 'Einstellungen gehen auf');
+  pruefe(
+    fenster.contentView.children.length > 1 &&
+      fenster.contentView.children[1].getBounds().height > 0,
+    'die Anwendung ist noch da, nur zurueckgetreten'
+  );
+
+  // Sprache umstellen: der Wert muss auf der Platte landen und die Oberflaeche
+  // sofort umschalten.
+  await js(`(() => {
+    const wahl = document.querySelector('.feld__wahl');
+    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    setzer.call(wahl, 'de');
+    wahl.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  await warte(900);
+  pruefe(
+    (await js("document.querySelector('.dialog__titel').textContent")) === 'Einstellungen',
+    'die Oberflaeche schaltet sofort auf Deutsch'
+  );
+  const einstellungsDatei = path.join(app.getPath('userData'), 'einstellungen.json');
+  pruefe(fs.existsSync(einstellungsDatei), 'die Einstellungen wurden gespeichert');
+  if (fs.existsSync(einstellungsDatei)) {
+    pruefe(
+      JSON.parse(fs.readFileSync(einstellungsDatei, 'utf8')).language === 'de',
+      'und zwar mit der gewaehlten Sprache'
+    );
+  }
+  pruefe(!(await js("Boolean(document.querySelector('.feld__fehler'))")), 'ohne Fehlermeldung');
+
+  // Escape schliesst.
+  await js(`document.querySelector('.dialog').dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+  )`);
+  await warte(700);
+  pruefe(!(await js("Boolean(document.querySelector('.dialog'))")), 'Escape schliesst den Dialog');
+
+  // Ueber: die Fassung muss darin stehen, sonst kaeme sie nicht durch.
+  await js("[...document.querySelectorAll('.titelleiste__knopf')][1].click()");
+  await warte(900);
+  pruefe(await js("Boolean(document.querySelector('.ueber'))"), 'Über geht auf');
+  pruefe(
+    await js("document.querySelector('.ueber').textContent.includes('AGPL') || " +
+      "document.querySelector('.ueber').textContent.includes('Affero')"),
+    'die Lizenz steht darin'
+  );
+  pruefe(
+    (await js("document.querySelectorAll('.ueber__verweise button').length")) === 2,
+    'zwei Verweise: Quelltext und Lizenz'
+  );
+  await js("document.querySelector('.dialog__knopf').click()");
+  await warte(700);
+  pruefe(!(await js("Boolean(document.querySelector('.dialog'))")), 'und geht wieder zu');
+
   // Die Fensterlage muss nach einem Verschieben auf der Platte stehen. Der
   // Schreibvorgang ist gebuendelt, deshalb das Warten.
   const zustandsDatei = path.join(app.getPath('userData'), 'fenster.json');

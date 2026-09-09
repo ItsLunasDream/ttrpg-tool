@@ -6,6 +6,7 @@
  * auch die der eingebetteten Anwendungen.
  */
 import { contextBridge, ipcRenderer } from 'electron';
+import type { ShellSettings } from '../main/settings';
 
 const api = {
   fenster: {
@@ -42,7 +43,21 @@ const api = {
      */
     zeigen: (id: string) => ipcRenderer.invoke('app:zeigen', id) as Promise<boolean>,
     /** Zurueck ins Startmenue. Die Anwendungen bleiben geladen. */
-    startmenue: () => ipcRenderer.invoke('app:startmenue') as Promise<void>
+    startmenue: () => ipcRenderer.invoke('app:startmenue') as Promise<void>,
+    /**
+     * Meldet, dass ein Dialog der Huelle auf- oder zugeht. Die vorn liegende
+     * Anwendung tritt so lange zurueck, sonst deckt sie ihn zu.
+     */
+    dialog: (offen: boolean) => ipcRenderer.invoke('app:dialog', offen) as Promise<void>,
+    /** Oeffnet eine http(s)-Adresse im Browser des Systems. */
+    oeffneExtern: (adresse: string) =>
+      ipcRenderer.invoke('app:oeffne-extern', adresse) as Promise<void>
+  },
+  einstellungen: {
+    lesen: () => ipcRenderer.invoke('einstellungen:lesen') as Promise<ShellSettings>,
+    /** Schreibt und liefert den bereinigten Stand zurueck, der danach gilt. */
+    schreiben: (neu: ShellSettings) =>
+      ipcRenderer.invoke('einstellungen:schreiben', neu) as Promise<ShellSettings>
   }
 };
 

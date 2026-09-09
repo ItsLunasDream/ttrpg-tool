@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { berechneAppFlaeche } from '../shared/apps';
 import { mountApp, registerSchemes, type MontierteApp } from './apps';
+import { readSettings, writeSettings, type ShellSettings } from './settings';
 import {
   readWindowState,
   writeWindowState,
@@ -49,7 +50,17 @@ let huelle: WebContentsView | null = null;
  * 130 MB je zusaetzlich geoeffneter Anwendung.
  */
 const offen = new Map<string, MontierteApp>();
+/**
+ * Welche Anwendung gerade vorn liegt, oder `null` im Startmenue.
+ *
+ * Gebraucht, weil die Huelle sie zwischendurch verdecken muss: ihre Dialoge
+ * liegen in *ihrer* Ansicht, und die liegt unter den Anwendungen. Ohne das
+ * zeitweilige Verbergen stuende ein geoeffneter Dialog im DOM, waere aber
+ * hinter der Anwendung nicht zu sehen.
+ */
+let aktiveApp: string | null = null;
 let zustandsDatei = '';
+let einstellungsDatei = '';
 /** Zeitgeber, der das Speichern der Fensterlage buendelt. */
 let speicherZeitgeber: NodeJS.Timeout | null = null;
 /** Wird gesetzt, sobald die Anwendungen ihr Ungespeichertes gesichert haben. */
@@ -242,6 +253,19 @@ function registriereKanaele(): void {
   handle('fenster:ist-maximiert', () => fenster?.isMaximized() ?? false);
   handle('app:version', () => eigeneFassung());
 
+  handle('einstellungen:lesen', () => readSettings(einstellungsDatei));
+  /**
+   * Schreibt die Einstellungen und gibt zurueck, was danach gilt.
+   *
+   * Die Antwort ist nicht die Eingabe: `writeSettings` raeumt ungueltige
+   * Werte weg, und die Oberflaeche soll den bereinigten Stand anzeigen statt
+   * eines, den es so nicht gibt.
+   */
+  handle('einstellungen:schreiben', async (_event, neu: ShellSettings) => {
+    await writeSettings(einstellungsDatei, neu);
+    return readSettings(einstellungsDatei);
+  });
+
   /**
    * Zeigt eine Anwendung an und montiert sie beim ersten Mal.
    *
@@ -255,6 +279,7 @@ function registriereKanaele(): void {
     if (!fenster) return false;
 
     verbergeAlle();
+    aktiveApp = id;
 
     let montiert = offen.get(id);
     if (!montiert) {
@@ -277,12 +302,45 @@ function registriereKanaele(): void {
   /** Zurueck ins Startmenue: alle Anwendungen bleiben geladen, aber unsichtbar. */
   handle('app:startmenue', () => {
     verbergeAlle();
+    aktiveApp = null;
     huelle?.webContents.focus();
   });
+
+  /**
+   * Meldet, dass ein Dialog der Huelle auf- oder zugeht.
+   *
+   * Solange einer offen ist, tritt die vorn liegende Anwendung zurueck —
+   * sonst deckt sie den Dialog zu. Beim Schliessen kommt sie zurueck.
+   */
+  handle('app:dialog', (_event, offenerDialog: boolean) => {
+    if (offenerDialog) {
+      verbergeAlle();
+      huelle?.webContents.focus();
+      return;
+    }
+    const montiert = aktiveApp ? offen.get(aktiveApp) : undefined;
+    if (!montiert) return;
+    legeHuelleAus();
+    montiert.sicht.setVisible(true);
+    montiert.sicht.webContents.focus();
+  });
   handle('app:plattform', () => process.platform);
+  /**
+   * Oeffnet eine Adresse im Browser des Systems.
+   *
+   * Nur http und https: `shell.openExternal` startet sonst, was auch immer das
+   * System mit dem Schema verbindet — bei `file:` waere das der Dateimanager,
+   * bei exotischeren Schemata Schlimmeres.
+   */
+  handle('app:oeffne-extern', (_event, adresse: string) => {
+    if (adresse.startsWith('http://') || adresse.startsWith('https://')) {
+      void shell.openExternal(adresse);
+    }
+  });
 }
 
 app.whenReady().then(async () => {
+  einstellungsDatei = join(app.getPath('userData'), 'einstellungen.json');
   registriereKanaele();
   await erzeugeFenster();
   app.on('activate', () => {

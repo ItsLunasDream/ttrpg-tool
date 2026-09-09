@@ -20,6 +20,8 @@ import {
   type MessageParams
 } from '../shared/i18n';
 import { iconFuer, SuiteIcon } from './icons';
+import { Einstellungen } from './Einstellungen';
+import { Ueber } from './Ueber';
 
 declare global {
   interface Window {
@@ -41,16 +43,29 @@ export function App() {
   const [eingebettet, setEingebettet] = useState(false);
   const [maximiert, setMaximiert] = useState(false);
   const [version, setVersion] = useState('');
-  // Fest auf der Voreinstellung, bis es Einstellungen gibt: die Huelle hat
-  // noch keinen Ort, an dem man umschalten koennte. Die deutschen Texte stehen
-  // trotzdem schon im Woerterbuch und werden von einem Test vollstaendig
-  // gehalten — sonst waeren sie an dem Tag, an dem der Schalter kommt, zur
-  // Haelfte veraltet.
-  const sprache: Language = DEFAULT_LANGUAGE;
+  const [sprache, setSprache] = useState<Language>(DEFAULT_LANGUAGE);
+  /** Welcher Dialog offen ist, oder `null`. Es ist immer hoechstens einer. */
+  const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | null>(null);
+
+  /**
+   * Oeffnet oder schliesst einen Dialog und sagt es dem Hauptprozess.
+   *
+   * Der muss es wissen: die Dialoge liegen in der Ansicht der Huelle, und die
+   * liegt unter den Anwendungen. Ohne diese Meldung waere ein geoeffneter
+   * Dialog hinter der laufenden Anwendung nicht zu sehen.
+   */
+  const zeigeDialog = useCallback((welcher: 'einstellungen' | 'ueber' | null) => {
+    setDialog(welcher);
+    void window.shell.app.dialog(welcher !== null);
+  }, []);
 
   useEffect(() => {
     void window.shell.app.version().then(setVersion);
     void window.shell.fenster.istMaximiert().then(setMaximiert);
+    // Die gespeicherte Sprache kommt erst nach dem ersten Zeichnen an. Bis
+    // dahin steht die Voreinstellung da — ein kurzer Wechsel ist besser als
+    // ein leeres Fenster, das auf eine Datei wartet.
+    void window.shell.einstellungen.lesen().then((e) => setSprache(e.language));
     // Auch der Fensterrahmen des Systems kann maximieren. Ohne diese Meldung
     // zeigte der Knopf danach das falsche Symbol.
     return window.shell.fenster.beiZustandswechsel(({ maximiert: m }) => setMaximiert(m));
@@ -87,6 +102,13 @@ export function App() {
     void window.shell.app.zeigen(id).then(setEingebettet);
   }, []);
 
+  const setzeSprache = useCallback(async (neu: Language) => {
+    const gespeichert = await window.shell.einstellungen.schreiben({ language: neu });
+    // Angezeigt wird, was wirklich gespeichert wurde, nicht was angeklickt
+    // wurde.
+    setSprache(gespeichert.language);
+  }, []);
+
   const eintrag = aktiv ? findApp(aktiv) : undefined;
 
   return (
@@ -102,10 +124,14 @@ export function App() {
         <span className="titelleiste__name">TTRPG-Tools</span>
         {eintrag && <span className="titelleiste__pfad">› {t(nameKey(eintrag.id))}</span>}
         <span className="titelleiste__fueller" />
-        <button type="button" className="titelleiste__knopf" disabled>
+        <button
+          type="button"
+          className="titelleiste__knopf"
+          onClick={() => zeigeDialog('einstellungen')}
+        >
           {t('title.settings')}
         </button>
-        <button type="button" className="titelleiste__knopf" disabled>
+        <button type="button" className="titelleiste__knopf" onClick={() => zeigeDialog('ueber')}>
           {t('title.about')}
         </button>
         <div className="fensterknoepfe">
@@ -160,6 +186,18 @@ export function App() {
         />
       ) : (
         <Startmenue setAktiv={waehle} version={version} t={t} />
+      )}
+
+      {dialog === 'einstellungen' && (
+        <Einstellungen
+          sprache={sprache}
+          setzeSprache={setzeSprache}
+          onClose={() => zeigeDialog(null)}
+          t={t}
+        />
+      )}
+      {dialog === 'ueber' && (
+        <Ueber version={version} onClose={() => zeigeDialog(null)} t={t} />
       )}
     </div>
   );

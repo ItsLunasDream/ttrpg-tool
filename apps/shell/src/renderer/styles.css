@@ -349,3 +349,163 @@ body {
   font-size: 12px;
   margin-top: 10px;
 }
+
+/* ---------- Dialoge ---------- */
+
+.dialog__grund {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  /* Abgedunkelt, damit klar ist, dass dahinter gerade nichts geht. Die
+     Anwendung selbst ist in diesem Moment ohnehin zurueckgetreten. */
+  background: #0b0d12cc;
+  z-index: 10;
+}
+
+.dialog {
+  width: min(460px, calc(100vw - 48px));
+  max-height: calc(100vh - 96px);
+  display: flex;
+  flex-direction: column;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px #00000066;
+}
+
+.dialog:focus {
+  /* Der Kasten bekommt den Fokus nur, damit Escape ankommt — sichtbar
+     umranden muss man ihn dafuer nicht. */
+  outline: none;
+}
+
+.dialog__titel {
+  margin: 0;
+  padding: 16px 20px 12px;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--rand);
+}
+
+.dialog__inhalt {
+  padding: 16px 20px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+.dialog__inhalt p {
+  margin: 0 0 10px;
+}
+
+.dialog__fuss {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--rand);
+}
+
+.dialog__knopf {
+  background: #2b3140;
+  border: 1px solid var(--rand);
+  color: var(--text);
+  font: inherit;
+  padding: 6px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dialog__knopf:hover {
+  background: #343b4d;
+}
+
+/* ---------- Felder in den Einstellungen ---------- */
+
+.feld {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.feld__name {
+  font-weight: 600;
+}
+
+.feld__wahl {
+  background: #232834;
+  color: var(--text);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  font: inherit;
+  padding: 5px 8px;
+  min-width: 140px;
+}
+
+.feld__hinweis {
+  color: var(--text-leise);
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+
+.feld__fehler {
+  color: var(--schliessen);
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+
+/* ---------- Ueber ---------- */
+
+.ueber {
+  text-align: center;
+}
+
+.ueber__marke {
+  display: block;
+  color: var(--betont);
+  margin-bottom: 6px;
+}
+
+.ueber__name {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 2px !important;
+}
+
+.ueber__autor,
+.ueber__fassung {
+  color: var(--text-leise);
+  margin: 0 0 2px !important;
+}
+
+.ueber__lizenz {
+  margin-top: 16px !important;
+  font-weight: 600;
+}
+
+.ueber__gewaehr {
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.ueber__verweise {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.ueber__verweise button {
+  background: none;
+  border: 1px solid var(--rand);
+  color: var(--betont);
+  font: inherit;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ueber__verweise button:hover {
+  background: #ffffff10;
+}
