@@ -114,6 +114,28 @@ export function appDistDir(id: string, ...weiter: string[]): string {
   return join(wurzel, ...weiter);
 }
 
+/**
+ * Wo das *eigenstaendige* Programm einer Anwendung seine Daten haette.
+ *
+ * Electron leitet den Datenordner aus dem Namen der Anwendung ab, und der ist
+ * eigenstaendig ein anderer als hier: die Huelle heisst „TTRPG-Tools", das
+ * gepackte Einzelprogramm „Backstory Creator", und aus dem Workspace
+ * gestartet gilt der Name aus seiner package.json. Alle drei liegen
+ * nebeneinander im selben uebergeordneten Verzeichnis.
+ *
+ * Zurueckgegeben werden die Speicherorte, nicht die Datenordner: die
+ * Uebernahme setzt den Speicherort, nicht die Einstellungen der anderen
+ * Installation.
+ */
+function fruehereSpeicherorte(id: string): string[] {
+  const namen: Record<string, string[]> = {
+    // Gepackt und aus dem Workspace — beide Schreibweisen kommen vor.
+    backstory: ['Backstory Creator', 'backstory-creator']
+  };
+  const daneben = app.getPath('appData');
+  return (namen[id] ?? []).map((name) => join(daneben, name, 'vault'));
+}
+
 /** Wohin eine Anwendung ihre Daten legt. */
 function datenordner(id: string): string {
   // Jede Anwendung bekommt einen eigenen Unterordner. Ein gemeinsamer waere
@@ -208,7 +230,10 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
     partition: sitzung(id),
     devServerUrl: process.env.BACKSTORY_DEV_SERVER_URL,
     language: haken.language,
-    onLanguageChange: haken.onLanguageChange
+    onLanguageChange: haken.onLanguageChange,
+    // Wer den Backstory Creator bisher einzeln benutzt hat, soll seine
+    // Kampagnen hier wiederfinden und nicht vor einer leeren Sammlung stehen.
+    uebernahmeKandidaten: fruehereSpeicherorte(id)
   });
 
   const sicht = new WebContentsView({

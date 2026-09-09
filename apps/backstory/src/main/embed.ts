@@ -19,6 +19,7 @@ import type { WebContents } from 'electron';
 import { Vault, readSettings, writeSettings } from './vault';
 import { registerIpc } from './ipc';
 import { handleAssetProtocol, registerAssetScheme } from './assetProtocol';
+import { findeUebernahme } from './uebernahme';
 import { channel } from '../shared/channels';
 import type { AppSettings } from '../shared/types';
 
@@ -70,6 +71,22 @@ export interface BackstoryEmbedOptions {
    * auseinander.
    */
   readonly onLanguageChange?: (language: AppSettings['language']) => void;
+  /**
+   * Speicherorte, die uebernommen werden, wenn diese Anwendung hier zum
+   * ersten Mal laeuft und selbst noch keinen hat.
+   *
+   * Gedacht fuer den Umzug in die Huelle: dort bekommt jede Anwendung ihren
+   * eigenen Datenordner, und der ist ein anderer als der des eigenstaendigen
+   * Programms. Ohne diesen Weg stuende die Person beim ersten Start vor einer
+   * leeren Sammlung — ihre Kampagnen liegen noch da, nur woanders, und nichts
+   * auf dem Schirm sagt ihr das.
+   *
+   * Der erste Eintrag, der wirklich Kampagnen enthaelt, gewinnt. Uebernommen
+   * wird nur der *Pfad*: nichts wird kopiert, nichts verschoben, nichts
+   * ueberschrieben. Wer die Trennung will, stellt den Ordner in den
+   * Einstellungen wieder um.
+   */
+  readonly uebernahmeKandidaten?: readonly string[];
 }
 
 export interface BackstoryEmbed {
@@ -111,7 +128,15 @@ export interface BackstoryEmbed {
 export async function mountBackstory(options: BackstoryEmbedOptions): Promise<BackstoryEmbed> {
   const settingsFile = path.join(options.userDataDir, 'settings.json');
   const defaultRoot = path.join(options.userDataDir, 'vault');
-  let settings = await readSettings(settingsFile, defaultRoot);
+  const uebernommen = await findeUebernahme(settingsFile, options.uebernahmeKandidaten);
+  let settings = await readSettings(settingsFile, uebernommen ?? defaultRoot);
+  if (uebernommen) {
+    // Festschreiben, damit die Uebernahme genau einmal passiert. Beim
+    // naechsten Start gilt die Datei, und wer den Ordner inzwischen
+    // umgestellt hat, bekommt nicht den alten zurueck.
+    settings = await writeSettings(settingsFile, settings);
+    console.log(`[backstory] Vorhandenen Speicherort uebernommen: ${uebernommen}`);
+  }
   if (options.language && options.language !== settings.language) {
     settings = await writeSettings(settingsFile, { ...settings, language: options.language });
   }
