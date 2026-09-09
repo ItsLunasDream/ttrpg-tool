@@ -321,6 +321,71 @@ app.whenReady().then(async () => {
         }
       })()`);
       pruefe(cspVerstoss === 'abgewiesen', `fremde Skripte werden abgewiesen (${cspVerstoss})`);
+
+      // ---- Sprachkopplung ----
+      //
+      // Anforderung: aendert man die Sprache an irgendeiner Stelle, gilt sie
+      // ueberall — in der Huelle selbst und in jeder eingebetteten Anwendung,
+      // unabhaengig davon, wo umgestellt wurde. Geprueft wird beide
+      // Richtungen: einmal ausgeloest im Karteneditor, einmal im Backstory
+      // Creator.
+      //
+      // Der Karteneditor hat kein eigenes Sprachmenue in der Werkzeugleiste,
+      // es steckt im Hilfe-Dialog (F1 / „? Help").
+      await kartenJs(`(() => {
+        const hilfe = [...document.querySelectorAll('button')].find((b) =>
+          /help/i.test(b.textContent)
+        );
+        hilfe?.click();
+      })()`);
+      await warte(700);
+      await kartenJs(`(() => {
+        const wahl = document.querySelector('#help-language');
+        const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+        setzer.call(wahl, 'de');
+        wahl.dispatchEvent(new Event('change', { bubbles: true }));
+      })()`);
+      await warte(1200);
+
+      pruefe(
+        await bs.webContents.executeJavaScript(
+          "document.body.innerText.includes('Keine Kampagne vorhanden.')"
+        ),
+        'der Backstory Creator hat die vom Karteneditor gesetzte Sprache uebernommen'
+      );
+      pruefe(
+        (await js("document.querySelector('.titelleiste__knopf').textContent")) === 'Einstellungen',
+        'die Huelle selbst hat ebenfalls auf Deutsch umgeschaltet'
+      );
+
+      // Und zurueck, diesmal ausgeloest im Backstory Creator.
+      await js("[...document.querySelectorAll('.schiene__eintrag')][0].click()");
+      await warte(1000);
+      await bs.webContents.executeJavaScript(`(() => {
+        const knopf = [...document.querySelectorAll('button')].find((b) =>
+          /^(Settings|Einstellungen)$/.test(b.textContent.trim())
+        );
+        knopf?.click();
+      })()`);
+      await warte(700);
+      await bs.webContents.executeJavaScript(`(() => {
+        const wahl = document.querySelector('.field select');
+        const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+        setzer.call(wahl, 'en');
+        wahl.dispatchEvent(new Event('change', { bubbles: true }));
+      })()`);
+      await warte(1200);
+
+      pruefe(
+        (await js("document.querySelector('.titelleiste__knopf').textContent")) === 'Settings',
+        'eine Aenderung im Backstory Creator erreicht auch die Huelle'
+      );
+      pruefe(
+        await kartenJs(
+          "[...document.querySelectorAll('button')].some((b) => b.textContent.trim().endsWith('Help'))"
+        ),
+        'und den Karteneditor — die Kopplung wirkt in beide Richtungen'
+      );
     }
   }
 

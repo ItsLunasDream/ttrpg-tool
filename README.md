@@ -142,9 +142,16 @@ Werkzeuge mit dem Zustand `vorbereitet` lassen sich anwählen und führen auf
 eine Fläche, die sagt, dass das Einbetten noch aussteht. Was es gibt und wie
 weit es ist, steht an einer Stelle: `apps/shell/src/shared/apps.ts`.
 
-**Einstellungen und Über** sitzen in der Titelleiste. Die Sprache dort gilt
-für den Rahmen, nicht für die Werkzeuge darin — jedes bringt seine eigene
-Spracheinstellung mit.
+**Einstellungen und Über** sitzen in der Titelleiste. Die Sprache ist
+durchgekoppelt: eine Änderung an irgendeiner Stelle — im Einstellungen-Dialog
+der Hülle oder im eigenen Sprachmenü eines Werkzeugs — gilt sofort überall,
+in der Hülle selbst und in jeder eingebetteten Anwendung. Der Backstory
+Creator meldet einen Wechsel über einen eigenen IPC-Kanal
+(`backstory:app:sprache`); der Karteneditor, der sonst kein Preload
+braucht, bekommt dafür eines, das ausschließlich diese eine Kopplung trägt
+(`apps/mapmaker/src/embed/preload.ts`). Die einzige Stelle, die beide
+Richtungen zusammenführt, ist `aktualisiereSammlungssprache` in
+`apps/shell/src/main/index.ts`.
 
 **Direkt in einem Werkzeug starten:** `TTRPG_TOOLS_START_APP=backstory`. Das
 ist auch der Weg, auf dem die Prüfung des gepackten Pakets feststellt, ob die

@@ -71,7 +71,22 @@ const api = {
     lesen: () => ipcRenderer.invoke('einstellungen:lesen') as Promise<ShellSettings>,
     /** Schreibt und liefert den bereinigten Stand zurueck, der danach gilt. */
     schreiben: (neu: ShellSettings) =>
-      ipcRenderer.invoke('einstellungen:schreiben', neu) as Promise<ShellSettings>
+      ipcRenderer.invoke('einstellungen:schreiben', neu) as Promise<ShellSettings>,
+    /**
+     * Die Sprache wurde von aussen geaendert — nicht ueber den
+     * Einstellungen-Dialog dieses Fensters, sondern ueber das Sprachmenue
+     * einer eingebetteten Anwendung oder eine andere Sitzung. Ohne diesen
+     * Kanal wüsste die Titelleiste nichts von der Änderung.
+     *
+     * Liefert eine Funktion zum Abmelden zurueck.
+     */
+    beiSprachwechselVonAussen: (fn: (language: ShellSettings['language']) => void): (() => void) => {
+      const hoerer = (_e: unknown, language: ShellSettings['language']) => fn(language);
+      ipcRenderer.on('einstellungen:sprache-extern', hoerer);
+      return () => {
+        ipcRenderer.off('einstellungen:sprache-extern', hoerer);
+      };
+    }
   }
 };
 

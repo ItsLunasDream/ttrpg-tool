@@ -16,7 +16,7 @@
 import path from 'node:path';
 import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
-import { Vault, readSettings } from './vault';
+import { Vault, readSettings, writeSettings } from './vault';
 import { registerIpc } from './ipc';
 import { handleAssetProtocol, registerAssetScheme } from './assetProtocol';
 import { channel } from '../shared/channels';
@@ -53,6 +53,23 @@ export interface BackstoryEmbedOptions {
    * Start.
    */
   readonly partition?: string;
+  /**
+   * Die Sprache, mit der diese Anwendung beim Montieren beginnen soll — die
+   * der Sammlung, nicht zwingend die zuletzt hier selbst gespeicherte. Weicht
+   * sie von der gespeicherten ab, wird sie uebernommen und geschrieben.
+   *
+   * Ohne Angabe gilt, was in den eigenen Einstellungen steht — der
+   * eigenstaendige Start setzt sie nicht.
+   */
+  readonly language?: AppSettings['language'];
+  /**
+   * Wird gerufen, wenn in dieser Anwendung die Sprache umgestellt wird.
+   *
+   * Die Huelle fuehrt die Sprache fuer die ganze Sammlung; ohne diese Meldung
+   * wuesste sie von einer Aenderung hier nichts, und die Werkzeuge liefen
+   * auseinander.
+   */
+  readonly onLanguageChange?: (language: AppSettings['language']) => void;
 }
 
 export interface BackstoryEmbed {
@@ -74,6 +91,14 @@ export interface BackstoryEmbed {
    * waere schlimmer als eine verlorene Sekunde Tipparbeit.
    */
   flush(webContents: WebContents, timeoutMs?: number): Promise<void>;
+  /**
+   * Setzt die Sprache von aussen und schreibt sie in die Einstellungen dieser
+   * Anwendung — sie soll auch beim naechsten eigenstaendigen Start gelten.
+   *
+   * Loest `onLanguageChange` bewusst *nicht* aus: die Aenderung kam ja von
+   * dort, und die Meldung liefe im Kreis.
+   */
+  setLanguage(webContents: WebContents, language: AppSettings['language']): Promise<void>;
 }
 
 /**
@@ -86,7 +111,10 @@ export interface BackstoryEmbed {
 export async function mountBackstory(options: BackstoryEmbedOptions): Promise<BackstoryEmbed> {
   const settingsFile = path.join(options.userDataDir, 'settings.json');
   const defaultRoot = path.join(options.userDataDir, 'vault');
-  const settings = await readSettings(settingsFile, defaultRoot);
+  let settings = await readSettings(settingsFile, defaultRoot);
+  if (options.language && options.language !== settings.language) {
+    settings = await writeSettings(settingsFile, { ...settings, language: options.language });
+  }
 
   const vault = new Vault(settings.vaultRoot);
   vault.setHistoryOptions({
@@ -96,7 +124,8 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
   await vault.init();
   handleAssetProtocol(vault, options.partition);
 
-  registerIpc({ vault, settingsFile, settings });
+  const kontext = { vault, settingsFile, settings, onLanguageChange: options.onLanguageChange };
+  registerIpc(kontext);
 
   const distDir = options.distDir ?? __dirname;
 
@@ -109,7 +138,14 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
     devServerUrl: options.devServerUrl ?? null,
     settings,
     vault,
-    flush: (webContents, timeoutMs = 3000) => flushWebContents(webContents, timeoutMs)
+    flush: (webContents, timeoutMs = 3000) => flushWebContents(webContents, timeoutMs),
+    setLanguage: async (webContents, language) => {
+      if (kontext.settings.language === language) return;
+      kontext.settings = await writeSettings(settingsFile, { ...kontext.settings, language });
+      if (!webContents.isDestroyed()) {
+        webContents.send(channel('app:sprache'), language);
+      }
+    }
   };
 }
 

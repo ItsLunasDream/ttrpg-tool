@@ -21,8 +21,9 @@ import { app, BaseWindow, WebContentsView, ipcMain, screen, shell, type IpcMainI
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { berechneAppFlaeche } from '../shared/apps';
-import { mountApp, registerSchemes, type MontierteApp } from './apps';
+import { mountApp, registerSchemes, type MontageHaken, type MontierteApp } from './apps';
 import { readSettings, writeSettings, type ShellSettings } from './settings';
+import type { Language } from '../shared/i18n';
 import {
   readWindowState,
   writeWindowState,
@@ -103,6 +104,49 @@ function merkeFensterlage(): void {
 function verbergeAlle(): void {
   for (const montiert of offen.values()) {
     montiert.sicht.setVisible(false);
+  }
+}
+
+/**
+ * Was eine Anwendung beim Montieren braucht: die aktuelle Sammlungssprache,
+ * und einen Weg, eine eigene Aenderung zu melden.
+ *
+ * `herkunft` ist die ID der Anwendung selbst — kommt eine Aenderung von dort
+ * zurueck, muss sie nicht noch einmal informiert werden.
+ */
+function montageHaken(herkunft: string, sprache: Language): MontageHaken {
+  return {
+    language: sprache,
+    onLanguageChange: (language) => void aktualisiereSammlungssprache(language, herkunft)
+  };
+}
+
+/**
+ * Die eine Stelle, an der die Sprache der Sammlung geaendert wird.
+ *
+ * Gerufen wird sie aus zwei Richtungen: wenn jemand sie in den Einstellungen
+ * der Huelle umstellt, und wenn eine der eingebetteten Anwendungen sie ueber
+ * ihr eigenes Sprachmenue umstellt. Beide Richtungen laufen hier zusammen und
+ * fuehren zu demselben Ergebnis — genau das war die Anforderung: eine
+ * Aenderung an irgendeiner Stelle soll ueberall ankommen.
+ *
+ * `herkunft` bekommt die Aenderung nicht noch einmal geschickt: sie weiss es
+ * ja schon, sie hat sie ausgeloest. Fuer die Huelle selbst (Aenderung im
+ * Einstellungen-Dialog) ist das `null` — dort gibt es keine `offen`-Anwendung,
+ * die sich selbst meldet.
+ */
+async function aktualisiereSammlungssprache(language: Language, herkunft: string | null): Promise<void> {
+  const aktuell = await readSettings(einstellungsDatei);
+  if (aktuell.language === language) return;
+  await writeSettings(einstellungsDatei, { ...aktuell, language });
+
+  // Die Oberflaeche der Huelle selbst (Titelleiste, Startmenue, Schiene, die
+  // Einstellungen, falls sie gerade offen sind) muss ebenfalls nachziehen.
+  huelle?.webContents.send('einstellungen:sprache-extern', language);
+
+  for (const [id, montiert] of offen) {
+    if (id === herkunft) continue;
+    void montiert.setLanguage?.(language);
   }
 }
 
@@ -231,7 +275,8 @@ async function starteMitWerkzeug(): Promise<void> {
   const id = process.env.TTRPG_TOOLS_START_APP;
   if (!id || !fenster) return;
 
-  const montiert = await mountApp(id);
+  const einstellungen = await readSettings(einstellungsDatei);
+  const montiert = await mountApp(id, montageHaken(id, einstellungen.language));
   if (!montiert) {
     console.error(`[shell] Unbekanntes Werkzeug in TTRPG_TOOLS_START_APP: ${id}`);
     return;
@@ -293,8 +338,16 @@ function registriereKanaele(): void {
    * eines, den es so nicht gibt.
    */
   handle('einstellungen:schreiben', async (_event, neu: ShellSettings) => {
+    const vorher = await readSettings(einstellungsDatei);
     await writeSettings(einstellungsDatei, neu);
-    return readSettings(einstellungsDatei);
+    const aktualisiert = await readSettings(einstellungsDatei);
+    // Die Sprache hier zu aendern ist der Weg ueber den Einstellungen-Dialog
+    // der Huelle; es gibt keine "Ursprungs"-Anwendung, die schon Bescheid
+    // weiss, deshalb bekommen alle offenen Anwendungen die Meldung.
+    if (aktualisiert.language !== vorher.language) {
+      for (const montiert of offen.values()) void montiert.setLanguage?.(aktualisiert.language);
+    }
+    return aktualisiert;
   });
 
   /**
@@ -314,7 +367,8 @@ function registriereKanaele(): void {
 
     let montiert = offen.get(id);
     if (!montiert) {
-      montiert = (await mountApp(id)) ?? undefined;
+      const einstellungen = await readSettings(einstellungsDatei);
+      montiert = (await mountApp(id, montageHaken(id, einstellungen.language))) ?? undefined;
       if (!montiert) return false;
       offen.set(id, montiert);
       fenster.contentView.addChildView(montiert.sicht);

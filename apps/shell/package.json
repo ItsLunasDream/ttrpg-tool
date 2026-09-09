@@ -71,6 +71,14 @@
           "**/*",
           "!**/*.map"
         ]
+      },
+      {
+        "from": "../mapmaker/dist-embed",
+        "to": "apps/mapmaker/dist-embed",
+        "filter": [
+          "**/*",
+          "!**/*.map"
+        ]
       }
     ],
     "win": {

@@ -47,6 +47,17 @@ const api = {
     return () => ipcRenderer.off(channel('app:flush'), listener);
   },
   flushed: () => ipcRenderer.send(channel('app:flushed')),
+  /**
+   * Die Sprache wurde von aussen gesetzt (aus der Huelle). Liefert eine
+   * Funktion zum Abmelden zurueck.
+   */
+  onLanguageChange: (callback: (language: AppSettings['language']) => void): (() => void) => {
+    const listener = (_e: unknown, language: AppSettings['language']) => callback(language);
+    ipcRenderer.on(channel('app:sprache'), listener);
+    return () => {
+      ipcRenderer.off(channel('app:sprache'), listener);
+    };
+  },
   ai: {
     status: () => invoke<{ provider: string; ready: boolean; detail: string; hasKey: boolean }>('ai:status'),
     setApiKey: (apiKey: string) => invoke<AppSettings>('ai:setApiKey', apiKey),

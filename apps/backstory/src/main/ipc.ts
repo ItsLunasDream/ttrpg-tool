@@ -30,6 +30,14 @@ export interface IpcContext {
   vault: Vault;
   settingsFile: string;
   settings: AppSettings;
+  /**
+   * Wird gerufen, wenn hier die Sprache umgestellt wurde.
+   *
+   * Nur die Huelle setzt das: sie fuehrt die Sprache fuer die ganze Sammlung
+   * und muss erfahren, wenn jemand sie in dieser Anwendung aendert — sonst
+   * liefen die Werkzeuge auseinander. Eigenstaendig bleibt es leer.
+   */
+  onLanguageChange?: (language: AppSettings['language']) => void;
 }
 
 /** Fehler aus dem Main-Prozess kommen im Renderer als lesbare Meldung an. */
@@ -87,12 +95,14 @@ export function registerIpc(context: IpcContext): void {
   handle<[], string>('app:version', async () => app.getVersion());
 
   handle<[Partial<AppSettings>], AppSettings>('settings:update', async (patch) => {
+    const vorher = context.settings.language;
     const next: AppSettings = { ...context.settings, ...patch, vaultRoot: context.settings.vaultRoot };
     context.settings = await writeSettings(context.settingsFile, next);
     vault.setHistoryOptions({
       enabled: context.settings.historyEnabled,
       maxVersions: context.settings.historyMaxVersions
     });
+    if (context.settings.language !== vorher) context.onLanguageChange?.(context.settings.language);
     return context.settings;
   });
 

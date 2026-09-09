@@ -2,23 +2,28 @@
  * Die Schnittstelle, ueber die eine Huelle diese Anwendung einbettet
  * (Konvention 7 der Wurzel).
  *
- * Sie faellt viel kleiner aus als die des Backstory Creators, und das hat
- * einen Grund: der Karteneditor ist eine reine Web-Anwendung. Er hat keinen
- * Hauptprozess, keine IPC-Kanaele und kein Preload — was er speichert, legt
- * er ueber die File System Access API und den Browserspeicher ab. Zu
- * montieren gibt es hier also nichts; die Huelle muss nur wissen, wo seine
- * Oberflaeche liegt und unter welchem Namen seine Daten stehen sollen.
+ * Sie faellt kleiner aus als die des Backstory Creators, und das hat einen
+ * Grund: der Karteneditor ist eine reine Web-Anwendung. Er hat keinen
+ * eigenen Hauptprozess — was er speichert, legt er ueber die File System
+ * Access API und den Browserspeicher ab. Ein Preload gibt es trotzdem, aber
+ * nur fuer einen einzigen Zweck: die Sprachkopplung mit der Huelle (siehe
+ * preload.ts). Fuer alles andere bleibt diese Anwendung ohne Bruecke zum
+ * Hauptprozess.
  *
- * Dass es die Datei trotzdem gibt, ist Absicht: die Huelle soll ihre
+ * Dass es diese Datei trotzdem gibt, ist Absicht: die Huelle soll ihre
  * Anwendungen gleich behandeln und nicht fuer jede einen Sonderfall kennen.
- * Bekommt der Karteneditor eines Tages doch einen nativen Anteil, waechst er
- * hier hinein, ohne dass die Huelle sich aendert.
+ * Bekommt der Karteneditor eines Tages einen groesseren nativen Anteil,
+ * waechst er hier hinein, ohne dass die Huelle sich aendert.
  *
- * Kein `electron`-Import: diese Datei wird in das Buendel der Huelle
- * uebernommen, gehoert aber weiter zu einer Anwendung, die auch im Browser
- * und unter Tauri laeuft.
+ * Diese Datei selbst laeuft ausschliesslich im Hauptprozess der Huelle — sie
+ * wird dort importiert (`apps/shell/src/main/apps.ts`), nicht in das Bundle
+ * der Oberflaeche. Der `electron`-Import unten ist deshalb unproblematisch:
+ * er zieht nichts in den Browser-Code dieser Anwendung, nur `ipcRenderer` in
+ * preload.ts laeuft im Renderer-Prozess.
  */
 import path from 'node:path';
+import { ipcMain, type WebContents } from 'electron';
+import type { Language } from '../i18n/strings';
 
 export interface MapmakerEmbedOptions {
   /**
@@ -31,6 +36,20 @@ export interface MapmakerEmbedOptions {
   readonly distDir: string;
   /** Gesetzt, wenn die Oberflaeche vom Entwicklungsserver kommen soll. */
   readonly devServerUrl?: string;
+  /**
+   * Die Sprache, mit der diese Anwendung beim Montieren beginnen soll — die
+   * der Sammlung, nicht die zuletzt vom Karteneditor selbst gespeicherte.
+   * Ohne diese Angabe koennten zwei Werkzeuge nach einem Neustart mit
+   * unterschiedlichen Sprachen dastehen, obwohl zuletzt eine gemeinsame Wahl
+   * getroffen wurde.
+   */
+  readonly language: Language;
+  /**
+   * Wird gerufen, wenn *in dieser Anwendung* die Sprache umgestellt wird —
+   * ueber ihr eigenes Sprachmenue, nicht durch `setLanguage` von aussen.
+   * Die Huelle reicht das an die anderen Werkzeuge weiter.
+   */
+  readonly onLanguageChange?: (language: Language) => void;
 }
 
 export interface MapmakerEmbed {
@@ -48,12 +67,10 @@ export interface MapmakerEmbed {
    */
   readonly csp: string;
   /**
-   * Diese Anwendung braucht kein Preload.
-   *
-   * Steht ausdruecklich hier und nicht als Schweigen: die Huelle soll den
-   * Unterschied ablesen koennen, statt ihn zu wissen.
+   * Preload nur fuer die Sprachkopplung — siehe preload.ts. Anders als beim
+   * Backstory Creator nicht `null`: diese eine Bruecke gibt es jetzt.
    */
-  readonly preloadPath: null;
+  readonly preloadPath: string;
   /**
    * Nichts zu sichern vor dem Schliessen.
    *
@@ -62,6 +79,13 @@ export interface MapmakerEmbed {
    * gibt es, damit die Huelle alle Anwendungen gleich behandeln kann.
    */
   flush(): Promise<void>;
+  /**
+   * Setzt die Sprache von aussen, ueber die Preload-Bruecke.
+   *
+   * Loest `onLanguageChange` bewusst *nicht* aus: die Aenderung kam ja von
+   * dort (oder von der Huelle selbst), und die Meldung liefe im Kreis.
+   */
+  setLanguage(webContents: WebContents, language: Language): Promise<void>;
 }
 
 /**
@@ -92,12 +116,30 @@ const CSP = [
   "base-uri 'none'"
 ].join('; ');
 
+const PREFIX = 'mapmaker:';
+
 export function mountMapmaker(options: MapmakerEmbedOptions): MapmakerEmbed {
+  // Meldet, wenn im Karteneditor selbst umgestellt wurde (ueber sein eigenes
+  // Sprachmenue). Nur einmal angemeldet: pro Prozess montiert die Huelle
+  // diese Anwendung hoechstens einmal.
+  ipcMain.on(`${PREFIX}sprache-gewechselt`, (_event, language: string) => {
+    if (language === 'de' || language === 'en') options.onLanguageChange?.(language);
+  });
+
   return {
     csp: CSP,
     indexFile: options.devServerUrl ? null : path.join(options.distDir, 'index.html'),
     devServerUrl: options.devServerUrl ?? null,
-    preloadPath: null,
-    flush: () => Promise.resolve()
+    // Das Preload liegt in einem eigenen Ordner neben dist/, nicht darin:
+    // `vite build` leert dist/ bei jedem Lauf komplett (emptyOutDir), das
+    // getrennt gebuendelte Preload waere sonst weg.
+    preloadPath: path.join(options.distDir, '..', 'dist-embed', 'preload.js'),
+    flush: () => Promise.resolve(),
+    setLanguage: (webContents, language) => {
+      if (!webContents.isDestroyed()) {
+        webContents.send(`${PREFIX}sprache-setzen`, language);
+      }
+      return Promise.resolve();
+    }
   };
 }

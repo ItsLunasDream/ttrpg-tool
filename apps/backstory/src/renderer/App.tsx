@@ -140,6 +140,17 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     });
   }, [guard]);
 
+  // Die Huelle kann die Sprache von aussen setzen (Einstellungen dort gelten
+  // fuer die ganze Sammlung). Ohne diesen Effekt liefe die Oberflaeche mit
+  // der alten Sprache weiter, obwohl schon eine neue in den Einstellungen
+  // steht.
+  useEffect(() => {
+    return api.onLanguageChange((language) => {
+      setSettings((prev) => (prev ? { ...prev, language } : prev));
+      onLanguageChange(language);
+    });
+  }, [onLanguageChange]);
+
   const reloadNotes = useCallback(
     async (campaignId: string) => {
       const list = await call(api.notes.list(campaignId));

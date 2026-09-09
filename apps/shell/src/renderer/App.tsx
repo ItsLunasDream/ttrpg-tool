@@ -78,9 +78,15 @@ export function App() {
       setAktiv(id);
       setEingebettet(true);
     });
+    // Eine der eingebetteten Anwendungen (oder eine andere Sitzung dieses
+    // Fensters) kann die Sprache aendern, ohne dass hier der
+    // Einstellungen-Dialog benutzt wurde. Ohne diesen Kanal wuesste die
+    // Titelleiste nichts davon.
+    const abmeldenSprache = window.shell.einstellungen.beiSprachwechselVonAussen(setSprache);
     return () => {
       abmeldenZustand();
       abmeldenStart();
+      abmeldenSprache();
     };
   }, []);
 

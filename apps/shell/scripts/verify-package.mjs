@@ -115,15 +115,20 @@ async function pruefeEingebetteteDateien() {
   }
   if (!resources) return [`Kein resources-Verzeichnis gefunden, gesucht in: ${kandidaten.join(', ')}`];
 
+  // [id, Ordner unter apps/<id>/, Datei darin]. Der Karteneditor hat sein
+  // Sprachkopplungs-Preload in dist-embed/, getrennt von dist/: `vite build`
+  // leert dist/ bei jedem Lauf komplett, das getrennt gebuendelte Preload
+  // waere sonst weg.
   const erwartet = [
-    ['backstory', path.join('main', 'preload.js')],
-    ['backstory', path.join('renderer', 'index.html')],
-    ['mapmaker', 'index.html']
+    ['backstory', 'dist', path.join('main', 'preload.js')],
+    ['backstory', 'dist', path.join('renderer', 'index.html')],
+    ['mapmaker', 'dist', 'index.html'],
+    ['mapmaker', 'dist-embed', 'preload.js']
   ];
 
   const fehlend = [];
-  for (const [id, datei] of erwartet) {
-    const voll = path.join(resources, 'apps', id, 'dist', datei);
+  for (const [id, ordner, datei] of erwartet) {
+    const voll = path.join(resources, 'apps', id, ordner, datei);
     try {
       await access(voll);
     } catch {

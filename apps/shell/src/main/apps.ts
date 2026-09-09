@@ -27,12 +27,31 @@ import {
   registerAssetScheme as registerBackstoryScheme
 } from '../../../backstory/src/main/embed';
 import { mountMapmaker } from '../../../mapmaker/src/embed';
+import type { Language } from '../shared/i18n';
 
 export interface MontierteApp {
   readonly id: string;
   readonly sicht: WebContentsView;
   /** Sichert Ungespeichertes und wartet darauf. Vor dem Schliessen aufzurufen. */
   flush(): Promise<void>;
+  /**
+   * Setzt die Sprache dieser Anwendung von aussen — fehlt, wenn eine
+   * Anwendung das (noch) nicht unterstuetzt. Die Huelle ruft das bei jeder
+   * offenen Anwendung ausser der meldenden auf, wenn irgendwo umgestellt
+   * wird.
+   */
+  setLanguage?(language: Language): Promise<void>;
+}
+
+/** Was die Huelle jeder Anwendung beim Montieren mitgibt. */
+export interface MontageHaken {
+  /** Die Sprache der Sammlung, mit der die Anwendung beginnen soll. */
+  readonly language: Language;
+  /**
+   * Wird gerufen, wenn *in dieser Anwendung* die Sprache umgestellt wurde —
+   * ueber ihr eigenes Sprachmenue, nicht durch ein `setLanguage` von aussen.
+   */
+  readonly onLanguageChange: (language: Language) => void;
 }
 
 /**
@@ -154,18 +173,20 @@ async function lade(
  * kann. Die Oberflaeche zeigt dann ihre Platzhalterflaeche — besser als ein
  * Fehler fuer etwas, das erklaertermassen noch nicht fertig ist.
  */
-export async function mountApp(id: string): Promise<MontierteApp | null> {
-  if (id === 'backstory') return montiereBackstory(id);
-  if (id === 'mapmaker') return montiereMapmaker(id);
+export async function mountApp(id: string, haken: MontageHaken): Promise<MontierteApp | null> {
+  if (id === 'backstory') return montiereBackstory(id, haken);
+  if (id === 'mapmaker') return montiereMapmaker(id, haken);
   return null;
 }
 
-async function montiereBackstory(id: string): Promise<MontierteApp> {
+async function montiereBackstory(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountBackstory({
     userDataDir: datenordner(id),
     distDir: appDistDir(id, 'main'),
     partition: sitzung(id),
-    devServerUrl: process.env.BACKSTORY_DEV_SERVER_URL
+    devServerUrl: process.env.BACKSTORY_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: haken.onLanguageChange
   });
 
   const sicht = new WebContentsView({
@@ -184,16 +205,19 @@ async function montiereBackstory(id: string): Promise<MontierteApp> {
   return {
     id,
     sicht,
-    flush: () => eingebettet.flush(sicht.webContents as WebContents)
+    flush: () => eingebettet.flush(sicht.webContents as WebContents),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
   };
 }
 
-async function montiereMapmaker(id: string): Promise<MontierteApp> {
+async function montiereMapmaker(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = mountMapmaker({
     // Der Karteneditor hat keinen Hauptprozess; sein Vite-Build liegt direkt
     // in dist/, nicht in dist/renderer/ wie beim Backstory Creator.
     distDir: appDistDir(id),
-    devServerUrl: process.env.MAPMAKER_DEV_SERVER_URL
+    devServerUrl: process.env.MAPMAKER_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: haken.onLanguageChange
   });
 
   // Vor dem Laden: die Kopfzeile muss stehen, bevor die erste Antwort kommt.
@@ -201,6 +225,7 @@ async function montiereMapmaker(id: string): Promise<MontierteApp> {
 
   const sicht = new WebContentsView({
     webPreferences: {
+      preload: eingebettet.preloadPath,
       partition: sitzung(id),
       contextIsolation: true,
       nodeIntegration: false,
@@ -210,6 +235,16 @@ async function montiereMapmaker(id: string): Promise<MontierteApp> {
 
   sichereAb(sicht, eingebettet.devServerUrl);
   await lade(sicht, eingebettet);
+  // Der Karteneditor liest seine Sprache beim Start aus seinem eigenen
+  // Browserspeicher, bevor die Huelle ihm etwas sagen kann — anders als beim
+  // Backstory Creator gibt es hier keine gemeinsam gelesene Einstellungsdatei.
+  // Dieser Aufruf gleicht das nach dem Laden einmal an.
+  await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
 
-  return { id, sicht, flush: () => eingebettet.flush() };
+  return {
+    id,
+    sicht,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+  };
 }

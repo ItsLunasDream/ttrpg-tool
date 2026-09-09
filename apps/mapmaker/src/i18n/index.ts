@@ -10,6 +10,21 @@ import { LANGUAGES, strings, type Language, type StringKey } from './strings';
 
 const STORAGE_KEY = 'ttrpg-map-editor.language';
 
+/**
+ * Die Bruecke aus embed/preload.ts — nur vorhanden, wenn die Huelle diese
+ * Anwendung eingebettet hat. Eigenstaendig (Browser, Tauri) gibt es sie nicht,
+ * und dieses Modul verhaelt sich dann genau wie vorher.
+ */
+interface SpracheBruecke {
+  gewechselt(language: string): void;
+  onGesetzt(callback: (language: string) => void): () => void;
+}
+declare global {
+  interface Window {
+    ttrpgToolsSprache?: SpracheBruecke;
+  }
+}
+
 let current: Language = detect();
 const listeners = new Set<() => void>();
 
@@ -28,7 +43,8 @@ export function getLanguage(): Language {
   return current;
 }
 
-export function setLanguage(language: Language): void {
+/** Setzt current, den Speicher und benachrichtigt — ohne die Huelle zu melden. */
+function uebernehmen(language: Language): void {
   if (language === current) return;
   current = language;
   try {
@@ -39,9 +55,29 @@ export function setLanguage(language: Language): void {
   for (const fn of listeners) fn();
 }
 
+export function setLanguage(language: Language): void {
+  if (language === current) return;
+  uebernehmen(language);
+  // Eingebettet: der Huelle sagen, dass hier umgestellt wurde, damit sie es
+  // an die anderen Werkzeuge weiterreicht. Eigenstaendig (und in den
+  // Modelltests, die ohne DOM laufen) gibt es weder `window` noch die
+  // Bruecke, dann bleibt es bei der lokalen Änderung von eben.
+  if (typeof window !== 'undefined') window.ttrpgToolsSprache?.gewechselt(language);
+}
+
 export function onLanguageChange(fn: () => void): () => void {
   listeners.add(fn);
   return () => listeners.delete(fn);
+}
+
+// Eingebettet: die Huelle kann jederzeit von aussen umschalten — etwa weil
+// ein anderes Werkzeug oder die Huelle selbst umgestellt wurde. `uebernehmen`
+// und nicht `setLanguage`: sonst meldete dieses Modul die Aenderung postwendend
+// zurueck, und die Huelle haette sich selbst im Kreis benachrichtigt.
+if (typeof window !== 'undefined' && window.ttrpgToolsSprache) {
+  window.ttrpgToolsSprache.onGesetzt((language) => {
+    if ((LANGUAGES as readonly string[]).includes(language)) uebernehmen(language as Language);
+  });
 }
 
 /**
