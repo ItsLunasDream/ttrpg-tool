@@ -86,13 +86,48 @@ jobs:
           if-no-files-found: ignore
           retention-days: 1
 
+  suite-check:
+    name: Gepacktes Paket der Sammlung prüfen
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Fassung aus der .nvmrc der Wurzel, Begruendung im Job oben.
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Linux-Paket der Sammlung bauen
+        run: npm run dist:suite:linux:dir
+      # Der Rauchtest laeuft gegen die ungepackte Huelle und sieht nicht, ob
+      # die Dateien der eingebetteten Anwendungen im Paket ankommen — dort
+      # liegen sie an einem anderen Ort als im Workspace. Diese Pruefung
+      # startet das Paket mit einem geoeffneten Werkzeug und wartet darauf,
+      # dass es wirklich hochkommt.
+      - name: Gepacktes Paket starten
+        run: xvfb-run -a npm run verify:package:suite -- "$PWD/apps/shell/release/linux-unpacked/ttrpg-tools"
+      - name: Log bei Fehler sichern
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: suite-verify-log
+          path: apps/shell/package-verify.log
+          if-no-files-found: ignore
+          retention-days: 1
+
   windows:
-    name: Windows-Anwendung
-    needs: package-check
-    # Windows-Laeufer zaehlen doppelt auf das Kontingent. Die fertige
-    # Anwendung wird nur dort gebaut, wo sie auch gebraucht wird: auf main,
-    # fuer eine Veroeffentlichung und wenn jemand den Lauf von Hand startet.
-    # Auf Zweigen genuegen die Tests darueber.
+    name: Windows-Paket der Sammlung
+    needs: [package-check, suite-check]
+    # Windows-Laeufer zaehlen doppelt auf das Kontingent. Das fertige Paket
+    # wird nur dort gebaut, wo es auch gebraucht wird: auf main, fuer eine
+    # Veroeffentlichung und wenn jemand den Lauf von Hand startet. Auf Zweigen
+    # genuegen die Tests darueber.
+    #
+    # Gebaut und veroeffentlicht wird die Sammlung, nicht mehr die einzelne
+    # Anwendung. Die bleibt baubar (`npm run dist:win -w apps/backstory`) und
+    # wird im Job „Gepacktes Paket pruefen" weiter geprueft — sie ist nur kein
+    # Auslieferungsgegenstand mehr.
     if: github.event_name != 'push' || github.ref == 'refs/heads/main'
     runs-on: windows-latest
     steps:
@@ -103,15 +138,14 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm run icon
-      - run: npm run dist:win
-      - name: Gepackte Anwendung starten
-        run: npm run verify:package -w apps/backstory -- "${{ github.workspace }}\apps\backstory\release\win-unpacked\Backstory Creator.exe"
+      - run: npm run dist:suite:win
+      - name: Gepacktes Paket starten
+        run: npm run verify:package:suite -- "${{ github.workspace }}\apps\shell\release\win-unpacked\TTRPG-Tools.exe"
       - name: Ergebnis hochladen
         uses: actions/upload-artifact@v4
         with:
-          name: backstory-creator-windows
-          path: apps/backstory/release/*.exe
+          name: ttrpg-tools-windows
+          path: apps/shell/release/*.exe
           if-no-files-found: error
           retention-days: 1
 
@@ -119,4 +153,4 @@ jobs:
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: apps/backstory/release/*.exe
+          files: apps/shell/release/*.exe

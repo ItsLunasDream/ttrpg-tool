@@ -68,7 +68,20 @@ export function App() {
     void window.shell.einstellungen.lesen().then((e) => setSprache(e.language));
     // Auch der Fensterrahmen des Systems kann maximieren. Ohne diese Meldung
     // zeigte der Knopf danach das falsche Symbol.
-    return window.shell.fenster.beiZustandswechsel(({ maximiert: m }) => setMaximiert(m));
+    const abmeldenZustand = window.shell.fenster.beiZustandswechsel(({ maximiert: m }) =>
+      setMaximiert(m)
+    );
+    // Hat der Hauptprozess beim Start schon ein Werkzeug geoeffnet, liegt es
+    // bereits vorn — die Oberflaeche muss nur nachziehen und darf es nicht
+    // ein zweites Mal anfordern.
+    const abmeldenStart = window.shell.app.beiStartMitWerkzeug((id) => {
+      setAktiv(id);
+      setEingebettet(true);
+    });
+    return () => {
+      abmeldenZustand();
+      abmeldenStart();
+    };
   }, []);
 
   const t = useMemo<Uebersetzer>(

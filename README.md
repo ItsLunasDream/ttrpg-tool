@@ -1,8 +1,16 @@
-# Backstory Creator
+# TTRPG-Tools
 
-Desktop-Tool zum Schreiben von D&D-Charakter-Backstorys. Rich-Text-Editor,
-Wiki-Verlinkung zwischen Notizen, strukturierte Steckbrieffelder und gerichtete
-Beziehungen, alles lokal als Markdown auf der eigenen Platte.
+Werkzeuge für Pen-&-Paper-Kampagnen, die nebeneinander in einem Fenster
+laufen. Alles bleibt lokal auf der eigenen Platte.
+
+- **Backstory Creator** — Figuren, Orte und ihre Beziehungen aufschreiben:
+  Rich-Text-Editor, Wiki-Verlinkung zwischen Notizen, strukturierte
+  Steckbrieffelder und gerichtete Beziehungen, gespeichert als Markdown.
+- **TTRPG Map Editor** — Battlemaps und Weltkarten zeichnen und als Universal
+  VTT exportieren.
+
+Der Arbeitstitel der Sammlung, ihre Symbole und die Namen der einzelnen
+Werkzeuge sind vorläufig.
 
 ## Fertige Anwendung herunterladen
 
@@ -10,18 +18,19 @@ Du brauchst dafür weder Node noch npm.
 
 1. Auf GitHub den Reiter **Actions** öffnen
 2. Den obersten Lauf **Build** anklicken
-3. Unten unter **Artifacts** `backstory-creator-windows` herunterladen
+3. Unten unter **Artifacts** `ttrpg-tools-windows` herunterladen
 4. Die ZIP-Datei entpacken. Darin liegen zwei Dateien:
-   - `BackstoryCreator-Setup-<version>.exe` — Installer, legt Startmenü- und
+   - `TTRPGTools-Setup-<version>.exe` — Installer, legt Startmenü- und
      Desktopeintrag an
-   - `BackstoryCreator-portable-<version>.exe` — läuft ohne Installation direkt
+   - `TTRPGTools-portable-<version>.exe` — läuft ohne Installation direkt
 
 Windows zeigt beim ersten Start eine SmartScreen-Warnung, weil die Datei nicht
 signiert ist. Über „Weitere Informationen" → „Trotzdem ausführen" startet sie.
 Eine Signatur bräuchte ein kostenpflichtiges Zertifikat.
 
-Artefakte werden 90 Tage aufbewahrt. Wer ein dauerhaftes Download-Ziel will,
-legt auf GitHub ein Release an, dann hängt der Workflow die Dateien dort an.
+Artefakte werden einen Tag aufbewahrt — das spart Speicherkontingent. Wer ein
+dauerhaftes Download-Ziel will, legt auf GitHub ein Release an, dann hängt der
+Workflow die Dateien dort an.
 
 ## Selbst bauen
 
@@ -122,10 +131,42 @@ getippte Notiz, die Scrollposition, ein offener Dialog stehen beim
 Zurückkommen noch da. Der Preis ist Arbeitsspeicher, gemessen rund 130 MB je
 zusätzlich geöffneter Anwendung.
 
-Stand: der Backstory Creator läuft eingebettet. Werkzeuge mit dem Zustand
-`vorbereitet` lassen sich anwählen und führen auf eine Fläche, die sagt, dass
-das Einbetten noch aussteht. Was es gibt und wie weit es ist, steht an einer
-Stelle: `apps/shell/src/shared/apps.ts`.
+Jede Anwendung läuft in einer eigenen Electron-Sitzung (`persist:<id>`). Alle
+Ansichten laden über `file://`, und dort ist der Ursprung für alle derselbe —
+ohne getrennte Sitzungen teilten sie sich `localStorage` und IndexedDB. Der
+Karteneditor legt dort seine Prop-Bibliothek, seine Tastenbelegung und die
+zuletzt geöffneten Karten ab.
+
+Stand: der Backstory Creator und der Karteneditor laufen eingebettet.
+Werkzeuge mit dem Zustand `vorbereitet` lassen sich anwählen und führen auf
+eine Fläche, die sagt, dass das Einbetten noch aussteht. Was es gibt und wie
+weit es ist, steht an einer Stelle: `apps/shell/src/shared/apps.ts`.
+
+**Einstellungen und Über** sitzen in der Titelleiste. Die Sprache dort gilt
+für den Rahmen, nicht für die Werkzeuge darin — jedes bringt seine eigene
+Spracheinstellung mit.
+
+**Direkt in einem Werkzeug starten:** `TTRPG_TOOLS_START_APP=backstory`. Das
+ist auch der Weg, auf dem die Prüfung des gepackten Pakets feststellt, ob die
+eingebetteten Anwendungen dort wirklich hochkommen.
+
+#### Paket der Sammlung
+
+```bash
+npm run dist:suite:win        # Windows-Installer und portable exe
+npm run dist:suite:linux      # AppImage
+npm run verify:package:suite -- <pfad-zum-programm>
+```
+
+Die Dateien der eingebetteten Anwendungen landen über `extraResources` unter
+`resources/apps/<id>/dist` — bewusst neben dem asar-Archiv, nicht darin: was
+außerhalb liegt, lässt sich mit gewöhnlichen Mitteln ansehen, wenn etwas
+fehlt. `appDistDir` in `apps/shell/src/main/apps.ts` kennt beide Orte, den im
+Workspace und den im Paket.
+
+Ausgeliefert wird die Sammlung. Die einzelnen Anwendungen bleiben baubar
+(`npm run dist:win -w apps/backstory`) und werden weiter geprüft, sind aber
+kein Auslieferungsgegenstand mehr.
 
 ## Bedienung
 

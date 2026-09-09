@@ -212,6 +212,37 @@ async function erzeugeFenster(): Promise<void> {
 
   if (zustand.maximized) fenster.maximize();
   fenster.show();
+
+  await starteMitWerkzeug();
+}
+
+/**
+ * Oeffnet beim Start gleich ein Werkzeug, wenn TTRPG_TOOLS_START_APP eine ID
+ * nennt.
+ *
+ * Gedacht fuer zweierlei: eine Verknuepfung, die direkt in einem bestimmten
+ * Werkzeug landet — und die Pruefung des gepackten Pakets, die sonst nur
+ * feststellen koennte, dass die Huelle hochkommt. Ob die Anwendungen darin
+ * *auch* laden, haengt an Pfaden, die im Paket anders sind als im Workspace;
+ * ohne diesen Weg klickt dort niemand auf eine Kachel, und ein falscher Pfad
+ * zeigte sich erst der Person, die das Paket benutzt.
+ */
+async function starteMitWerkzeug(): Promise<void> {
+  const id = process.env.TTRPG_TOOLS_START_APP;
+  if (!id || !fenster) return;
+
+  const montiert = await mountApp(id);
+  if (!montiert) {
+    console.error(`[shell] Unbekanntes Werkzeug in TTRPG_TOOLS_START_APP: ${id}`);
+    return;
+  }
+  offen.set(id, montiert);
+  aktiveApp = id;
+  fenster.contentView.addChildView(montiert.sicht);
+  legeHuelleAus();
+  montiert.sicht.setVisible(true);
+  montiert.sicht.webContents.focus();
+  huelle?.webContents.send('app:gestartet-mit', id);
 }
 
 /**
@@ -341,6 +372,11 @@ function registriereKanaele(): void {
 
 app.whenReady().then(async () => {
   einstellungsDatei = join(app.getPath('userData'), 'einstellungen.json');
+  // Einmal anlegen, wenn es sie noch nicht gibt. Zwei Gruende: wer nachsehen
+  // will, was sich einstellen laesst, findet die Datei, statt raten zu
+  // muessen — und sie ist der Beleg dafuer, dass der Hauptprozess bis hierher
+  // gekommen ist. Die Pruefung des gepackten Pakets wartet darauf.
+  await writeSettings(einstellungsDatei, await readSettings(einstellungsDatei));
   registriereKanaele();
   await erzeugeFenster();
   app.on('activate', () => {

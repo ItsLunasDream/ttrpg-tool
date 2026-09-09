@@ -47,19 +47,30 @@ export function registerSchemes(): void {
 }
 
 /**
- * Wo der gebuendelte Hauptprozess einer Anwendung liegt.
+ * Wo die Dateien einer eingebetteten Anwendung liegen.
  *
- * `__dirname` ist hier das Verzeichnis der Huelle — der Code der Anwendung
- * ist in dieses Buendel hineingewandert, ihre Dateien aber nicht. Ohne diese
- * Umrechnung suchte die Anwendung ihr Preload und ihre Oberflaeche neben der
- * Huelle und die Ansicht bliebe leer.
+ * `__dirname` hilft hier nicht: der *Code* der Anwendung ist beim Buendeln in
+ * die Huelle gewandert, ihre *Dateien* — Preload, Oberflaeche, Bilder — sind
+ * dort geblieben, wo sie gebaut wurden.
  *
- * Beim Paketieren aendert sich diese Anordnung, dann muss auch diese Funktion
- * angepasst werden. Ein Test haelt fest, dass die Dateien dort auch wirklich
- * liegen.
+ * Und sie liegen an zwei verschiedenen Orten, je nachdem, wie die Huelle
+ * laeuft:
+ *
+ * - **Im Workspace** neben der Huelle, unter `apps/<id>/dist`.
+ * - **Im gepackten Paket** unter `resources/apps/<id>/dist`. Dorthin legt sie
+ *   electron-builder ueber `extraResources`. Bewusst nicht ins asar-Archiv:
+ *   die Anwendungen bringen ihre eigenen Unterordner und Bilder mit, und was
+ *   ausserhalb liegt, laesst sich mit gewoehnlichen Mitteln ansehen, wenn
+ *   etwas fehlt.
+ *
+ * Ein Rauchtest prueft beide Faelle — den ersten beim Entwickeln, den zweiten
+ * am fertigen Paket.
  */
 export function appDistDir(id: string, ...weiter: string[]): string {
-  return join(__dirname, '..', '..', '..', id, 'dist', ...weiter);
+  const wurzel = app.isPackaged
+    ? join(process.resourcesPath, 'apps', id, 'dist')
+    : join(__dirname, '..', '..', '..', id, 'dist');
+  return join(wurzel, ...weiter);
 }
 
 /** Wohin eine Anwendung ihre Daten legt. */

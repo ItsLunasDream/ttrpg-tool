@@ -49,6 +49,20 @@ const api = {
      * Anwendung tritt so lange zurueck, sonst deckt sie ihn zu.
      */
     dialog: (offen: boolean) => ipcRenderer.invoke('app:dialog', offen) as Promise<void>,
+    /**
+     * Meldet, dass der Hauptprozess beim Start schon ein Werkzeug geoeffnet
+     * hat (TTRPG_TOOLS_START_APP). Die Oberflaeche zeigt sonst ihr
+     * Startmenue, waehrend dahinter bereits eine Anwendung liegt.
+     *
+     * Liefert eine Funktion zum Abmelden zurueck.
+     */
+    beiStartMitWerkzeug: (fn: (id: string) => void): (() => void) => {
+      const hoerer = (_e: unknown, id: string) => fn(id);
+      ipcRenderer.on('app:gestartet-mit', hoerer);
+      return () => {
+        ipcRenderer.off('app:gestartet-mit', hoerer);
+      };
+    },
     /** Oeffnet eine http(s)-Adresse im Browser des Systems. */
     oeffneExtern: (adresse: string) =>
       ipcRenderer.invoke('app:oeffne-extern', adresse) as Promise<void>

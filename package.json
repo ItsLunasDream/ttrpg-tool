@@ -19,10 +19,15 @@
     "smoke:shell": "npm run build && npm run smoke -w apps/shell",
     "roundtrip": "npm run roundtrip -w apps/backstory",
     "icon": "npm run icon -w apps/backstory",
+    "icon:suite": "npm run icon -w apps/shell",
     "dist:win": "npm run dist:win -w apps/backstory",
     "dist:linux": "npm run dist:linux -w apps/backstory",
     "dist:linux:dir": "npm run dist:linux:dir -w apps/backstory",
     "verify:package": "npm run verify:package -w apps/backstory",
+    "dist:suite:win": "npm run build && npm run icon:suite && npm run dist:win -w apps/shell",
+    "dist:suite:linux": "npm run build && npm run icon:suite && npm run dist:linux -w apps/shell",
+    "dist:suite:linux:dir": "npm run build && npm run icon:suite && npm run dist:linux:dir -w apps/shell",
+    "verify:package:suite": "npm run verify:package -w apps/shell",
     "dev:mapmaker": "npm run dev -w apps/mapmaker"
   },
   "author": {
