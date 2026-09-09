@@ -8,10 +8,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "node scripts/pruefe-installation.mjs && npm run build -w apps/backstory && npm run build -w apps/mapmaker && npm run dev -w apps/shell",
+    "dev": "node scripts/pruefe-installation.mjs && npm run build -w apps/backstory && npm run build -w apps/mapmaker && npm run build -w apps/initiative && npm run dev -w apps/shell",
     "dev:backstory": "node scripts/pruefe-installation.mjs && npm run dev -w apps/backstory",
     "build": "node scripts/pruefe-installation.mjs && npm run build --workspaces --if-present",
-    "start": "node scripts/pruefe-installation.mjs && npm run build -w apps/backstory && npm run build -w apps/mapmaker && npm run start -w apps/shell",
+    "start": "node scripts/pruefe-installation.mjs && npm run build -w apps/backstory && npm run build -w apps/mapmaker && npm run build -w apps/initiative && npm run start -w apps/shell",
     "start:backstory": "node scripts/pruefe-installation.mjs && npm run start -w apps/backstory",
     "typecheck": "node scripts/pruefe-installation.mjs && npm run typecheck --workspaces --if-present",
     "test": "node scripts/pruefe-installation.mjs && npm run test --workspaces --if-present",
@@ -28,7 +28,8 @@
     "dist:suite:linux": "npm run build && npm run icon:suite && npm run dist:linux -w apps/shell",
     "dist:suite:linux:dir": "npm run build && npm run icon:suite && npm run dist:linux:dir -w apps/shell",
     "verify:package:suite": "npm run verify:package -w apps/shell",
-    "dev:mapmaker": "node scripts/pruefe-installation.mjs && npm run dev -w apps/mapmaker"
+    "dev:mapmaker": "node scripts/pruefe-installation.mjs && npm run dev -w apps/mapmaker",
+    "dev:initiative": "node scripts/pruefe-installation.mjs && npm run dev -w apps/initiative"
   },
   "author": {
     "name": "ItsLunasDream"

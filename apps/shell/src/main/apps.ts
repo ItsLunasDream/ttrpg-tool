@@ -28,6 +28,10 @@ import {
   registerAssetScheme as registerBackstoryScheme
 } from '../../../backstory/src/main/embed';
 import { mountMapmaker } from '../../../mapmaker/src/embed';
+import {
+  mountInitiative,
+  registriereBildSchema as registriereInitiativeSchema
+} from '../../../initiative/src/main/embed';
 import type { Language } from '../shared/i18n';
 
 export interface MontierteApp {
@@ -96,6 +100,7 @@ export interface MontageHaken {
  */
 export function registerSchemes(): void {
   registerBackstoryScheme();
+  registriereInitiativeSchema();
 }
 
 /**
@@ -231,7 +236,52 @@ async function lade(
 export async function mountApp(id: string, haken: MontageHaken): Promise<MontierteApp | null> {
   if (id === 'backstory') return montiereBackstory(id, haken);
   if (id === 'mapmaker') return montiereMapmaker(id, haken);
+  if (id === 'initiative') return montiereInitiative(id, haken);
   return null;
+}
+
+async function montiereInitiative(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountInitiative({
+    userDataDir: datenordner(id),
+    // Der Tracker buendelt seinen Hauptprozessteil nach dist/main, die
+    // Oberflaeche nach dist/renderer — wie der Backstory Creator.
+    distDir: appDistDir(id, 'main'),
+    partition: sitzung(id),
+    devServerUrl: process.env.INITIATIVE_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+  });
+
+  // Vor dem Laden: die Kopfzeile muss stehen, bevor die erste Antwort kommt.
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      // Wie beim Karteneditor: der Tracker liest seine Sprache aus dem
+      // eigenen Browserspeicher, bevor die Huelle ihm etwas sagen kann.
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+  };
 }
 
 async function montiereBackstory(id: string, haken: MontageHaken): Promise<MontierteApp> {
