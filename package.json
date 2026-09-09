@@ -8,15 +8,15 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run build -w apps/backstory && npm run build -w apps/mapmaker && npm run dev -w apps/shell",
-    "dev:backstory": "npm run dev -w apps/backstory",
-    "build": "npm run build --workspaces --if-present",
-    "start": "npm run build -w apps/backstory && npm run build -w apps/mapmaker && npm run start -w apps/shell",
-    "start:backstory": "npm run start -w apps/backstory",
-    "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
-    "smoke": "npm run build && npm run smoke -w apps/shell",
-    "smoke:backstory": "npm run smoke -w apps/backstory",
+    "dev": "node scripts/pruefe-installation.mjs && npm run build -w apps/backstory && npm run build -w apps/mapmaker && npm run dev -w apps/shell",
+    "dev:backstory": "node scripts/pruefe-installation.mjs && npm run dev -w apps/backstory",
+    "build": "node scripts/pruefe-installation.mjs && npm run build --workspaces --if-present",
+    "start": "node scripts/pruefe-installation.mjs && npm run build -w apps/backstory && npm run build -w apps/mapmaker && npm run start -w apps/shell",
+    "start:backstory": "node scripts/pruefe-installation.mjs && npm run start -w apps/backstory",
+    "typecheck": "node scripts/pruefe-installation.mjs && npm run typecheck --workspaces --if-present",
+    "test": "node scripts/pruefe-installation.mjs && npm run test --workspaces --if-present",
+    "smoke": "node scripts/pruefe-installation.mjs && npm run build && npm run smoke -w apps/shell",
+    "smoke:backstory": "node scripts/pruefe-installation.mjs && npm run smoke -w apps/backstory",
     "roundtrip": "npm run roundtrip -w apps/backstory",
     "icon": "npm run icon -w apps/backstory",
     "icon:suite": "npm run icon -w apps/shell",
@@ -28,7 +28,7 @@
     "dist:suite:linux": "npm run build && npm run icon:suite && npm run dist:linux -w apps/shell",
     "dist:suite:linux:dir": "npm run build && npm run icon:suite && npm run dist:linux:dir -w apps/shell",
     "verify:package:suite": "npm run verify:package -w apps/shell",
-    "dev:mapmaker": "npm run dev -w apps/mapmaker"
+    "dev:mapmaker": "node scripts/pruefe-installation.mjs && npm run dev -w apps/mapmaker"
   },
   "author": {
     "name": "ItsLunasDream"

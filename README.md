@@ -42,6 +42,14 @@ Nur nötig, wenn du am Code arbeiten willst.
 Benutzerordner. Sonst meldet npm `Could not read package.json`. Wechsle vorher
 mit `cd` in den Ordner, in dem diese README liegt.
 
+**Nach jedem `git pull` einmal `npm install`.** Bringt ein Pull ein neues
+geteiltes Paket mit, legt npm dessen Verweis in `node_modules` erst beim
+nächsten Installieren an — sonst scheitert der Build an Meldungen, die den
+Grund nicht nennen (`Rollup failed to resolve import`, `Cannot find module
+'vitest'`). `scripts/pruefe-installation.mjs` fängt das ab und sagt es
+stattdessen im Klartext; es läuft vor `dev`, `start`, `build`, `test`,
+`typecheck` und den Rauchtests mit.
+
 ```bash
 cd Pfad\zum\Projektordner
 npm install
