@@ -1,0 +1,19 @@
+{
+  "name": "@suite/motion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zeiten, Kurven und Grundanimationen der Oberflaeche — plattformfreies, geteiltes Paket",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./motion.css": "./src/motion.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node scripts/build-tests.mjs && node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2"
+  }
+}

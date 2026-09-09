@@ -65,6 +65,7 @@ apps/shell/        TTRPG-Tools: die Hülle, in die die Werkzeuge eingebettet wer
 apps/mapmaker/     TTRPG Map Editor: Kartenzeichner (Tauri-Anwendung), siehe unten
 packages/dice/     Geteiltes Paket: Würfelausdrücke lesen und werfen
 packages/i18n/     Geteiltes Paket: Sprachwahl und Textersetzung
+packages/motion/   Geteiltes Paket: Zeiten, Kurven und Grundanimationen der Oberfläche
 ```
 
 `npm install` an der Wurzel richtet alle ein. `npm run dev`, `npm start`,

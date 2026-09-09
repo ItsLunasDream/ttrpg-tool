@@ -1,0 +1,141 @@
+/*
+ * Grundbewegung der Oberflaeche. Wird von jeder Anwendung als Erstes
+ * eingebunden, vor der eigenen styles.css — dann kann die Anwendung die
+ * Farben unten ueberschreiben, ohne die Zeiten anzufassen.
+ *
+ * Die Zahlen stehen auch in index.ts, weil die Huelle eingebettete Ansichten
+ * ohne CSS bewegt. tests/motion.test.mjs vergleicht beide Seiten.
+ *
+ * Klassennamen mit Praefix `motion-`, damit sie sich nicht mit den
+ * Klassen der Anwendungen beissen.
+ */
+
+:root {
+  --motion-feedback: 90ms;
+  --motion-state: 160ms;
+  --motion-place: 220ms;
+  --motion-attention: 450ms;
+
+  --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Rueckmeldefarben. Absichtlich nicht aus der Palette einer Anwendung
+     genommen: das Paket kennt sie nicht. Wer eigene will, setzt sie in seiner
+     eigenen :root neu. */
+  --motion-ok: #4a9d5f;
+  --motion-fehler: #d1635c;
+}
+
+/*
+ * Weniger Bewegung: alles, was etwas verschiebt oder skaliert, faellt auf
+ * nahezu null. Nahezu, nicht genau: bei 0 melden Browser weder
+ * `transitionend` noch `animationend`, und Code, der darauf wartet, bliebe
+ * haengen.
+ *
+ * `--motion-attention` bleibt stehen. Das gruene Aufleuchten nach dem
+ * Speichern ist reine Farbe; es wegzukuerzen naehme dem Nutzer die
+ * Rueckmeldung, statt ihm Bewegung zu ersparen.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-feedback: 0.01ms;
+    --motion-state: 0.01ms;
+    --motion-place: 0.01ms;
+  }
+}
+
+/* --- Aufmerksamkeit: gelungen oder fehlgeschlagen ----------------------- */
+
+/*
+ * Gruenes Aufleuchten, z. B. nach dem Speichern. Faerbt Rand und Hintergrund
+ * und laesst wieder los. Kein `transform`, kein Wackeln: das Element steht,
+ * wo es steht, damit ein Klick, der waehrenddessen kommt, trifft.
+ */
+@keyframes motion-aufleuchten-ok {
+  0% {
+    box-shadow: 0 0 0 0 var(--motion-ok);
+    border-color: var(--motion-ok);
+  }
+  35% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--motion-ok) 45%, transparent);
+    border-color: var(--motion-ok);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@keyframes motion-aufleuchten-fehler {
+  0% {
+    box-shadow: 0 0 0 0 var(--motion-fehler);
+    border-color: var(--motion-fehler);
+  }
+  35% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--motion-fehler) 45%, transparent);
+    border-color: var(--motion-fehler);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.motion-ok {
+  animation: motion-aufleuchten-ok var(--motion-attention) var(--motion-ease-exit);
+}
+
+.motion-fehler {
+  animation: motion-aufleuchten-fehler var(--motion-attention) var(--motion-ease-exit);
+}
+
+/* --- Auftritte ---------------------------------------------------------- */
+
+/* Kommt herein: erscheint und rueckt dabei ein Stueck nach oben. */
+@keyframes motion-eintritt {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Nur Erscheinen, ohne Ortswechsel — fuer Flaechen, die schon liegen, wo sie
+   hingehoeren (Dialoghintergrund, Panelinhalt). */
+@keyframes motion-erscheinen {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.motion-eintritt {
+  animation: motion-eintritt var(--motion-place) var(--motion-ease-enter);
+}
+
+.motion-erscheinen {
+  animation: motion-erscheinen var(--motion-state) var(--motion-ease-enter);
+}
+
+/*
+ * Bei weniger Bewegung bleibt das Erscheinen, das Verschieben faellt weg. Die
+ * Dauern oben sind dann ohnehin nahe null; diese Regel sorgt dafuer, dass es
+ * auch bei einer Anwendung stimmt, die eigene Dauern gesetzt hat.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .motion-eintritt {
+    animation-name: motion-erscheinen;
+  }
+}
+
+/* --- Verlaufsbalken ohne bekanntes Ende --------------------------------- */
+
+/*
+ * Bewusst *keine* Endlosanimation im Paket. Ein dauerhaft laufender Spinner
+ * haelt die GPU wach und macht eine haengende Anwendung so lebendig wie eine
+ * arbeitende. Wer Wartezeit zeigen muss, zeigt einen Text.
+ */
