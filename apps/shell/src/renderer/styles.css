@@ -1,0 +1,567 @@
+/*
+ * Aussehen der Huelle. Dunkel, zurueckhaltend: die Huelle ist Rahmen, nicht
+ * Inhalt. Sie soll neben der Oberflaeche der eingebetteten Anwendung nicht um
+ * Aufmerksamkeit konkurrieren.
+ */
+
+:root {
+  --grund: #14161c;
+  --grund-hoch: #1b1e26;
+  --rand: #2a2e39;
+  --text: #e6e8ee;
+  --text-leise: #939aab;
+  --betont: #7aa2f7;
+  --schliessen: #e5484d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Chromiums Standard-Fokusring ist auf dunklem Grund ein greller gelber
+   Kasten. Ersetzt, nicht abgeschaltet: ohne sichtbaren Fokus waere die Huelle
+   mit der Tastatur nicht mehr bedienbar. */
+:focus-visible {
+  outline: 2px solid var(--betont);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--grund);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  /* Die Huelle scrollt nie. Sie ist ein Rahmen fester Groesse; was scrollt,
+     ist die Anwendung darin. */
+  overflow: hidden;
+  user-select: none;
+}
+
+.huelle {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ---------- Titelleiste ---------- */
+
+.titelleiste {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  background: var(--grund-hoch);
+  border-bottom: 1px solid var(--rand);
+  flex: 0 0 auto;
+  /* Das Fenster ist rahmenlos, also muss die Leiste selbst ziehbar sein. */
+  -webkit-app-region: drag;
+}
+
+.titelleiste__marke {
+  display: flex;
+  color: var(--betont);
+}
+
+.titelleiste__name {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.titelleiste__pfad {
+  color: var(--text-leise);
+}
+
+.titelleiste__fueller {
+  flex: 1;
+}
+
+/* Alles Anklickbare muss die Ziehflaeche wieder aufheben, sonst zieht ein
+   Klick darauf das Fenster, statt den Knopf auszuloesen. */
+.titelleiste__knopf,
+.fensterknoepfe {
+  -webkit-app-region: no-drag;
+}
+
+.titelleiste__knopf {
+  background: none;
+  border: 0;
+  color: var(--text-leise);
+  font: inherit;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.titelleiste__knopf:hover:not(:disabled) {
+  background: #23273244;
+  color: var(--text);
+}
+
+.titelleiste__knopf:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.fensterknoepfe {
+  display: flex;
+  height: 100%;
+  margin-left: 8px;
+}
+
+.fensterknopf {
+  width: 44px;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  color: var(--text-leise);
+  cursor: pointer;
+}
+
+.fensterknopf:hover {
+  background: #ffffff14;
+  color: var(--text);
+}
+
+.fensterknopf--schliessen:hover {
+  background: var(--schliessen);
+  color: #fff;
+}
+
+/* ---------- Startmenue ---------- */
+
+.menue {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  gap: 4px;
+  min-height: 0;
+}
+
+.menue__frage {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.menue__hinweis {
+  color: var(--text-leise);
+  margin: 0 0 28px;
+}
+
+.menue__version {
+  color: var(--text-leise);
+  font-size: 12px;
+  margin: 28px 0 0;
+}
+
+.kacheln {
+  display: grid;
+  /* Die Spaltenzahl richtet sich nach der Breite, nicht nach einer festen
+     Zahl: so passt das Menue vom kleinsten erlaubten Fenster bis zum
+     Vollbild, ohne Umbruchregeln je Groesse. */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 200px));
+  gap: 16px;
+  justify-content: center;
+  max-width: 900px;
+}
+
+.kachel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px 18px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--motion-state) var(--motion-ease-standard),
+    transform var(--motion-state) var(--motion-ease-standard),
+    background var(--motion-state) var(--motion-ease-standard);
+}
+
+.kachel--bereit:hover,
+.kachel--vorbereitet:hover {
+  border-color: var(--betont);
+  background: #1f2430;
+  transform: translateY(-2px);
+}
+
+.kachel--bereit:active,
+.kachel--vorbereitet:active {
+  /* Der Druckpunkt: die Kachel gibt kurz nach. Schneller als das Schweben,
+     weil er direkt auf den Klick antwortet. */
+  transform: translateY(0) scale(0.985);
+  transition-duration: var(--motion-feedback);
+}
+
+.kachel--bereit:focus-visible,
+.kachel--vorbereitet:focus-visible {
+  outline: 2px solid var(--betont);
+  outline-offset: 2px;
+}
+
+.kachel--geplant {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.kachel__icon {
+  color: var(--betont);
+  display: flex;
+}
+
+.kachel--geplant .kachel__icon {
+  color: var(--text-leise);
+}
+
+/* In Arbeit: sichtbar anklickbar, aber erkennbar noch nicht fertig. */
+.kachel--vorbereitet {
+  opacity: 0.8;
+}
+
+.kachel--vorbereitet .kachel__icon {
+  color: #b6a06a;
+}
+
+.kachel--vorbereitet .kachel__marke {
+  color: #b6a06a;
+}
+
+.kachel__name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.kachel__text {
+  color: var(--text-leise);
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.kachel__marke {
+  margin-top: 4px;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-leise);
+}
+
+.kachel--bereit .kachel__marke {
+  color: var(--betont);
+}
+
+/* ---------- Buehne: Schiene und Anwendungsflaeche ---------- */
+
+.buehne {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.schiene {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  background: var(--grund-hoch);
+  border-right: 1px solid var(--rand);
+}
+
+.schiene__heim,
+.schiene__eintrag {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  color: var(--text-leise);
+  cursor: pointer;
+}
+
+.schiene__heim {
+  color: var(--betont);
+}
+
+.schiene__eintrag,
+.schiene__heim {
+  transition: background var(--motion-feedback) var(--motion-ease-standard),
+    color var(--motion-feedback) var(--motion-ease-standard);
+}
+
+.schiene__eintrag:hover:not(:disabled),
+.schiene__heim:hover {
+  background: #ffffff12;
+  color: var(--text);
+}
+
+/*
+ * Der Strich am aktiven Eintrag. Ein Element fuer alle Eintraege, nicht eines
+ * je Eintrag: nur so kann er beim Wechsel *wandern*, statt an einer Stelle zu
+ * verschwinden und an der naechsten aufzutauchen. Wohin, sagt die Oberflaeche
+ * ueber `transform` — gemessen am aktiven Knopf.
+ *
+ * `translateY` und nicht `top`: ein Ortswechsel ueber `transform` laeuft im
+ * Compositor und loest kein Neuberechnen des Layouts aus.
+ */
+.schiene__marke {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 40px;
+  border-radius: 0 3px 3px 0;
+  background: var(--betont);
+  pointer-events: none;
+}
+
+.schiene__marke--wandert {
+  transition: transform var(--motion-place) var(--motion-ease-standard);
+}
+
+.schiene__eintrag--an {
+  background: #ffffff16;
+  color: var(--betont);
+}
+
+.schiene__eintrag--geplant {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.schiene__trenner {
+  width: 24px;
+  height: 1px;
+  background: var(--rand);
+  margin: 4px 0;
+}
+
+/* Liegt eine Anwendung darueber, bleibt hier nur der Platz. */
+.buehne__flaeche {
+  flex: 1;
+  min-width: 0;
+}
+
+.platzhalter {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-leise);
+  min-width: 0;
+}
+
+.platzhalter__name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.platzhalter__text,
+.platzhalter__hinweis {
+  margin: 0;
+}
+
+.platzhalter__hinweis {
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+/* ---------- Dialoge ---------- */
+
+.dialog__grund {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  /* Abgedunkelt, damit klar ist, dass dahinter gerade nichts geht. Die
+     Anwendung selbst ist in diesem Moment ohnehin zurueckgetreten. */
+  background: #0b0d12cc;
+  z-index: 10;
+}
+
+.dialog {
+  width: min(460px, calc(100vw - 48px));
+  max-height: calc(100vh - 96px);
+  display: flex;
+  flex-direction: column;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px #00000066;
+}
+
+.dialog:focus {
+  /* Der Kasten bekommt den Fokus nur, damit Escape ankommt — sichtbar
+     umranden muss man ihn dafuer nicht. */
+  outline: none;
+}
+
+.dialog__titel {
+  margin: 0;
+  padding: 16px 20px 12px;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--rand);
+}
+
+.dialog__inhalt {
+  padding: 16px 20px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+.dialog__inhalt p {
+  margin: 0 0 10px;
+}
+
+.dialog__fuss {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--rand);
+}
+
+.dialog__knopf {
+  background: #2b3140;
+  border: 1px solid var(--rand);
+  color: var(--text);
+  font: inherit;
+  padding: 6px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dialog__knopf {
+  transition: background var(--motion-feedback) var(--motion-ease-standard);
+}
+
+.dialog__knopf:hover {
+  background: #343b4d;
+}
+
+.dialog__knopf:active {
+  background: #3d465c;
+}
+
+/* Titelleisten- und Fensterknoepfe antworten genauso schnell. */
+.titelleiste__knopf,
+.fensterknopf {
+  transition: background var(--motion-feedback) var(--motion-ease-standard),
+    color var(--motion-feedback) var(--motion-ease-standard);
+}
+
+/* ---------- Felder in den Einstellungen ---------- */
+
+.feld {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.feld__name {
+  font-weight: 600;
+}
+
+.feld__wahl {
+  background: #232834;
+  color: var(--text);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  font: inherit;
+  padding: 5px 8px;
+  min-width: 140px;
+}
+
+.feld__hinweis {
+  color: var(--text-leise);
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+
+.feld__fehler {
+  color: var(--schliessen);
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+
+/* ---------- Ueber ---------- */
+
+.ueber {
+  text-align: center;
+}
+
+.ueber__marke {
+  display: block;
+  color: var(--betont);
+  margin-bottom: 6px;
+}
+
+.ueber__name {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 2px !important;
+}
+
+.ueber__autor,
+.ueber__fassung {
+  color: var(--text-leise);
+  margin: 0 0 2px !important;
+}
+
+.ueber__lizenz {
+  margin-top: 16px !important;
+  font-weight: 600;
+}
+
+.ueber__gewaehr {
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.ueber__verweise {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.ueber__verweise button {
+  background: none;
+  border: 1px solid var(--rand);
+  color: var(--betont);
+  font: inherit;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ueber__verweise button:hover {
+  background: #ffffff10;
+}

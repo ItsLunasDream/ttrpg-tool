@@ -1,115 +1,40 @@
 {
-  "name": "backstory-creator",
+  "name": "dnd-suite",
   "version": "0.1.0",
   "private": true,
-  "description": "Desktop-Tool zum Schreiben von D&D-Charakter-Backstorys",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ItsLunasDream/backstory-creator"
-  },
-  "main": "dist/main/index.js",
+  "description": "Werkzeugsammlung fuer D&D-Kampagnen — Workspace-Wurzel",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "build": "npm run build:renderer && npm run build:main",
-    "build:renderer": "vite build",
-    "build:main": "node scripts/build-main.mjs",
-    "start": "npm run build && electron .",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
-    "test": "node scripts/build-tests.mjs && node --test tests/*.test.mjs",
-    "smoke": "npm run build && xvfb-run -a electron scripts/smoke.cjs --no-sandbox",
-    "roundtrip": "npm run build && xvfb-run -a electron scripts/roundtrip.cjs --no-sandbox",
-    "icon": "node scripts/make-icon.mjs",
-    "dist:win": "npm run build && electron-builder --win --publish never",
-    "dist:linux": "npm run build && electron-builder --linux --publish never",
-    "verify:package": "node scripts/verify-package.mjs",
-    "dist:linux:dir": "npm run build && electron-builder --linux dir --publish never"
-  },
-  "devDependencies": {
-    "@anthropic-ai/sdk": "^0.123.0",
-    "@tiptap/extension-image": "^2.27.2",
-    "@tiptap/extension-link": "^2.27.2",
-    "@tiptap/extension-placeholder": "^2.11.5",
-    "@tiptap/extension-table": "^2.27.2",
-    "@tiptap/extension-table-cell": "^2.27.2",
-    "@tiptap/extension-table-header": "^2.27.2",
-    "@tiptap/extension-table-row": "^2.27.2",
-    "@tiptap/pm": "^2.11.5",
-    "@tiptap/react": "^2.11.5",
-    "@tiptap/starter-kit": "^2.11.5",
-    "@types/archiver": "^6.0.3",
-    "@types/js-yaml": "^4.0.9",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "@types/turndown": "^5.0.5",
-    "@vitejs/plugin-react": "^4.3.4",
-    "archiver": "^7.0.1",
-    "electron": "^33.2.0",
-    "electron-builder": "^25.1.8",
-    "esbuild": "^0.24.0",
-    "js-yaml": "^4.1.0",
-    "marked": "^12.0.2",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "turndown": "^7.2.0",
-    "typescript": "^5.7.2",
-    "vite": "^5.4.11"
+    "dev": "npm run dev -w apps/backstory",
+    "dev:shell": "npm run dev -w apps/shell",
+    "build": "npm run build --workspaces --if-present",
+    "start": "npm run start -w apps/backstory",
+    "start:shell": "npm run start -w apps/shell",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "smoke": "npm run smoke -w apps/backstory",
+    "smoke:shell": "npm run build && npm run smoke -w apps/shell",
+    "roundtrip": "npm run roundtrip -w apps/backstory",
+    "icon": "npm run icon -w apps/backstory",
+    "icon:suite": "npm run icon -w apps/shell",
+    "dist:win": "npm run dist:win -w apps/backstory",
+    "dist:linux": "npm run dist:linux -w apps/backstory",
+    "dist:linux:dir": "npm run dist:linux:dir -w apps/backstory",
+    "verify:package": "npm run verify:package -w apps/backstory",
+    "dist:suite:win": "npm run build && npm run icon:suite && npm run dist:win -w apps/shell",
+    "dist:suite:linux": "npm run build && npm run icon:suite && npm run dist:linux -w apps/shell",
+    "dist:suite:linux:dir": "npm run build && npm run icon:suite && npm run dist:linux:dir -w apps/shell",
+    "verify:package:suite": "npm run verify:package -w apps/shell",
+    "dev:mapmaker": "npm run dev -w apps/mapmaker"
   },
   "author": {
     "name": "ItsLunasDream"
   },
   "license": "AGPL-3.0-or-later",
-  "build": {
-    "appId": "de.itslunasdream.backstorycreator",
-    "productName": "Backstory Creator",
-    "copyright": "Copyright © ItsLunasDream",
-    "directories": {
-      "output": "release",
-      "buildResources": "build"
-    },
-    "files": [
-      "dist/main/**/*",
-      "dist/renderer/**/*",
-      "package.json",
-      "!**/*.map"
-    ],
-    "win": {
-      "icon": "build/icon.ico",
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "shortcutName": "Backstory Creator",
-      "artifactName": "BackstoryCreator-Setup-${version}.${ext}"
-    },
-    "portable": {
-      "artifactName": "BackstoryCreator-portable-${version}.${ext}"
-    },
-    "linux": {
-      "icon": "build/icon.png",
-      "category": "Office",
-      "target": [
-        "AppImage"
-      ]
-    }
-  },
-  "dependencies": {
-    "@tiptap/extension-task-item": "^2.27.3",
-    "@tiptap/extension-task-list": "^2.27.3"
+  "overrides": {
+    "rollup": "npm:@rollup/wasm-node@^4.63.1"
   }
 }

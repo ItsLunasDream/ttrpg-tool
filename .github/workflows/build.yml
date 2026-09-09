@@ -15,7 +15,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Eine Fassung fuer alle Jobs, aus der .nvmrc der Wurzel. Der
+          # Kartenmacher zieht PixiJS herein, und das greift beim Laden auf
+          # globalThis.navigator zu — das gibt es erst ab Node 21. Unter
+          # Node 20 brachen zehn seiner Testdateien mit
+          # „ReferenceError: navigator is not defined" ab.
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run typecheck
@@ -29,7 +34,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Fassung aus der .nvmrc der Wurzel, Begruendung im Job oben.
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: sudo apt-get update && sudo apt-get install -y xvfb
@@ -40,6 +46,17 @@ jobs:
         run: npm run smoke
       - name: Markdown-Rundlauf
         run: npm run roundtrip
+      # Die Huelle startet ihren eigenen Hauptprozess. Ihre Modultests sehen
+      # nur reine Funktionen, nicht das Fenster.
+      - name: Rauchtest der Huelle
+        run: npm run smoke:shell
+      # Nur das Web-Buendel. Der Tauri-Build braucht Systembibliotheken
+      # (libgtk-3-dev, libwebkit2gtk-4.1-dev, ...), die hier fehlen; sein
+      # Rust-Anteil bleibt vorerst ungeprueft in der CI. Der End-to-End-Lauf
+      # unter e2e/ braucht einen installierten Browser und laeuft hier
+      # ebenfalls noch nicht mit.
+      - name: Kartenmacher-Bündel bauen
+        run: npm run build -w apps/mapmaker
 
   package-check:
     name: Gepacktes Paket prüfen
@@ -49,7 +66,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Fassung aus der .nvmrc der Wurzel, Begruendung im Job oben.
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run icon
@@ -58,41 +76,76 @@ jobs:
       # Faengt fehlende Abhaengigkeiten im asar-Paket ab. Die Tests oben
       # laufen gegen die Quelle und koennen das nicht sehen.
       - name: Gepackte Anwendung starten
-        run: xvfb-run -a npm run verify:package -- "$PWD/release/linux-unpacked/backstory-creator"
+        run: xvfb-run -a npm run verify:package -w apps/backstory -- "$PWD/apps/backstory/release/linux-unpacked/backstory-creator"
       - name: Log bei Fehler sichern
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: package-verify-log
-          path: package-verify.log
+          path: apps/backstory/package-verify.log
+          if-no-files-found: ignore
+          retention-days: 1
+
+  suite-check:
+    name: Gepacktes Paket der Sammlung prüfen
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Fassung aus der .nvmrc der Wurzel, Begruendung im Job oben.
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Linux-Paket der Sammlung bauen
+        run: npm run dist:suite:linux:dir
+      # Der Rauchtest laeuft gegen die ungepackte Huelle und sieht nicht, ob
+      # die Dateien der eingebetteten Anwendungen im Paket ankommen — dort
+      # liegen sie an einem anderen Ort als im Workspace. Diese Pruefung
+      # startet das Paket mit einem geoeffneten Werkzeug und wartet darauf,
+      # dass es wirklich hochkommt.
+      - name: Gepacktes Paket starten
+        run: xvfb-run -a npm run verify:package:suite -- "$PWD/apps/shell/release/linux-unpacked/ttrpg-tools"
+      - name: Log bei Fehler sichern
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: suite-verify-log
+          path: apps/shell/package-verify.log
           if-no-files-found: ignore
           retention-days: 1
 
   windows:
-    name: Windows-Anwendung
-    needs: package-check
-    # Windows-Laeufer zaehlen doppelt auf das Kontingent. Die fertige
-    # Anwendung wird nur dort gebaut, wo sie auch gebraucht wird: auf main,
-    # fuer eine Veroeffentlichung und wenn jemand den Lauf von Hand startet.
-    # Auf Zweigen genuegen die Tests darueber.
+    name: Windows-Paket der Sammlung
+    needs: [package-check, suite-check]
+    # Windows-Laeufer zaehlen doppelt auf das Kontingent. Das fertige Paket
+    # wird nur dort gebaut, wo es auch gebraucht wird: auf main, fuer eine
+    # Veroeffentlichung und wenn jemand den Lauf von Hand startet. Auf Zweigen
+    # genuegen die Tests darueber.
+    #
+    # Gebaut und veroeffentlicht wird die Sammlung, nicht mehr die einzelne
+    # Anwendung. Die bleibt baubar (`npm run dist:win -w apps/backstory`) und
+    # wird im Job „Gepacktes Paket pruefen" weiter geprueft — sie ist nur kein
+    # Auslieferungsgegenstand mehr.
     if: github.event_name != 'push' || github.ref == 'refs/heads/main'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Fassung aus der .nvmrc der Wurzel, Begruendung im Job oben.
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm run icon
-      - run: npm run dist:win
-      - name: Gepackte Anwendung starten
-        run: npm run verify:package -- "${{ github.workspace }}\release\win-unpacked\Backstory Creator.exe"
+      - run: npm run dist:suite:win
+      - name: Gepacktes Paket starten
+        run: npm run verify:package:suite -- "${{ github.workspace }}\apps\shell\release\win-unpacked\TTRPG-Tools.exe"
       - name: Ergebnis hochladen
         uses: actions/upload-artifact@v4
         with:
-          name: backstory-creator-windows
-          path: release/*.exe
+          name: ttrpg-tools-windows
+          path: apps/shell/release/*.exe
           if-no-files-found: error
           retention-days: 1
 
@@ -100,4 +153,4 @@ jobs:
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*.exe
+          files: apps/shell/release/*.exe

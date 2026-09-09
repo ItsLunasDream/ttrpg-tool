@@ -1,0 +1,1043 @@
+:root {
+  --bg: #16161c;
+  --panel: #1e1e26;
+  --panel-2: #262630;
+  --panel-3: #2f2f3b;
+  --line: #35353f;
+  --text: #e6e4ea;
+  --text-dim: #9b98a6;
+  --accent: #4da3ff;
+  --accent-dim: #2f6fb3;
+  --danger: #ff6b6b;
+  --radius: 6px;
+
+  color-scheme: dark;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 5px 9px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  background: var(--panel-3);
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+button.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+button.icon {
+  padding: 4px 6px;
+  min-width: 28px;
+}
+button.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+button.ghost:hover:not(:disabled) {
+  background: var(--panel-3);
+}
+
+input[type='text'],
+input[type='number'],
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 4px 6px;
+  width: 100%;
+  min-width: 0;
+}
+/* Der Inhalt eines Textobjekts: zwei Zeilen hoch, senkrecht wachsend. */
+textarea.text-content {
+  resize: vertical;
+  line-height: 1.35;
+}
+input[type='color'] {
+  width: 30px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: none;
+  cursor: pointer;
+}
+input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+input[type='checkbox'] {
+  accent-color: var(--accent);
+}
+label {
+  color: var(--text-dim);
+}
+
+/* ------------------------------------------------------------------ Layout */
+
+/*
+ * Flexbox statt Grid-Bereichen.
+ *
+ * Mit benannten grid-areas brach das Layout bei schmalen Fenstern zusammen:
+ * verschwindet ein Bereichsname aus dem Template, werden die Panels automatisch
+ * platziert und reißen implizite Spalten auf — die Bühne fiel dabei auf 0 px.
+ * Flexbox kennt keine Namensreferenzen, die brechen können, und `display: none`
+ * entfernt ein Panel restlos aus dem Fluss.
+ */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.main {
+  flex: 1 1 auto;
+  display: flex;
+  /* Ohne min-height/min-width 0 verhindern Flex-Kinder das Schrumpfen. */
+  min-height: 0;
+  min-width: 0;
+}
+
+.toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  /* Eng, aber nicht gedrängt: bei fünfzehn Werkzeugen kosten schon zwei
+     Pixel je Lücke rund sechzig Pixel Leistenbreite. */
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  /* Niemals umbrechen: bei schmalen Fenstern wurde die Leiste sonst mehrere
+     hundert Pixel hoch und die Bühne blieb ohne Platz übrig. Lieber scrollen. */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+.toolbar > * {
+  flex-shrink: 0;
+}
+.toolbar::-webkit-scrollbar {
+  height: 6px;
+}
+.toolbar .sep {
+  width: 1px;
+  height: 22px;
+  background: var(--line);
+  margin: 0 4px;
+}
+.toolbar .title {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+.toolbar .spacer {
+  flex: 1 1 auto;
+  min-width: 8px;
+}
+
+/*
+ * Bei wenig Breite weicht der Kartenname.
+ *
+ * Er ist die einzige Anzeige in der Leiste, die nichts tut — und die knapp
+ * achtzig Pixel entscheiden bei 1024 darüber, ob die Werkzeuge noch als Symbole
+ * nebeneinander passen oder ob gescrollt werden muss. Der Name steht ohnehin
+ * auch in den Karteneinstellungen.
+ */
+@media (max-width: 1200px) {
+  .toolbar .map-name {
+    display: none;
+  }
+}
+
+.status {
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.status > * {
+  flex-shrink: 0;
+}
+.status-message {
+  color: #ffb45c;
+}
+
+.divider {
+  height: 1px;
+  background: var(--line);
+  margin: 2px 0;
+}
+.sub {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+code {
+  background: var(--panel-3);
+  border-radius: 3px;
+  padding: 0 4px;
+  font-size: 11px;
+}
+
+.side {
+  background: var(--panel);
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.side.left {
+  flex: 0 0 250px;
+  border-right: 1px solid var(--line);
+}
+.side.right {
+  flex: 0 0 288px;
+  border-left: 1px solid var(--line);
+}
+
+/* Schmale Fenster: erst wird schmaler, dann weicht das rechte Panel
+   (Grid- und Karteneinstellungen braucht man seltener als Layer und Props),
+   zuletzt bleibt nur die Bühne. */
+@media (max-width: 1180px) {
+  .side.left {
+    flex-basis: 210px;
+  }
+  .side.right {
+    flex-basis: 240px;
+  }
+}
+@media (max-width: 900px) {
+  .side.right {
+    display: none;
+  }
+}
+@media (max-width: 620px) {
+  .side {
+    display: none;
+  }
+}
+
+.stage-wrap {
+  flex: 1 1 auto;
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+.canvas-host {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+  min-width: 0;
+  min-height: 0;
+}
+.canvas-host canvas {
+  display: block;
+}
+
+/*
+  Lineale liegen *über* der Bühne, sie verkleinern sie nicht. Dadurch bleibt die
+  Kamera-Ansicht dieselbe, ob sie eingeblendet sind oder nicht — beim Umschalten
+  springt der Ausschnitt sonst.
+*/
+.ruler {
+  position: absolute;
+  z-index: 3;
+  cursor: crosshair;
+  touch-action: none;
+}
+.ruler-top {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 18px;
+}
+.ruler-left {
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 100%;
+}
+.ruler-corner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  z-index: 4;
+  background: #191b1f;
+  border-right: 1px solid #3a3f47;
+  border-bottom: 1px solid #3a3f47;
+}
+
+/* Texteingabe schwebt über der Bühne und soll so aussehen wie das Ergebnis:
+   keine Rahmen, kein eigener Hintergrund, nur ein dünner Fangrahmen. */
+.text-input {
+  background: transparent;
+  border: 1px dashed var(--accent);
+  border-radius: 2px;
+  padding: 2px 4px;
+  margin: 0;
+  resize: none;
+  overflow: hidden;
+  outline: none;
+  white-space: pre;
+  /* Kein min-width: die Breite wird beim Tippen gemessen, und weil die Box um
+     ihre eigene Mitte sitzt, verschöbe jede Mindestbreite sie nach links. */
+  min-width: 0;
+  box-sizing: content-box;
+  z-index: 5;
+}
+
+.status {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 10px;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+/* ------------------------------------------------------------------ Panels */
+
+.section {
+  border-bottom: 1px solid var(--line);
+}
+.section > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 10px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.section > header:hover {
+  color: var(--text);
+}
+.section > .body {
+  padding: 8px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.row.wide {
+  grid-template-columns: 1fr;
+}
+.row .value {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 42px;
+}
+.row-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/*
+  Die vier Wandsperren nebeneinander. Umbrechend, weil das Panel schmal ist und
+  vier Wörter mit Kästchen in einer Zeile sonst herausragen.
+*/
+.senses {
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 2px 0 6px;
+}
+.senses label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.senses label.muted {
+  color: var(--text-dim);
+}
+/*
+  Belegungstabelle: zwei Spalten, damit die knapp vierzig Zeilen nicht zu einer
+  Bandwurmliste werden. Bei schmalem Fenster fällt es auf eine Spalte zurück.
+*/
+.key-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 4px 18px;
+  align-items: start;
+}
+.key-cell {
+  min-width: 84px;
+  font-variant-numeric: tabular-nums;
+}
+.key-cell.recording {
+  outline: 1px solid var(--accent, #6cf);
+}
+.key-cell.clash {
+  color: #e6a23c;
+}
+.hint {
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+/* Knöpfe teilen sich die Breite und brechen um, statt aus dem Panel zu laufen. */
+.chips.fill button {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/*
+ * Zwischenüberschrift innerhalb eines Panels.
+ *
+ * Nicht `.hint`: das ist gedämpfter Fließtext für Erklärungen. Hier geht es um
+ * eine Trennlinie im Sinn — ab hier gilt etwas anderes als darüber.
+ */
+.subhead {
+  margin: 10px 0 4px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* ------------------------------------------------------------------ Layers */
+
+.layer-list {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+}
+.layer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.layer:hover {
+  background: var(--panel-2);
+}
+.layer.active {
+  background: var(--panel-3);
+  border-color: var(--accent-dim);
+}
+.layer.system {
+  opacity: 0.92;
+}
+.layer .name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.layer .name.system-name {
+  color: var(--text-dim);
+  font-style: italic;
+}
+.layer .toggle {
+  background: none;
+  border: none;
+  padding: 1px 3px;
+  cursor: pointer;
+  opacity: 0.75;
+  font-size: 13px;
+  line-height: 1;
+}
+.layer .toggle:hover {
+  opacity: 1;
+  background: none;
+}
+.layer .toggle.off {
+  opacity: 0.28;
+}
+.layer .drop-line {
+  height: 2px;
+  background: var(--accent);
+}
+.layer.drag-over {
+  border-color: var(--accent);
+}
+
+/* ------------------------------------------------------------------- Props */
+
+/* Fortschritt beim Export. Ein Balken statt einer Zahl: bei vierzehn Sekunden
+   ist die Frage nicht „wie viele Kacheln", sondern „wie lange noch". */
+.progress {
+  height: 6px;
+  margin: 8px 0 4px;
+  background: var(--panel-3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress > div {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.1s linear;
+}
+
+/* Bausteine: eine Liste, kein Raster — der Name trägt die Information,
+   und ein Vorschaubild müsste die ganze Anordnung nachzeichnen. */
+.stamp-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.stamp-list li {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 2px 3px;
+}
+.stamp-list li.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.stamp-list li > input {
+  flex: 1;
+  min-width: 0;
+}
+.stamp-pick {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 3px 4px;
+}
+.stamp-pick .stamp-name {
+  font-size: 12px;
+}
+.stamp-pick .value {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.prop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+  gap: 5px;
+}
+.prop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 3px 4px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  overflow: hidden;
+}
+.prop-card:hover {
+  background: var(--panel-3);
+}
+.prop-card.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.prop-card canvas,
+.prop-card img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  image-rendering: auto;
+}
+.prop-card .label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.15;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prop-card.active .label {
+  color: var(--text);
+}
+.prop-card .pin {
+  position: absolute;
+}
+
+.tabs {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.tabs button {
+  padding: 3px 7px;
+  font-size: 12px;
+}
+
+/* ------------------------------------------------------------------ Modal */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal.modal-wide {
+  width: min(640px, calc(100vw - 32px));
+}
+/* Ein einzelnes Eingabefeld braucht keine Dialogbreite. */
+.modal.narrow {
+  width: min(420px, calc(100vw - 32px));
+}
+.modal h4 {
+  margin: 12px 0 4px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.help-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.help-table th {
+  text-align: left;
+  vertical-align: top;
+  padding: 3px 10px 3px 0;
+  width: 44%;
+  font-weight: 500;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.help-table td {
+  padding: 3px 0;
+  color: var(--text);
+}
+.help-table tr + tr th,
+.help-table tr + tr td {
+  border-top: 1px solid var(--line);
+}
+.help-steps {
+  margin: 4px 0;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+.help-steps li {
+  margin-bottom: 3px;
+}
+
+.modal {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+}
+.modal > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.modal > header h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.modal-body {
+  padding: 12px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.modal > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+}
+button.primary {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+button.primary:hover:not(:disabled) {
+  background: var(--accent);
+  color: #0d1117;
+}
+
+.warn {
+  color: #ffb45c;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.toast {
+  padding: 3px 9px;
+  border-radius: var(--radius);
+  background: var(--panel-3);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text-dim);
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crash {
+  padding: 28px 32px;
+  max-width: 760px;
+  margin: 40px auto;
+  background: var(--panel);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+}
+.crash h2 {
+  margin: 0 0 8px;
+  color: var(--danger);
+}
+.crash pre {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  overflow-x: auto;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.crash pre.stack {
+  color: var(--text-dim);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.empty {
+  color: var(--text-dim);
+  font-size: 12px;
+  padding: 10px 2px;
+  text-align: center;
+}
+
+/* Scrollbars dezent halten, sonst dominieren sie die schmalen Panels. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--panel-3);
+  border-radius: 5px;
+  border: 2px solid var(--panel);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3c3c4a;
+}
+
+/* Generator-Dialog: Regler links, Vorschau rechts. Auf schmalen Fenstern
+   untereinander, sonst wird die Vorschau zum Briefmarkenformat. */
+.gen-body {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(280px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .gen-body {
+    grid-template-columns: 1fr;
+  }
+}
+.gen-controls {
+  min-width: 0;
+}
+.gen-preview {
+  min-width: 0;
+  position: sticky;
+  top: 0;
+}
+.gen-svg {
+  width: 100%;
+  max-height: 62vh;
+  display: block;
+  background: #14141a;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+/* Import-Abschnitt in der Prop-Palette: eingeklappt, damit er die Palette
+   nicht dauerhaft verkürzt. */
+.import-box {
+  margin: 6px 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px 6px;
+}
+.import-box > summary {
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.85;
+  user-select: none;
+}
+.import-box[open] > summary {
+  margin-bottom: 6px;
+}
+
+/* Stern zum Anheften: nur bei Hover oder wenn gesetzt sichtbar, sonst
+   flimmert die Palette vor lauter Symbolen. */
+.prop-card {
+  position: relative;
+}
+.prop-card .fav {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  padding: 0 3px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0;
+  cursor: pointer;
+}
+.prop-card:hover .fav,
+.prop-card .fav.on {
+  opacity: 1;
+}
+.prop-card .fav.on {
+  color: #e8c14a;
+}
+
+/* Zuordnungsmodus einer Prop-Gruppe: Abzeichen oben links, immer sichtbar
+   (nicht nur bei Hover wie der Stern) — es ist gerade der Punkt der Ansicht. */
+.prop-card .ingroup-badge {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  padding: 0 3px;
+  font-size: 10px;
+  line-height: 1.4;
+  border-radius: 3px;
+  background: var(--panel-3);
+  color: var(--text-dim);
+}
+.prop-card .ingroup-badge.on {
+  background: var(--accent);
+  color: #0d1117;
+}
+
+/* Zuordnen-Knopf in der Gruppenliste, solange die Zuordnung läuft. */
+button.ghost.icon.on {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+/* Notiz-Dialog: der Text ist das Wichtigste darin und bekommt darum Platz. */
+.note-body-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.note-body {
+  resize: vertical;
+  min-height: 140px;
+  font-family: Georgia, serif;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+/* Autospeichern sitzt in der Werkzeugleiste und muss dort schmal bleiben. */
+.autosave {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.autosave input[type='checkbox'] {
+  width: auto;
+  margin: 0;
+}
+.autosave select {
+  width: auto;
+  padding: 1px 4px;
+  font-size: 11px;
+}
+.autosave:has(input:disabled) {
+  opacity: 0.5;
+}
+
+/* Klappmenü in der Werkzeugleiste. */
+.menu {
+  position: relative;
+  display: inline-flex;
+}
+.menu-popup {
+  /* Hängt am body, nicht in der Leiste: die scrollt waagerecht und schneidet
+     darum senkrecht ab. Die Lage setzt FileMenu am Knopf aus. */
+  position: fixed;
+  z-index: 40;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.menu-popup > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+}
+.menu-key {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.menu-sep {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--line);
+}
+.menu-note {
+  margin: 2px 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+.menu-popup .autosave {
+  padding: 4px;
+  flex-wrap: wrap;
+  white-space: normal;
+}
+
+/*
+ * Kürzel in der Ecke des Werkzeug-Knopfes.
+ *
+ * Absolut gesetzt, damit es die Knopfbreite nicht verändert: bei fünfzehn
+ * Werkzeugen kostete ein Zeichen daneben rund hundertachtzig Pixel, und die
+ * hat die Leiste nicht übrig.
+ */
+.toolbar button.tool {
+  position: relative;
+}
+.toolbar button.tool .shortcut {
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  font-size: 8px;
+  line-height: 1;
+  font-weight: 600;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+.toolbar button.tool.active .shortcut {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Hinweis unter dem Knopf; hängt am body, siehe Toolbar.tsx. */
+.tool-hint {
+  position: fixed;
+  z-index: 50;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--text);
+  background: var(--panel-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+.tool-hint-key {
+  padding: 0 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}

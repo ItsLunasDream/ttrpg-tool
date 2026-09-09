@@ -1,8 +1,16 @@
-# Backstory Creator
+# TTRPG-Tools
 
-Desktop-Tool zum Schreiben von D&D-Charakter-Backstorys. Rich-Text-Editor,
-Wiki-Verlinkung zwischen Notizen, strukturierte Steckbrieffelder und gerichtete
-Beziehungen, alles lokal als Markdown auf der eigenen Platte.
+Werkzeuge für Pen-&-Paper-Kampagnen, die nebeneinander in einem Fenster
+laufen. Alles bleibt lokal auf der eigenen Platte.
+
+- **Backstory Creator** — Figuren, Orte und ihre Beziehungen aufschreiben:
+  Rich-Text-Editor, Wiki-Verlinkung zwischen Notizen, strukturierte
+  Steckbrieffelder und gerichtete Beziehungen, gespeichert als Markdown.
+- **TTRPG Map Editor** — Battlemaps und Weltkarten zeichnen und als Universal
+  VTT exportieren.
+
+Der Arbeitstitel der Sammlung, ihre Symbole und die Namen der einzelnen
+Werkzeuge sind vorläufig.
 
 ## Fertige Anwendung herunterladen
 
@@ -10,18 +18,19 @@ Du brauchst dafür weder Node noch npm.
 
 1. Auf GitHub den Reiter **Actions** öffnen
 2. Den obersten Lauf **Build** anklicken
-3. Unten unter **Artifacts** `backstory-creator-windows` herunterladen
+3. Unten unter **Artifacts** `ttrpg-tools-windows` herunterladen
 4. Die ZIP-Datei entpacken. Darin liegen zwei Dateien:
-   - `BackstoryCreator-Setup-<version>.exe` — Installer, legt Startmenü- und
+   - `TTRPGTools-Setup-<version>.exe` — Installer, legt Startmenü- und
      Desktopeintrag an
-   - `BackstoryCreator-portable-<version>.exe` — läuft ohne Installation direkt
+   - `TTRPGTools-portable-<version>.exe` — läuft ohne Installation direkt
 
 Windows zeigt beim ersten Start eine SmartScreen-Warnung, weil die Datei nicht
 signiert ist. Über „Weitere Informationen" → „Trotzdem ausführen" startet sie.
 Eine Signatur bräuchte ein kostenpflichtiges Zertifikat.
 
-Artefakte werden 90 Tage aufbewahrt. Wer ein dauerhaftes Download-Ziel will,
-legt auf GitHub ein Release an, dann hängt der Workflow die Dateien dort an.
+Artefakte werden einen Tag aufbewahrt — das spart Speicherkontingent. Wer ein
+dauerhaftes Download-Ziel will, legt auf GitHub ein Release an, dann hängt der
+Workflow die Dateien dort an.
 
 ## Selbst bauen
 
@@ -42,8 +51,130 @@ npm test          # Tests der Kernlogik
 npm run smoke     # Rauchtest der gebauten App
 npm run roundtrip # prüft, ob Speichern am Markdown etwas verändert
 npm run typecheck
-npm run dist:win  # Windows-Installer und portable exe nach release/
+npm run dist:win  # Windows-Installer und portable exe nach apps/backstory/release/
 ```
+
+### Workspace-Aufbau
+
+Das Repository ist ein npm-Workspace-Monorepo. Die Befehle oben laufen an der
+Wurzel und delegieren an die passenden Ordner:
+
+```
+apps/backstory/    Der Backstory Creator selbst (Electron-Anwendung)
+apps/shell/        TTRPG-Tools: die Hülle, in die die Werkzeuge eingebettet werden
+apps/mapmaker/     TTRPG Map Editor: Kartenzeichner (Tauri-Anwendung), siehe unten
+packages/dice/     Geteiltes Paket: Würfelausdrücke lesen und werfen
+packages/i18n/     Geteiltes Paket: Sprachwahl und Textersetzung
+packages/motion/   Geteiltes Paket: Zeiten, Kurven und Grundanimationen der Oberfläche
+```
+
+`npm install` an der Wurzel richtet alle ein. `npm run dev`, `npm start`,
+`npm run smoke`, `npm run roundtrip`, `npm run dist:win` und
+`npm run dist:linux` betreffen ausschließlich `apps/backstory`; für die Hülle
+gibt es `npm run dev:shell`, `npm run start:shell` und `npm run smoke:shell`,
+für den Kartenmacher `npm run dev:mapmaker`. `npm run build`, `npm run
+typecheck` und `npm test` laufen dagegen über alle Workspaces, Apps und
+Pakete eingeschlossen. Ein Befehl gezielt für einen Workspace: `npm run
+<skript> -w apps/backstory` bzw. `-w packages/dice`.
+
+### TTRPG Map Editor
+
+`apps/mapmaker` kam als eigenständiges Repository dazu (Bauabschnitt 4) und
+bringt eine eigene Historie, eigene Konventionen und eine eigene `CLAUDE.md`
+mit — dort steht das Eigentliche zur Anwendung. An zwei Stellen musste der
+Umzug in den Workspace etwas anfassen:
+
+- **`vite.config.ts` setzt jetzt `base: './'`.** Ohne das verweist die gebaute
+  `index.html` absolut auf `/assets/…`, was unter `file://` und in einer
+  eingebetteten `WebContentsView` gleichermaßen ins Leere zeigt — ein
+  Prototyp hatte das vor dem Umzug an genau dieser Stelle scheitern sehen.
+  Für Tauri, das sein Bündel über einen eigenen Host ausliefert, ändert sich
+  dadurch nichts.
+- **Die Vite-Plugins tragen eine Typ-Notlösung** (`as Plugin[]` in
+  `vite.config.ts`): der Workspace teilt sich `@vitejs/plugin-react` mit
+  `apps/backstory` und `apps/shell`, die auf Vite 5 stehen, während diese
+  Anwendung Vite 6 benutzt. npm hält eine gemeinsame Kopie für kompatibel und
+  installiert sie nur einmal — TypeScript löst deren eigene `vite`-Typen
+  darum gegen die andere, ältere Installation auf. Zur Laufzeit ist das
+  folgenlos, betroffen sind nur zwei einander fremde Typ-Instanzen derselben
+  Struktur.
+
+Der Rust-Anteil (`src-tauri/`, `npm run tauri:dev`/`tauri:build`) läuft
+unverändert, ist aber nicht Teil der CI dieses Repositories: das bräuchte
+Systembibliotheken, die dort fehlen. Ebenso noch nicht angeschlossen: der
+End-to-End-Lauf unter `e2e/` (braucht einen installierten Browser) und die
+`build:portable`-Variante. Alle drei funktionieren lokal unverändert, siehe
+`apps/mapmaker/CLAUDE.md`.
+
+### TTRPG-Tools: die Hülle
+
+`apps/shell` ist der gemeinsame Rahmen, in dem die einzelnen Werkzeuge später
+laufen sollen — ein Fenster, ein Startmenü, eine Schiene zum Wechseln. Der
+Arbeitstitel und die Symbole sind vorläufig.
+
+Aufbau: ein rahmenloses `BaseWindow`. Zuunterst liegt die Ansicht mit der Hülle
+selbst über die volle Fensterfläche. Wird ein Werkzeug eingebettet, kommt dessen
+Ansicht *darüber* und lässt oben und links genau so viel frei, wie Titelleiste
+und Schiene brauchen — die Hülle schaut also als L-Form darunter hervor. Eine
+Ansicht ist immer ein Rechteck; eine L-Form ließe sich nur aus zwei Ansichten
+bauen, die dann zwei getrennte Dokumente wären.
+
+Eingebettet wird über `apps/backstory/src/main/embed.ts` — eine Datei, die
+alles kapselt, was zum Einrichten gehört, und Preload, Oberfläche und das
+Sichern vor dem Schließen zurückgibt. Der eigenständige Hauptprozess des
+Backstory Creators benutzt dieselbe Datei; beide Wege laufen also durch
+denselben Code. Die Anwendung selbst merkt nicht, dass sie in einer Hülle
+läuft.
+
+Einmal geöffnete Anwendungen bleiben geladen und werden beim Wechseln nur
+unsichtbar gestellt. Deshalb geht beim Wechseln nichts verloren: eine halb
+getippte Notiz, die Scrollposition, ein offener Dialog stehen beim
+Zurückkommen noch da. Der Preis ist Arbeitsspeicher, gemessen rund 130 MB je
+zusätzlich geöffneter Anwendung.
+
+Jede Anwendung läuft in einer eigenen Electron-Sitzung (`persist:<id>`). Alle
+Ansichten laden über `file://`, und dort ist der Ursprung für alle derselbe —
+ohne getrennte Sitzungen teilten sie sich `localStorage` und IndexedDB. Der
+Karteneditor legt dort seine Prop-Bibliothek, seine Tastenbelegung und die
+zuletzt geöffneten Karten ab.
+
+Stand: der Backstory Creator und der Karteneditor laufen eingebettet.
+Werkzeuge mit dem Zustand `vorbereitet` lassen sich anwählen und führen auf
+eine Fläche, die sagt, dass das Einbetten noch aussteht. Was es gibt und wie
+weit es ist, steht an einer Stelle: `apps/shell/src/shared/apps.ts`.
+
+**Einstellungen und Über** sitzen in der Titelleiste. Die Sprache ist
+durchgekoppelt: eine Änderung an irgendeiner Stelle — im Einstellungen-Dialog
+der Hülle oder im eigenen Sprachmenü eines Werkzeugs — gilt sofort überall,
+in der Hülle selbst und in jeder eingebetteten Anwendung. Der Backstory
+Creator meldet einen Wechsel über einen eigenen IPC-Kanal
+(`backstory:app:sprache`); der Karteneditor, der sonst kein Preload
+braucht, bekommt dafür eines, das ausschließlich diese eine Kopplung trägt
+(`apps/mapmaker/src/embed/preload.ts`). Die einzige Stelle, die beide
+Richtungen zusammenführt, ist `aktualisiereSammlungssprache` in
+`apps/shell/src/main/index.ts`.
+
+**Direkt in einem Werkzeug starten:** `TTRPG_TOOLS_START_APP=backstory`. Das
+ist auch der Weg, auf dem die Prüfung des gepackten Pakets feststellt, ob die
+eingebetteten Anwendungen dort wirklich hochkommen.
+
+#### Paket der Sammlung
+
+```bash
+npm run dist:suite:win        # Windows-Installer und portable exe
+npm run dist:suite:linux      # AppImage
+npm run verify:package:suite -- <pfad-zum-programm>
+```
+
+Die Dateien der eingebetteten Anwendungen landen über `extraResources` unter
+`resources/apps/<id>/dist` — bewusst neben dem asar-Archiv, nicht darin: was
+außerhalb liegt, lässt sich mit gewöhnlichen Mitteln ansehen, wenn etwas
+fehlt. `appDistDir` in `apps/shell/src/main/apps.ts` kennt beide Orte, den im
+Workspace und den im Paket.
+
+Ausgeliefert wird die Sammlung. Die einzelnen Anwendungen bleiben baubar
+(`npm run dist:win -w apps/backstory`) und werden weiter geprüft, sind aber
+kein Auslieferungsgegenstand mehr.
 
 ## Bedienung
 
@@ -116,7 +247,7 @@ kein Code, sondern gehört der Kampagne: es liegt in `campaign.json` und wird
 über Menü „Kampagne" → „Notiztypen" bearbeitet. Typen und Felder lassen sich
 anlegen, umbenennen, umsortieren und entfernen. Feldarten sind Text,
 mehrzeilig, Zahl, Link, Bild, Auswahlliste, Datum und Ankreuzfeld.
-`src/shared/noteTypes.ts` liefert nur noch die Vorlage für neue Kampagnen.
+`apps/backstory/src/shared/noteTypes.ts` liefert nur noch die Vorlage für neue Kampagnen.
 
 Zwei Regeln schützen dabei bestehende Daten. Der Schlüssel eines Felds bleibt
 beim Umbenennen der Beschriftung unverändert, sonst gingen eingetragene Werte
@@ -158,7 +289,7 @@ Editors und stellt Fragen, prüft gegen verlinkte Notizen und gibt
 Stilrückmeldung. Er schreibt nichts in den Text: das ist in der
 Systemanweisung festgeschrieben und dadurch, dass die Antwort nur in der
 Sidebar erscheint. Anbieter sind Ollama (lokal, kostenlos) oder die Claude API
-(kostenpflichtig), hinter einem gemeinsamen Interface in `src/main/ai/`.
+(kostenpflichtig), hinter einem gemeinsamen Interface in `apps/backstory/src/main/ai/`.
 
 Alle Netzaufrufe laufen im Hauptprozess. Der API-Schlüssel wird mit dem
 Schlüsselbund des Systems verschlüsselt und erreicht den Renderer nie.
@@ -169,11 +300,17 @@ der Autosave im Sekundentakt hunderte fast gleicher Stände anlegen. Beim
 Wiederherstellen wandert der aktuelle Stand vorher in den Verlauf, das
 Zurückholen ist also selbst umkehrbar.
 
-**Sprache** ist umschaltbar zwischen Deutsch und Englisch. Alle festen Texte
-liegen in `src/shared/i18n.ts`, auch die Fehlermeldungen des Hauptprozesses:
-`VaultError` trägt einen Schlüssel, übersetzt wird erst in der IPC-Schicht.
-Selbst vergebene Bezeichnungen wie eigene Notiztypen und Feldnamen bleiben
-unverändert, die kann das Programm nicht übersetzen.
+**Sprache** ist umschaltbar zwischen Englisch und Deutsch. Voreingestellt ist
+Englisch (Konvention 6, gilt für alle Programme der Sammlung); wer Deutsch
+will, stellt es unter Einstellungen → Sprache einmal um, und die Wahl bleibt.
+Eine bereits getroffene Wahl bleibt von der Voreinstellung unberührt — sie
+gilt nur dort, wo noch keine steht.
+
+Alle festen Texte liegen in `apps/backstory/src/shared/i18n.ts`, auch die
+Fehlermeldungen des Hauptprozesses: `VaultError` trägt einen Schlüssel,
+übersetzt wird erst in der IPC-Schicht. Selbst vergebene Bezeichnungen wie
+eigene Notiztypen und Feldnamen bleiben unverändert, die kann das Programm
+nicht übersetzen.
 
 **Beziehungen** hängen am Notizpaar, nicht an der einzelnen Textstelle, und
 sind gerichtet: A sieht B als Mentorin, B sieht A als Bedrohung. Sie werden im
@@ -185,15 +322,15 @@ die Graph-Ansicht in Phase 3.
 ## Aufbau
 
 ```
-src/shared/     Datenmodell, Notiztyp-Vorlage, Wiki-Link-Parsing, Texte
-src/main/       Electron-Hauptprozess: Dateisystem, IPC, Export, KI-Anbindung
-src/preload/    Einzige Brücke zum Renderer (contextIsolation aktiv)
-src/renderer/   React-Oberfläche, TipTap-Editor, Notizindex, Graph
-tests/          Tests der Kernlogik und der Vault-Schicht
+apps/backstory/src/shared/     Datenmodell, Notiztyp-Vorlage, Wiki-Link-Parsing, Texte
+apps/backstory/src/main/       Electron-Hauptprozess: Dateisystem, IPC, Export, KI-Anbindung
+apps/backstory/src/preload/    Einzige Brücke zum Renderer (contextIsolation aktiv)
+apps/backstory/src/renderer/   React-Oberfläche, TipTap-Editor, Notizindex, Graph
+apps/backstory/tests/          Tests der Kernlogik und der Vault-Schicht
 ```
 
 Der Renderer hat bewusst keinen Node-Zugriff. Alle Dateioperationen laufen über
-die typisierten IPC-Kanäle in `src/preload/index.ts`.
+die typisierten IPC-Kanäle in `apps/backstory/src/preload/index.ts`.
 
 ## Stand und nächste Schritte
 
@@ -239,18 +376,18 @@ Offene Aufgaben, geplante Phasen und bekannte Grenzen stehen in
 
 Der Rauchtest unten laeuft gegen die ungepackte App. Fehlt eine Abhaengigkeit
 erst im fertigen Installationspaket, sieht er das nicht. Dafuer gibt es
-`scripts/verify-package.mjs`: das Skript startet die **gepackte** Anwendung und
+`apps/backstory/scripts/verify-package.mjs`: das Skript startet die **gepackte** Anwendung und
 prueft, dass sie ohne fehlende Module hochkommt.
 
 ```bash
 npm run dist:linux:dir
-xvfb-run -a npm run verify:package -- "$PWD/release/linux-unpacked/backstory-creator"
+xvfb-run -a npm run verify:package -w apps/backstory -- "$PWD/apps/backstory/release/linux-unpacked/backstory-creator"
 ```
 
 Unter Windows nach `npm run dist:win`:
 
 ```bash
-npm run verify:package -- "release\win-unpacked\Backstory Creator.exe"
+npm run verify:package -w apps/backstory -- "apps\backstory\release\win-unpacked\Backstory Creator.exe"
 ```
 
 Beide Prüfungen laufen in der CI, bevor die Windows-Anwendung hochgeladen wird.
@@ -261,7 +398,7 @@ keine Abhängigkeit mehr fehlen.
 
 ## Rauchtest
 
-`scripts/smoke.cjs` startet die gebaute App, legt eine Kampagne und zwei
+`apps/backstory/scripts/smoke.cjs` startet die gebaute App, legt eine Kampagne und zwei
 Notizen an, tippt einen Wiki-Link, speichert und prüft die Dateien auf der
 Platte, inklusive Umbenennen mit Link-Rewrite. Unter Linux mit Xvfb:
 
@@ -272,12 +409,12 @@ npm run smoke
 Unter Windows und macOS direkt ohne Xvfb:
 
 ```bash
-npm run build && npx electron scripts/smoke.cjs
+npm run build && npx electron scripts/smoke.cjs  # innerhalb von apps/backstory
 ```
 
 ## Markdown-Rundlauf
 
-`scripts/roundtrip.cjs` legt Notizen mit verschiedenen Markdown-Bestandteilen
+`apps/backstory/scripts/roundtrip.cjs` legt Notizen mit verschiedenen Markdown-Bestandteilen
 hinter dem Rücken der Anwendung an, lässt sie laden, ändert eine Kleinigkeit,
 speichert und vergleicht die Datei.
 

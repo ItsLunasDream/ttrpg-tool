@@ -1,0 +1,30 @@
+[package]
+name = "ttrpg-map-editor"
+version = "0.1.0"
+description = "Karteneditor für Pen-&-Papier-Rollenspiele — Desktop-Hülle"
+authors = []
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/ItsLunasDream/ttrpg-map-maker"
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3" }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.11.3" }
+tauri-plugin-log = "2"
+# Nativer Dateidialog und Dateizugriff — der eigentliche Grund für die
+# Desktop-Hülle: Firefox und Safari können bis heute nicht überschreiben, und
+# Tauris eigenes WebView bringt die File System Access API gar nicht erst mit.
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
