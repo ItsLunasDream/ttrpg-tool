@@ -10,7 +10,7 @@
  * stattdessen, was als naechstes hineinkommt. Der Wechsel selbst,
  * Fensterknoepfe und Fensterlage sind aber schon echt.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { APPS, CHROME, STATUS_KEY, descriptionKey, findApp, istWaehlbar, nameKey } from '../shared/apps';
 import {
   DEFAULT_LANGUAGE,
@@ -94,6 +94,23 @@ export function App() {
     () => (key, params) => translate(sprache, key, params),
     [sprache]
   );
+
+  /**
+   * Sagt dem Hauptprozess, ob weniger Bewegung gewuenscht ist.
+   *
+   * Er treibt die Einfahrt der eingebetteten Ansichten selbst — die sind
+   * keine HTML-Elemente, CSS erreicht sie nicht. `prefers-reduced-motion`
+   * laesst sich aber nur hier beantworten, also wird es hier abgefragt und
+   * gemeldet, beim Start und wenn die Person die Einstellung im laufenden
+   * Betrieb umstellt.
+   */
+  useEffect(() => {
+    const abfrage = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const melde = () => window.shell.bewegung.reduziert(abfrage.matches);
+    melde();
+    abfrage.addEventListener('change', melde);
+    return () => abfrage.removeEventListener('change', melde);
+  }, []);
 
   // Die Seite traegt die gewaehlte Sprache, damit Vorlesewerkzeuge und die
   // Silbentrennung des Browsers wissen, woran sie sind.
@@ -237,14 +254,18 @@ function Startmenue({
       <p className="menue__hinweis">{t('menu.hint')}</p>
 
       <div className="kacheln">
-        {APPS.map((app) => {
+        {APPS.map((app, nummer) => {
           const Icon = iconFuer(app.id);
           const waehlbar = istWaehlbar(app.status);
           return (
             <button
               key={app.id}
               type="button"
-              className={`kachel kachel--${app.status}`}
+              className={`kachel kachel--${app.status} motion-eintritt`}
+              // Gestaffelt, damit das Menue sich aufbaut statt aufzublitzen.
+              // Kurz gehalten: die letzte Kachel darf nicht spuerbar spaeter
+              // da sein als die erste, sonst wartet man auf sie.
+              style={{ animationDelay: `${nummer * 35}ms` }}
               disabled={!waehlbar}
               onClick={() => setAktiv(app.id)}
             >
@@ -277,9 +298,48 @@ function Buehne({
   eingebettet: boolean;
   t: Uebersetzer;
 }) {
+  const schiene = useRef<HTMLElement>(null);
+  /** Wo der Marker steht (in Bildpunkten von oben), oder `null` vor der ersten Messung. */
+  const [markeOben, setMarkeOben] = useState<number | null>(null);
+  /**
+   * Ob der Marker seine erste Stelle schon gefunden hat.
+   *
+   * Beim ersten Zeichnen darf er nicht wandern: er kaeme sonst von der
+   * Oberkante der Schiene hereingefahren, obwohl gar nichts gewechselt hat.
+   * Die Fahrt schaltet sich erst danach ein.
+   */
+  const gesetzt = useRef(false);
+  const [wandert, setWandert] = useState(false);
+
+  // Gemessen statt gerechnet: die Stelle haengt an Knopfhoehen, Abstaenden und
+  // dem Trenner. Eine Formel dafuer waere bei der naechsten Aenderung an der
+  // Schiene still falsch.
+  useLayoutEffect(() => {
+    const an = schiene.current?.querySelector<HTMLElement>('.schiene__eintrag--an');
+    if (!an) {
+      setMarkeOben(null);
+      return;
+    }
+    setMarkeOben(an.offsetTop);
+    if (gesetzt.current) setWandert(true);
+    gesetzt.current = true;
+  }, [aktiv]);
+
   return (
     <div className="buehne">
-      <nav className="schiene" style={{ width: CHROME.schieneBreite }} aria-label="TTRPG-Tools">
+      <nav
+        className="schiene"
+        style={{ width: CHROME.schieneBreite }}
+        aria-label="TTRPG-Tools"
+        ref={schiene}
+      >
+        {markeOben !== null && (
+          <span
+            className={`schiene__marke ${wandert ? 'schiene__marke--wandert' : ''}`}
+            style={{ transform: `translateY(${markeOben}px)` }}
+            aria-hidden="true"
+          />
+        )}
         <button
           type="button"
           className="schiene__heim"

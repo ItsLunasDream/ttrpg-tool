@@ -239,6 +239,26 @@ app.whenReady().then(async () => {
   // Gewechselt wird ueber die Schiene, nicht ueber eine Kachel: an dieser
   // Stelle liegt der Backstory Creator vorn, und im Startmenue war die Huelle
   // zuletzt nicht mehr.
+  // Bewegung: dass das gemeinsame Paket wirklich geladen ist, sieht man nur
+  // an einer aufgeloesten Variablen. Fehlt der Import, sind alle Uebergaenge
+  // still auf 0s — es sieht dann nicht kaputt aus, nur tot.
+  // Verglichen wird in Millisekunden, nicht als Text: der Minifier schreibt
+  // `220ms` zu `.22s` um, und ein Vergleich mit der Zeichenkette aus der
+  // Quelle war deshalb im gebauten Stand falsch — obwohl alles stimmte.
+  const platzDauer = await js(`(() => {
+    const roh = getComputedStyle(document.documentElement)
+      .getPropertyValue('--motion-place')
+      .trim();
+    if (roh.endsWith('ms')) return parseFloat(roh);
+    if (roh.endsWith('s')) return parseFloat(roh) * 1000;
+    return NaN;
+  })()`);
+  pruefe(platzDauer === 220, `die gemeinsamen Bewegungszeiten sind geladen (${platzDauer}ms)`);
+  const markeVorher = await js(
+    "document.querySelector('.schiene__marke')?.style.transform ?? ''"
+  );
+  pruefe(markeVorher.startsWith('translateY('), `der Marker der Schiene steht (${markeVorher})`);
+
   const kartenEintrag = "[...document.querySelectorAll('.schiene__eintrag')][1]";
   if (await js(`Boolean(${kartenEintrag})`)) {
     await js(`${kartenEintrag}.click()`);
@@ -257,6 +277,36 @@ app.whenReady().then(async () => {
       pruefe(
         (await kartenJs("document.getElementById('root')?.children.length ?? 0")) > 0,
         'seine Oberflaeche ist da'
+      );
+
+      // Der Marker muss mitgewandert sein — sonst zeigt die Schiene weiter auf
+      // das Werkzeug von vorhin.
+      const markeNachher = await js(
+        "document.querySelector('.schiene__marke')?.style.transform ?? ''"
+      );
+      pruefe(
+        markeNachher.startsWith('translateY(') && markeNachher !== markeVorher,
+        `der Marker ist mitgewandert (${markeVorher} -> ${markeNachher})`
+      );
+
+      // Die Einfahrt faehrt die Ansicht von rechts an ihren Platz. Kommt sie
+      // dort nicht genau an, steht das Werkzeug dauerhaft um ein paar Punkte
+      // verschoben — mit einem Streifen Huelle daneben, den niemand erklaeren
+      // kann. Verglichen wird mit der Ansicht des Backstory Creators: beide
+      // bekommen dieselbe Flaeche, und so steht die Sollgroesse nicht ein
+      // zweites Mal in diesem Skript. Gewartet wird grosszuegig, die Fahrt
+      // dauert 220ms.
+      await warte(800);
+      const lage = karten.getBounds();
+      const gleicheFlaeche = fenster.contentView.children[1].getBounds();
+      pruefe(
+        lage.x === gleicheFlaeche.x &&
+          lage.y === gleicheFlaeche.y &&
+          lage.width === gleicheFlaeche.width &&
+          lage.height === gleicheFlaeche.height,
+        `die Einfahrt kommt genau an (${JSON.stringify(lage)} statt ${JSON.stringify(
+          gleicheFlaeche
+        )})`
       );
       // Die schaerfste Pruefung fuer ihn: ohne Renderer gibt es kein Canvas,
       // und ohne relative Pfade im Buendel laedt unter file:// gar nichts.

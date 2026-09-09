@@ -67,6 +67,17 @@ const api = {
     oeffneExtern: (adresse: string) =>
       ipcRenderer.invoke('app:oeffne-extern', adresse) as Promise<void>
   },
+  bewegung: {
+    /**
+     * Meldet dem Hauptprozess, ob das System weniger Bewegung wuenscht.
+     *
+     * `prefers-reduced-motion` ist nur in einer Darstellung zu beantworten;
+     * der Hauptprozess braucht die Auskunft aber fuer die Einfahrt der
+     * eingebetteten Ansichten, die er selbst treibt. Deshalb dieser Weg
+     * hinaus statt einer Abfrage hinein.
+     */
+    reduziert: (reduziert: boolean) => ipcRenderer.send('bewegung:reduziert', reduziert)
+  },
   einstellungen: {
     lesen: () => ipcRenderer.invoke('einstellungen:lesen') as Promise<ShellSettings>,
     /** Schreibt und liefert den bereinigten Stand zurueck, der danach gilt. */

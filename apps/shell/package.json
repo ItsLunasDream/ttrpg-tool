@@ -37,7 +37,8 @@
   },
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "@suite/i18n": "*"
+    "@suite/i18n": "*",
+    "@suite/motion": "*"
   },
   "build": {
     "appId": "de.itslunasdream.ttrpgtools",

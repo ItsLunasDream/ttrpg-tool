@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { berechneAppFlaeche } from '../shared/apps';
 import { mountApp, registerSchemes, type MontageHaken, type MontierteApp } from './apps';
+import { brichFahrtAb, fahreEin } from './fahrt';
 import { readSettings, writeSettings, type ShellSettings } from './settings';
 import type { Language } from '../shared/i18n';
 import {
@@ -66,6 +67,18 @@ let einstellungsDatei = '';
 let speicherZeitgeber: NodeJS.Timeout | null = null;
 /** Wird gesetzt, sobald die Anwendungen ihr Ungespeichertes gesichert haben. */
 let darfSchliessen = false;
+/**
+ * Ob das System weniger Bewegung wuenscht.
+ *
+ * Der Hauptprozess kann `prefers-reduced-motion` nicht selbst lesen — das ist
+ * eine Frage an die Darstellung, nicht an das Betriebssystem, und es gibt
+ * dafuer keine Electron-API. Die Oberflaeche der Huelle fragt es ueber
+ * `matchMedia` ab und meldet es hierher, beim Start und bei jeder Aenderung.
+ * Bis die erste Meldung da ist, wird animiert; das ist die haeufigere
+ * Einstellung, und die Huelle traegt in dieser Zeit ohnehin nur ihr
+ * Startmenue.
+ */
+let wenigerBewegung = false;
 
 /**
  * Legt die Huellenansicht auf die volle Fenstergroesse.
@@ -76,6 +89,10 @@ let darfSchliessen = false;
  */
 function legeHuelleAus(): void {
   if (!fenster || !huelle) return;
+  // Eine laufende Fahrt setzt gleich wieder ihre eigenen Bounds. Wird das
+  // Fenster waehrenddessen umgestellt, muss sie weichen — sonst zoege die
+  // Fahrt die Ansicht auf die alte Groesse zurueck.
+  brichFahrtAb();
   const { width, height } = fenster.getContentBounds();
   huelle.setBounds({ x: 0, y: 0, width, height });
 
@@ -87,6 +104,26 @@ function legeHuelleAus(): void {
   for (const montiert of offen.values()) {
     montiert.sicht.setBounds(flaeche);
   }
+}
+
+/**
+ * Holt eine Anwendung nach vorn und laesst sie dabei einfahren.
+ *
+ * Die Fahrt gehoert zum Wechsel des Werkzeugs, nicht zu jedem
+ * Sichtbarmachen: kommt eine Anwendung nach dem Schliessen eines Dialogs
+ * zurueck, ist sie nicht *neu* da, und eine Bewegung waere dort nur Unruhe.
+ */
+function holeNachVorn(montiert: MontierteApp, mitFahrt: boolean): void {
+  if (!fenster) return;
+  legeHuelleAus();
+  montiert.sicht.setVisible(true);
+  if (mitFahrt) {
+    const { width, height } = fenster.getContentBounds();
+    fahreEin(montiert.sicht, berechneAppFlaeche(width, height), wenigerBewegung);
+  }
+  // Ohne das behielte die Huelle die Tastatur, und Tippen im Editor kaeme
+  // nicht an.
+  montiert.sicht.webContents.focus();
 }
 
 function merkeFensterlage(): void {
@@ -291,9 +328,9 @@ async function starteMitWerkzeug(): Promise<void> {
   offen.set(id, montiert);
   aktiveApp = id;
   fenster.contentView.addChildView(montiert.sicht);
-  legeHuelleAus();
-  montiert.sicht.setVisible(true);
-  montiert.sicht.webContents.focus();
+  // Ohne Fahrt: hier wird nicht gewechselt, hier faengt alles an. Eine
+  // Bewegung beim allerersten Bild sieht nach Ladehemmung aus.
+  holeNachVorn(montiert, false);
   huelle?.webContents.send('app:gestartet-mit', id);
   // Erst hier ist das Werkzeug wirklich geladen und sichtbar — `mountApp`
   // wartet auf `loadFile`. Die Pruefung des gepackten Pakets beendet den
@@ -389,13 +426,9 @@ function registriereKanaele(): void {
       fenster.contentView.addChildView(montiert.sicht);
     }
 
-    // Nach dem Wechsel neu auslegen: das Fenster kann seit dem letzten Mal
-    // eine andere Groesse haben.
-    legeHuelleAus();
-    montiert.sicht.setVisible(true);
-    // Ohne das behielte die Huelle die Tastatur, und Tippen im Editor kaeme
-    // nicht an.
-    montiert.sicht.webContents.focus();
+    // `holeNachVorn` legt vorher neu aus: das Fenster kann seit dem letzten
+    // Mal eine andere Groesse haben.
+    holeNachVorn(montiert, true);
     return true;
   });
 
@@ -420,9 +453,19 @@ function registriereKanaele(): void {
     }
     const montiert = aktiveApp ? offen.get(aktiveApp) : undefined;
     if (!montiert) return;
-    legeHuelleAus();
-    montiert.sicht.setVisible(true);
-    montiert.sicht.webContents.focus();
+    holeNachVorn(montiert, false);
+  });
+
+  /**
+   * Die Oberflaeche meldet, ob das System weniger Bewegung wuenscht.
+   *
+   * Sie ist die einzige Stelle, die das beantworten kann: `matchMedia` gibt
+   * es nur in einer Darstellung. Der Hauptprozess braucht die Auskunft fuer
+   * die Einfahrt der Ansichten, die er selbst treibt.
+   */
+  ipcMain.on('bewegung:reduziert', (_event, reduziert: boolean) => {
+    wenigerBewegung = Boolean(reduziert);
+    if (wenigerBewegung) brichFahrtAb();
   });
   handle('app:plattform', () => process.platform);
   /**

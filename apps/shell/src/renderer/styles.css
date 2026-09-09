@@ -190,7 +190,9 @@ body {
   color: var(--text);
   font: inherit;
   cursor: pointer;
-  transition: border-color 120ms, transform 120ms, background 120ms;
+  transition: border-color var(--motion-state) var(--motion-ease-standard),
+    transform var(--motion-state) var(--motion-ease-standard),
+    background var(--motion-state) var(--motion-ease-standard);
 }
 
 .kachel--bereit:hover,
@@ -198,6 +200,14 @@ body {
   border-color: var(--betont);
   background: #1f2430;
   transform: translateY(-2px);
+}
+
+.kachel--bereit:active,
+.kachel--vorbereitet:active {
+  /* Der Druckpunkt: die Kachel gibt kurz nach. Schneller als das Schweben,
+     weil er direkt auf den Klick antwortet. */
+  transform: translateY(0) scale(0.985);
+  transition-duration: var(--motion-feedback);
 }
 
 .kachel--bereit:focus-visible,
@@ -266,6 +276,7 @@ body {
 }
 
 .schiene {
+  position: relative;
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
@@ -293,10 +304,40 @@ body {
   color: var(--betont);
 }
 
+.schiene__eintrag,
+.schiene__heim {
+  transition: background var(--motion-feedback) var(--motion-ease-standard),
+    color var(--motion-feedback) var(--motion-ease-standard);
+}
+
 .schiene__eintrag:hover:not(:disabled),
 .schiene__heim:hover {
   background: #ffffff12;
   color: var(--text);
+}
+
+/*
+ * Der Strich am aktiven Eintrag. Ein Element fuer alle Eintraege, nicht eines
+ * je Eintrag: nur so kann er beim Wechsel *wandern*, statt an einer Stelle zu
+ * verschwinden und an der naechsten aufzutauchen. Wohin, sagt die Oberflaeche
+ * ueber `transform` — gemessen am aktiven Knopf.
+ *
+ * `translateY` und nicht `top`: ein Ortswechsel ueber `transform` laeuft im
+ * Compositor und loest kein Neuberechnen des Layouts aus.
+ */
+.schiene__marke {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 40px;
+  border-radius: 0 3px 3px 0;
+  background: var(--betont);
+  pointer-events: none;
+}
+
+.schiene__marke--wandert {
+  transition: transform var(--motion-place) var(--motion-ease-standard);
 }
 
 .schiene__eintrag--an {
@@ -415,8 +456,23 @@ body {
   cursor: pointer;
 }
 
+.dialog__knopf {
+  transition: background var(--motion-feedback) var(--motion-ease-standard);
+}
+
 .dialog__knopf:hover {
   background: #343b4d;
+}
+
+.dialog__knopf:active {
+  background: #3d465c;
+}
+
+/* Titelleisten- und Fensterknoepfe antworten genauso schnell. */
+.titelleiste__knopf,
+.fensterknopf {
+  transition: background var(--motion-feedback) var(--motion-ease-standard),
+    color var(--motion-feedback) var(--motion-ease-standard);
 }
 
 /* ---------- Felder in den Einstellungen ---------- */

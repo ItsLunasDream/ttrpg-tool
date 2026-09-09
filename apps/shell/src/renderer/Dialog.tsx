@@ -36,7 +36,7 @@ export function Dialog({ titel, schliessenText, onClose, children }: Props) {
 
   return (
     <div
-      className="dialog__grund"
+      className="dialog__grund motion-erscheinen"
       onMouseDown={(event) => {
         // Nur ein Klick auf den Hintergrund schliesst, nicht einer, der im
         // Dialog begonnen und ausserhalb geendet hat (Textauswahl).
@@ -44,7 +44,7 @@ export function Dialog({ titel, schliessenText, onClose, children }: Props) {
       }}
     >
       <div
-        className="dialog"
+        className="dialog motion-eintritt"
         role="dialog"
         aria-modal="true"
         aria-label={titel}

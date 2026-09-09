@@ -113,12 +113,18 @@
   }
 }
 
+/*
+ * `backwards` ist hier wichtig: Auftritte werden oft gestaffelt (jede Kachel
+ * ein Stueck spaeter). Ohne diese Angabe stuende das Element waehrend seiner
+ * Verzoegerung schon sichtbar da und spraenge dann auf unsichtbar zurueck,
+ * um erneut zu erscheinen.
+ */
 .motion-eintritt {
-  animation: motion-eintritt var(--motion-place) var(--motion-ease-enter);
+  animation: motion-eintritt var(--motion-place) var(--motion-ease-enter) backwards;
 }
 
 .motion-erscheinen {
-  animation: motion-erscheinen var(--motion-state) var(--motion-ease-enter);
+  animation: motion-erscheinen var(--motion-state) var(--motion-ease-enter) backwards;
 }
 
 /*
