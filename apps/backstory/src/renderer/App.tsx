@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, call } from './api';
 import { buildIndex, filterNotes, searchNotes, type SearchFilters } from './noteIndex';
 import { hasLinkReservedChars, normalizeName } from '../shared/wikilinks';
+import { effektiverStand, zieheUmbenennungNach, type Entwurf } from './entwuerfe';
 import { DEFAULT_NOTE_TYPES } from '../shared/noteTypes';
 import type {
   AppSettings,
@@ -83,7 +84,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
    * Bei eingeschaltetem Autosave bleibt der Speicher leer: dort wird
    * geschrieben wie eh und je.
    */
-  const [entwuerfe, setEntwuerfe] = useState<Map<string, Note>>(() => new Map());
+  const [entwuerfe, setEntwuerfe] = useState<Map<string, Entwurf>>(() => new Map());
   const [saving, setSaving] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>(EMPTY_FILTERS);
   const [hover, setHover] = useState<{ note: Note; rect: DOMRect } | null>(null);
@@ -106,7 +107,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const notesRef = useRef<Note[]>([]);
   notesRef.current = notes;
   const savingRef = useRef(false);
-  const entwuerfeRef = useRef<Map<string, Note>>(new Map());
+  const activeCampaignIdRef = useRef<string | null>(null);
+  activeCampaignIdRef.current = activeCampaignId;
+  const entwuerfeRef = useRef<Map<string, Entwurf>>(new Map());
   entwuerfeRef.current = entwuerfe;
   /**
    * Ob ueberhaupt automatisch geschrieben werden darf.
@@ -121,7 +124,28 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
 
   const activeCampaign = campaigns.find((campaign) => campaign.id === activeCampaignId) ?? null;
   const noteTypes: NoteTypeDef[] = activeCampaign?.noteTypes ?? DEFAULT_NOTE_TYPES;
-  const index = useMemo(() => buildIndex(notes, noteTypes, compare), [notes, noteTypes, compare]);
+  /**
+   * Der Stand, den die Person vor sich hat: die Notizen von der Platte, wo
+   * vorhanden durch ihren Entwurf ersetzt.
+   *
+   * `notes` bleibt daneben der reine Plattenstand — `schreibe` braucht ihn,
+   * um beim Umbenennen den *alten* Titel zu kennen. Wer die beiden
+   * verwechselt, benennt gegen sich selbst um.
+   *
+   * Ohne diese Trennung zeigten Liste, Suche und Graph den Stand von vor der
+   * letzten Aenderung: man tippt einen neuen Titel, und die Liste daneben
+   * nennt weiter den alten. Mit Autosave fiel das nicht auf, weil nach
+   * anderthalb Sekunden ohnehin geschrieben wurde.
+   */
+  const effektiveNotizen = useMemo(
+    () => effektiverStand(notes, entwuerfe, activeCampaignId, dirty && draft ? draft : null),
+    [notes, entwuerfe, activeCampaignId, dirty, draft]
+  );
+
+  const index = useMemo(
+    () => buildIndex(effektiveNotizen, noteTypes, compare),
+    [effektiveNotizen, noteTypes, compare]
+  );
   const visibleNotes = useMemo(() => filterNotes(index, filters), [index, filters]);
 
   // Treffer der Volltextsuche, damit die Liste Ausschnitt und Fundstelle
@@ -146,10 +170,14 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const speichereAllesRef = useRef<() => Promise<void>>(async () => {});
 
   const ungespeicherteIds = useMemo(() => {
-    const ids = new Set(entwuerfe.keys());
+    const ids = new Set(
+      [...entwuerfe.values()]
+        .filter((entwurf) => entwurf.campaignId === activeCampaignId)
+        .map((entwurf) => entwurf.notiz.id)
+    );
     if (dirty && draft) ids.add(draft.id);
     return ids;
-  }, [entwuerfe, dirty, draft]);
+  }, [entwuerfe, dirty, draft, activeCampaignId]);
 
   const report = useCallback((text: string, tone: 'info' | 'error' = 'info') => {
     setMessage({ text, tone });
@@ -229,6 +257,16 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
 
   // --- Speichern -----------------------------------------------------------
 
+  /** Zieht eine Umbenennung durch die Entwuerfe. Regel in ./entwuerfe.ts. */
+  const zieheEntwuerfeNach = useCallback(
+    (campaignId: string, alterTitel: string, neuerTitel: string) => {
+      setEntwuerfe(
+        (vorher) => zieheUmbenennungNach(vorher, campaignId, alterTitel, neuerTitel) as Map<string, Entwurf>
+      );
+    },
+    []
+  );
+
   const loescheEntwurf = useCallback((noteId: string) => {
     setEntwuerfe((vorher) => {
       if (!vorher.has(noteId)) return vorher;
@@ -248,8 +286,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
    */
   const parke = useCallback(() => {
     const aktuell = draftRef.current;
-    if (!aktuell || !dirtyRef.current) return;
-    setEntwuerfe((vorher) => new Map(vorher).set(aktuell.id, aktuell));
+    const campaignId = activeCampaignIdRef.current;
+    if (!aktuell || !dirtyRef.current || !campaignId) return;
+    setEntwuerfe((vorher) => new Map(vorher).set(aktuell.id, { notiz: aktuell, campaignId }));
   }, []);
 
   /**
@@ -271,6 +310,13 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         await call(api.notes.save(campaignId, { ...notiz, title: persisted.title }));
         const result = await call(api.notes.rename(campaignId, notiz.id, notiz.title));
         await reloadNotes(campaignId);
+        // Das Umbenennen zieht die [[Links]] auf der Platte mit — die
+        // beiseitegelegten Entwuerfe erreicht es nicht. Ohne diesen Schritt
+        // schriebe ein spaeter gespeicherter Entwurf den alten Namen zurueck
+        // und machte den Link tot. Das faellt niemandem auf: der Link sieht
+        // nach dem Umbenennen richtig aus und wird erst beim Speichern der
+        // anderen Notiz wieder falsch.
+        zieheEntwuerfeNach(campaignId, persisted.title, result.note.title);
         if (result.rewritten > 0) {
           report(result.rewritten === 1 ? t('msg.renamedOne') : t('msg.renamed', { count: result.rewritten }));
         }
@@ -282,7 +328,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       setNotes(notesRef.current);
       return saved;
     },
-    [reloadNotes, report, t]
+    [reloadNotes, report, t, zieheEntwuerfeNach]
   );
 
   const persist = useCallback(async (): Promise<Note | null> => {
@@ -319,17 +365,43 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
    * neu — parallele Laeufe wuerden sich gegenseitig ueberholen.
    */
   const speichereAlles = useCallback(async (): Promise<void> => {
-    const campaignId = activeCampaignId;
-    if (!campaignId) return;
     await persist();
     for (const entwurf of [...entwuerfeRef.current.values()]) {
       await guard(async () => {
-        const gespeichert = await schreibe(entwurf, campaignId);
+        // In *seine* Kampagne, nicht in die gerade offene.
+        const gespeichert = await schreibe(entwurf.notiz, entwurf.campaignId);
         loescheEntwurf(gespeichert.id);
       });
     }
-  }, [activeCampaignId, persist, schreibe, guard, loescheEntwurf]);
+  }, [persist, schreibe, guard, loescheEntwurf]);
   speichereAllesRef.current = speichereAlles;
+
+  /**
+   * Vorbereitung fuer eine Aktion, die den Stand auf der Platte braucht —
+   * Export, Aufraeumen, der Assistent. Antwortet `false`, wenn abgebrochen
+   * wurde.
+   *
+   * Diese Aktionen laufen im Hauptprozess und lesen die Dateien; einen
+   * Entwurf im Arbeitsspeicher koennen sie nicht sehen. Frueher schrieb der
+   * Editor deshalb vor jeder von ihnen einfach los. Ohne Autosave darf er das
+   * nicht mehr — also wird gefragt, statt still den alten Stand zu exportieren
+   * oder den neuen ungefragt festzuschreiben.
+   */
+  const bereitFuerPlattenaktion = useCallback(async (): Promise<boolean> => {
+    if (autosaveAnRef.current) {
+      await persist();
+      return true;
+    }
+    const offen = draftRef.current;
+    const anzahl =
+      entwuerfeRef.current.size + (dirtyRef.current && offen && !entwuerfeRef.current.has(offen.id) ? 1 : 0);
+    if (anzahl === 0) return true;
+
+    const antwort = await call(api.frageSpeichern(anzahl));
+    if (antwort === 'abbrechen') return false;
+    if (antwort === 'speichern') await speichereAllesRef.current();
+    return true;
+  }, [persist]);
 
   /**
    * Was vor einem Wechsel passiert — der offenen Notiz, der Kampagne, der
@@ -400,7 +472,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       // waere dort eine Frage, die niemand gestellt haben wollte. Die leere
       // Liste fuehrt zum bisherigen Weg: still sichern und schliessen.
       if (autosaveAnRef.current) return [];
-      const titel = [...entwuerfeRef.current.values()].map((notiz) => notiz.title);
+      const titel = [...entwuerfeRef.current.values()].map((entwurf) => entwurf.notiz.title);
       const offen = draftRef.current;
       if (dirtyRef.current && offen && !entwuerfeRef.current.has(offen.id)) titel.push(offen.title);
       return titel;
@@ -454,7 +526,14 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     return (await guard(() => call(api.assets.pick(campaignId)))) ?? null;
   }, [activeCampaignId, guard]);
 
-  /** Verlauf oeffnen. Ungespeichertes wird vorher gesichert, sonst fehlt es dort. */
+  /**
+   * Verlauf oeffnen.
+   *
+   * Der Verlauf kennt nur, was auf der Platte steht — er wird beim Speichern
+   * fortgeschrieben. Ein ungespeicherter Entwurf taucht darin nicht auf, und
+   * das ist richtig so: er ist keine Fassung, sondern eine Absicht. Mit
+   * Autosave wird vorher geschrieben und steht dann drin.
+   */
   const openHistory = useCallback(
     async (note: Note) => {
       const campaignId = activeCampaignId;
@@ -463,11 +542,11 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       setVersions(null);
       setDialog({ kind: 'history', note });
       await guard(async () => {
-        await persist();
+        await sichereVorWechsel();
         setVersions(await call(api.history.list(campaignId, note.id)));
       });
     },
-    [activeCampaignId, guard, persist]
+    [activeCampaignId, guard, sichereVorWechsel]
   );
 
   const patchDraft = useCallback((patch: Partial<Note>) => {
@@ -483,7 +562,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         // Liegt fuer diese Notiz ein Entwurf bereit, gilt der und nicht der
         // Stand von der Platte — sonst waere der ungespeicherte Text beim
         // Zurueckkommen verschwunden, obwohl er nie verworfen wurde.
-        const geparkt = entwuerfeRef.current.get(noteId);
+        const eintrag = entwuerfeRef.current.get(noteId);
+        const geparkt =
+          eintrag && eintrag.campaignId === activeCampaignIdRef.current ? eintrag.notiz : undefined;
         const target = geparkt ?? notesRef.current.find((note) => note.id === noteId);
         if (!target) return;
         setDraft(target);
@@ -502,14 +583,14 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       if (!campaignId) return;
 
       void guard(async () => {
-        await persist();
+        await sichereVorWechsel();
         const created = await call(api.notes.create(campaignId, type, title));
         const list = await reloadNotes(campaignId);
         setDraft(list.find((note) => note.id === created.id) ?? created);
         setDirty(false);
       });
     },
-    [activeCampaignId, guard, persist, reloadNotes]
+    [activeCampaignId, guard, sichereVorWechsel, reloadNotes]
   );
 
   /** Aus einem offenen [[Link]] heraus: nur anlegen, wenn es den Namen noch nicht gibt. */
@@ -532,7 +613,10 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     (campaignId: string) => {
       if (campaignId === activeCampaignId) return;
       void guard(async () => {
-        await persist();
+        // Der Entwurf wird beiseitegelegt, nicht geschrieben — mitsamt seiner
+        // Kampagne, damit er beim Speichern dorthin zurueckfindet und nicht in
+        // die neue.
+        await sichereVorWechsel();
         setActiveCampaignId(campaignId);
       });
     },
@@ -566,7 +650,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       const campaignId = activeCampaignId;
       const noteId = draftRef.current?.id;
       if (!campaignId || !noteId) return null;
-      await persist();
+      // Der Assistent liest die Notiz von der Platte. Mit ungespeichertem
+      // Entwurf bekaeme er den Text von vorhin und antwortete daneben.
+      if (!(await bereitFuerPlattenaktion())) return null;
 
       // Eigene Kennung je Anfrage, damit Teiltexte einer alten Anfrage nicht
       // in einer neuen Antwort landen.
@@ -600,9 +686,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         onExport={() =>
           activeCampaign &&
           void guard(async () => {
-            // Exportiert wird der Stand auf der Platte. Ohne dieses
-            // Speichern fehlte der zuletzt getippte Absatz in der Sicherung.
-            await persist();
+            // Exportiert wird der Stand auf der Platte. Ungespeichertes
+            // fehlte darin — deshalb vorher fragen.
+            if (!(await bereitFuerPlattenaktion())) return;
             const target = await call(api.exportCampaignZip(activeCampaign.id, activeCampaign.name));
             if (target) report(t('msg.exported', { path: target }));
           })
@@ -610,7 +696,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         onExportMarkdown={() =>
           activeCampaign &&
           void guard(async () => {
-            await persist();
+            if (!(await bereitFuerPlattenaktion())) return;
             const result = await call(api.exportMarkdown.campaign(activeCampaign.id));
             if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
           })
@@ -618,7 +704,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         onExportPdf={() =>
           activeCampaign &&
           void guard(async () => {
-            await persist();
+            if (!(await bereitFuerPlattenaktion())) return;
             const result = await call(api.exportPdf.campaign(activeCampaign.id, activeCampaign.name));
             if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
           })
@@ -630,7 +716,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
           void guard(async () => {
             setOrphans(null);
             setDialog({ kind: 'cleanup' });
-            await persist();
+            // Verwaiste Bilder werden an den Dateien gemessen. Ein Entwurf,
+            // der ein Bild noch benutzt, macht es sonst faelschlich verwaist.
+            if (!(await bereitFuerPlattenaktion())) return;
             setOrphans(await call(api.assets.orphans(activeCampaign.id)));
           })
         }
@@ -697,7 +785,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                   void guard(async () => {
                     const campaignId = activeCampaignId;
                     if (!campaignId) return;
-                    await persist();
+                    if (!(await bereitFuerPlattenaktion())) return;
                     const result = await call(api.exportMarkdown.note(campaignId, draft.id));
                     if (result) report(t('export.done', { path: result.path }));
                   })
@@ -706,7 +794,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                   void guard(async () => {
                     const campaignId = activeCampaignId;
                     if (!campaignId) return;
-                    await persist();
+                    if (!(await bereitFuerPlattenaktion())) return;
                     const result = await call(api.exportPdf.note(campaignId, draft.id, draft.title));
                     if (result) report(t('export.done', { path: result.path }));
                   })
@@ -729,7 +817,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
 
                     // Erst den eigenen Stand sichern, sonst ginge er beim
                     // Neuladen nach dem Speichern der anderen Notiz verloren.
-                    await persist();
+                    await sichereVorWechsel();
 
                     const target = notesRef.current.find((entry) => entry.id === targetId);
                     if (!target || target.relations.some((entry) => entry.targetId === draft.id)) return;

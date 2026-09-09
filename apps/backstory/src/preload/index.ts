@@ -48,6 +48,12 @@ const api = {
   },
   flushed: () => ipcRenderer.send(channel('app:flushed')),
   /**
+   * Fragt vor einer Aktion, die den Plattenstand braucht, was mit
+   * Ungespeichertem geschehen soll.
+   */
+  frageSpeichern: (anzahl: number) =>
+    invoke<'speichern' | 'ohne' | 'abbrechen'>('app:frage-speichern', anzahl),
+  /**
    * Der Hauptprozess fragt vor dem Schliessen, was ungespeichert ist.
    *
    * Der Rueckruf liefert die Titel der betroffenen Notizen. Leer heisst: es

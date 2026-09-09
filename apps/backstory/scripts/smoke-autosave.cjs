@@ -14,7 +14,7 @@
  *
  * Aufruf: xvfb-run -a npx electron scripts/smoke-autosave.cjs --no-sandbox
  */
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, dialog } = require('electron');
 const path = require('node:path');
 const os = require('node:os');
 const fs = require('node:fs');
@@ -28,6 +28,15 @@ fs.writeFileSync(
   JSON.stringify({ language: 'de', autosaveEnabled: false }),
   'utf8'
 );
+
+// Der Nachfrage-Dialog vor Plattenaktionen ist ein Systemfenster und laesst
+// sich nicht anklicken. Der Test ersetzt ihn und gibt die gewuenschte Antwort.
+const gefragt = [];
+let dialogAntwort = 2; // Abbrechen
+dialog.showMessageBox = async (...args) => {
+  gefragt.push(args.length > 1 ? args[1] : args[0]);
+  return { response: dialogAntwort, checkboxChecked: false };
+};
 
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
 
@@ -208,6 +217,50 @@ app.whenReady().then(async () => {
       await run(fenster, `return document.querySelectorAll('.note-list__ungespeichert').length === 1;`),
       'die Markierung der gespeicherten Notiz ist weg'
     );
+    // --- Der Titel in der Liste folgt dem Entwurf -------------------------
+    await run(
+      fenster,
+      `const el = document.querySelector('.note-editor__title input, .note-editor input');
+       if (!el) throw new Error('Titelfeld nicht gefunden');
+       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, 'Umbenannt Ungespeichert');
+       el.dispatchEvent(new Event('input', { bubbles: true })); return true;`
+    );
+    await sleep(600);
+    pruefe(
+      await run(
+        fenster,
+        `return [...document.querySelectorAll('.note-list__title')]
+           .some((e) => e.textContent.includes('Umbenannt Ungespeichert'));`
+      ),
+      'die Liste zeigt den ungespeicherten Titel, nicht den von der Platte'
+    );
+
+    // --- Export fragt nach und laesst sich abbrechen ----------------------
+    gefragt.length = 0;
+    dialogAntwort = 2; // Abbrechen
+    await run(
+      fenster,
+      `const b = [...document.querySelectorAll('button')].find((x) => x.textContent.includes('Export'));
+       if (b) b.click(); return true;`
+    ).catch(() => {});
+    await sleep(300);
+    await run(
+      fenster,
+      `const e = [...document.querySelectorAll('.menu__list button')]
+         .find((b) => b.textContent.includes('Markdown'));
+       if (e) e.click(); return true;`
+    ).catch(() => {});
+    await sleep(1500);
+    pruefe(
+      gefragt.length >= 1,
+      `der Export fragt bei Ungespeichertem nach (${gefragt.length}x)`
+    );
+    if (gefragt.length) {
+      pruefe(
+        (gefragt[0].buttons ?? []).length === 3,
+        `drei Antworten: ${JSON.stringify(gefragt[0].buttons ?? [])}`
+      );
+    }
   } catch (fehler) {
     console.log(`  FEHL Abbruch: ${fehler.message}`);
     problems.push(String(fehler.message));
