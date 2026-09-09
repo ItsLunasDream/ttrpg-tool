@@ -15,7 +15,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Eine Fassung fuer alle Jobs, aus der .nvmrc der Wurzel. Der
+          # Kartenmacher zieht PixiJS herein, und das greift beim Laden auf
+          # globalThis.navigator zu — das gibt es erst ab Node 21. Unter
+          # Node 20 brachen zehn seiner Testdateien mit
+          # „ReferenceError: navigator is not defined" ab.
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run typecheck
@@ -29,7 +34,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Fassung aus der .nvmrc der Wurzel, Begruendung im Job oben.
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: sudo apt-get update && sudo apt-get install -y xvfb
@@ -60,7 +66,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Fassung aus der .nvmrc der Wurzel, Begruendung im Job oben.
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run icon
@@ -92,7 +99,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Fassung aus der .nvmrc der Wurzel, Begruendung im Job oben.
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run icon

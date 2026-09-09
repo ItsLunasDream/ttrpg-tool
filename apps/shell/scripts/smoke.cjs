@@ -43,7 +43,29 @@ async function warteAufFenster(versuche = 40) {
   return {};
 }
 
+/**
+ * Prueft, ob die Dateien einer Anwendung dort liegen, wo `appDistDir` in
+ * src/main/apps.ts sie sucht.
+ *
+ * Steht hier und nicht bei den Modultests: das sind Bau-Ergebnisse, und die
+ * Modultests laufen in der CI ohne vorherigen Build. Genau daran ist dieser
+ * Test zuerst gescheitert.
+ *
+ * Wert hat er trotzdem: laufen die Pfade auseinander, bleibt die Ansicht sonst
+ * einfach leer, ohne Fehlermeldung. Hier steht dann, welche Datei fehlt.
+ */
+function pruefeDateienDerApp(id) {
+  const dir = path.join(__dirname, '..', 'dist', 'main', '..', '..', '..', id, 'dist', 'main');
+  pruefe(fs.existsSync(path.join(dir, 'preload.js')), `${id}: preload.js liegt unter ${dir}`);
+  pruefe(
+    fs.existsSync(path.join(dir, '..', 'renderer', 'index.html')),
+    `${id}: index.html liegt neben ${dir}`
+  );
+}
+
 app.whenReady().then(async () => {
+  pruefeDateienDerApp('backstory');
+
   const { fenster, sicht } = await warteAufFenster();
   if (!fenster || !sicht) {
     console.error('Kein Fenster mit geladener Ansicht gefunden.');
