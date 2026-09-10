@@ -335,3 +335,19 @@ input[type='number'] {
     animation: none;
   }
 }
+
+/* Der eigene Wuerfel traegt statt eines Namens sein Seitenfeld. */
+.artfeld__seiten {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  font-size: 11px;
+  color: var(--text-leise);
+}
+
+.artfeld__seiten input {
+  width: 34px;
+  padding: 1px 3px;
+  font-size: 11px;
+  text-align: center;
+}

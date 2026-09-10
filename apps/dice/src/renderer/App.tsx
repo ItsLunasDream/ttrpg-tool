@@ -29,7 +29,7 @@ export function App() {
   const [modifikator, setModifikator] = useState(0);
   const [wurf, setWurf] = useState<Wurf | null>(null);
   const [rollt, setRollt] = useState(false);
-  const [einstellungen] = useState<Einstellungen>(STANDARD);
+  const [einstellungen, setEinstellungen] = useState<Einstellungen>(STANDARD);
   const [, setSprache] = useState<Language>(getLanguage);
 
   useEffect(() => onLanguageChange(() => setSprache(getLanguage())), []);
@@ -66,6 +66,11 @@ export function App() {
               einstellungen={einstellungen}
               onAendern={(schritt) => setAuswahl((vorher) => aendereAnzahl(vorher, art, schritt))}
               onSetzen={(anzahl) => setAuswahl((vorher) => setzeAnzahl(vorher, art, anzahl))}
+              onSeiten={
+                art === 'custom'
+                  ? (seiten) => setEinstellungen((vorher) => ({ ...vorher, eigeneSeiten: seiten }))
+                  : undefined
+              }
             />
           ))}
         </div>
@@ -157,13 +162,16 @@ function Artfeld({
   anzahl,
   einstellungen,
   onAendern,
-  onSetzen
+  onSetzen,
+  onSeiten
 }: {
   art: Art;
   anzahl: number;
   einstellungen: Einstellungen;
   onAendern: (schritt: number) => void;
   onSetzen: (anzahl: number) => void;
+  /** Nur beim eigenen Wuerfel gesetzt: dort laesst sich die Seitenzahl aendern. */
+  onSeiten?: (seiten: number) => void;
 }) {
   const name = artName(art, einstellungen.eigeneSeiten);
   return (
@@ -181,7 +189,26 @@ function Artfeld({
         }}
         titel={name}
       />
-      <span className="artfeld__name">{name}</span>
+      {/* Beim eigenen Wuerfel steht hier ein Eingabefeld statt eines Namens.
+          Zuerst stand dort schlicht „d3" — die Standard-Seitenzahl —, und
+          niemand konnte erkennen, dass das der einstellbare Wuerfel ist. */}
+      {onSeiten ? (
+        <span className="artfeld__seiten">
+          d
+          <input
+            type="number"
+            min={2}
+            max={1000}
+            value={einstellungen.eigeneSeiten}
+            onChange={(ereignis) =>
+              onSeiten(Math.max(2, Math.min(1000, Number.parseInt(ereignis.target.value, 10) || 2)))
+            }
+            aria-label={t('feld.seiten')}
+          />
+        </span>
+      ) : (
+        <span className="artfeld__name">{name}</span>
+      )}
       <input
         className="artfeld__zahl"
         type="number"
