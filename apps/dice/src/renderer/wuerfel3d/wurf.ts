@@ -324,33 +324,57 @@ export function wirf(
   const { welt, stoff } = baueWelt(tisch);
   const koerperListe = einwuerfe.map((e) => koerperVon(e.art));
 
+  /*
+   * Die Wuerfel kommen von der Seite hereingerollt, nicht von oben herab.
+   *
+   * Ein Fall aus der Hoehe sieht aus, als kippe man einen Becher aus; am
+   * Tisch rollt man sie mit Schwung ueber die Flaeche. Sie starten deshalb
+   * dicht ueber dem Boden an einer Kante und bekommen Geschwindigkeit quer
+   * hinueber — so wie es die Wuerfel in Foundry und D&D Beyond tun.
+   *
+   * Die Seite wechselt von Wurf zu Wurf, sonst kaeme immer alles aus
+   * derselben Ecke.
+   */
+  const ecke = Math.floor(zufall() * 4);
+  const winkel = (ecke * Math.PI) / 2 + (zufall() - 0.5) * 0.5;
+  const richtung = new Vec3(-Math.cos(winkel), 0, -Math.sin(winkel));
+  const quer = new Vec3(-richtung.z, 0, richtung.x);
+  const start = new Vec3(Math.cos(winkel) * tisch * 1.05, 0, Math.sin(winkel) * tisch * 1.05);
+
   const leiber = einwuerfe.map((_einwurf, nummer) => {
     const koerper = koerperListe[nummer];
-    // Ueber die Flaeche verteilt statt in fuenf Spalten: bei hundert Wuerfeln
-    // waeren das zwanzig Reihen uebereinander, und der Turm faellt in sich
-    // zusammen statt sich zu verteilen.
-    const jeKante = Math.max(3, Math.ceil(Math.sqrt(einwuerfe.length)));
-    const reihe = Math.floor(nummer / jeKante) % jeKante;
-    const spalte = nummer % jeKante;
-    const stockwerk = Math.floor(nummer / (jeKante * jeKante));
-    const schritt = (tisch * 1.6) / jeKante;
+    // Nebeneinander an der Startkante aufgereiht, in mehreren Reihen, wenn es
+    // viele sind. Ein Haufen an einer Stelle wuerde sich gegenseitig
+    // blockieren, statt loszurollen.
+    const jeReihe = Math.max(3, Math.ceil(Math.sqrt(einwuerfe.length * 1.6)));
+    const spalte = nummer % jeReihe;
+    const reihe = Math.floor(nummer / jeReihe);
+    const seitlich = (spalte - (jeReihe - 1) / 2) * 1.5;
+    const tiefe = reihe * 1.5;
+
+    const schwung = 9 + zufall() * 4;
     const leib = new Body({
       mass: 1,
       shape: formVon(koerper),
       material: stoff,
-      // Enger gesetzt als der Tisch breit ist: von aussen nach innen zu
-      // fallen haelt sie im Bild, von der Wand abzuprallen streut sie
-      // dorthin, wo die Kamera nicht mehr hinsieht.
       position: new Vec3(
-        (spalte - (jeKante - 1) / 2) * schritt + (zufall() - 0.5) * 0.4,
-        4 + stockwerk * 2.2,
-        (reihe - (jeKante - 1) / 2) * schritt + (zufall() - 0.5) * 0.4
+        start.x + quer.x * seitlich - richtung.x * tiefe,
+        1.1 + (nummer % 3) * 0.35,
+        start.z + quer.z * seitlich - richtung.z * tiefe
       ),
-      velocity: new Vec3((zufall() - 0.5) * 2.2, -3, (zufall() - 0.5) * 2.2),
+      velocity: new Vec3(
+        richtung.x * schwung + (zufall() - 0.5) * 1.5,
+        // Leicht nach oben: sonst schleifen sie ueber den Boden, statt einmal
+        // aufzusetzen und weiterzurollen.
+        1.5 + zufall(),
+        richtung.z * schwung + (zufall() - 0.5) * 1.5
+      ),
+      // Die Drehung um die Querachse laesst sie in Fahrtrichtung ueberschlagen
+      // — das ist es, was einen rollenden Wuerfel ausmacht.
       angularVelocity: new Vec3(
-        (zufall() - 0.5) * 14,
-        (zufall() - 0.5) * 14,
-        (zufall() - 0.5) * 14
+        quer.x * (12 + zufall() * 8) + (zufall() - 0.5) * 4,
+        (zufall() - 0.5) * 6,
+        quer.z * (12 + zufall() * 8) + (zufall() - 0.5) * 4
       ),
       // Ohne Daempfung zittern liegende Koerper endlos weiter; die Kugeln
       // rollen ohne die zweite Zeile bis an die Wand. Rollreibung kennt

@@ -54,7 +54,6 @@ export function App() {
   // sich waehrend einer Sitzung nicht, und die Probe legt jedes Mal eine
   // Leinwand an.
   const [grafikDa] = useState(kannDreiD);
-  const [wurfNummer, setWurfNummer] = useState(0);
 
   useEffect(() => onLanguageChange(() => setSprache(getLanguage())), []);
 
@@ -92,6 +91,7 @@ export function App() {
         ? wurf.wuerfe.map((einzel) => ({
             art: einzel.art,
             augen: einzel.augen,
+            abzug: !einzel.zaehltPositiv,
             hoechst: einzel.istHoechst && einstellungen.glitzerAn,
             tiefst: einzel.istTiefst && einstellungen.streifenAn
           }))
@@ -104,7 +104,6 @@ export function App() {
   const rolle = useCallback(() => {
     if (gesamt === 0 || rollt) return;
     setRollt(true);
-    setWurfNummer((vorher) => vorher + 1);
     // Das Ergebnis steht sofort fest; die Animation ist Schau, keine
     // Berechnung. Wuerde erst danach gewuerfelt, koennte ein zweiter Klick
     // waehrend der Drehung zwei Wuerfe ausloesen.
@@ -198,12 +197,7 @@ export function App() {
           nichts kommen.
         */}
         {dreiDAn ? (
-          <Buehne3d
-            einwuerfe={dreiDEinwuerfe}
-            einstellungen={einstellungen}
-            wurfNummer={wurfNummer}
-            onFertig={() => undefined}
-          />
+          <Buehne3d einwuerfe={dreiDEinwuerfe} einstellungen={einstellungen} rollt={rollt} />
         ) : (
           <div className="buehne__tisch">
             {wurf && !rollt

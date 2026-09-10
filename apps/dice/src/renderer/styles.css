@@ -263,14 +263,74 @@ input[type='number'] {
   position: relative;
 }
 
-.glitzer--frei,
-.streifen--frei {
+/*
+ * Was ueber einem liegenden Koerper steht: die Augenzahl, dazu der Effekt.
+ *
+ * Der gerechnete Punkt ist die Mitte des Wuerfels, nicht seine Ecke — deshalb
+ * die Verschiebung um die halbe eigene Groesse.
+ */
+.marke3d {
   position: absolute;
   width: 92px;
   height: 92px;
-  /* Der gerechnete Punkt ist die Mitte des Wuerfels, nicht seine Ecke. */
   transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
   pointer-events: none;
+}
+
+.glitzer--frei,
+.streifen--frei {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/*
+ * Die Zahl sitzt ueber dem Koerper und nicht auf ihm.
+ *
+ * Auf den Flaechen steht sie zwar auch, aber nur lesbar, wenn der Blickwinkel
+ * stimmt; bei zwanzig Wuerfeln sucht man sonst. Die Kugeln fuer d100 und den
+ * eigenen Wuerfel tragen ueberhaupt keine Beschriftung — dort ist das hier
+ * die einzige Zahl.
+ *
+ * Der dunkle Grund macht sie auf jedem Wuerfel lesbar, gleich welche Farbe
+ * eingestellt ist.
+ */
+.marke3d__zahl {
+  position: relative;
+  transform: translateY(-34px);
+  min-width: 24px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #0b0d13d9;
+  border: 1px solid #ffffff26;
+  color: #e6ebff;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  line-height: 1.35;
+}
+
+.marke3d--hoechst .marke3d__zahl {
+  color: #ffe9a8;
+  border-color: #ffd76a66;
+}
+
+.marke3d--tiefst .marke3d__zahl {
+  color: #d8c4ff;
+  border-color: #a855f766;
+}
+
+/*
+ * Abzugswuerfel: dieselbe Farbe wie das Zeichen in der flachen Darstellung.
+ * Ein Wurf aus Plus und Minus ist sonst am Tisch nicht auseinanderzuhalten.
+ */
+.marke3d--abzug .marke3d__zahl {
+  color: var(--abzug);
+  border-color: var(--abzug);
+  background: #1a1013e6;
 }
 
 .buehne3d canvas {
