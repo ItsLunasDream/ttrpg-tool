@@ -25,10 +25,22 @@ import { Wuerfel } from './Wuerfel';
 import { Verlauf } from './Verlauf';
 import { VERLAUF_LAENGE, type Eintrag } from './verlaufTypen';
 import { Aussehen } from './Aussehen';
+import { Buehne3d, kannDreiD } from './wuerfel3d/Buehne3d';
 import { api } from './api';
 
 /** Wie lange die Wuerfel rollen. Aus @suite/motion: DAUER.ortswechsel × 3. */
 const ROLLDAUER = 660;
+
+/**
+ * Bis zu wie vielen Wuerfeln als Koerper geworfen wird.
+ *
+ * Darueber bleibt es bei der flachen Darstellung. Die Zahl ist gemessen: im
+ * Vorversuch lagen zwanzig Koerper nach gut zwei Sekunden, hundert erst nach
+ * dreizehn, und allein das Rechnen dauerte da 1,6 Sekunden. Hundert ist der
+ * ausdrueckliche Extremfall und darf sich zaeh anfuehlen; darueber waere es
+ * kein Wuerfeln mehr, sondern Warten.
+ */
+const DREID_HOECHSTENS = 100;
 
 export function App() {
   const [auswahl, setAuswahl] = useState<Auswahl>({});
@@ -38,6 +50,11 @@ export function App() {
   const [einstellungen, setEinstellungen] = useState<Einstellungen>(STANDARD);
   const [verlauf, setVerlauf] = useState<Eintrag[]>([]);
   const [, setSprache] = useState<Language>(getLanguage);
+  // Einmal beim Start gemessen und nicht bei jedem Bild: die Antwort aendert
+  // sich waehrend einer Sitzung nicht, und die Probe legt jedes Mal eine
+  // Leinwand an.
+  const [grafikDa] = useState(kannDreiD);
+  const [wurfNummer, setWurfNummer] = useState(0);
 
   useEffect(() => onLanguageChange(() => setSprache(getLanguage())), []);
 
@@ -61,9 +78,33 @@ export function App() {
     [auswahl, einstellungen.eigeneSeiten, modifikator]
   );
 
+  /**
+   * Die Wuerfel des laufenden Wurfs fuer die Koerperdarstellung.
+   *
+   * Erst wenn ein Ergebnis vorliegt: die Koerper zeigen den Wurf, keine
+   * Vorschau. Vor dem ersten Wurf bleibt die Buehne leer, und das ist
+   * richtig — ein Haufen liegender Koerper ohne Zahlen sagt weniger als
+   * nichts.
+   */
+  const dreiDEinwuerfe = useMemo(
+    () =>
+      wurf
+        ? wurf.wuerfe.map((einzel) => ({
+            art: einzel.art,
+            augen: einzel.augen,
+            hoechst: einzel.istHoechst && einstellungen.glitzerAn,
+            tiefst: einzel.istTiefst && einstellungen.streifenAn
+          }))
+        : [],
+    [wurf, einstellungen.glitzerAn, einstellungen.streifenAn]
+  );
+  const dreiDAn =
+    einstellungen.dreiD && grafikDa && gesamt <= DREID_HOECHSTENS && dreiDEinwuerfe.length > 0;
+
   const rolle = useCallback(() => {
     if (gesamt === 0 || rollt) return;
     setRollt(true);
+    setWurfNummer((vorher) => vorher + 1);
     // Das Ergebnis steht sofort fest; die Animation ist Schau, keine
     // Berechnung. Wuerde erst danach gewuerfelt, koennte ein zweiter Klick
     // waehrend der Drehung zwei Wuerfe ausloesen.
@@ -148,35 +189,52 @@ export function App() {
       <main className="buehne">
         <div className="buehne__ausdruck">{ausdruck || t('pool.leer')}</div>
 
-        <div className="buehne__tisch">
-          {wurf && !rollt
-            ? wurf.wuerfe.map((einzel, nummer) => (
-                <Wuerfel
-                  key={nummer}
-                  art={einzel.art}
-                  augen={einzel.augen}
-                  farbe={einstellungen.farbe}
-                  muster={einstellungen.muster}
-                  groesse={72}
-                  abzug={!einzel.zaehltPositiv}
-                  hoechst={einzel.istHoechst && einstellungen.glitzerAn}
-                  tiefst={einzel.istTiefst && einstellungen.streifenAn}
-                />
-              ))
-            : vorschau(auswahl, einstellungen).map((eintrag, nummer) => (
-                <Wuerfel
-                  key={nummer}
-                  art={eintrag.art}
-                  augen={null}
-                  farbe={einstellungen.farbe}
-                  muster={einstellungen.muster}
-                  groesse={72}
-                  abzug={eintrag.abzug}
-                  rollt={rollt}
-                  verzug={rollt ? Math.min(nummer, 12) * 22 : 0}
-                />
-              ))}
-        </div>
+        {/*
+          Drei Wege, und der gewaehlte haengt an drei Bedingungen: der
+          Einstellung, der Grafikbeschleunigung und der Zahl der Wuerfel.
+          Faellt eine davon aus, bleibt es bei der flachen Darstellung — die
+          laeuft ueberall. Chromium hat den Rueckfall auf Software-WebGL
+          bereits als ueberholt gemeldet, ganz ohne Grafikkarte kann also
+          nichts kommen.
+        */}
+        {dreiDAn ? (
+          <Buehne3d
+            einwuerfe={dreiDEinwuerfe}
+            einstellungen={einstellungen}
+            wurfNummer={wurfNummer}
+            onFertig={() => undefined}
+          />
+        ) : (
+          <div className="buehne__tisch">
+            {wurf && !rollt
+              ? wurf.wuerfe.map((einzel, nummer) => (
+                  <Wuerfel
+                    key={nummer}
+                    art={einzel.art}
+                    augen={einzel.augen}
+                    farbe={einstellungen.farbe}
+                    muster={einstellungen.muster}
+                    groesse={72}
+                    abzug={!einzel.zaehltPositiv}
+                    hoechst={einzel.istHoechst && einstellungen.glitzerAn}
+                    tiefst={einzel.istTiefst && einstellungen.streifenAn}
+                  />
+                ))
+              : vorschau(auswahl, einstellungen).map((eintrag, nummer) => (
+                  <Wuerfel
+                    key={nummer}
+                    art={eintrag.art}
+                    augen={null}
+                    farbe={einstellungen.farbe}
+                    muster={einstellungen.muster}
+                    groesse={72}
+                    abzug={eintrag.abzug}
+                    rollt={rollt}
+                    verzug={rollt ? Math.min(nummer, 12) * 22 : 0}
+                  />
+                ))}
+          </div>
+        )}
 
         {wurf && !rollt ? (
           <div className="buehne__summe motion-eintritt" key={`${wurf.summe}-${verlauf[0]?.id ?? 0}`}>

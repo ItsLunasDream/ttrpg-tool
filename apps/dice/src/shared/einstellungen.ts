@@ -14,6 +14,13 @@ export interface Einstellungen {
   readonly farbe: string;
   readonly muster: Muster;
   readonly glitzerAn: boolean;
+  /**
+   * Ob die Wuerfel als Koerper fallen statt als flache Umrisse zu drehen.
+   *
+   * Standard ist aus: die flache Darstellung laeuft ueberall, die andere
+   * braucht Grafikbeschleunigung. Wer sie will, schaltet sie ein.
+   */
+  readonly dreiD: boolean;
   readonly streifenAn: boolean;
   /** Seitenzahl des eigenen Wuerfels. */
   readonly eigeneSeiten: number;
@@ -26,6 +33,7 @@ export const STANDARD: Einstellungen = {
   muster: 'schlicht',
   glitzerAn: true,
   streifenAn: true,
+  dreiD: false,
   eigeneSeiten: 3,
   sprache: 'en'
 };
@@ -48,6 +56,9 @@ export function bereinige(roh: unknown): Einstellungen {
     muster,
     glitzerAn: e.glitzerAn !== false,
     streifenAn: e.streifenAn !== false,
+    // Anders herum als die beiden darueber: aus ist der Standard, also zaehlt
+    // nur ein ausdrueckliches true.
+    dreiD: e.dreiD === true,
     eigeneSeiten: seiten,
     sprache: e.sprache === 'de' ? 'de' : 'en'
   };

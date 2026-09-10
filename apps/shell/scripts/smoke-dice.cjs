@@ -66,7 +66,12 @@ app.whenReady().then(async () => {
 
   const konsole = [];
   sicht.webContents.on('console-message', (_e, l, t) => {
-    if (l >= 2) konsole.push(t.slice(0, 160));
+    if (l < 2) return;
+    // Ohne Grafikkarte meldet Chromium den Rueckfall auf Software-WebGL und
+    // Treiberhinweise zur Leistung. Beides sagt etwas ueber die Umgebung und
+    // nichts ueber die Anwendung.
+    if (/software WebGL|GL Driver Message|GroupMarkerNotSet/.test(t)) return;
+    konsole.push(t.slice(0, 160));
   });
 
   pruefe(await js("Boolean(document.querySelector('.wuerfelapp'))"), 'seine Oberflaeche steht');
@@ -208,6 +213,50 @@ app.whenReady().then(async () => {
     'die Anzahl setzt sich nach dem Wurf NICHT zurueck'
   );
 
+  // --- Drehung -----------------------------------------------------------
+  // Zwei Dinge, die im Bild sofort auffielen und im Bildbaum gar nicht:
+  //
+  // Der Wuerfel wanderte beim Drehen seitwaerts. In den Keyframes stand
+  // `rotate(...) translateY(...)`, und so wirkt die Verschiebung entlang der
+  // schon gedrehten Achse — bei jedem Winkel in eine andere Richtung. Er
+  // beschrieb eine Bahn um sich herum, statt an seinem Platz zu huepfen.
+  //
+  // Und das Minuszeichen des Abzugswuerfels kreiste mit, weil die Animation
+  // auf dem ganzen Feld lag statt auf dem Koerper. Es ist eine Markierung und
+  // gehoert an seinen Platz.
+  const mitte = (was) =>
+    js(`(() => { const e = document.querySelector('${was}');
+      if (!e) return null; const r = e.getBoundingClientRect();
+      return [Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2)]; })()`);
+
+  await js(`(() => { ${SETZ} const f = [...document.querySelectorAll('.artfeld__zahl')];
+    f.forEach((x) => setz(x, '')); setz(f[5], '1'); setz(f[0], '-1'); return true; })()`);
+  await warte(300);
+  // Einmal durchwuerfeln, bevor gemessen wird. Sonst liegt beim ersten Mal
+  // noch das Ergebnis des vorigen Wurfs auf dem Tisch, mit anderer Anzahl —
+  // die Wuerfel stehen dann woanders, und der Vergleich misst das Layout
+  // statt der Drehung. Genau daran ist diese Pruefung zuerst gescheitert.
+  await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+  await warte(1000);
+  const abzugRuhe = await mitte('.buehne__tisch .wuerfel--abzug .wuerfel__abzug');
+  const koerperRuhe = await mitte('.buehne__tisch .wuerfel--abzug svg');
+
+  await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+  await warte(200);
+  const abzugDreht = await mitte('.buehne__tisch .wuerfel--abzug .wuerfel__abzug');
+  const koerperDreht = await mitte('.buehne__tisch .wuerfel--abzug svg');
+  await warte(700);
+
+  pruefe(
+    Boolean(abzugRuhe) && JSON.stringify(abzugRuhe) === JSON.stringify(abzugDreht),
+    `das Minuszeichen dreht sich nicht mit (${JSON.stringify(abzugRuhe)} -> ${JSON.stringify(abzugDreht)})`
+  );
+  // Nur die Hoehe darf sich aendern: der Wuerfel huepft, er wandert nicht.
+  pruefe(
+    Boolean(koerperRuhe) && Math.abs(koerperRuhe[0] - koerperDreht[0]) <= 1,
+    `der Wuerfel dreht sich an seinem Platz (x ${koerperRuhe?.[0]} -> ${koerperDreht?.[0]})`
+  );
+
   // --- Effekte ------------------------------------------------------------
   // Solange wuerfeln, bis eine 20 und eine 1 dabei sind. Bei 20 Wuerfeln ist
   // beides in wenigen Versuchen da; bleibt es aus, ist der Test nicht rot,
@@ -235,6 +284,104 @@ app.whenReady().then(async () => {
     'abgeschalteter Glitzer bleibt aus'
   );
   await js("[...document.querySelectorAll('.aussehen__schalter input')][0].click(); true");
+
+  // --- Koerperdarstellung (3D) --------------------------------------------
+  /*
+   * Was hier geprueft wird, koennen die Modultests nicht sehen: sie rechnen
+   * den Wurf, aber sie zeichnen ihn nicht. Ob die Leinwand ueberhaupt kommt,
+   * ob der Schalter wirkt und ob die Zahlen auf den Koerpern zur Summe
+   * passen, faellt nur an der laufenden Anwendung auf.
+   *
+   * Achtung bei den Konsolenmeldungen: ohne Grafikkarte meldet Chromium
+   * „Automatic fallback to software WebGL has been deprecated". Das ist keine
+   * Stoerung der Anwendung, sondern die Umgebung — die Meldung wird unten
+   * ausgenommen, sonst faellt die Pruefung auf Konsolenfehler ueber sie.
+   */
+  const grafikDa = await js(
+    "(() => { const c = document.createElement('canvas'); " +
+      "return Boolean(c.getContext('webgl2') ?? c.getContext('webgl')); })()"
+  );
+  console.log(`  info Grafikbeschleunigung: ${grafikDa ? 'ja' : 'nein'}`);
+
+  const schalter =
+    "[...document.querySelectorAll('.aussehen__schalter')].find((l) => /3D/.test(l.textContent))";
+  pruefe(await js(`Boolean(${schalter})`), 'der Schalter fuer die Koerper ist da');
+
+  if (grafikDa) {
+    await js(`${schalter}.querySelector('input').click(); true`);
+    await warte(400);
+
+    // Ein ueberschaubarer Wurf: drei Arten, sechs Wuerfel.
+    await js(`(() => { ${SETZ} const f = [...document.querySelectorAll('.artfeld__zahl')];
+      f.forEach((x) => setz(x, '')); setz(f[5], '3'); setz(f[1], '2'); setz(f[3], '1');
+      setz(document.querySelector('.feld input'), ''); return true; })()`);
+    await warte(300);
+    await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+
+    // Auf das Signal der Buehne warten statt auf eine geratene Zeit: ohne
+    // Grafikkarte laeuft die Anzeige mit rund 25 Bildern je Sekunde statt 60,
+    // und eine feste Wartezeit war zuerst zu kurz.
+    let messung = null;
+    for (let versuch = 0; versuch < 60; versuch++) {
+      await warte(500);
+      messung = JSON.parse((await js('JSON.stringify(window.__wurf3d ?? null)')) ?? 'null');
+      if (messung && messung.laeuft === false) break;
+    }
+    pruefe(Boolean(messung) && messung.laeuft === false, 'der Wurf kommt zum Ende');
+    if (messung && messung.laeuft === false) {
+      console.log(
+        `  info Wurf: ${messung.schritte} Schritte, ${messung.bilder} Bilder, ` +
+          `${messung.ms} ms, ${messung.proBild} Schritt(e) je Bild`
+      );
+      // Die Zahl der Bilder ist gedeckelt, die Millisekunden haengen an der
+      // Grafik. Geprueft wird deshalb die Bilderzahl.
+      pruefe(messung.bilder <= 170, `die Anzeige ist gedeckelt (${messung.bilder} Bilder)`);
+    }
+
+    pruefe(await js("Boolean(document.querySelector('.buehne3d canvas'))"), 'die Leinwand steht');
+    pruefe(
+      !(await js("Boolean(document.querySelector('.buehne__tisch'))")),
+      'und die flachen Wuerfel sind weg'
+    );
+
+    // Die schaerfste Pruefung: die Zahlen, die die Anwendung nennt, muessen
+    // zur Summe passen. Sie faellt um, sobald die Umnummerierung der Flaechen
+    // oder das Ablesen der oberen Flaeche danebenliegt.
+    const gezeigt = Number(await js("document.querySelector('.buehne__summe-zahl').textContent"));
+    const abgelesen = (messung && messung.abgelesen) || [];
+    const summeDerKoerper = abgelesen.reduce((a, b) => a + b, 0);
+    pruefe(
+      abgelesen.length === 6,
+      `alle sechs Koerper liegen auf dem Tisch (${abgelesen.length})`
+    );
+    pruefe(
+      summeDerKoerper === gezeigt,
+      `die Zahlen auf den Koerpern ergeben die Summe (${abgelesen.join(' + ')} = ` +
+        `${summeDerKoerper} gegen ${gezeigt})`
+    );
+
+    // Zurueck auf flach: der Schalter muss in beide Richtungen wirken.
+    await js(`${schalter}.querySelector('input').click(); true`);
+    await warte(500);
+    pruefe(
+      await js("Boolean(document.querySelector('.buehne__tisch'))"),
+      'ausgeschaltet kommen die flachen Wuerfel wieder'
+    );
+    pruefe(
+      !(await js("Boolean(document.querySelector('.buehne3d'))")),
+      'und die Leinwand ist weg'
+    );
+  } else {
+    // Ohne Grafik faellt die Anwendung auf die flache Darstellung zurueck.
+    // Das ist kein Randfall: Chromium hat den Rueckfall auf Software-WebGL
+    // bereits als ueberholt gemeldet.
+    await js(`${schalter}.querySelector('input').click(); true`);
+    await warte(600);
+    pruefe(
+      await js("Boolean(document.querySelector('.buehne__tisch'))"),
+      'ohne Grafikbeschleunigung bleibt es bei der flachen Darstellung'
+    );
+  }
 
   // --- Hundert Wuerfel ----------------------------------------------------
   // Der Nutzer nennt das einen Extremfall; realistisch sind rund zwanzig.

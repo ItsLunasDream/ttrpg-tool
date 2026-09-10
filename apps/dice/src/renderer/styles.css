@@ -235,6 +235,48 @@ input[type='number'] {
   flex: 0 0 auto;
 }
 
+/*
+ * Die Buehne der Koerper nimmt den Platz des Tisches ein.
+ *
+ * Feste Hoehe statt mitwachsender: die Leinwand wird beim Aufbau einmal
+ * vermessen, und eine Flaeche, die erst durch ihren Inhalt Hoehe bekommt,
+ * waere in dem Moment null hoch.
+ */
+.buehne3d {
+  width: 100%;
+  min-height: 320px;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/*
+ * Effekte auf der Koerperbuehne.
+ *
+ * In der flachen Darstellung sitzen Glitzer und Streifen im Wuerfel selbst.
+ * Hier gibt es kein Element je Wuerfel — die Koerper leben in einer Leinwand.
+ * Also werden die Effekte ueber die Leinwand gelegt, an die Stelle, an die
+ * die Kamera den Wuerfel wirft.
+ */
+.buehne3d {
+  position: relative;
+}
+
+.glitzer--frei,
+.streifen--frei {
+  position: absolute;
+  width: 92px;
+  height: 92px;
+  /* Der gerechnete Punkt ist die Mitte des Wuerfels, nicht seine Ecke. */
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.buehne3d canvas {
+  max-width: 100%;
+}
+
 .buehne__tisch {
   flex: 1;
   display: flex;
@@ -319,32 +361,52 @@ input[type='number'] {
  * Das Rollen. Drehung plus ein Versatz nach oben — reine Rotation sieht aus
  * wie ein Zeiger, nicht wie ein Wuerfel, der faellt.
  */
+/*
+ * Die Verschiebung steht VOR der Drehung, und das ist der ganze Unterschied.
+ *
+ * Andersherum — `rotate(220deg) translateY(-14px)` — wirkt die Verschiebung
+ * entlang der schon gedrehten Achse: bei 220 Grad geht es nach unten rechts,
+ * bei 480 Grad woanders hin. Der Wuerfel beschrieb dabei eine Bahn um sich
+ * herum, statt an seinem Platz zu huepfen, und sah aus, als drehe er sich um
+ * eine Ecke statt um seine Mitte.
+ */
 @keyframes wuerfel-rollt {
   0% {
-    transform: rotate(0deg) translateY(0);
+    transform: translateY(0) rotate(0deg);
   }
   25% {
-    transform: rotate(220deg) translateY(-14px);
+    transform: translateY(-14px) rotate(220deg);
   }
   55% {
-    transform: rotate(480deg) translateY(4px);
+    transform: translateY(4px) rotate(480deg);
   }
   80% {
-    transform: rotate(660deg) translateY(-4px);
+    transform: translateY(-4px) rotate(660deg);
   }
   100% {
-    transform: rotate(720deg) translateY(0);
+    transform: translateY(0) rotate(720deg);
   }
 }
 
-.wuerfel--rollt {
+/*
+ * Gedreht wird der Koerper, nicht das ganze Feld.
+ *
+ * Lag die Animation auf `.wuerfel`, kreiste das Minuszeichen des
+ * Abzugswuerfels mit — es sitzt als eigenes Element in derselben Ecke und
+ * wanderte einmal um den Wuerfel herum, verdreht obendrein. Es ist eine
+ * Markierung und soll liegen bleiben, wo es liegt.
+ */
+.wuerfel--rollt svg {
   animation: wuerfel-rollt 660ms var(--motion-ease-standard) backwards;
+  /* Der Versatz kommt aus dem Bildbaum: die Wuerfel starten nacheinander. */
+  animation-delay: var(--wuerfel-verzug, 0ms);
+  transform-origin: 50% 50%;
 }
 
 /* Weniger Bewegung: der Wuerfel bleibt stehen. Das Ergebnis erscheint
    trotzdem — die Rueckmeldung geht nicht verloren, nur die Drehung. */
 @media (prefers-reduced-motion: reduce) {
-  .wuerfel--rollt {
+  .wuerfel--rollt svg {
     animation: none;
   }
 }
@@ -586,13 +648,30 @@ input[type='number'] {
   filter: saturate(0.6) brightness(0.78);
 }
 
+/*
+ * Der Schleier laeuft nach aussen aus, statt an einer Kante zu enden.
+ *
+ * Vorher war er ein Rechteck mit abgerundeten Ecken und hartem Rand. Ueber
+ * einem flachen Wuerfel fiel das kaum auf; ueber den Koerpern lag ein
+ * sichtbares violettes Viereck im Bild, das mit dem Wuerfel darunter nichts
+ * zu tun hatte.
+ *
+ * Die Maske schneidet zugleich die fallenden Striche weich ab. Frueher tat
+ * das ein `overflow: hidden`, und die Striche endeten mitten in der Luft an
+ * derselben Kante.
+ */
 .streifen {
   position: absolute;
   inset: 0;
-  overflow: hidden;
-  border-radius: 10px;
   pointer-events: none;
-  background: linear-gradient(to bottom, #6d28d955 0%, transparent 65%);
+  background: radial-gradient(
+    ellipse 68% 58% at 50% 28%,
+    #6d28d966 0%,
+    #6d28d92e 46%,
+    transparent 74%
+  );
+  -webkit-mask-image: radial-gradient(ellipse 62% 62% at 50% 46%, #000 52%, transparent 100%);
+  mask-image: radial-gradient(ellipse 62% 62% at 50% 46%, #000 52%, transparent 100%);
 }
 
 .streifen__linie {
