@@ -58,6 +58,48 @@ app.whenReady().then(async () => {
   const eindeutig = new Set(JSON.parse(formen));
   pruefe(eindeutig.size === 8, `alle acht Formen sind verschieden (${eindeutig.size} von 8)`);
 
+  // Dasselbe fuer die vier Musterknoepfe. Sie zeigen denselben Wuerfel in
+  // vier Mustern, unterscheiden sich also nur in der Fuellung. Hier lag ein
+  // Fehler, den erst der Nutzer im Bild gesehen hat: die Kennung des
+  // Farbverlaufs enthielt das Muster nicht, alle vier Definitionen hiessen
+  // gleich, und weil bei doppelter Kennung im selben Dokument die erste
+  // gewinnt, sahen alle vier Knoepfe aus wie der erste.
+  //
+  // Geprueft wird die Regel dahinter, nicht der eine Fall: keine zwei
+  // Definitionen im Dokument duerfen denselben Namen bei verschiedenem
+  // Inhalt tragen. Das faengt auch den naechsten Fall, etwa zwei Wuerfel
+  // derselben Art in verschiedenen Farben nebeneinander.
+  //
+  // Zwei Anlaeufe davor taugten nicht, und beide fielen erst in der
+  // Gegenprobe durch: ein Vergleich der Definitionen blieb gruen, weil im
+  // Bildbaum auch beim Fehler vier verschiedene Verlaeufe stehen — sie werden
+  // nur nicht gezeichnet. Ein Vergleich der aufgenommenen Bilder blieb
+  // ebenfalls gruen, weil Marmor und Sternenhimmel zusaetzlich Adern und
+  // Sterne zeichnen und der ausgewaehlte Knopf einen eigenen Hintergrund hat.
+  const doppelte = JSON.parse(
+    await js(`(() => {
+      const nachName = new Map();
+      for (const el of document.querySelectorAll('svg defs > [id]')) {
+        const inhalt = el.tagName + ':' + el.getAttribute('cx') + ',' + el.getAttribute('cy') + ',' + el.getAttribute('r') +
+          ',' + el.getAttribute('x1') + ',' + el.getAttribute('y1') + ',' + el.getAttribute('x2') + ',' + el.getAttribute('y2') +
+          '|' + [...el.children].map((k) => k.tagName + k.getAttribute('offset') + k.getAttribute('stop-color') +
+            k.getAttribute('stop-opacity') + (k.getAttribute('d') || '')).join(',');
+        const bekannt = nachName.get(el.id);
+        if (bekannt === undefined) nachName.set(el.id, inhalt);
+        else if (bekannt !== inhalt) nachName.set(el.id, null);
+      }
+      return JSON.stringify([...nachName].filter(([, inhalt]) => inhalt === null).map(([name]) => name));
+    })()`)
+  );
+  pruefe(
+    doppelte.length === 0,
+    `keine Definition traegt denselben Namen bei anderem Inhalt${doppelte.length ? ` (${doppelte.join(', ')})` : ''}`
+  );
+  pruefe(
+    (await js("document.querySelectorAll('.musterknopf').length")) === 4,
+    'alle vier Muster stehen zur Wahl'
+  );
+
   // --- Klicken ------------------------------------------------------------
   await js("[...document.querySelectorAll('.artfeld .wuerfel')][5].click(); true");
   await warte(300);

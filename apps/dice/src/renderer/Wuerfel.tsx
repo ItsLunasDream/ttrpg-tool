@@ -25,6 +25,29 @@ const FUNKEN = [
   { x: 46, y: 92, verzug: 80 }
 ] as const;
 
+/**
+ * Sterne und Adern.
+ *
+ * Feste Stellen, kein Zufall: bei zwanzig Wuerfeln waeren zwanzig verschiedene
+ * Sternbilder unruhig, und gerechnet wuerde bei jedem Wurf neu. Beide Muster
+ * lagen zuerst nur als Farbverlauf vor — „Sternenhimmel" ohne Sterne und
+ * „Marmor" ohne Adern sahen im Bild fast aus wie das schlichte Muster.
+ */
+const STERNE = [
+  { x: 30, y: 34, r: 2.2 },
+  { x: 62, y: 26, r: 1.5 },
+  { x: 72, y: 48, r: 2 },
+  { x: 40, y: 58, r: 1.4 },
+  { x: 54, y: 70, r: 1.8 },
+  { x: 24, y: 50, r: 1.3 }
+] as const;
+
+const ADERN = [
+  'M 18 62 C 34 48, 44 66, 62 44 S 78 34, 88 40',
+  'M 26 30 C 38 40, 52 26, 66 38',
+  'M 40 82 C 52 70, 64 78, 78 66'
+] as const;
+
 interface Props {
   readonly art: Art;
   /** Die Zahl, oder `null`, solange nicht gewuerfelt wurde. */
@@ -64,10 +87,24 @@ export function Wuerfel({
 }: Props) {
   const form = FORMEN[art];
   const schrift = zahlenFarbe(farbe);
-  // Eine eigene Kennung je Wuerfel: zwei Verlaeufe mit demselben Namen im
-  // selben Dokument fallen zusammen, und dann tragen alle Wuerfel den des
-  // ersten.
-  const kennung = `w-${art}-${verzug}-${groesse}`;
+  /**
+   * Die Kennung des Farbverlaufs.
+   *
+   * Sie muss alles enthalten, was den Verlauf bestimmt — Muster und Farbe.
+   * Genau das fehlte hier zuerst, und der Fehler war im Bild sofort zu sehen:
+   * die vier Musterknoepfe zeigen denselben Wuerfel in vier Mustern, hatten
+   * dieselbe Kennung und sahen deshalb alle vier gleich aus. Zwei Verlaeufe
+   * mit demselben Namen im selben Dokument fallen zusammen, und der erste
+   * gewinnt.
+   *
+   * Zwei Wuerfel mit gleicher Art, gleichem Muster und gleicher Farbe teilen
+   * sich den Verlauf weiterhin — sie sehen ohnehin gleich aus, und ein
+   * Verlauf je Wuerfel waere bei hundert Stueck hundert Definitionen.
+   *
+   * Das Doppelkreuz der Farbe muss weg: es beendet in einer `url(#...)` den
+   * Verweis.
+   */
+  const kennung = `w-${art}-${muster}-${farbe.replace('#', '')}-${groesse}`;
 
   const klassen = [
     'wuerfel',
@@ -110,6 +147,8 @@ export function Wuerfel({
             strokeWidth="1.2"
           />
         ))}
+
+        <Deko kennung={kennung} muster={muster} umriss={form.umriss} />
 
         {augen !== null ? (
           <text
@@ -199,9 +238,9 @@ function Musterung({ kennung, muster, farbe }: { kennung: string; muster: Muster
 
   if (muster === 'sternenhimmel') {
     return (
-      <radialGradient id={kennung} cx="50%" cy="45%" r="75%">
+      <radialGradient id={kennung} cx="50%" cy="42%" r="62%">
         <stop offset="0%" stopColor={farbe} />
-        <stop offset="60%" stopColor={farbe} />
+        <stop offset="30%" stopColor={farbe} stopOpacity="0.85" />
         <stop offset="100%" stopColor="#05060a" />
       </radialGradient>
     );
@@ -215,5 +254,51 @@ function Musterung({ kennung, muster, farbe }: { kennung: string; muster: Muster
       <stop offset="0%" stopColor={farbe} />
       <stop offset="100%" stopColor={farbe} stopOpacity="0.82" />
     </linearGradient>
+  );
+}
+
+/**
+ * Was ueber der Fuellung liegt: Sterne beim Sternenhimmel, Adern beim Marmor.
+ *
+ * Geklippt am Umriss, sonst stehen die Adern ueber den Rand hinaus. Der
+ * Schnittpfad haengt an derselben Kennung wie der Verlauf: Wuerfel, die
+ * gleich aussehen, schreiben ihn zwar mehrfach ins Dokument, aber mit
+ * gleichem Inhalt — anders als bei den Verlaeufen macht das Zusammenfallen
+ * hier nichts. Die Sterne und Adern selbst kosten je Wuerfel ein paar
+ * Elemente ohne Bewegung.
+ *
+ * Beide liegen unter der Zahl, weil sie im Bildbaum vorher stehen — die Zahl
+ * bleibt lesbar.
+ */
+function Deko({ kennung, muster, umriss }: { kennung: string; muster: Muster; umriss: string }) {
+  if (muster !== 'sternenhimmel' && muster !== 'marmor') return null;
+
+  const schnitt = `${kennung}-schnitt`;
+
+  return (
+    <>
+      <defs>
+        <clipPath id={schnitt}>
+          <path d={umriss} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${schnitt})`}>
+        {muster === 'sternenhimmel'
+          ? STERNE.map((stern, nummer) => (
+              <circle key={nummer} cx={stern.x} cy={stern.y} r={stern.r} fill="#ffffff" fillOpacity="0.9" />
+            ))
+          : ADERN.map((ader, nummer) => (
+              <path
+                key={nummer}
+                d={ader}
+                fill="none"
+                stroke="#ffffff"
+                strokeOpacity="0.4"
+                strokeWidth={nummer === 0 ? 2.4 : 1.4}
+                strokeLinecap="round"
+              />
+            ))}
+      </g>
+    </>
   );
 }
