@@ -21,7 +21,7 @@ import {
 import type { Art } from '../../shared/formen';
 import { zahlenFarbe, type Einstellungen } from '../../shared/einstellungen';
 import { baueMaterial } from './material';
-import { koerperVorrat, wirf, TISCH, type GeworfenerWuerfel } from './wurf';
+import { abgeleseneFlaeche, koerperVorrat, wirf, TISCH, type GeworfenerWuerfel } from './wurf';
 import { ziffernSchilder } from './ziffern';
 
 export interface Einwurf {
@@ -197,12 +197,30 @@ export function Buehne3d({ einwuerfe, einstellungen, wurfNummer, onFertig }: Pro
 
       if (schritt >= laenge - 1 && !gemeldet) {
         gemeldet = true;
+        /*
+         * Was auf den liegenden Koerpern steht, aus der Szene abgelesen.
+         *
+         * Nicht die Zahlen, die `wuerfle()` gezogen hat — die stehen ohnehin
+         * schon im Rechenweg, und sie zu vergleichen pruefte nichts. Hier wird
+         * derselbe Weg gegangen wie ein Auge: welche Flaeche liegt oben, und
+         * welche Ziffer traegt sie. Stimmt die Umnummerierung nicht, faellt es
+         * genau hier auf.
+         */
+        const abgelesen = geworfen.map((wuerfel) => {
+          if (wuerfel.ziffern.length === 0) return wuerfel.augen;
+          const koerper = vorrat(wuerfel.art);
+          return wuerfel.ziffern[
+            abgeleseneFlaeche(koerper, wuerfel.art, wuerfel.endlage.drehung)
+          ];
+        });
+
         (window as unknown as { __wurf3d?: unknown }).__wurf3d = {
           laeuft: false,
           ms: Math.round(performance.now() - begonnen),
           bilder: bild,
           schritte: laenge,
-          proBild
+          proBild,
+          abgelesen
         };
         setEffekte(
           geworfen.flatMap((wuerfel, nummer) => {
