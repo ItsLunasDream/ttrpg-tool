@@ -1,0 +1,4 @@
+# Batchdateien brauchen CRLF: mit LF stolpert der Windows-Interpreter
+# ueber mehrzeilige Bloecke.
+*.cmd text eol=crlf
+*.bat text eol=crlf

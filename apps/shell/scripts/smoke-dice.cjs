@@ -360,6 +360,74 @@ app.whenReady().then(async () => {
         `${summeDerKoerper} gegen ${gezeigt})`
     );
 
+    /*
+     * Ueber jedem liegenden Koerper steht seine Augenzahl.
+     *
+     * Auf den Flaechen steht sie zwar auch, aber nur lesbar, wenn der
+     * Blickwinkel stimmt — und die Kugeln fuer d100 und den eigenen Wuerfel
+     * tragen ueberhaupt keine Beschriftung.
+     */
+    const marken = JSON.parse(
+      await js(`JSON.stringify([...document.querySelectorAll('.marke3d__zahl')].map((m) => m.textContent))`)
+    );
+    pruefe(
+      marken.length === abgelesen.length,
+      `ueber jedem Wuerfel steht eine Zahl (${marken.length} Marken, ${abgelesen.length} Wuerfel)`
+    );
+    const ausMarken = marken
+      .map((text) => Number(text.replace('\u2212', '-')))
+      .reduce((a, b) => a + b, 0);
+    pruefe(
+      ausMarken === gezeigt,
+      `die Zahlen ueber den Wuerfeln ergeben die Summe (${marken.join(', ')} = ${ausMarken} gegen ${gezeigt})`
+    );
+
+    /*
+     * Ein neuer Wurf baut die Szene genau einmal auf.
+     *
+     * Zuerst gab es neben der Wuerfelliste eine Wurfnummer als zweiten
+     * Ausloeser. Der Wurf steht aber erst nach der Anzeigeverzoegerung fest,
+     * also lief die Szene zweimal — die Wuerfel fielen sichtbar zweimal.
+     */
+    await js('window.__aufbauten = 0; true');
+    await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+    await warte(250);
+
+    // Und die Marken des vorigen Wurfs sind sofort weg, nicht erst am Ende:
+    // sonst schweben Zahlen ueber Wuerfeln, die schon wieder fliegen.
+    pruefe(
+      (await js("document.querySelectorAll('.marke3d').length")) === 0,
+      'beim Rollen verschwinden die Marken des vorigen Wurfs sofort'
+    );
+
+    for (let versuch = 0; versuch < 60; versuch++) {
+      await warte(500);
+      const stand = JSON.parse((await js('JSON.stringify(window.__wurf3d ?? null)')) ?? 'null');
+      if (stand && stand.laeuft === false) break;
+    }
+    await warte(600);
+    const aufbauten = await js('window.__aufbauten');
+    pruefe(aufbauten === 1, `die Szene wird je Wurf einmal aufgebaut (${aufbauten})`);
+
+    /*
+     * Die Leinwand folgt der Fenstergroesse.
+     *
+     * Ohne das behaelt sie ihre Punktzahl, und auf einem Bildschirm mit
+     * anderer Aufloesung staucht das Bild die Wuerfel in die Breite.
+     */
+    fenster.setBounds({ x: 0, y: 0, width: 900, height: 640 });
+    await warte(1200);
+    const nachher = JSON.parse(
+      await js(`(() => { const c = document.querySelector('.buehne3d canvas');
+        const h = document.querySelector('.buehne3d');
+        const cr = c.getBoundingClientRect(), hr = h.getBoundingClientRect();
+        return JSON.stringify([Math.round(cr.width - hr.width), Math.round(cr.height - hr.height)]); })()`)
+    );
+    pruefe(
+      Math.abs(nachher[0]) <= 2 && Math.abs(nachher[1]) <= 2,
+      `die Leinwand folgt der Fenstergroesse (Abweichung ${nachher.join(' x ')})`
+    );
+
     // Zurueck auf flach: der Schalter muss in beide Richtungen wirken.
     await js(`${schalter}.querySelector('input').click(); true`);
     await warte(500);
