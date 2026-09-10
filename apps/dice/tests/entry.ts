@@ -8,3 +8,4 @@ export {
   MAX_PRO_ART
 } from '../src/shared/pool';
 export { FORMEN, ARTEN, SEITEN, artName, seitenVon } from '../src/shared/formen';
+export { zahlenFarbe, bereinige, STANDARD, MUSTER } from '../src/shared/einstellungen';

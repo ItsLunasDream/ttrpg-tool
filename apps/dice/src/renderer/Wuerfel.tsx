@@ -8,6 +8,23 @@
 import { FORMEN, type Art } from '../shared/formen';
 import { zahlenFarbe, type Muster } from '../shared/einstellungen';
 
+/**
+ * Wo die Funken sitzen und wann sie aufblitzen.
+ *
+ * Feste Stellen statt Zufall: bei hundert Wuerfeln wuerde jeder Wurf sonst
+ * hundertmal neu rechnen, und niemand sieht den Unterschied. Die Verzoegerung
+ * laesst sie nacheinander aufblitzen — gleichzeitig sieht es nach einem
+ * Blitzlicht aus, nicht nach Glitzer.
+ */
+const FUNKEN = [
+  { x: 8, y: 14, verzug: 0 },
+  { x: 82, y: 8, verzug: 120 },
+  { x: 92, y: 62, verzug: 260 },
+  { x: 14, y: 74, verzug: 190 },
+  { x: 50, y: -6, verzug: 330 },
+  { x: 46, y: 92, verzug: 80 }
+] as const;
+
 interface Props {
   readonly art: Art;
   /** Die Zahl, oder `null`, solange nicht gewuerfelt wurde. */
@@ -114,6 +131,33 @@ export function Wuerfel({
       {abzug ? (
         <span className="wuerfel__abzug" aria-hidden="true">
           −
+        </span>
+      ) : null}
+
+      {/*
+        Die Effekte liegen ueber dem Wuerfel und nicht im SVG: als eigene
+        Elemente kosten sie nichts, solange sie fehlen — und bei hundert
+        Wuerfeln zaehlt genau das. Ein Filter im SVG haette auf jedem Wuerfel
+        gerechnet, auch auf den ruhigen.
+      */}
+      {hoechst ? (
+        <span className="glitzer" aria-hidden="true">
+          {FUNKEN.map((funke, nummer) => (
+            <span
+              key={nummer}
+              className="glitzer__funke"
+              style={{ left: `${funke.x}%`, top: `${funke.y}%`, animationDelay: `${funke.verzug}ms` }}
+            />
+          ))}
+        </span>
+      ) : null}
+
+      {tiefst ? (
+        <span className="streifen" aria-hidden="true">
+          <span className="streifen__linie" />
+          <span className="streifen__linie" />
+          <span className="streifen__linie" />
+          <span className="streifen__linie" />
         </span>
       ) : null}
     </Wurzel>

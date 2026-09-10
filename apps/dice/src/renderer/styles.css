@@ -109,8 +109,21 @@ input[type='number'] {
 
 .wuerfelapp {
   display: grid;
-  grid-template-columns: 268px 1fr;
+  /* Auswahl, Buehne, Verlauf. Der Verlauf steht rechts und nicht unten: die
+     Wuerfel brauchen die Breite, er nur eine schmale Spalte. */
+  grid-template-columns: 268px 1fr 300px;
   height: 100%;
+}
+
+/* Wird es eng, weicht der Verlauf. Die Wuerfel sind der Inhalt. */
+@media (max-width: 1080px) {
+  .wuerfelapp {
+    grid-template-columns: 240px 1fr;
+  }
+
+  .verlauf {
+    display: none;
+  }
 }
 
 .auswahl {
@@ -350,4 +363,298 @@ input[type='number'] {
   padding: 1px 3px;
   font-size: 11px;
   text-align: center;
+}
+
+/* ---------- Rechenweg ---------- */
+
+.buehne__summe-weg {
+  color: var(--text-leise);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+/* ---------- Verlauf ---------- */
+
+.verlauf {
+  background: var(--grund-hoch);
+  border-left: 1px solid var(--rand);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.verlauf__kopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--rand);
+}
+
+.verlauf__titel {
+  font-weight: 600;
+}
+
+.verlauf__hinweis {
+  font-size: 11px;
+  color: var(--text-leise);
+}
+
+.verlauf__leer {
+  margin: 0;
+  padding: 14px;
+  color: var(--text-leise);
+  font-size: 13px;
+}
+
+.verlauf__liste {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+}
+
+.verlauf__liste button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: 'ausdruck summe' 'einzeln summe';
+  gap: 2px 10px;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  padding: 6px 9px;
+}
+
+.verlauf__liste button:hover {
+  background: #232833;
+  border-color: var(--rand);
+}
+
+.verlauf__ausdruck {
+  grid-area: ausdruck;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+/* Die Einzelwuerfe: klein, aber lesbar. Sie sind der Grund, warum man in den
+   Verlauf schaut — die Summe allein steht schon oben. */
+.verlauf__einzeln {
+  grid-area: einzeln;
+  font-size: 11px;
+  color: var(--text-leise);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.verlauf__summe {
+  grid-area: summe;
+  align-self: center;
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--betont);
+}
+
+/* ---------- Aussehen-Bereich ---------- */
+
+.aussehen {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rand);
+}
+
+.aussehen__titel {
+  font-size: 11px;
+  color: var(--text-leise);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.aussehen__farbe {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.aussehen__farbe input {
+  width: 56px;
+  height: 28px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.aussehen__muster {
+  display: flex;
+  gap: 6px;
+}
+
+.musterknopf {
+  padding: 3px;
+  border-radius: 8px;
+  line-height: 0;
+  background: none;
+}
+
+.musterknopf--an {
+  border-color: var(--betont);
+  background: #232f47;
+}
+
+.aussehen__schalter {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text-leise);
+  cursor: pointer;
+}
+
+/* ---------- Glitzer beim Hoechstwurf ---------- */
+
+/*
+ * Der Hoechstwurf bekommt zweierlei: einen goldenen Schein am Wuerfel selbst
+ * und Funken darum.
+ *
+ * Der Schein ist der wichtigere Teil, obwohl er der stillere ist. Die erste
+ * Fassung hatte nur die Funken, und die sind je nach Augenblick der Animation
+ * gerade zusammengeschnurrt — ein Blick auf den Tisch traf dann nichts. Der
+ * Schein steht immer.
+ */
+.wuerfel--hoechst svg {
+  filter: drop-shadow(0 0 6px #ffd76a) drop-shadow(0 0 14px #ffb02e88);
+}
+
+.glitzer {
+  position: absolute;
+  inset: -6px;
+  pointer-events: none;
+}
+
+/*
+ * Ein Funke ist ein Vierstrahl aus zwei gekreuzten Balken — kein Bild, kein
+ * SVG-Filter je Wuerfel. Bei hundert Wuerfeln zaehlt, dass hier nichts
+ * gerechnet wird.
+ */
+.glitzer__funke {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  background:
+    linear-gradient(to bottom, transparent 44%, #fff6c9 50%, transparent 56%),
+    linear-gradient(to right, transparent 44%, #fff6c9 50%, transparent 56%);
+  filter: drop-shadow(0 0 3px #ffd76a);
+  animation: funke 1100ms var(--motion-ease-standard) infinite;
+}
+
+/*
+ * Die Funken schrumpfen nie ganz weg: bei `scale(0)` waeren sie die halbe
+ * Zeit unsichtbar, und wer im falschen Moment hinsieht, sieht gar nichts.
+ */
+@keyframes funke {
+  0%,
+  100% {
+    transform: scale(0.55) rotate(0deg);
+    opacity: 0.65;
+  }
+  45% {
+    transform: scale(1.15) rotate(60deg);
+    opacity: 1;
+  }
+}
+
+/* ---------- Streifen bei einer 1 ---------- */
+
+/*
+ * Die senkrechten Streifen, die in Animes ueber ein missmutiges Gesicht
+ * laufen. Dazu ein violetter Schleier, der bleibt — aus demselben Grund wie
+ * der Schein beim Hoechstwurf: laufende Streifen allein sind je nach
+ * Augenblick gerade woanders.
+ */
+.wuerfel--tiefst svg {
+  filter: saturate(0.6) brightness(0.78);
+}
+
+.streifen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, #6d28d955 0%, transparent 65%);
+}
+
+.streifen__linie {
+  position: absolute;
+  top: -12%;
+  width: 5px;
+  border-radius: 0 0 3px 3px;
+  height: 76%;
+  background: linear-gradient(to bottom, #8b5cf6 0%, #a855f7 55%, #a855f700 100%);
+  animation: streifen-faellt 1600ms linear infinite;
+}
+
+.streifen__linie:nth-child(1) {
+  left: 20%;
+  animation-delay: 0ms;
+}
+.streifen__linie:nth-child(2) {
+  left: 38%;
+  height: 60%;
+  animation-delay: 400ms;
+}
+.streifen__linie:nth-child(3) {
+  left: 57%;
+  animation-delay: 800ms;
+}
+.streifen__linie:nth-child(4) {
+  left: 75%;
+  height: 66%;
+  animation-delay: 1200ms;
+}
+
+@keyframes streifen-faellt {
+  0% {
+    transform: translateY(-40%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(80%);
+    opacity: 0;
+  }
+}
+
+/*
+ * Weniger Bewegung: Schein und Schleier bleiben, die Funken stehen still,
+ * die Streifen verschwinden. Der Hoechstwurf und die Eins bleiben erkennbar —
+ * abgeschaltet wird die Bewegung, nicht die Aussage.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .glitzer__funke {
+    animation: none;
+    transform: scale(1) rotate(45deg);
+    opacity: 1;
+  }
+
+  .streifen__linie {
+    animation: none;
+    opacity: 0.9;
+  }
 }

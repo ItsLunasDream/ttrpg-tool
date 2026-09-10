@@ -16,10 +16,8 @@ export const texte = {
   'ergebnis': ['Ergebnis', 'Result'],
   'verlauf.titel': ['Verlauf', 'History'],
   'verlauf.leer': ['Noch nichts gewürfelt', 'Nothing rolled yet'],
-  'verlauf.hinweis': [
-    'Nur für diese Sitzung',
-    'This session only'
-  ],
+  'verlauf.hinweis': ['Nur für diese Sitzung', 'This session only'],
+  'verlauf.holen': ['Diesen Wurf zurückholen', 'Load this pool again'],
   'aussehen.titel': ['Aussehen', 'Appearance'],
   'aussehen.farbe': ['Farbe', 'Colour'],
   'aussehen.muster': ['Muster', 'Pattern'],

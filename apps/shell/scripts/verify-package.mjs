@@ -146,7 +146,9 @@ async function pruefeEingebetteteDateien() {
     ['mapmaker', 'dist-embed', 'preload.js'],
     // Der Tracker legt beides unter dist/, wie der Backstory Creator.
     ['initiative', 'dist', path.join('main', 'preload.js')],
-    ['initiative', 'dist', path.join('renderer', 'index.html')]
+    ['initiative', 'dist', path.join('renderer', 'index.html')],
+    ['dice', 'dist', path.join('main', 'preload.js')],
+    ['dice', 'dist', path.join('renderer', 'index.html')]
   ];
 
   const fehlend = [];

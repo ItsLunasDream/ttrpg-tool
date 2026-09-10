@@ -20,6 +20,10 @@ import {
 import { STANDARD, type Einstellungen } from '../shared/einstellungen';
 import { getLanguage, onLanguageChange, t, type Language } from './i18n';
 import { Wuerfel } from './Wuerfel';
+import { Verlauf } from './Verlauf';
+import { VERLAUF_LAENGE, type Eintrag } from './verlaufTypen';
+import { Aussehen } from './Aussehen';
+import { api } from './api';
 
 /** Wie lange die Wuerfel rollen. Aus @suite/motion: DAUER.ortswechsel × 3. */
 const ROLLDAUER = 660;
@@ -30,9 +34,24 @@ export function App() {
   const [wurf, setWurf] = useState<Wurf | null>(null);
   const [rollt, setRollt] = useState(false);
   const [einstellungen, setEinstellungen] = useState<Einstellungen>(STANDARD);
+  const [verlauf, setVerlauf] = useState<Eintrag[]>([]);
   const [, setSprache] = useState<Language>(getLanguage);
 
   useEffect(() => onLanguageChange(() => setSprache(getLanguage())), []);
+
+  // Das Aussehen bleibt ueber Neustarts — es ist eine Einstellung, kein
+  // Sitzungszustand. Der Verlauf daneben ausdruecklich nicht.
+  useEffect(() => {
+    void api.einstellungen.lesen().then(setEinstellungen);
+  }, []);
+
+  const aendereEinstellungen = useCallback((teil: Partial<Einstellungen>) => {
+    setEinstellungen((vorher) => {
+      const neu = { ...vorher, ...teil };
+      void api.einstellungen.schreiben(neu);
+      return neu;
+    });
+  }, []);
 
   const gesamt = anzahlGesamt(auswahl);
   const ausdruck = useMemo(
@@ -50,6 +69,20 @@ export function App() {
     window.setTimeout(() => {
       setWurf(neuerWurf);
       setRollt(false);
+      setVerlauf((vorher) =>
+        [
+          {
+            // Fortlaufend statt Zufall: der Verlauf lebt nur in dieser
+            // Sitzung, und eine Zahl reicht als Schluessel fuer React.
+            id: (vorher[0]?.id ?? 0) + 1,
+            wurf: neuerWurf,
+            auswahl,
+            modifikator,
+            eigeneSeiten: einstellungen.eigeneSeiten
+          },
+          ...vorher
+        ].slice(0, VERLAUF_LAENGE)
+      );
     }, ROLLDAUER);
   }, [auswahl, einstellungen.eigeneSeiten, modifikator, gesamt, rollt]);
 
@@ -68,7 +101,7 @@ export function App() {
               onSetzen={(anzahl) => setAuswahl((vorher) => setzeAnzahl(vorher, art, anzahl))}
               onSeiten={
                 art === 'custom'
-                  ? (seiten) => setEinstellungen((vorher) => ({ ...vorher, eigeneSeiten: seiten }))
+                  ? (seiten) => aendereEinstellungen({ eigeneSeiten: seiten })
                   : undefined
               }
             />
@@ -83,6 +116,8 @@ export function App() {
             onChange={(ereignis) => setModifikator(Number.parseInt(ereignis.target.value, 10) || 0)}
           />
         </label>
+
+        <Aussehen einstellungen={einstellungen} onAendern={aendereEinstellungen} />
 
         <div className="auswahl__knoepfe">
           <button type="button" className="knopf--haupt" onClick={rolle} disabled={gesamt === 0 || rollt}>
@@ -128,13 +163,42 @@ export function App() {
         </div>
 
         {wurf && !rollt ? (
-          <div className="buehne__summe motion-eintritt" key={wurf.summe + wurf.ausdruck}>
+          <div className="buehne__summe motion-eintritt" key={`${wurf.summe}-${verlauf[0]?.id ?? 0}`}>
             <span className="buehne__summe-zahl">{wurf.summe}</span>
+            <span className="buehne__summe-weg">{rechenweg(wurf)}</span>
           </div>
         ) : null}
       </main>
+
+      <Verlauf
+        eintraege={verlauf}
+        onZurueckholen={(eintrag) => {
+          setAuswahl(eintrag.auswahl);
+          setModifikator(eintrag.modifikator);
+          setEinstellungen((vorher) => ({ ...vorher, eigeneSeiten: eintrag.eigeneSeiten }));
+        }}
+      />
     </div>
   );
+}
+
+/**
+ * Der Rechenweg unter der Summe.
+ *
+ * Er steht da, damit man die Zahl nachvollziehen kann, ohne die Wuerfel
+ * einzeln abzulesen — besonders bei einem Wurf mit Abzuegen, wo eine Summe
+ * sonst leicht nach einem Fehler aussieht.
+ */
+function rechenweg(wurf: Wurf): string {
+  const positiv = wurf.wuerfe.filter((einzel) => einzel.zaehltPositiv);
+  const negativ = wurf.wuerfe.filter((einzel) => !einzel.zaehltPositiv);
+  const teile: string[] = [];
+  if (positiv.length > 0) teile.push(positiv.map((einzel) => einzel.augen).join(' + '));
+  for (const einzel of negativ) teile.push(`− ${einzel.augen}`);
+  if (wurf.modifikator !== 0) {
+    teile.push(`${wurf.modifikator < 0 ? '−' : '+'} ${Math.abs(wurf.modifikator)}`);
+  }
+  return teile.join(' ');
 }
 
 /** Die Wuerfel, die im Pool liegen — vor dem Wurf und waehrend der Drehung. */
