@@ -72,7 +72,7 @@ jobs:
       - run: npm ci
       - run: npm run icon
       - name: Linux-Paket bauen
-        run: npm run dist:linux:dir
+        run: npm run dist:backstory:linux:dir
       # Faengt fehlende Abhaengigkeiten im asar-Paket ab. Die Tests oben
       # laufen gegen die Quelle und koennen das nicht sehen.
       - name: Gepackte Anwendung starten
@@ -125,7 +125,7 @@ jobs:
     # genuegen die Tests darueber.
     #
     # Gebaut und veroeffentlicht wird die Sammlung, nicht mehr die einzelne
-    # Anwendung. Die bleibt baubar (`npm run dist:win -w apps/backstory`) und
+    # Anwendung. Die bleibt baubar (`npm run dist:backstory:win`) und
     # wird im Job „Gepacktes Paket pruefen" weiter geprueft — sie ist nur kein
     # Auslieferungsgegenstand mehr.
     if: github.event_name != 'push' || github.ref == 'refs/heads/main'
