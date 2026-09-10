@@ -235,6 +235,26 @@ input[type='number'] {
   flex: 0 0 auto;
 }
 
+/*
+ * Die Buehne der Koerper nimmt den Platz des Tisches ein.
+ *
+ * Feste Hoehe statt mitwachsender: die Leinwand wird beim Aufbau einmal
+ * vermessen, und eine Flaeche, die erst durch ihren Inhalt Hoehe bekommt,
+ * waere in dem Moment null hoch.
+ */
+.buehne3d {
+  width: 100%;
+  min-height: 320px;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.buehne3d canvas {
+  max-width: 100%;
+}
+
 .buehne__tisch {
   flex: 1;
   display: flex;

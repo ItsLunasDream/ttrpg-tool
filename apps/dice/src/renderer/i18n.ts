@@ -25,6 +25,11 @@ export const texte = {
   'muster.marmor': ['Marmor', 'Marble'],
   'muster.metall': ['Metall', 'Metal'],
   'muster.sternenhimmel': ['Sternenhimmel', 'Starfield'],
+  'aussehen.dreiD': ['Würfel als Körper (3D)', 'Dice as solids (3D)'],
+  'aussehen.dreiDfehlt': [
+    'Keine Grafikbeschleunigung — es bleibt bei der flachen Darstellung.',
+    'No graphics acceleration — staying with the flat view.'
+  ],
   'effekt.glitzer': ['Glitzer bei Höchstwurf', 'Sparkle on max roll'],
   'effekt.streifen': ['Streifen bei einer 1', 'Gloom lines on a 1'],
   'abzug': ['Abzug', 'Subtracted']

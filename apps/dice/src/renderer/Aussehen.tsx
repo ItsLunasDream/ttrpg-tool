@@ -46,6 +46,22 @@ export function Aussehen({ einstellungen, onAendern }: Props) {
         ))}
       </div>
 
+      {/*
+        Der Schalter fuer die Koerper steht ueber den Effekten, weil er mehr
+        aendert als sie. Fehlt die Grafikbeschleunigung, faellt die
+        Darstellung von selbst auf die flache zurueck — der Schalter bleibt
+        trotzdem bedienbar, sonst waere nicht zu erkennen, warum nichts
+        passiert.
+      */}
+      <label className="aussehen__schalter">
+        <input
+          type="checkbox"
+          checked={einstellungen.dreiD}
+          onChange={(ereignis) => onAendern({ dreiD: ereignis.target.checked })}
+        />
+        <span>{t('aussehen.dreiD')}</span>
+      </label>
+
       <label className="aussehen__schalter">
         <input
           type="checkbox"

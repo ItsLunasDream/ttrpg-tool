@@ -11,7 +11,8 @@ const {
   baueKoerper,
   gegenueberliegende,
   ordneZiffernZu,
-  SEITEN
+  SEITEN,
+  TISCH
 } = entry;
 
 /** Ein Zufallsgeber, der immer dieselbe Folge liefert. */
@@ -110,7 +111,13 @@ test('alle Wuerfel kommen zur Ruhe und bleiben im Bereich', () => {
     assert.ok(weg < 0.05, `${wuerfel.art} bewegt sich am Ende noch um ${weg.toFixed(3)}`);
 
     const p = wuerfel.endlage.position;
-    assert.ok(Math.abs(p.x) < 8 && Math.abs(p.z) < 8, `${wuerfel.art} liegt ausserhalb: ${p.x}, ${p.z}`);
+    // Der Bereich ist auf den Bildausschnitt abgestimmt; ein Wuerfel
+    // dahinter waere geworfen, aber nicht zu sehen. Etwas Luft fuer die
+    // halbe Kantenlaenge.
+    assert.ok(
+      Math.abs(p.x) < TISCH + 1 && Math.abs(p.z) < TISCH + 1,
+      `${wuerfel.art} liegt ausserhalb des Bildes: ${p.x.toFixed(2)}, ${p.z.toFixed(2)}`
+    );
     assert.ok(p.y > -1, `${wuerfel.art} ist durch den Boden gefallen: y=${p.y}`);
   }
 });

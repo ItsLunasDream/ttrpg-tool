@@ -29,5 +29,6 @@ export {
   abgeleseneFlaeche,
   setzeErgebnisAufFlaeche,
   pruefeUmnummerierung,
-  SCHRITT
+  SCHRITT,
+  TISCH
 } from '../src/renderer/wuerfel3d/wurf';

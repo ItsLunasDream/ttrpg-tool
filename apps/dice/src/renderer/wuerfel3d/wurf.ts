@@ -51,8 +51,14 @@ const RUHE = 0.05;
  */
 const MAX_SCHRITTE = 900;
 
-/** Die Halbbreite des Bereichs, in dem die Wuerfel landen duerfen. */
-const TISCH = 7;
+/**
+ * Die Halbbreite des Bereichs, in dem die Wuerfel landen duerfen.
+ *
+ * Muss zum Bildausschnitt der Kamera passen: mit 7 rollten die Wuerfel bis
+ * an den Rand und lagen zur Haelfte ausserhalb des Bildes. Die Kamera in
+ * Buehne3d ist auf diesen Wert abgestimmt.
+ */
+export const TISCH = 4.2;
 
 export interface Lage {
   readonly position: Vector3;
@@ -305,12 +311,15 @@ export function wirf(
       mass: 1,
       shape: formVon(koerper),
       material: stoff,
+      // Enger gesetzt als der Tisch breit ist: von aussen nach innen zu
+      // fallen haelt sie im Bild, von der Wand abzuprallen streut sie
+      // dorthin, wo die Kamera nicht mehr hinsieht.
       position: new Vec3(
-        (spalte - 2) * 1.8 + (zufall() - 0.5) * 0.6,
-        4 + reihe * 1.8,
-        (zufall() - 0.5) * 3
+        (spalte - 2) * 1.3 + (zufall() - 0.5) * 0.5,
+        4 + reihe * 1.6,
+        (zufall() - 0.5) * 2
       ),
-      velocity: new Vec3((zufall() - 0.5) * 4, -3, (zufall() - 0.5) * 4),
+      velocity: new Vec3((zufall() - 0.5) * 2.2, -3, (zufall() - 0.5) * 2.2),
       angularVelocity: new Vec3(
         (zufall() - 0.5) * 14,
         (zufall() - 0.5) * 14,
