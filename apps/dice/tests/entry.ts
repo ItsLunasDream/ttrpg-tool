@@ -22,3 +22,12 @@ export {
 // Geometrie, und eine Tabelle zu pruefen, die man von Hand danebengeschrieben
 // hat, pruefte das Falsche.
 export { baueKoerper, gegenueberliegende, flaechenVon, trapezoeder, eckenVon } from '../src/renderer/wuerfel3d/koerper';
+export {
+  wirf,
+  koerperVorrat,
+  obenLiegendeFlaeche,
+  abgeleseneFlaeche,
+  setzeErgebnisAufFlaeche,
+  pruefeUmnummerierung,
+  SCHRITT
+} from '../src/renderer/wuerfel3d/wurf';
