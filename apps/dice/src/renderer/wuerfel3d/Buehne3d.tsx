@@ -9,7 +9,7 @@
  * Der Boden ist unsichtbar. Die Wuerfel fallen vor den Hintergrund der
  * Anwendung, ohne Tisch und ohne Schatten einer sichtbaren Flaeche.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AmbientLight,
   DirectionalLight,
@@ -27,6 +27,16 @@ import { ziffernSchilder } from './ziffern';
 export interface Einwurf {
   readonly art: Art;
   readonly augen: number;
+  readonly hoechst?: boolean;
+  readonly tiefst?: boolean;
+}
+
+/** Wo ein Effekt auf dem Bild sitzt, in Prozent der Leinwand. */
+interface Effektsitz {
+  readonly nummer: number;
+  readonly links: number;
+  readonly oben: number;
+  readonly art: 'hoechst' | 'tiefst';
 }
 
 interface Props {
@@ -47,6 +57,15 @@ export function Buehne3d({ einwuerfe, einstellungen, wurfNummer, onFertig }: Pro
   const halter = useRef<HTMLDivElement>(null);
   const fertigRef = useRef(onFertig);
   fertigRef.current = onFertig;
+  /**
+   * Wo Glitzer und Streifen liegen.
+   *
+   * Erst wenn die Wuerfel liegen: waehrend des Falls wuerden die Effekte
+   * mitwandern, und ein Glitzern an einem Wuerfel, der noch rollt, sagt
+   * nichts. Gerechnet wird die Bildschirmlage aus der Endlage — anders als in
+   * der flachen Darstellung, wo der Effekt einfach im Wuerfel steckt.
+   */
+  const [effekte, setEffekte] = useState<Effektsitz[]>([]);
 
   useEffect(() => {
     const knoten = halter.current;
@@ -139,17 +158,35 @@ export function Buehne3d({ einwuerfe, einstellungen, wurfNummer, onFertig }: Pro
       return netz;
     });
 
+    // Messpunkte fuer die Rauchtests: wie lange der Wurf wirklich dauert und
+    // wie viele Bilder dafuer gebraucht wurden. Im Fenster sichtbar, damit ein
+    // Testskript es abfragen kann, ohne die Zeit von aussen zu schaetzen.
+    const begonnen = performance.now();
+    (window as unknown as { __wurf3d?: unknown }).__wurf3d = { laeuft: true };
+
     let laeuft = true;
     let bild = 0;
     let gemeldet = false;
     const laenge = Math.max(...geworfen.map((w) => w.bahn.length));
+
+    /**
+     * Wie viele Simulationsschritte je Bild gezeigt werden.
+     *
+     * In Echtzeit abgespielt dauerte ein Wurf aus zwoelf Wuerfeln ueber neun
+     * Sekunden — so lange wartet niemand auf ein Ergebnis. Bei kurzen Bahnen
+     * bleibt es bei einem Schritt je Bild und damit bei der Geschwindigkeit
+     * der Simulation; nur lange Bahnen werden gerafft, und zwar so weit, dass
+     * die Anzeige die Hoechstdauer nicht ueberschreitet.
+     */
+    const HOECHSTDAUER = 2.6;
+    const proBild = Math.max(1, Math.ceil(laenge / (HOECHSTDAUER * 60)));
 
     const zeichne = () => {
       if (!laeuft) return;
       // Die Bahn wird abgespielt, nicht gerechnet: ein Schritt je Bild. Bei
       // 60 Bildern je Sekunde stimmt das mit der Schrittweite der Simulation
       // ueberein.
-      const schritt = Math.min(bild, laenge - 1);
+      const schritt = Math.min(bild * proBild, laenge - 1);
       for (const [nummer, netz] of netze.entries()) {
         const bahn = geworfen[nummer].bahn;
         const lage = bahn[Math.min(schritt, bahn.length - 1)];
@@ -158,14 +195,40 @@ export function Buehne3d({ einwuerfe, einstellungen, wurfNummer, onFertig }: Pro
       }
       renderer.render(szene, kamera);
 
-      if (bild >= laenge - 1 && !gemeldet) {
+      if (schritt >= laenge - 1 && !gemeldet) {
         gemeldet = true;
+        (window as unknown as { __wurf3d?: unknown }).__wurf3d = {
+          laeuft: false,
+          ms: Math.round(performance.now() - begonnen),
+          bilder: bild,
+          schritte: laenge,
+          proBild
+        };
+        setEffekte(
+          geworfen.flatMap((wuerfel, nummer) => {
+            const einwurf = einwuerfe[nummer];
+            const welche = einwurf.hoechst ? 'hoechst' : einwurf.tiefst ? 'tiefst' : null;
+            if (!welche) return [];
+            const ort = wuerfel.endlage.position.clone().project(kamera);
+            return [
+              {
+                nummer,
+                // project() liefert -1 bis 1 mit dem Ursprung in der Mitte
+                // und y nach oben; die Seite rechnet in Prozent von links
+                // oben.
+                links: (ort.x * 0.5 + 0.5) * 100,
+                oben: (-ort.y * 0.5 + 0.5) * 100,
+                art: welche
+              }
+            ];
+          })
+        );
         fertigRef.current?.();
       }
       bild++;
       // Nach dem Ende wird nicht weitergerechnet: die Koerper liegen, und ein
       // Bildtakt, der nichts mehr aendert, kostet nur Strom.
-      if (bild < laenge) requestAnimationFrame(zeichne);
+      if (bild * proBild < laenge) requestAnimationFrame(zeichne);
     };
     requestAnimationFrame(zeichne);
 
@@ -201,7 +264,39 @@ export function Buehne3d({ einwuerfe, einstellungen, wurfNummer, onFertig }: Pro
     // auf. Die Koerper selbst kommen aus dem Vorrat und werden geteilt.
   }, [einwuerfe, einstellungen, wurfNummer]);
 
-  return <div className="buehne3d" ref={halter} aria-hidden="true" />;
+  // Die Effekte liegen als eigene Elemente ueber der Leinwand und nicht in der
+  // Szene: als Lichter oder Nebel gerechnet kosteten sie bei jedem Bild, hier
+  // kosten sie nichts, solange sie fehlen.
+  return (
+    <div className="buehne3d" ref={halter} aria-hidden="true">
+      {effekte.map((effekt) =>
+        effekt.art === 'hoechst' ? (
+          <span
+            key={effekt.nummer}
+            className="glitzer glitzer--frei"
+            style={{ left: `${effekt.links}%`, top: `${effekt.oben}%` }}
+          >
+            <span className="glitzer__funke" style={{ left: '10%', top: '15%' }} />
+            <span className="glitzer__funke" style={{ left: '80%', top: '10%', animationDelay: '120ms' }} />
+            <span className="glitzer__funke" style={{ left: '88%', top: '62%', animationDelay: '260ms' }} />
+            <span className="glitzer__funke" style={{ left: '16%', top: '74%', animationDelay: '190ms' }} />
+            <span className="glitzer__funke" style={{ left: '50%', top: '-4%', animationDelay: '330ms' }} />
+          </span>
+        ) : (
+          <span
+            key={effekt.nummer}
+            className="streifen streifen--frei"
+            style={{ left: `${effekt.links}%`, top: `${effekt.oben}%` }}
+          >
+            <span className="streifen__linie" />
+            <span className="streifen__linie" />
+            <span className="streifen__linie" />
+            <span className="streifen__linie" />
+          </span>
+        )
+      )}
+    </div>
+  );
 }
 
 /** Ob die Grafikbeschleunigung ueberhaupt zur Verfuegung steht. */

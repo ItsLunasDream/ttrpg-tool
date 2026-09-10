@@ -251,6 +251,28 @@ input[type='number'] {
   justify-content: center;
 }
 
+/*
+ * Effekte auf der Koerperbuehne.
+ *
+ * In der flachen Darstellung sitzen Glitzer und Streifen im Wuerfel selbst.
+ * Hier gibt es kein Element je Wuerfel — die Koerper leben in einer Leinwand.
+ * Also werden die Effekte ueber die Leinwand gelegt, an die Stelle, an die
+ * die Kamera den Wuerfel wirft.
+ */
+.buehne3d {
+  position: relative;
+}
+
+.glitzer--frei,
+.streifen--frei {
+  position: absolute;
+  width: 92px;
+  height: 92px;
+  /* Der gerechnete Punkt ist die Mitte des Wuerfels, nicht seine Ecke. */
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
 .buehne3d canvas {
   max-width: 100%;
 }

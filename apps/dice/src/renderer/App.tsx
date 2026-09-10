@@ -87,8 +87,16 @@ export function App() {
    * nichts.
    */
   const dreiDEinwuerfe = useMemo(
-    () => (wurf ? wurf.wuerfe.map((einzel) => ({ art: einzel.art, augen: einzel.augen })) : []),
-    [wurf]
+    () =>
+      wurf
+        ? wurf.wuerfe.map((einzel) => ({
+            art: einzel.art,
+            augen: einzel.augen,
+            hoechst: einzel.istHoechst && einstellungen.glitzerAn,
+            tiefst: einzel.istTiefst && einstellungen.streifenAn
+          }))
+        : [],
+    [wurf, einstellungen.glitzerAn, einstellungen.streifenAn]
   );
   const dreiDAn =
     einstellungen.dreiD && grafikDa && gesamt <= DREID_HOECHSTENS && dreiDEinwuerfe.length > 0;
