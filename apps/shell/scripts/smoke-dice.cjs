@@ -208,6 +208,50 @@ app.whenReady().then(async () => {
     'die Anzahl setzt sich nach dem Wurf NICHT zurueck'
   );
 
+  // --- Drehung -----------------------------------------------------------
+  // Zwei Dinge, die im Bild sofort auffielen und im Bildbaum gar nicht:
+  //
+  // Der Wuerfel wanderte beim Drehen seitwaerts. In den Keyframes stand
+  // `rotate(...) translateY(...)`, und so wirkt die Verschiebung entlang der
+  // schon gedrehten Achse — bei jedem Winkel in eine andere Richtung. Er
+  // beschrieb eine Bahn um sich herum, statt an seinem Platz zu huepfen.
+  //
+  // Und das Minuszeichen des Abzugswuerfels kreiste mit, weil die Animation
+  // auf dem ganzen Feld lag statt auf dem Koerper. Es ist eine Markierung und
+  // gehoert an seinen Platz.
+  const mitte = (was) =>
+    js(`(() => { const e = document.querySelector('${was}');
+      if (!e) return null; const r = e.getBoundingClientRect();
+      return [Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2)]; })()`);
+
+  await js(`(() => { ${SETZ} const f = [...document.querySelectorAll('.artfeld__zahl')];
+    f.forEach((x) => setz(x, '')); setz(f[5], '1'); setz(f[0], '-1'); return true; })()`);
+  await warte(300);
+  // Einmal durchwuerfeln, bevor gemessen wird. Sonst liegt beim ersten Mal
+  // noch das Ergebnis des vorigen Wurfs auf dem Tisch, mit anderer Anzahl —
+  // die Wuerfel stehen dann woanders, und der Vergleich misst das Layout
+  // statt der Drehung. Genau daran ist diese Pruefung zuerst gescheitert.
+  await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+  await warte(1000);
+  const abzugRuhe = await mitte('.buehne__tisch .wuerfel--abzug .wuerfel__abzug');
+  const koerperRuhe = await mitte('.buehne__tisch .wuerfel--abzug svg');
+
+  await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+  await warte(200);
+  const abzugDreht = await mitte('.buehne__tisch .wuerfel--abzug .wuerfel__abzug');
+  const koerperDreht = await mitte('.buehne__tisch .wuerfel--abzug svg');
+  await warte(700);
+
+  pruefe(
+    Boolean(abzugRuhe) && JSON.stringify(abzugRuhe) === JSON.stringify(abzugDreht),
+    `das Minuszeichen dreht sich nicht mit (${JSON.stringify(abzugRuhe)} -> ${JSON.stringify(abzugDreht)})`
+  );
+  // Nur die Hoehe darf sich aendern: der Wuerfel huepft, er wandert nicht.
+  pruefe(
+    Boolean(koerperRuhe) && Math.abs(koerperRuhe[0] - koerperDreht[0]) <= 1,
+    `der Wuerfel dreht sich an seinem Platz (x ${koerperRuhe?.[0]} -> ${koerperDreht?.[0]})`
+  );
+
   // --- Effekte ------------------------------------------------------------
   // Solange wuerfeln, bis eine 20 und eine 1 dabei sind. Bei 20 Wuerfeln ist
   // beides in wenigen Versuchen da; bleibt es aus, ist der Test nicht rot,

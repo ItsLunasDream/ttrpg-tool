@@ -122,7 +122,12 @@ export function Wuerfel({
   return (
     <Wurzel
       className={klassen}
-      style={{ width: groesse, height: groesse, animationDelay: `${verzug}ms` }}
+      // Der Versatz geht als Variable an das SVG, das sich dreht — nicht als
+      // animationDelay hierher: hier laeuft keine Animation mehr, seit das
+      // Minuszeichen des Abzugswuerfels nicht mehr mitkreisen soll.
+      style={
+        { width: groesse, height: groesse, ['--wuerfel-verzug']: `${verzug}ms` } as React.CSSProperties
+      }
       onClick={onClick}
       onContextMenu={onContextMenu}
       title={titel}
