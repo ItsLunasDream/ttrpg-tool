@@ -1,0 +1,104 @@
+/** Texte des Wuerfels, Deutsch und Englisch paarweise. */
+export const LANGUAGES = ['de', 'en'] as const;
+export type Language = (typeof LANGUAGES)[number];
+
+export const texte = {
+  'app.title': ['Würfel', 'Dice'],
+  'pool.leer': ['Wähle Würfel aus', 'Pick some dice'],
+  'pool.hinweis': [
+    'Linksklick legt einen dazu, Rechtsklick nimmt einen weg. Negative Anzahl zieht ab.',
+    'Left click adds one, right click removes one. A negative count subtracts.'
+  ],
+  'knopf.rollen': ['Rollen', 'Roll'],
+  'knopf.leeren': ['Leeren', 'Clear'],
+  'feld.modifikator': ['Modifikator', 'Modifier'],
+  'feld.seiten': ['Seiten', 'Sides'],
+  'ergebnis': ['Ergebnis', 'Result'],
+  'verlauf.titel': ['Verlauf', 'History'],
+  'verlauf.leer': ['Noch nichts gewürfelt', 'Nothing rolled yet'],
+  'verlauf.hinweis': [
+    'Nur für diese Sitzung',
+    'This session only'
+  ],
+  'aussehen.titel': ['Aussehen', 'Appearance'],
+  'aussehen.farbe': ['Farbe', 'Colour'],
+  'aussehen.muster': ['Muster', 'Pattern'],
+  'muster.schlicht': ['Schlicht', 'Plain'],
+  'muster.marmor': ['Marmor', 'Marble'],
+  'muster.metall': ['Metall', 'Metal'],
+  'muster.sternenhimmel': ['Sternenhimmel', 'Starfield'],
+  'effekt.glitzer': ['Glitzer bei Höchstwurf', 'Sparkle on max roll'],
+  'effekt.streifen': ['Streifen bei einer 1', 'Gloom lines on a 1'],
+  'abzug': ['Abzug', 'Subtracted']
+} as const;
+
+export type TextKey = keyof typeof texte;
+
+const STORAGE_KEY = 'ttrpg-dice.language';
+
+interface SpracheBruecke {
+  gewechselt(language: string): void;
+  onGesetzt(callback: (language: string) => void): () => void;
+}
+declare global {
+  interface Window {
+    ttrpgToolsSprache?: SpracheBruecke;
+  }
+}
+
+let aktuell: Language = erkenne();
+const hoerer = new Set<() => void>();
+
+function erkenne(): Language {
+  try {
+    const gespeichert = localStorage.getItem(STORAGE_KEY);
+    if (gespeichert && (LANGUAGES as readonly string[]).includes(gespeichert)) {
+      return gespeichert as Language;
+    }
+  } catch {
+    /* Privater Modus — dann die Browsersprache. */
+  }
+  return typeof navigator !== 'undefined' && navigator.language?.startsWith('de') ? 'de' : 'en';
+}
+
+export function getLanguage(): Language {
+  return aktuell;
+}
+
+function uebernimm(language: Language): void {
+  if (language === aktuell) return;
+  aktuell = language;
+  try {
+    localStorage.setItem(STORAGE_KEY, language);
+  } catch {
+    /* Gilt dann nur fuer diese Sitzung. */
+  }
+  for (const fn of hoerer) fn();
+}
+
+export function setLanguage(language: Language): void {
+  if (language === aktuell) return;
+  uebernimm(language);
+  if (typeof window !== 'undefined') window.ttrpgToolsSprache?.gewechselt(language);
+}
+
+export function onLanguageChange(fn: () => void): () => void {
+  hoerer.add(fn);
+  return () => hoerer.delete(fn);
+}
+
+if (typeof window !== 'undefined' && window.ttrpgToolsSprache) {
+  // `uebernimm` statt `setLanguage`: sonst meldete dieses Modul die Aenderung
+  // postwendend zurueck und die Huelle benachrichtigte sich im Kreis.
+  window.ttrpgToolsSprache.onGesetzt((language) => {
+    if ((LANGUAGES as readonly string[]).includes(language)) uebernimm(language as Language);
+  });
+}
+
+export function t(key: TextKey, params?: Record<string, string | number>): string {
+  const eintrag = texte[key];
+  if (!eintrag) return key;
+  let text: string = eintrag[aktuell === 'de' ? 0 : 1];
+  if (params) for (const name in params) text = text.replaceAll(`{${name}}`, String(params[name]));
+  return text;
+}

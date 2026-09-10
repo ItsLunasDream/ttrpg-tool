@@ -1,0 +1,337 @@
+/*
+ * Aussehen des Wuerfels.
+ *
+ * Die Wuerfel sind der Inhalt, alles andere ist Rahmen: die Auswahl links
+ * bleibt ruhig und dunkel, damit die geworfenen Wuerfel auf der Buehne die
+ * einzigen farbigen Dinge im Bild sind.
+ */
+
+:root {
+  --grund: #14161c;
+  --grund-hoch: #1b1e26;
+  --grund-tisch: #10121a;
+  --rand: #2a2e39;
+  --text: #e6e8ee;
+  --text-leise: #939aab;
+  --betont: #7aa2f7;
+  --abzug: #d98a7c;
+  --radius: 10px;
+
+  --motion-ok: #4a9d5f;
+  --motion-fehler: #e5484d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--grund);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+:focus-visible {
+  outline: 2px solid var(--betont);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+button {
+  background: #262b36;
+  border: 1px solid var(--rand);
+  color: var(--text);
+  font: inherit;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background var(--motion-feedback) var(--motion-ease-standard);
+}
+
+button:hover:not(:disabled) {
+  background: #303646;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.knopf--haupt {
+  background: var(--betont);
+  border-color: var(--betont);
+  color: #0d1017;
+  font-weight: 600;
+}
+
+.knopf--haupt:hover:not(:disabled) {
+  background: #8fb3ff;
+}
+
+input {
+  background: #12141a;
+  border: 1px solid var(--rand);
+  color: var(--text);
+  font: inherit;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+
+input:focus {
+  border-color: var(--betont);
+  outline: none;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  appearance: textfield;
+}
+
+/* ---------- Aufbau ---------- */
+
+.wuerfelapp {
+  display: grid;
+  grid-template-columns: 268px 1fr;
+  height: 100%;
+}
+
+.auswahl {
+  background: var(--grund-hoch);
+  border-right: 1px solid var(--rand);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  /* Ohne das erzwingen die Felder eine waagerechte Bildlaufleiste, sobald das
+     Gitter enger wird als seine Inhalte. */
+  overflow-x: hidden;
+  min-width: 0;
+}
+
+.auswahl__hinweis {
+  margin: 0;
+  color: var(--text-leise);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.auswahl__gitter {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.auswahl__knoepfe {
+  display: flex;
+  gap: 8px;
+}
+
+.auswahl__knoepfe .knopf--haupt {
+  flex: 1;
+}
+
+.feld {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.feld__label {
+  font-size: 11px;
+  color: var(--text-leise);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ---------- Ein Feld der Auswahl ---------- */
+
+.artfeld {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px 4px;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  transition: border-color var(--motion-state) var(--motion-ease-standard),
+    background var(--motion-state) var(--motion-ease-standard);
+}
+
+/* Was im Wurf ist, hebt sich ab — sonst muesste man die Zahlen absuchen. */
+.artfeld--aktiv {
+  border-color: var(--rand);
+  background: #232833;
+}
+
+.artfeld--abzug {
+  border-color: var(--abzug);
+}
+
+.artfeld__name {
+  font-size: 11px;
+  color: var(--text-leise);
+}
+
+.artfeld__zahl {
+  width: 100%;
+  text-align: center;
+  padding: 2px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.artfeld--abzug .artfeld__zahl {
+  color: var(--abzug);
+}
+
+/* ---------- Buehne ---------- */
+
+.buehne {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--grund-tisch);
+}
+
+.buehne__ausdruck {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--rand);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-leise);
+  flex: 0 0 auto;
+}
+
+.buehne__tisch {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 10px;
+  padding: 18px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.buehne__summe {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--rand);
+  padding: 10px 18px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+/* Die Zahl, auf die es ankommt: gross genug, um sie ueber den Tisch zu
+   rufen, ohne hinzugehen. */
+.buehne__summe-zahl {
+  font-size: 44px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--betont);
+}
+
+/* ---------- Der Wuerfel selbst ---------- */
+
+.wuerfel {
+  position: relative;
+  display: inline-flex;
+  background: none;
+  border: 0;
+  padding: 0;
+  line-height: 0;
+  /* Ohne das flackern die Kanten bei der Drehung. */
+  will-change: transform;
+}
+
+.wuerfel--klickbar {
+  cursor: pointer;
+  border-radius: 8px;
+  transition: transform var(--motion-feedback) var(--motion-ease-standard);
+}
+
+.wuerfel--klickbar:hover {
+  transform: translateY(-2px);
+}
+
+.wuerfel--klickbar:active {
+  transform: scale(0.94);
+}
+
+/* Abzugswuerfel sind gedaempft und tragen ein Minus. Ohne das rechnet man die
+   Summe im Kopf nach, kommt auf etwas anderes und haelt das Werkzeug fuer
+   kaputt. */
+.wuerfel--abzug {
+  opacity: 0.72;
+}
+
+.wuerfel__abzug {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  background: var(--abzug);
+  color: #1a1013;
+  border-radius: 50%;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/*
+ * Das Rollen. Drehung plus ein Versatz nach oben — reine Rotation sieht aus
+ * wie ein Zeiger, nicht wie ein Wuerfel, der faellt.
+ */
+@keyframes wuerfel-rollt {
+  0% {
+    transform: rotate(0deg) translateY(0);
+  }
+  25% {
+    transform: rotate(220deg) translateY(-14px);
+  }
+  55% {
+    transform: rotate(480deg) translateY(4px);
+  }
+  80% {
+    transform: rotate(660deg) translateY(-4px);
+  }
+  100% {
+    transform: rotate(720deg) translateY(0);
+  }
+}
+
+.wuerfel--rollt {
+  animation: wuerfel-rollt 660ms var(--motion-ease-standard) backwards;
+}
+
+/* Weniger Bewegung: der Wuerfel bleibt stehen. Das Ergebnis erscheint
+   trotzdem — die Rueckmeldung geht nicht verloren, nur die Drehung. */
+@media (prefers-reduced-motion: reduce) {
+  .wuerfel--rollt {
+    animation: none;
+  }
+}

@@ -1,0 +1,134 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import entry from '../dist/tests/entry.cjs';
+
+const { setzeAnzahl, aendereAnzahl, anzahlGesamt, alsAusdruck, wuerfle, MAX_PRO_ART } = entry;
+
+/** Liefert einen rng, der auf einem N-seitigen Wuerfel genau `augen` ergibt. */
+function ergibt(seiten, augen) {
+  return (augen - 1) / seiten + 1 / (seiten * 2);
+}
+
+// --- Anzahl setzen ---------------------------------------------------------
+
+test('Null nimmt die Art aus dem Wurf, statt als 0 stehenzubleiben', () => {
+  const mit = setzeAnzahl({}, 'd6', 3);
+  assert.equal(mit.d6, 3);
+  const ohne = setzeAnzahl(mit, 'd6', 0);
+  assert.equal('d6' in ohne, false, 'sonst stuende d6 weiter im Ausdruck');
+});
+
+test('negative Anzahlen sind erlaubt', () => {
+  assert.equal(setzeAnzahl({}, 'd4', -2).d4, -2);
+});
+
+test('die Anzahl bleibt in ihren Grenzen', () => {
+  assert.equal(setzeAnzahl({}, 'd6', 9999).d6, MAX_PRO_ART);
+  assert.equal(setzeAnzahl({}, 'd6', -9999).d6, -MAX_PRO_ART);
+});
+
+test('Bruchzahlen und Unsinn werden abgeschnitten', () => {
+  assert.equal(setzeAnzahl({}, 'd6', 3.7).d6, 3);
+  assert.equal('d6' in setzeAnzahl({}, 'd6', Number.NaN), false);
+});
+
+test('aendereAnzahl geht durch die Null hindurch', () => {
+  let auswahl = setzeAnzahl({}, 'd4', 1);
+  auswahl = aendereAnzahl(auswahl, 'd4', -1);
+  assert.equal('d4' in auswahl, false, 'bei 0 faellt die Art heraus');
+  auswahl = aendereAnzahl(auswahl, 'd4', -1);
+  assert.equal(auswahl.d4, -1, 'weiter nach unten wird sie negativ');
+});
+
+test('anzahlGesamt zaehlt Abzugswuerfel mit', () => {
+  assert.equal(anzahlGesamt({ d20: 3, d4: -2 }), 5);
+});
+
+// --- Ausdruck --------------------------------------------------------------
+
+test('der Ausdruck sieht aus wie das, was man schreiben wuerde', () => {
+  assert.equal(alsAusdruck({ d20: 3, d4: -2 }, 6, 5), '3d20 - 2d4 + 5');
+  assert.equal(alsAusdruck({ d6: 2 }, 6, 0), '2d6');
+  assert.equal(alsAusdruck({ d6: 2 }, 6, -1), '2d6 - 1');
+});
+
+// Ohne den Sonderfall stuende „+3d20 - 2d4" da, was niemand so schreibt.
+test('das erste Glied traegt kein Pluszeichen', () => {
+  assert.equal(alsAusdruck({ d20: 3 }, 6, 0).startsWith('+'), false);
+});
+
+test('faengt der Wurf mit einem Abzug an, steht das Minus vorn', () => {
+  assert.equal(alsAusdruck({ d4: -2 }, 6, 0), '-2d4');
+});
+
+// Sonst hiesse ein Wurf aus 3d20 und -2d4 „-2d4 + 3d20" — dieselbe Rechnung,
+// und sie liest sich wie ein Fehler.
+test('was dazugezaehlt wird, steht vorn — unabhaengig von der Wuerfelart', () => {
+  assert.equal(alsAusdruck({ d4: -2, d20: 3 }, 6, 0), '3d20 - 2d4');
+  assert.equal(alsAusdruck({ d20: -1, d4: 2 }, 6, 0), '2d4 - 1d20');
+});
+
+// Die abgebildeten Wuerfel stehen in derselben Folge wie der Ausdruck
+// darueber — sonst sucht man beim Nachrechnen die falsche Zahl.
+test('die Wuerfel fallen in der Reihenfolge des Ausdrucks', () => {
+  const wurf = wuerfle({ d4: -1, d20: 1 }, 6, 0, () => 0.5);
+  assert.equal(wurf.wuerfe[0].art, 'd20');
+  assert.equal(wurf.wuerfe[1].art, 'd4');
+});
+
+test('der eigene Wuerfel traegt seine Seitenzahl', () => {
+  assert.equal(alsAusdruck({ custom: 2 }, 7, 0), '2d7');
+});
+
+test('eine leere Auswahl ergibt einen leeren Ausdruck', () => {
+  assert.equal(alsAusdruck({}, 6, 5), '');
+});
+
+// --- Wuerfeln --------------------------------------------------------------
+
+test('Abzugswuerfel werden von der Summe abgezogen', () => {
+  // 1d20 ergibt 15, 1d4 ergibt 3 -> 15 - 3 + 2 = 14
+  const werte = [ergibt(20, 15), ergibt(4, 3)];
+  let i = 0;
+  const wurf = wuerfle({ d20: 1, d4: -1 }, 6, 2, () => werte[i++]);
+  assert.equal(wurf.summe, 14);
+  assert.equal(wurf.wuerfe[0].zaehltPositiv, true);
+  assert.equal(wurf.wuerfe[1].zaehltPositiv, false);
+});
+
+test('der Hoechstwurf wird erkannt', () => {
+  const wurf = wuerfle({ d20: 1 }, 6, 0, () => ergibt(20, 20));
+  assert.equal(wurf.wuerfe[0].istHoechst, true);
+  assert.equal(wurf.wuerfe[0].istTiefst, false);
+});
+
+test('die Eins wird erkannt', () => {
+  const wurf = wuerfle({ d20: 1 }, 6, 0, () => ergibt(20, 1));
+  assert.equal(wurf.wuerfe[0].istTiefst, true);
+});
+
+// Eine 4 auf dem d4 in „1d20 - 1d4" ist die hoechste Zahl, aber fuer den Wurf
+// das schlechteste Ergebnis. Sie zu feiern waere verwirrend.
+test('Abzugswuerfel bekommen weder Hoechst- noch Tiefstwurf angerechnet', () => {
+  const hoch = wuerfle({ d4: -1 }, 6, 0, () => ergibt(4, 4));
+  assert.equal(hoch.wuerfe[0].istHoechst, false);
+  const tief = wuerfle({ d4: -1 }, 6, 0, () => ergibt(4, 1));
+  assert.equal(tief.wuerfe[0].istTiefst, false);
+});
+
+test('beim eigenen Wuerfel gilt seine Seitenzahl als Hoechstwurf', () => {
+  const wurf = wuerfle({ custom: 1 }, 7, 0, () => ergibt(7, 7));
+  assert.equal(wurf.wuerfe[0].seiten, 7);
+  assert.equal(wurf.wuerfe[0].istHoechst, true);
+});
+
+test('ein gemischter Pool wirft alle Wuerfel', () => {
+  const wurf = wuerfle({ d6: 3, d20: 1, d4: -2 }, 6, 0, () => 0.5);
+  assert.equal(wurf.wuerfe.length, 6);
+});
+
+test('nur der Modifikator ohne Wuerfel ergibt genau ihn', () => {
+  const wurf = wuerfle({}, 6, 5, () => 0.5);
+  assert.equal(wurf.summe, 5);
+  assert.equal(wurf.wuerfe.length, 0);
+});

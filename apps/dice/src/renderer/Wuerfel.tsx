@@ -1,0 +1,175 @@
+/**
+ * Ein einzelner Wuerfel.
+ *
+ * Die Form kommt aus shared/formen.ts, die Farbe aus den Einstellungen, die
+ * Zahlenfarbe wird aus der Farbe berechnet. Beim Rollen dreht und wackelt er;
+ * danach bleibt die Zahl stehen, bis erneut gewuerfelt wird.
+ */
+import { FORMEN, type Art } from '../shared/formen';
+import { zahlenFarbe, type Muster } from '../shared/einstellungen';
+
+interface Props {
+  readonly art: Art;
+  /** Die Zahl, oder `null`, solange nicht gewuerfelt wurde. */
+  readonly augen: number | null;
+  readonly farbe: string;
+  readonly muster: Muster;
+  readonly groesse: number;
+  /** Ob dieser Wuerfel abgezogen wird. */
+  readonly abzug?: boolean;
+  readonly rollt?: boolean;
+  readonly hoechst?: boolean;
+  readonly tiefst?: boolean;
+  /**
+   * Verzoegerung in Millisekunden. Wuerfel starten leicht versetzt — alle
+   * gleichzeitig sieht nach einer Maschine aus, nicht nach Wuerfeln.
+   */
+  readonly verzug?: number;
+  readonly onClick?: () => void;
+  readonly onContextMenu?: (ereignis: React.MouseEvent) => void;
+  readonly titel?: string;
+}
+
+export function Wuerfel({
+  art,
+  augen,
+  farbe,
+  muster,
+  groesse,
+  abzug = false,
+  rollt = false,
+  hoechst = false,
+  tiefst = false,
+  verzug = 0,
+  onClick,
+  onContextMenu,
+  titel
+}: Props) {
+  const form = FORMEN[art];
+  const schrift = zahlenFarbe(farbe);
+  // Eine eigene Kennung je Wuerfel: zwei Verlaeufe mit demselben Namen im
+  // selben Dokument fallen zusammen, und dann tragen alle Wuerfel den des
+  // ersten.
+  const kennung = `w-${art}-${verzug}-${groesse}`;
+
+  const klassen = [
+    'wuerfel',
+    rollt ? 'wuerfel--rollt' : '',
+    abzug ? 'wuerfel--abzug' : '',
+    hoechst ? 'wuerfel--hoechst' : '',
+    tiefst ? 'wuerfel--tiefst' : '',
+    onClick ? 'wuerfel--klickbar' : ''
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const Wurzel = onClick ? 'button' : 'span';
+
+  return (
+    <Wurzel
+      className={klassen}
+      style={{ width: groesse, height: groesse, animationDelay: `${verzug}ms` }}
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+      title={titel}
+      type={onClick ? 'button' : undefined}
+    >
+      <svg viewBox="0 0 100 100" width={groesse} height={groesse} aria-hidden="true">
+        <defs>
+          <Musterung kennung={kennung} muster={muster} farbe={farbe} />
+        </defs>
+
+        <path d={form.umriss} fill={`url(#${kennung})`} stroke={schrift} strokeOpacity="0.45" strokeWidth="1.5" />
+
+        {/* Die Facetten machen den Koerper plastisch. Ohne sie wirkt jede Art
+            wie ein flacher Aufkleber. */}
+        {form.facetten.map((facette, nummer) => (
+          <path
+            key={nummer}
+            d={facette}
+            fill="none"
+            stroke={schrift}
+            strokeOpacity="0.38"
+            strokeWidth="1.2"
+          />
+        ))}
+
+        {augen !== null ? (
+          <text
+            x="50"
+            y={form.zahlY}
+            textAnchor="middle"
+            fill={schrift}
+            fontSize={form.zahlGroesse}
+            fontWeight="700"
+            // Ziffern gleicher Breite: sonst huepft die Zahl beim Wechsel von
+            // 9 auf 10 im Wuerfel herum.
+            style={{ fontVariantNumeric: 'tabular-nums' }}
+          >
+            {augen}
+          </text>
+        ) : null}
+      </svg>
+
+      {abzug ? (
+        <span className="wuerfel__abzug" aria-hidden="true">
+          −
+        </span>
+      ) : null}
+    </Wurzel>
+  );
+}
+
+/**
+ * Die Fuellung — je nach Muster ein Verlauf, ein Farbwechsel oder Punkte.
+ *
+ * Alle Muster leiten sich aus der einen gewaehlten Farbe ab, statt eigene
+ * Farben mitzubringen: sonst waere die freie Farbwahl nur beim schlichten
+ * Muster wirksam.
+ */
+function Musterung({ kennung, muster, farbe }: { kennung: string; muster: Muster; farbe: string }) {
+  if (muster === 'metall') {
+    // Harte Kanten zwischen hell und dunkel: das liest sich als Metall,
+    // waehrend ein weicher Verlauf nach Plastik aussieht.
+    return (
+      <linearGradient id={kennung} x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor={farbe} stopOpacity="1" />
+        <stop offset="38%" stopColor="#ffffff" stopOpacity="0.55" />
+        <stop offset="40%" stopColor={farbe} />
+        <stop offset="72%" stopColor="#000000" stopOpacity="0.35" />
+        <stop offset="74%" stopColor={farbe} />
+        <stop offset="100%" stopColor={farbe} />
+      </linearGradient>
+    );
+  }
+
+  if (muster === 'marmor') {
+    return (
+      <radialGradient id={kennung} cx="35%" cy="30%" r="80%">
+        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.45" />
+        <stop offset="45%" stopColor={farbe} />
+        <stop offset="100%" stopColor="#000000" stopOpacity="0.3" />
+      </radialGradient>
+    );
+  }
+
+  if (muster === 'sternenhimmel') {
+    return (
+      <radialGradient id={kennung} cx="50%" cy="45%" r="75%">
+        <stop offset="0%" stopColor={farbe} />
+        <stop offset="60%" stopColor={farbe} />
+        <stop offset="100%" stopColor="#05060a" />
+      </radialGradient>
+    );
+  }
+
+  // Schlicht: die Farbe selbst, oben eine Spur heller. Der Verlauf muss von
+  // der Farbe ausgehen und nicht von Weiss nach Schwarz — sonst waere der
+  // Wuerfel durchsichtig und die gewaehlte Farbe wirkungslos.
+  return (
+    <linearGradient id={kennung} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor={farbe} />
+      <stop offset="100%" stopColor={farbe} stopOpacity="0.82" />
+    </linearGradient>
+  );
+}

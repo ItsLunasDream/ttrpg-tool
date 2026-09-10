@@ -32,6 +32,7 @@ import {
   mountInitiative,
   registriereBildSchema as registriereInitiativeSchema
 } from '../../../initiative/src/main/embed';
+import { mountDice } from '../../../dice/src/main/embed';
 import type { Language } from '../shared/i18n';
 
 export interface MontierteApp {
@@ -237,7 +238,47 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'backstory') return montiereBackstory(id, haken);
   if (id === 'mapmaker') return montiereMapmaker(id, haken);
   if (id === 'initiative') return montiereInitiative(id, haken);
+  if (id === 'dice') return montiereDice(id, haken);
   return null;
+}
+
+async function montiereDice(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountDice({
+    userDataDir: datenordner(id),
+    distDir: appDistDir(id, 'main'),
+    partition: sitzung(id),
+    devServerUrl: process.env.DICE_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+  };
 }
 
 async function montiereInitiative(id: string, haken: MontageHaken): Promise<MontierteApp> {

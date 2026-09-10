@@ -90,6 +90,15 @@
           "!tests/**",
           "!**/*.map"
         ]
+      },
+      {
+        "from": "../dice/dist",
+        "to": "apps/dice/dist",
+        "filter": [
+          "**/*",
+          "!tests/**",
+          "!**/*.map"
+        ]
       }
     ],
     "win": {

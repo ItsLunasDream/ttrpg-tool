@@ -1,0 +1,10 @@
+// Sammelpunkt fuer die Tests: buendelt die reinen Logikmodule ohne Oberflaeche.
+export {
+  setzeAnzahl,
+  aendereAnzahl,
+  anzahlGesamt,
+  alsAusdruck,
+  wuerfle,
+  MAX_PRO_ART
+} from '../src/shared/pool';
+export { FORMEN, ARTEN, SEITEN, artName, seitenVon } from '../src/shared/formen';
