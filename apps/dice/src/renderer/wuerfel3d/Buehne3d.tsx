@@ -75,15 +75,49 @@ interface Props {
   readonly einstellungen: Einstellungen;
   /** Ob gerade gewuerfelt wird. Raeumt die Marken des vorigen Wurfs weg. */
   readonly rollt: boolean;
+  /**
+   * Ob dieser Wurf noch zu zeigen ist oder schon gelaufen war.
+   *
+   * Schaltet man zwischen flacher und Koerperdarstellung hin und her, wird
+   * die Buehne jedes Mal neu aufgebaut. Ohne diese Unterscheidung fielen die
+   * Wuerfel dabei erneut — ein Ergebnis, das laengst feststeht, noch einmal
+   * fallen zu lassen ist nicht nur unnoetig, es kostete auch jedes Mal die
+   * volle Anzeigedauer. Bei vielen Wuerfeln kam die Anzeige nicht hinterher,
+   * und die Zahlen und Effekte erschienen ueberhaupt nicht.
+   */
+  readonly animieren: boolean;
+  /** Zaehlt bei jedem neuen Wurf hoch. Identitaet des Ergebnisses. */
+  readonly wurfId: number;
+  /** Wird gemeldet, sobald der Wurf einmal gezeigt wurde. */
+  onGezeigt?: () => void;
 }
+
+/**
+ * Das Ergebnis des zuletzt gerechneten Wurfs.
+ *
+ * Ausserhalb der Komponente, weil sie beim Umschalten zwischen flacher und
+ * Koerperdarstellung ausgehaengt wird. Ohne dieses Gedaechtnis rechnete jeder
+ * Aufbau einen neuen Wurf — dieselben Zahlen, aber andere Bahnen. Beim
+ * Wechsel von Farbe oder Muster sprangen die Wuerfel dadurch an neue Plaetze,
+ * obwohl niemand gewuerfelt hatte.
+ */
+let gedaechtnis: { wurfId: number; geworfen: GeworfenerWuerfel[] } | null = null;
 
 /** Wie gross die Ziffern auf den Flaechen sind, je Art. */
 function zifferGroesse(art: Art): number {
   return art === 'd20' ? 0.42 : art === 'd12' ? 0.5 : 0.62;
 }
 
-export function Buehne3d({ einwuerfe, einstellungen, rollt }: Props) {
+export function Buehne3d({ einwuerfe, einstellungen, rollt, animieren, wurfId, onGezeigt }: Props) {
   const halter = useRef<HTMLDivElement>(null);
+  // Ueber Refs gelesen, damit ein Wechsel dieser beiden die Szene nicht neu
+  // aufbaut: sie sagen nur, WIE gezeigt wird, nicht WAS.
+  const animierenRef = useRef(animieren);
+  animierenRef.current = animieren;
+  const wurfIdRef = useRef(wurfId);
+  wurfIdRef.current = wurfId;
+  const gezeigtRef = useRef(onGezeigt);
+  gezeigtRef.current = onGezeigt;
   /**
    * Wo Glitzer und Streifen liegen.
    *
@@ -158,7 +192,11 @@ export function Buehne3d({ einwuerfe, einstellungen, rollt }: Props) {
       return atlas;
     };
 
-    const geworfen: GeworfenerWuerfel[] = wirf(einwuerfe, vorrat);
+    const geworfen: GeworfenerWuerfel[] =
+      gedaechtnis && gedaechtnis.wurfId === wurfIdRef.current
+        ? gedaechtnis.geworfen
+        : wirf(einwuerfe, vorrat);
+    gedaechtnis = { wurfId: wurfIdRef.current, geworfen };
 
     /*
      * Wie weit die Kamera weg muss.
@@ -272,11 +310,87 @@ export function Buehne3d({ einwuerfe, einstellungen, rollt }: Props) {
     const HOECHSTDAUER = 2.6;
     const proBild = Math.max(1, Math.ceil(laenge / (HOECHSTDAUER * 60)));
 
+    /**
+     * Wann die Anzeige spaetestens ans Ende springt, in Millisekunden.
+     *
+     * Der Deckel darueber begrenzt Bilder, nicht Sekunden. Zeichnet ein
+     * Rechner langsam — viele Koerper, schwache Grafik —, dauern dieselben
+     * 120 Bilder eben laenger, und bei fuenfzig Wuerfeln lief die Anzeige
+     * ueber vierzig Sekunden, ohne je fertig zu werden. Die Zahlen ueber den
+     * Wuerfeln erschienen dann gar nicht mehr.
+     *
+     * Grosszuegig gewaehlt: wer eine fluessige Anzeige hat, merkt davon
+     * nichts, und wer keine hat, sieht das Ergebnis trotzdem.
+     */
+    const SPAETESTENS = 6000;
+
+    /**
+     * Das Ergebnis zeigen: Koerper in ihre Endlage, Zahlen und Effekte darauf.
+     *
+     * Getrennt von der Bildschleife, weil es auch ohne sie erreichbar sein
+     * muss. Genau daran scheiterte es zuvor: der Zeitwaechter sass in der
+     * Schleife, und wenn ein Bild bei fuenfzig Koerpern und schwacher Grafik
+     * Sekunden brauchte, kam er nie an die Reihe. Die Zahlen erschienen dann
+     * gar nicht.
+     */
+    const zeigeErgebnis = () => {
+      if (gemeldet) return;
+      gemeldet = true;
+      window.clearTimeout(notbremse);
+
+      for (const [nummer, netz] of netze.entries()) {
+        const lage = geworfen[nummer].endlage;
+        netz.position.copy(lage.position);
+        netz.quaternion.copy(lage.drehung);
+      }
+      renderer.render(szene, kamera);
+
+      const abgelesen = geworfen.map((wuerfel) => {
+        if (wuerfel.ziffern.length === 0) return wuerfel.augen;
+        const koerper = vorrat(wuerfel.art);
+        return wuerfel.ziffern[abgeleseneFlaeche(koerper, wuerfel.art, wuerfel.endlage.drehung)];
+      });
+
+      gezeigtRef.current?.();
+      fenster.__wurf3d = {
+        laeuft: false,
+        ms: Math.round(performance.now() - begonnen),
+        bilder: bild,
+        schritte: laenge,
+        proBild,
+        abgelesen
+      };
+
+      setMarken(
+        geworfen.map((wuerfel, nummer) => {
+          const einwurf = einwuerfe[nummer];
+          const ort = wuerfel.endlage.position.clone().project(kamera);
+          return {
+            nummer,
+            // project() liefert -1 bis 1 mit dem Ursprung in der Mitte und y
+            // nach oben; die Seite rechnet in Prozent von links oben.
+            links: (ort.x * 0.5 + 0.5) * 100,
+            oben: (-ort.y * 0.5 + 0.5) * 100,
+            augen: wuerfel.augen,
+            abzug: einwurf.abzug === true,
+            art: einwurf.hoechst ? 'hoechst' : einwurf.tiefst ? 'tiefst' : 'schlicht'
+          };
+        })
+      );
+    };
+
+    // Die Notbremse haengt an der Uhr und nicht am Bildtakt: sie greift auch
+    // dann, wenn gar keine Bilder mehr kommen.
+    const notbremse = window.setTimeout(zeigeErgebnis, SPAETESTENS);
+
     const zeichne = () => {
-      if (!laeuft) return;
-      // Die Bahn wird abgespielt, nicht gerechnet: ein Schritt je Bild. Bei
-      // 60 Bildern je Sekunde stimmt das mit der Schrittweite der Simulation
-      // ueberein.
+      if (!laeuft || gemeldet) return;
+      // Ein Wurf, der schon gezeigt wurde, springt sofort ans Ende.
+      if (!animierenRef.current) {
+        zeigeErgebnis();
+        return;
+      }
+
       const schritt = Math.min(bild * proBild, laenge - 1);
       for (const [nummer, netz] of netze.entries()) {
         const bahn = geworfen[nummer].bahn;
@@ -286,59 +400,18 @@ export function Buehne3d({ einwuerfe, einstellungen, rollt }: Props) {
       }
       renderer.render(szene, kamera);
 
-      if (schritt >= laenge - 1 && !gemeldet) {
-        gemeldet = true;
-        /*
-         * Was auf den liegenden Koerpern steht, aus der Szene abgelesen.
-         *
-         * Nicht die Zahlen, die `wuerfle()` gezogen hat — die stehen ohnehin
-         * schon im Rechenweg, und sie zu vergleichen pruefte nichts. Hier wird
-         * derselbe Weg gegangen wie ein Auge: welche Flaeche liegt oben, und
-         * welche Ziffer traegt sie. Stimmt die Umnummerierung nicht, faellt es
-         * genau hier auf.
-         */
-        const abgelesen = geworfen.map((wuerfel) => {
-          if (wuerfel.ziffern.length === 0) return wuerfel.augen;
-          const koerper = vorrat(wuerfel.art);
-          return wuerfel.ziffern[
-            abgeleseneFlaeche(koerper, wuerfel.art, wuerfel.endlage.drehung)
-          ];
-        });
-
-        fenster.__wurf3d = {
-          laeuft: false,
-          ms: Math.round(performance.now() - begonnen),
-          bilder: bild,
-          schritte: laenge,
-          proBild,
-          abgelesen
-        };
-        setMarken(
-          geworfen.map((wuerfel, nummer) => {
-            const einwurf = einwuerfe[nummer];
-            const ort = wuerfel.endlage.position.clone().project(kamera);
-            return {
-              nummer,
-              // project() liefert -1 bis 1 mit dem Ursprung in der Mitte und y
-              // nach oben; die Seite rechnet in Prozent von links oben.
-              links: (ort.x * 0.5 + 0.5) * 100,
-              oben: (-ort.y * 0.5 + 0.5) * 100,
-              augen: wuerfel.augen,
-              abzug: einwurf.abzug === true,
-              art: einwurf.hoechst ? 'hoechst' : einwurf.tiefst ? 'tiefst' : 'schlicht'
-            };
-          })
-        );
+      if (schritt >= laenge - 1) {
+        zeigeErgebnis();
+        return;
       }
       bild++;
-      // Nach dem Ende wird nicht weitergerechnet: die Koerper liegen, und ein
-      // Bildtakt, der nichts mehr aendert, kostet nur Strom.
-      if (bild * proBild < laenge) requestAnimationFrame(zeichne);
+      requestAnimationFrame(zeichne);
     };
     requestAnimationFrame(zeichne);
 
     return () => {
       laeuft = false;
+      window.clearTimeout(notbremse);
       beobachter.disconnect();
       // three.js gibt Puffer nicht von selbst frei, und die Huelle laesst
       // geoeffnete Werkzeuge im Hintergrund haengen — was hier liegen bleibt,

@@ -14,14 +14,22 @@ import type { Eintrag } from './verlaufTypen';
 interface Props {
   readonly eintraege: readonly Eintrag[];
   onZurueckholen(eintrag: Eintrag): void;
+  onLeeren(): void;
 }
 
-export function Verlauf({ eintraege, onZurueckholen }: Props) {
+export function Verlauf({ eintraege, onZurueckholen, onLeeren }: Props) {
   return (
     <section className="verlauf">
       <header className="verlauf__kopf">
         <span className="verlauf__titel">{t('verlauf.titel')}</span>
         <span className="verlauf__hinweis">{t('verlauf.hinweis')}</span>
+        {/* Ohne Eintraege gaebe es nichts zu leeren; der Knopf waere dann nur
+            eine Flaeche, die nichts tut. */}
+        {eintraege.length > 0 ? (
+          <button type="button" className="verlauf__leeren" onClick={onLeeren}>
+            {t('verlauf.leeren')}
+          </button>
+        ) : null}
       </header>
 
       {eintraege.length === 0 ? (
