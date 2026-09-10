@@ -38,6 +38,11 @@ echo.
 echo Fertig. Das Paket liegt in apps\shell\release
 echo   Installer:  apps\shell\release\*.exe
 echo   Entpackt:   apps\shell\release\win-unpacked\TTRPG-Tools.exe
+echo.
+echo Oeffne den Projektordner ...
+rem  Ohne Pruefung auf errorlevel: der Explorer meldet auch dann einen Fehler,
+rem  wenn das Fenster aufgeht.
+start "" "%CD%"
 exit /b 0
 
 :paketfehler

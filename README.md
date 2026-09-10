@@ -66,9 +66,9 @@ npm run dist:win        # Windows-Installer der ganzen Sammlung nach apps/shell/
 ```
 
 Unter Windows nimmt `scripts\bauen-win.cmd` die vier Schritte auf einmal:
-`git fetch -p`, `git pull`, `npm install`, `npm run dist:win`. Es arbeitet in
-dem Repository, in dem es liegt, bricht beim ersten Fehler ab und erklärt den
-häufigsten — electron-builder entpackt beim Signieren Symlinks, und die darf
+`git fetch -p`, `git pull`, `npm install`, `npm run dist:win`, und öffnet am
+Ende den Projektordner im Explorer. Es arbeitet in dem Repository, in dem es
+liegt, bricht beim ersten Fehler ab und erklärt den häufigsten — electron-builder entpackt beim Signieren Symlinks, und die darf
 ein normales Windows-Konto nicht anlegen.
 
 Nur den Backstory Creator für sich, ohne die Hülle: `npm run dev:backstory`,
