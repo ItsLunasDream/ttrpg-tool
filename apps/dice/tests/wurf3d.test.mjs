@@ -12,7 +12,7 @@ const {
   gegenueberliegende,
   ordneZiffernZu,
   SEITEN,
-  TISCH
+  tischFuer
 } = entry;
 
 /** Ein Zufallsgeber, der immer dieselbe Folge liefert. */
@@ -114,8 +114,9 @@ test('alle Wuerfel kommen zur Ruhe und bleiben im Bereich', () => {
     // Der Bereich ist auf den Bildausschnitt abgestimmt; ein Wuerfel
     // dahinter waere geworfen, aber nicht zu sehen. Etwas Luft fuer die
     // halbe Kantenlaenge.
+    const tisch = tischFuer(20);
     assert.ok(
-      Math.abs(p.x) < TISCH + 1 && Math.abs(p.z) < TISCH + 1,
+      Math.abs(p.x) < tisch + 1 && Math.abs(p.z) < tisch + 1,
       `${wuerfel.art} liegt ausserhalb des Bildes: ${p.x.toFixed(2)}, ${p.z.toFixed(2)}`
     );
     assert.ok(p.y > -1, `${wuerfel.art} ist durch den Boden gefallen: y=${p.y}`);

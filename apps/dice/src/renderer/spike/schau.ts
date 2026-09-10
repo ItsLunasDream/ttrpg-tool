@@ -18,7 +18,7 @@ import {
 import { ARTEN, SEITEN } from '../../shared/formen';
 import { ordneZiffernZu } from '../../shared/beschriftung';
 import { baueKoerper, gegenueberliegende } from '../wuerfel3d/koerper';
-import { ziffernSchilder } from '../wuerfel3d/ziffern';
+import { ZiffernAtlas, ziffernGeometrie, ziffernMaterial } from '../wuerfel3d/ziffern';
 
 export function schau(breite = 1200, hoehe = 220): string {
   const leinwand = document.createElement('canvas');
@@ -50,7 +50,11 @@ export function schau(breite = 1200, hoehe = 220): string {
     if (koerper.flaechen.length > 0) {
       const gegen = gegenueberliegende(koerper.flaechen);
       const ziffern = ordneZiffernZu(SEITEN[art], gegen);
-      netz.add(ziffernSchilder(koerper.flaechen, ziffern, '#101319', art === 'd20' ? 0.5 : 0.7));
+      const groesse = art === 'd20' ? 0.5 : 0.7;
+      const atlas = new ZiffernAtlas(SEITEN[art], '#101319');
+      netz.add(
+        new Mesh(ziffernGeometrie(koerper.flaechen, ziffern, atlas, groesse), ziffernMaterial(atlas))
+      );
     }
     szene.add(netz);
   });

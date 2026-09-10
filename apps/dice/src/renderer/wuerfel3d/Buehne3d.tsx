@@ -12,17 +12,20 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   AmbientLight,
+  BufferGeometry,
   DirectionalLight,
   Mesh,
+  MeshBasicMaterial,
   PerspectiveCamera,
   Scene,
   WebGLRenderer
 } from 'three';
 import type { Art } from '../../shared/formen';
+import { SEITEN } from '../../shared/formen';
 import { zahlenFarbe, type Einstellungen } from '../../shared/einstellungen';
 import { baueMaterial } from './material';
-import { abgeleseneFlaeche, koerperVorrat, wirf, TISCH, type GeworfenerWuerfel } from './wurf';
-import { ziffernSchilder } from './ziffern';
+import { abgeleseneFlaeche, koerperVorrat, tischFuer, wirf, type GeworfenerWuerfel } from './wurf';
+import { ZiffernAtlas, ziffernGeometrie, ziffernMaterial } from './ziffern';
 
 export interface Einwurf {
   readonly art: Art;
@@ -99,7 +102,21 @@ export function Buehne3d({ einwuerfe, einstellungen, wurfNummer, onFertig }: Pro
 
     const vorrat = koerperVorrat();
     const material = baueMaterial(einstellungen.muster, einstellungen.farbe);
+    // Je Wuerfelart ein Atlas, geteilt ueber alle Wuerfel dieses Wurfs: die
+    // zwanzig Ziffern eines d20 sind fuer alle d20 dieselben.
     const schrift = zahlenFarbe(einstellungen.farbe);
+    const atlanten = new Map<Art, ZiffernAtlas>();
+    const stoffe = new Map<Art, MeshBasicMaterial>();
+    const zifferngeometrien: BufferGeometry[] = [];
+    const atlasFuer = (art: Art) => {
+      let atlas = atlanten.get(art);
+      if (!atlas) {
+        atlas = new ZiffernAtlas(SEITEN[art], schrift);
+        atlanten.set(art, atlas);
+        stoffe.set(art, ziffernMaterial(atlas));
+      }
+      return atlas;
+    };
 
     const geworfen: GeworfenerWuerfel[] = wirf(einwuerfe, vorrat);
 
@@ -130,7 +147,7 @@ export function Buehne3d({ einwuerfe, einstellungen, wurfNummer, onFertig }: Pro
     const mitteX = (minX + maxX) / 2;
     const mitteZ = (minZ + maxZ) / 2;
     const benutzt = Math.max(1.6, (maxX - minX) / 2, (maxZ - minZ) / 2);
-    const bereich = Math.min(benutzt + 1.1, TISCH * 1.55);
+    const bereich = Math.min(benutzt + 1.1, tischFuer(einwuerfe.length) * 1.55);
 
     /*
      * Wie weit die Kamera weg muss, damit dieser Bereich hineinpasst.
@@ -150,9 +167,15 @@ export function Buehne3d({ einwuerfe, einstellungen, wurfNummer, onFertig }: Pro
       const koerper = vorrat(wuerfel.art);
       const netz = new Mesh(koerper.geometrie, material);
       if (wuerfel.ziffern.length > 0) {
-        netz.add(
-          ziffernSchilder(koerper.flaechen, wuerfel.ziffern, schrift, zifferGroesse(wuerfel.art))
+        const atlas = atlasFuer(wuerfel.art);
+        const geometrie = ziffernGeometrie(
+          koerper.flaechen,
+          wuerfel.ziffern,
+          atlas,
+          zifferGroesse(wuerfel.art)
         );
+        zifferngeometrien.push(geometrie);
+        netz.add(new Mesh(geometrie, stoffe.get(wuerfel.art)));
       }
       szene.add(netz);
       return netz;
@@ -260,19 +283,19 @@ export function Buehne3d({ einwuerfe, einstellungen, wurfNummer, onFertig }: Pro
       // bleibt bis zum Schliessen der Anwendung liegen. Die Geometrien der
       // Koerper gehoeren dem Vorrat und werden geteilt; freigegeben wird nur,
       // was diese Szene selbst angelegt hat: die Ziffernschilder.
+      // three.js gibt Puffer nicht von selbst frei, und die Huelle laesst
+      // geoeffnete Werkzeuge im Hintergrund haengen — was hier liegen bleibt,
+      // bleibt bis zum Schliessen der Anwendung liegen. Die Geometrien der
+      // Koerper gehoeren dem Vorrat und werden ueber Wuerfe hinweg geteilt;
+      // freigegeben wird, was diese Szene selbst angelegt hat.
       for (const netz of netze) {
-        netz.traverse((teil) => {
-          if (!(teil instanceof Mesh) || teil === netz) return;
-          const stoffe = Array.isArray(teil.material) ? teil.material : [teil.material];
-          for (const stoff of stoffe) {
-            const karte = (stoff as { map?: { dispose(): void } }).map;
-            karte?.dispose();
-            stoff.dispose();
-          }
-          teil.geometry.dispose();
-        });
         szene.remove(netz);
       }
+      for (const geometrie of zifferngeometrien) geometrie.dispose();
+      for (const stoff of stoffe.values()) stoff.dispose();
+      for (const atlas of atlanten.values()) atlas.freigeben();
+      atlanten.clear();
+      stoffe.clear();
       material.dispose();
       if (material.map) material.map.dispose();
       renderer.dispose();

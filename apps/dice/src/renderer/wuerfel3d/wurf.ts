@@ -45,19 +45,39 @@ const RUHE = 0.05;
 /**
  * Wie lange hoechstens simuliert wird.
  *
- * 900 Schritte sind fuenfzehn simulierte Sekunden. Der Vorversuch hat
- * gezeigt, dass zwanzig Wuerfel nach gut zwei Sekunden liegen und hundert
- * nach dreizehn — die Grenze faengt also nur den Fall ab, dass etwas klemmt.
+ * 600 Schritte sind zehn simulierte Sekunden. Gemessen liegen ein Wuerfel
+ * nach 120 Schritten, zwanzig nach 191 und hundert nach 384; die Grenze
+ * faengt also den Fall ab, dass etwas klemmt — und sie deckelt zugleich die
+ * Rechenzeit, denn simuliert wird im Voraus und der Renderer steht solange.
+ * Mit 900 Schritten dauerte ein ungluecklicher Wurf aus hundert Wuerfeln
+ * siebeneinhalb Sekunden.
+ *
+ * Wird die Grenze erreicht, ohne dass alles liegt, steht der Wurf trotzdem:
+ * die Zahl stimmt, weil sie ohnehin vorher feststeht und die Beschriftung
+ * auf die abgelesene Flaeche gedreht wird. Nur kann ein Wuerfel dann noch
+ * schief stehen.
  */
-const MAX_SCHRITTE = 900;
+const MAX_SCHRITTE = 600;
 
 /**
  * Die Halbbreite des Bereichs, in dem die Wuerfel landen duerfen.
  *
- * Muss zum Bildausschnitt der Kamera passen: mit 7 rollten die Wuerfel bis
- * an den Rand und lagen zur Haelfte ausserhalb des Bildes. Die Kamera in
- * Buehne3d ist auf diesen Wert abgestimmt.
+ * Waechst mit der Anzahl, und das ist keine Feinheit: bei fester Breite von
+ * 4,2 passten hundert Wuerfel nicht nebeneinander. Sie stapelten sich, der
+ * Haufen zitterte, und der Wurf kam ueberhaupt nicht mehr zur Ruhe — bei
+ * fuenfzig dauerte allein das Rechnen 16 Sekunden.
+ *
+ * Die Wurzel, weil die Flaeche quadratisch waechst: doppelt so viele Wuerfel
+ * brauchen die anderthalbfache Kante.
+ *
+ * Die Kamera in Buehne3d richtet sich nach dem Bereich, den ein Wurf
+ * tatsaechlich benutzt, und zieht deshalb von selbst mit.
  */
+export function tischFuer(anzahl: number): number {
+  return Math.max(4.2, Math.sqrt(anzahl) * 1.15);
+}
+
+/** Der kleinste Wurfbereich — fuer die Kamera als obere Schranke. */
 export const TISCH = 4.2;
 
 export interface Lage {
@@ -82,7 +102,7 @@ export interface GeworfenerWuerfel {
  * Anwendung, ohne Tisch. Waende braucht es trotzdem, sonst rollen sie aus dem
  * Bild.
  */
-function baueWelt(): { welt: World; stoff: Material } {
+function baueWelt(tisch: number): { welt: World; stoff: Material } {
   // Dreifache Schwerkraft: bei echter Erdbeschleunigung und Wuerfeln von
   // wenigen Zentimetern wirkt der Fall zaeh wie unter Wasser.
   const welt = new World({ gravity: new Vec3(0, -9.82 * 3, 0) });
@@ -102,10 +122,10 @@ function baueWelt(): { welt: World; stoff: Material } {
 
   // Vier senkrechte Waende, ebenfalls unsichtbar.
   const waende: [Vec3, number][] = [
-    [new Vec3(-TISCH, 0, 0), Math.PI / 2],
-    [new Vec3(TISCH, 0, 0), -Math.PI / 2],
-    [new Vec3(0, 0, -TISCH), 0],
-    [new Vec3(0, 0, TISCH), Math.PI]
+    [new Vec3(-tisch, 0, 0), Math.PI / 2],
+    [new Vec3(tisch, 0, 0), -Math.PI / 2],
+    [new Vec3(0, 0, -tisch), 0],
+    [new Vec3(0, 0, tisch), Math.PI]
   ];
   for (const [ort, winkel] of waende) {
     const wand = new Body({ mass: 0, shape: new Plane(), material: rand });
@@ -300,13 +320,20 @@ export function wirf(
   koerperVon: (art: Art) => Koerper,
   zufall: () => number = Math.random
 ): GeworfenerWuerfel[] {
-  const { welt, stoff } = baueWelt();
+  const tisch = tischFuer(einwuerfe.length);
+  const { welt, stoff } = baueWelt(tisch);
   const koerperListe = einwuerfe.map((e) => koerperVon(e.art));
 
   const leiber = einwuerfe.map((_einwurf, nummer) => {
     const koerper = koerperListe[nummer];
-    const reihe = Math.floor(nummer / 5);
-    const spalte = nummer % 5;
+    // Ueber die Flaeche verteilt statt in fuenf Spalten: bei hundert Wuerfeln
+    // waeren das zwanzig Reihen uebereinander, und der Turm faellt in sich
+    // zusammen statt sich zu verteilen.
+    const jeKante = Math.max(3, Math.ceil(Math.sqrt(einwuerfe.length)));
+    const reihe = Math.floor(nummer / jeKante) % jeKante;
+    const spalte = nummer % jeKante;
+    const stockwerk = Math.floor(nummer / (jeKante * jeKante));
+    const schritt = (tisch * 1.6) / jeKante;
     const leib = new Body({
       mass: 1,
       shape: formVon(koerper),
@@ -315,9 +342,9 @@ export function wirf(
       // fallen haelt sie im Bild, von der Wand abzuprallen streut sie
       // dorthin, wo die Kamera nicht mehr hinsieht.
       position: new Vec3(
-        (spalte - 2) * 1.3 + (zufall() - 0.5) * 0.5,
-        4 + reihe * 1.6,
-        (zufall() - 0.5) * 2
+        (spalte - (jeKante - 1) / 2) * schritt + (zufall() - 0.5) * 0.4,
+        4 + stockwerk * 2.2,
+        (reihe - (jeKante - 1) / 2) * schritt + (zufall() - 0.5) * 0.4
       ),
       velocity: new Vec3((zufall() - 0.5) * 2.2, -3, (zufall() - 0.5) * 2.2),
       angularVelocity: new Vec3(
@@ -331,8 +358,13 @@ export function wirf(
       linearDamping: koerper.istKugel ? 0.45 : 0.06,
       angularDamping: koerper.istKugel ? 0.9 : 0.12,
       allowSleep: true,
-      sleepSpeedLimit: 0.2,
-      sleepTimeLimit: 0.3
+      // Frueher einschlafen als im Vorversuch: ein Haufen aus fuenfzig
+      // Wuerfeln setzt sich langsam, und bei 0.2 weckten sich die Koerper
+      // gegenseitig immer wieder auf, bis die Zeitgrenze kam. 0.4 liegt weit
+      // unter der Geschwindigkeit eines rollenden Wuerfels — der faellt mit
+      // dem Zehnfachen.
+      sleepSpeedLimit: 0.4,
+      sleepTimeLimit: 0.2
     });
     welt.addBody(leib);
     return leib;

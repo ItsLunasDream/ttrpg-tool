@@ -2,101 +2,150 @@
  * Die Ziffern auf den Flaechen.
  *
  * Jede Flaeche bekommt ihre Zahl als kleines Schild, das flach auf ihr
- * aufliegt. Der naheliegende Weg waere eine einzige Textur ueber den ganzen
- * Koerper, aber dafuer braeuchte jede Geometrie eine passende Abwicklung —
- * die three.js fuer den Trapezoeder nicht mitbringt und die von Hand zu legen
- * viel Arbeit fuer wenig Gewinn waere.
+ * aufliegt. Eine einzige Textur ueber den ganzen Koerper waere der
+ * naheliegende Weg, braeuchte aber je Geometrie eine passende Abwicklung —
+ * die three.js fuer den Trapezoeder nicht mitbringt.
  *
- * Stattdessen: je Flaeche eine kleine Ebene, an ihre Mitte gesetzt und in
- * ihre Richtung gedreht, mit der Ziffer als Textur. Das kostet ein Objekt je
- * Flaeche, also bis zu zwanzig je Wuerfel, aber sie hängen als Kinder am
- * Koerper und bewegen sich ohne eigene Rechnung mit.
+ * Stattdessen liegen die Ziffern als Kacheln in einem Atlas, und die Schilder
+ * eines Wuerfels stecken in einer Geometrie. So kostet ein Wuerfel einen
+ * Zeichenaufruf fuer den Koerper und einen fuer seine Ziffern, gleich wie
+ * viele Flaechen er hat.
  */
 import {
+  BufferAttribute,
+  BufferGeometry,
   CanvasTexture,
   DoubleSide,
-  Group,
   Matrix4,
-  Mesh,
   MeshBasicMaterial,
-  PlaneGeometry,
   Quaternion,
   Vector3
 } from 'three';
 import type { Flaeche } from './koerper';
 
-/** Kantenlaenge der Ziffernbilder. Genug fuer scharfe Kanten bei 72 Punkten. */
-const BILD = 128;
-
 /**
- * Ein Ziffernbild.
+ * Alle Ziffern eines Wuerfels in einem Bild.
  *
- * Die 6 und die 9 bekommen einen Strich darunter — auf einem Wuerfel sind sie
- * sonst nicht auseinanderzuhalten, und genau dafuer haben echte Wuerfel ihn
- * auch.
+ * Der erste Anlauf gab jeder Flaeche ein eigenes Schild mit eigener Textur.
+ * Zwanzig Wuerfel mit je zwanzig Flaechen waren dann vierhundert Objekte und
+ * vierhundert Zeichenaufrufe je Bild — der Wurf kam nicht mehr zum Ende.
+ *
+ * Jetzt liegen die Ziffern als Kacheln in einer Textur, und die Schilder
+ * eines Wuerfels stecken in einer einzigen Geometrie: ein Zeichenaufruf je
+ * Wuerfel statt einer je Flaeche.
  */
-export function zifferTextur(ziffer: number, farbe: string): CanvasTexture {
-  const leinwand = document.createElement('canvas');
-  leinwand.width = BILD;
-  leinwand.height = BILD;
-  const stift = leinwand.getContext('2d');
-  if (!stift) throw new Error('kein 2D-Kontext fuer die Ziffer');
+export class ZiffernAtlas {
+  readonly textur: CanvasTexture;
+  /** Wie viele Kacheln je Zeile und Spalte. */
+  private readonly raster: number;
 
-  stift.clearRect(0, 0, BILD, BILD);
-  stift.fillStyle = farbe;
-  stift.textAlign = 'center';
-  stift.textBaseline = 'middle';
-  stift.font = `700 ${ziffer >= 10 ? 62 : 76}px system-ui, sans-serif`;
-  stift.fillText(String(ziffer), BILD / 2, BILD / 2);
+  constructor(seiten: number, farbe: string) {
+    this.raster = Math.ceil(Math.sqrt(seiten));
+    const kante = this.raster * KACHEL;
 
-  if (ziffer === 6 || ziffer === 9) {
-    const breite = 34;
-    stift.fillRect((BILD - breite) / 2, BILD / 2 + 34, breite, 6);
+    const leinwand = document.createElement('canvas');
+    leinwand.width = kante;
+    leinwand.height = kante;
+    const stift = leinwand.getContext('2d');
+    if (!stift) throw new Error('kein 2D-Kontext fuer die Ziffern');
+
+    stift.clearRect(0, 0, kante, kante);
+    stift.fillStyle = farbe;
+    stift.textAlign = 'center';
+    stift.textBaseline = 'middle';
+
+    for (let ziffer = 1; ziffer <= seiten; ziffer++) {
+      const feld = ziffer - 1;
+      const x = (feld % this.raster) * KACHEL;
+      const y = Math.floor(feld / this.raster) * KACHEL;
+      stift.font = `700 ${ziffer >= 10 ? KACHEL * 0.5 : KACHEL * 0.62}px system-ui, sans-serif`;
+      stift.fillText(String(ziffer), x + KACHEL / 2, y + KACHEL / 2);
+
+      // Sechs und Neun bekommen einen Strich, sonst sind sie auf einem
+      // Wuerfel nicht auseinanderzuhalten — echte Wuerfel haben ihn deshalb
+      // auch.
+      if (ziffer === 6 || ziffer === 9) {
+        const breite = KACHEL * 0.28;
+        stift.fillRect(x + (KACHEL - breite) / 2, y + KACHEL * 0.76, breite, KACHEL * 0.05);
+      }
+    }
+
+    this.textur = new CanvasTexture(leinwand);
+    this.textur.needsUpdate = true;
   }
 
-  const textur = new CanvasTexture(leinwand);
-  textur.needsUpdate = true;
-  return textur;
+  /** Die Ecken einer Kachel in Texturkoordinaten: links, unten, rechts, oben. */
+  kachel(ziffer: number): [number, number, number, number] {
+    const feld = ziffer - 1;
+    const spalte = feld % this.raster;
+    // Texturkoordinaten zaehlen von unten, das Bild von oben.
+    const zeile = this.raster - 1 - Math.floor(feld / this.raster);
+    const schritt = 1 / this.raster;
+    return [spalte * schritt, zeile * schritt, (spalte + 1) * schritt, (zeile + 1) * schritt];
+  }
+
+  freigeben(): void {
+    this.textur.dispose();
+  }
 }
 
+/** Kantenlaenge einer Ziffernkachel in Bildpunkten. */
+const KACHEL = 128;
+
 /**
- * Die Schilder fuer alle Flaechen eines Koerpers.
+ * Die Ziffern eines Wuerfels als eine einzige Geometrie.
  *
- * `ziffern[i]` gehoert zu `flaechen[i]`. Die Zuordnung kommt von aussen, weil
- * sie sich nach dem Wurf aendert: die Flaeche, die oben liegt, bekommt die
- * gewuerfelte Zahl.
+ * Je Flaeche zwei Dreiecke, an ihre Mitte gesetzt und in ihre Richtung
+ * gedreht. Die Drehung wird beim Bauen auf die Eckpunkte gerechnet, damit
+ * hinterher nichts mehr je Flaeche zu tun ist.
  */
-export function ziffernSchilder(
+export function ziffernGeometrie(
   flaechen: readonly Flaeche[],
   ziffern: readonly number[],
-  farbe: string,
+  atlas: ZiffernAtlas,
   groesse: number
-): Group {
-  const gruppe = new Group();
-  const form = new PlaneGeometry(groesse, groesse);
+): BufferGeometry {
+  const punkte: number[] = [];
+  const uvs: number[] = [];
+  const halb = groesse / 2;
 
   for (const [nummer, flaeche] of flaechen.entries()) {
-    const stoff = new MeshBasicMaterial({
-      map: zifferTextur(ziffern[nummer], farbe),
-      transparent: true,
-      side: DoubleSide,
-      // Ohne das verschwindet die Ziffer je nach Blickwinkel im Koerper.
-      depthWrite: false,
-      polygonOffset: true,
-      polygonOffsetFactor: -2
-    });
-    const schild = new Mesh(form, stoff);
-
-    // Die Ebene zeigt von Haus aus nach +z; sie wird in die Richtung der
-    // Flaeche gedreht und dabei aufrecht gestellt.
-    schild.quaternion.copy(ausrichtung(flaeche.normale.clone().normalize()));
+    const normale = flaeche.normale.clone().normalize();
+    const drehung = ausrichtung(normale);
     // Ein Hauch ueber der Flaeche, sonst streiten Ziffer und Koerper um
     // dieselbe Tiefe und die Ziffer flackert.
-    schild.position.copy(flaeche.mitte).addScaledVector(flaeche.normale, 0.012);
-    gruppe.add(schild);
+    const mitte = flaeche.mitte.clone().addScaledVector(normale, 0.012);
+
+    const ecke = (x: number, y: number) =>
+      new Vector3(x, y, 0).applyQuaternion(drehung).add(mitte);
+    const a = ecke(-halb, -halb);
+    const b = ecke(halb, -halb);
+    const c = ecke(halb, halb);
+    const d = ecke(-halb, halb);
+
+    for (const p of [a, b, c, a, c, d]) punkte.push(p.x, p.y, p.z);
+
+    const [u0, v0, u1, v1] = atlas.kachel(ziffern[nummer]);
+    uvs.push(u0, v0, u1, v0, u1, v1, u0, v0, u1, v1, u0, v1);
   }
 
-  return gruppe;
+  const geometrie = new BufferGeometry();
+  geometrie.setAttribute('position', new BufferAttribute(new Float32Array(punkte), 3));
+  geometrie.setAttribute('uv', new BufferAttribute(new Float32Array(uvs), 2));
+  return geometrie;
+}
+
+/** Das Material, mit dem die Zifferngeometrie gezeichnet wird. */
+export function ziffernMaterial(atlas: ZiffernAtlas): MeshBasicMaterial {
+  return new MeshBasicMaterial({
+    map: atlas.textur,
+    transparent: true,
+    side: DoubleSide,
+    // Ohne das verschwindet die Ziffer je nach Blickwinkel im Koerper.
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -2
+  });
 }
 
 /**

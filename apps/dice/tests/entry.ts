@@ -30,5 +30,6 @@ export {
   setzeErgebnisAufFlaeche,
   pruefeUmnummerierung,
   SCHRITT,
-  TISCH
+  TISCH,
+  tischFuer
 } from '../src/renderer/wuerfel3d/wurf';
