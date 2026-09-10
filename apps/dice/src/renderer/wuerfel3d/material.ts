@@ -52,20 +52,50 @@ function marmorTextur(farbe: string): CanvasTexture {
   return textur;
 }
 
-/** Sterne fuer den Sternenhimmel, auf dunklem Grund. */
+/**
+ * Sterne fuer den Sternenhimmel, auf dunklem Grund.
+ *
+ * Der Grund ist dunkel und die gewaehlte Farbe liegt nur als Schimmer darin.
+ * Ein erster Anlauf ging von der Farbe aus und wurde erst am Rand dunkel; auf
+ * den Koerpern blieb davon ein flaechiges Hellblau ohne erkennbaren Himmel,
+ * weil jede Flaeche nur einen kleinen Ausschnitt der Textur zeigt.
+ */
 function sternenTextur(farbe: string): CanvasTexture {
   const { flaeche, stift } = leinwand();
-  const verlauf = stift.createRadialGradient(BILD / 2, BILD * 0.42, 10, BILD / 2, BILD / 2, BILD * 0.7);
-  verlauf.addColorStop(0, farbe);
-  verlauf.addColorStop(1, '#05060a');
-  stift.fillStyle = verlauf;
+  stift.fillStyle = '#05060a';
   stift.fillRect(0, 0, BILD, BILD);
 
-  stift.fillStyle = 'rgba(255,255,255,0.92)';
-  const sterne: [number, number, number][] = [
-    [60, 70, 3.2], [150, 55, 2.2], [200, 120, 2.8], [90, 150, 2],
-    [130, 190, 2.6], [45, 200, 1.8], [215, 205, 2.2], [175, 90, 1.6]
-  ];
+  // Ein paar farbige Schwaden, damit die gewaehlte Farbe sichtbar bleibt.
+  for (const [x, y, r] of [
+    [70, 80, 90],
+    [190, 170, 110],
+    [40, 210, 70]
+  ] as [number, number, number][]) {
+    const schwade = stift.createRadialGradient(x, y, 2, x, y, r);
+    schwade.addColorStop(0, farbe);
+    schwade.addColorStop(1, 'transparent');
+    stift.globalAlpha = 0.5;
+    stift.fillStyle = schwade;
+    stift.fillRect(0, 0, BILD, BILD);
+  }
+  stift.globalAlpha = 1;
+
+  // Mehr und kleinere Sterne als zuerst: eine Wuerfelflaeche zeigt nur einen
+  // Ausschnitt, und bei acht Sternen auf der ganzen Textur traf sie oft
+  // keinen einzigen.
+  stift.fillStyle = '#ffffff';
+  const sterne: [number, number, number][] = [];
+  // Feste Stellen aus einer einfachen Folge statt Zufall: die Textur wird bei
+  // jedem Farbwechsel neu gemalt, und ein wanderndes Sternbild waere unruhig.
+  let zahl = 7;
+  for (let i = 0; i < 60; i++) {
+    zahl = (zahl * 1103515245 + 12345) % 2147483648;
+    const x = (zahl / 2147483648) * BILD;
+    zahl = (zahl * 1103515245 + 12345) % 2147483648;
+    const y = (zahl / 2147483648) * BILD;
+    zahl = (zahl * 1103515245 + 12345) % 2147483648;
+    sterne.push([x, y, 0.8 + (zahl / 2147483648) * 1.8]);
+  }
   for (const [x, y, r] of sterne) {
     stift.beginPath();
     stift.arc(x, y, r, 0, Math.PI * 2);
@@ -90,10 +120,17 @@ export function baueMaterial(muster: Muster, farbe: string): MeshStandardMateria
   if (muster === 'metall') {
     return new MeshStandardMaterial({
       color: grund,
-      // Metall lebt vom Glanzlicht, nicht von einer Zeichnung: hoher
-      // Metallanteil, wenig Rauheit.
-      metalness: 0.85,
-      roughness: 0.22,
+      /*
+       * Halber Metallanteil, nicht voller.
+       *
+       * Echtes Metall zeigt fast nur, was es spiegelt. Die Szene hat aber
+       * keine Umgebung zum Spiegeln, nur zwei Lichter — mit 0.85 wurde selbst
+       * ein helles Blau zu dunklem Grau, und von der gewaehlten Farbe blieb
+       * nichts uebrig. Bei 0.45 bleibt die Farbe stehen und der Glanz kommt
+       * vom Licht.
+       */
+      metalness: 0.45,
+      roughness: 0.18,
       flatShading: true
     });
   }
@@ -108,13 +145,16 @@ export function baueMaterial(muster: Muster, farbe: string): MeshStandardMateria
   }
 
   if (muster === 'sternenhimmel') {
+    const himmel = sternenTextur(farbe);
     return new MeshStandardMaterial({
-      map: sternenTextur(farbe),
-      metalness: 0.2,
-      roughness: 0.5,
-      // Die Sterne sollen leuchten und nicht vom Licht abhaengen.
-      emissiveMap: sternenTextur(farbe),
-      emissive: new Color('#222634'),
+      map: himmel,
+      metalness: 0.15,
+      roughness: 0.6,
+      // Dieselbe Textur als Eigenleuchten: die Sterne sollen auch dort hell
+      // sein, wo kein Licht hinfaellt. Ein eigenes zweites Bild dafuer waere
+      // dasselbe Bild ein zweites Mal.
+      emissiveMap: himmel,
+      emissive: new Color('#5b6ea8'),
       flatShading: true
     });
   }

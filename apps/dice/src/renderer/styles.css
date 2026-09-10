@@ -648,13 +648,30 @@ input[type='number'] {
   filter: saturate(0.6) brightness(0.78);
 }
 
+/*
+ * Der Schleier laeuft nach aussen aus, statt an einer Kante zu enden.
+ *
+ * Vorher war er ein Rechteck mit abgerundeten Ecken und hartem Rand. Ueber
+ * einem flachen Wuerfel fiel das kaum auf; ueber den Koerpern lag ein
+ * sichtbares violettes Viereck im Bild, das mit dem Wuerfel darunter nichts
+ * zu tun hatte.
+ *
+ * Die Maske schneidet zugleich die fallenden Striche weich ab. Frueher tat
+ * das ein `overflow: hidden`, und die Striche endeten mitten in der Luft an
+ * derselben Kante.
+ */
 .streifen {
   position: absolute;
   inset: 0;
-  overflow: hidden;
-  border-radius: 10px;
   pointer-events: none;
-  background: linear-gradient(to bottom, #6d28d955 0%, transparent 65%);
+  background: radial-gradient(
+    ellipse 68% 58% at 50% 28%,
+    #6d28d966 0%,
+    #6d28d92e 46%,
+    transparent 74%
+  );
+  -webkit-mask-image: radial-gradient(ellipse 62% 62% at 50% 46%, #000 52%, transparent 100%);
+  mask-image: radial-gradient(ellipse 62% 62% at 50% 46%, #000 52%, transparent 100%);
 }
 
 .streifen__linie {

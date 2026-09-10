@@ -99,6 +99,12 @@ export function Buehne3d({ einwuerfe, einstellungen, wurfNummer, onFertig }: Pro
     const licht = new DirectionalLight(0xffffff, 1.15);
     licht.position.set(5, 12, 8);
     szene.add(licht);
+    // Ein zweites, schwaecheres Licht von der anderen Seite. Ohne es bleibt
+    // die abgewandte Haelfte jedes Koerpers flach, und beim Metall — das vom
+    // Glanz lebt — sah man dort ueberhaupt nichts.
+    const gegenlicht = new DirectionalLight(0xffffff, 0.5);
+    gegenlicht.position.set(-6, 5, -7);
+    szene.add(gegenlicht);
 
     const vorrat = koerperVorrat();
     const material = baueMaterial(einstellungen.muster, einstellungen.farbe);
