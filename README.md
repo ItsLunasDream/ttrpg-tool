@@ -62,13 +62,18 @@ npm start               # TTRPG-Tools, Produktionsbuild starten
 npm test                # Tests der Kernlogik, über alle Workspaces
 npm run smoke           # Rauchtest der gebauten Hülle
 npm run typecheck
-npm run dist:suite:win  # Windows-Installer der ganzen Sammlung nach apps/shell/release/
+npm run dist:win        # Windows-Installer der ganzen Sammlung nach apps/shell/release/
 ```
 
 Nur den Backstory Creator für sich, ohne die Hülle: `npm run dev:backstory`,
 `npm run start:backstory`, `npm run smoke:backstory`, `npm run roundtrip`
-(prüft, ob Speichern am Markdown etwas verändert), `npm run dist:win`
+(prüft, ob Speichern am Markdown etwas verändert), `npm run dist:backstory:win`
 (Windows-Installer und portable exe nach `apps/backstory/release/`).
+
+Die Paketskripte ohne Zusatz meinen immer die Sammlung, so wie `npm run dev`
+und `npm start` auch: `npm run dist:win` baut TTRPG-Tools, nicht den
+Backstory Creator allein. Das war einmal andersherum, und wer die Sammlung
+paketieren wollte, bekam wortlos die einzelne Anwendung.
 
 ### Workspace-Aufbau
 
@@ -90,8 +95,8 @@ packages/motion/   Geteiltes Paket: Zeiten, Kurven und Grundanimationen der Ober
 `npm run smoke` betreffen die Hülle (`apps/shell`) — sie ist der
 Haupteinstieg, in ihr laufen die Werkzeuge eingebettet. Für den Backstory
 Creator für sich gibt es `npm run dev:backstory`, `npm run start:backstory`,
-`npm run smoke:backstory`, `npm run roundtrip`, `npm run dist:win` und
-`npm run dist:linux`; für den Kartenmacher `npm run dev:mapmaker`, für den
+`npm run smoke:backstory`, `npm run roundtrip`, `npm run dist:backstory:win`
+und `npm run dist:backstory:linux`; für den Kartenmacher `npm run dev:mapmaker`, für den
 Initiative Tracker `npm run dev:initiative`, für den Würfel `npm run
 dev:dice`. `npm run build`, `npm run typecheck` und `npm test` laufen dagegen
 über alle Workspaces, Apps und Pakete eingeschlossen. Ein Befehl gezielt für einen
@@ -264,7 +269,7 @@ fehlt. `appDistDir` in `apps/shell/src/main/apps.ts` kennt beide Orte, den im
 Workspace und den im Paket.
 
 Ausgeliefert wird die Sammlung. Die einzelnen Anwendungen bleiben baubar
-(`npm run dist:win -w apps/backstory`) und werden weiter geprüft, sind aber
+(`npm run dist:backstory:win`) und werden weiter geprüft, sind aber
 kein Auslieferungsgegenstand mehr.
 
 ## Bedienung
@@ -471,11 +476,11 @@ erst im fertigen Installationspaket, sieht er das nicht. Dafuer gibt es
 prueft, dass sie ohne fehlende Module hochkommt.
 
 ```bash
-npm run dist:linux:dir
+npm run dist:backstory:linux:dir
 xvfb-run -a npm run verify:package -w apps/backstory -- "$PWD/apps/backstory/release/linux-unpacked/backstory-creator"
 ```
 
-Unter Windows nach `npm run dist:win`:
+Unter Windows nach `npm run dist:backstory:win`:
 
 ```bash
 npm run verify:package -w apps/backstory -- "apps\backstory\release\win-unpacked\Backstory Creator.exe"

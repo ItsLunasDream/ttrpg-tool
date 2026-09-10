@@ -10,7 +10,19 @@
     <title>TTRPG-Tools</title>
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      Der Hinweis steht da, bis React mountet, und ist danach weg. Wer die
+      Adresse des Dev-Servers im Browser oeffnet, sah sonst eine leere weisse
+      Seite ohne jeden Anhaltspunkt: die Oberflaeche braucht die Bruecke aus
+      dem Preload, die es nur im Fenster der Anwendung gibt.
+    -->
+    <div id="root">
+      <p style="font: 14px system-ui; color: #565f89; padding: 24px">
+        Diese Seite gehoert zum Fenster der Anwendung. Im Browser fehlt ihr die
+        Verbindung zum Hauptprozess — bitte das Fenster benutzen, das
+        <code>npm run dev</code> selbst oeffnet.
+      </p>
+    </div>
     <script type="module" src="./main.tsx"></script>
   </body>
 </html>
