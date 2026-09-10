@@ -12,3 +12,10 @@ createRoot(wurzel).render(
     <App />
   </StrictMode>
 );
+
+
+// Der Vorversuch unter spike/spike3d.ts wird bewusst NICHT eingebunden.
+// Waehrend der Messung stand hier ein Import, und das Buendel wuchs von
+// 157 kB auf 708 kB — das ist der Preis von three.js und cannon-es, und den
+// zahlt die Anwendung erst, wenn die 3D-Darstellung wirklich da ist. Die
+// Datei bleibt liegen, ihre Typen werden weiter geprueft.
