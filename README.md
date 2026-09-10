@@ -199,6 +199,57 @@ zusammengeschnurrt, und ein Blick auf den Tisch trifft dann nichts.
 Der Verlauf hält die letzten 40 Würfe **nur für diese Sitzung** und wird nicht
 geschrieben — ein Wurf ist ein Ereignis am Tisch, kein Dokument.
 
+#### Würfel als Körper (3D)
+
+Ein Schalter im Aussehen-Bereich lässt die Würfel als Körper fallen statt als
+flache Umrisse zu drehen. Aus ist der Standard: die flache Darstellung läuft
+überall, die andere braucht Grafikbeschleunigung. Fehlt die, bleibt es
+automatisch bei der flachen — Chromium hat den Rückfall auf Software-WebGL
+bereits als überholt gemeldet, ganz ohne Grafikkarte kann also nichts kommen.
+
+**Die Physik bestimmt nicht das Ergebnis.** Gewürfelt wird weiter mit
+`wuerfle()`, einer reinen Funktion mit eigenem Zufallsgeber. Die Simulation
+lässt die Körper fallen; danach wird abgelesen, welche Fläche oben liegt, und
+die Beschriftung so umnummeriert, dass dort das Ergebnis steht. Die Physik
+entscheiden zu lassen, was gewürfelt wurde, machte die Verteilung von einer
+Simulation abhängig, deren Fairness niemand geprüft hat.
+
+Umnummeriert wird paarweise, mit den gegenüberliegenden Flächen zusammen. Ein
+einfacher Tausch zweier Ziffern brächte das Ergebnis auch nach oben, zerrisse
+aber die Regel, dass sich gegenüberliegende Flächen zur Seitenzahl plus eins
+ergänzen — der Würfel sähe bei genauem Hinsehen falsch aus, ohne dass die Zahl
+falsch wäre.
+
+**d100 und der eigene Würfel sind unbeschriftete Kugeln.** Für 37 Seiten gibt
+es keinen Körper, für 100 auch nicht. Eine Kugel sagt ehrlich, dass hier
+nichts abgelesen wird, und passt zur flachen Darstellung, wo beide ein Kreis
+sind. Der d10 ist ein pentagonaler Trapezoeder; three.js bringt ihn nicht mit,
+also wird er aus Punkten gebaut. Die Höhe seiner Spitzen ist berechnet und
+nicht gewählt: nur bei einem bestimmten Verhältnis liegen die vier Punkte
+einer Drachenfläche in einer Ebene.
+
+**Der Boden ist unsichtbar.** Die Würfel fallen vor den Hintergrund, ohne
+Tisch. Unsichtbare Wände halten sie im Bild; der Bereich wächst mit der Wurzel
+der Anzahl, sonst stapeln sich hundert Würfel und der Haufen kommt nicht zur
+Ruhe.
+
+Gemessen in der Hülle, an der gebauten Anwendung (ohne Grafikkarte, über
+Software-WebGL — mit Grafikkarte zeichnet es schneller, die Physik läuft
+ohnehin auf der CPU):
+
+| Würfel | Schritte bis alles liegt | Rechenzeit |
+| ---: | ---: | ---: |
+| 1 | 77 | 20 ms |
+| 20 | 139 | 399 ms |
+| 50 | 248 | 970 ms |
+| 100 | 211 | 1635 ms |
+
+Die Anzeige selbst ist gedeckelt: eine lange Bahn wird gerafft, damit ein Wurf
+nie länger als gut zwei Sekunden dauert. In Echtzeit abgespielt lief ein Wurf
+aus zwölf Würfeln über neun Sekunden.
+
+Das Bündel wächst durch three.js und cannon-es von 157 auf 724 kB.
+
 Gemessen: 100 Würfel gleichzeitig laufen mit p50 16,7 ms, also mit vollen 60
 Bildern je Sekunde (unter Xvfb ohne GPU).
 
