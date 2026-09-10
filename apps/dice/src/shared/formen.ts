@@ -105,39 +105,45 @@ export const FORMEN: Record<Art, Form> = {
   },
 
   /**
-   * d8 — Oktaeder. Die Raute mit waagerechter Mittelkante; darueber und
-   * darunter je zwei Flaechen, getrennt durch die senkrechte Vorderkante.
+   * d8 — Oktaeder, nach dem Vorbild aus den Wuerfelicons.
+   *
+   * Ein hochkantes Sechseck mit senkrechten Flanken, nicht die Raute der
+   * ersten Fassung: die war vom d10 nur durch ihre Breite zu unterscheiden
+   * und bei kleiner Darstellung gar nicht mehr.
+   *
+   * Innen liegt die vordere Flaeche als grosses Dreieck von der oberen Spitze
+   * bis zur waagerechten Grundlinie; darunter bleibt das Stueck zur unteren
+   * Spitze.
    */
   d8: {
-    umriss: 'M50,3 L90,50 L50,97 L10,50 Z',
-    facetten: [linie(10, 50, 90, 50), linie(50, 3, 50, 97)],
-    zahlY: 44,
-    zahlGroesse: 24
+    umriss: 'M50,6 L88,34 L88,68 L50,94 L12,68 L12,34 Z',
+    facetten: [linie(12, 68, 88, 68), linie(50, 6, 12, 68), linie(50, 6, 88, 68)],
+    zahlY: 58,
+    zahlGroesse: 26
   },
 
   /**
-   * d10 — Trapezoeder.
+   * d10 — Trapezoeder, nach demselben Vorbild.
    *
-   * Die Kante um die Mitte laeuft im Zickzack, und genau daran erkennt man
-   * ihn: ohne sie waere er nur eine etwas laengere Raute und vom d8 kaum zu
-   * unterscheiden.
+   * Ebenfalls sechseckig mit senkrechten Flanken, aber breiter als hoch —
+   * der d8 ist hochkant. Innen die Drachenflaeche, die den Trapezoeder
+   * ausmacht.
+   *
+   * Der Unterschied zum d8 haengt damit an der Proportion und an der
+   * Innenzeichnung. Bei sehr kleiner Darstellung verschwinden die Facetten,
+   * dann traegt allein hochkant gegen breit.
    */
   d10: {
-    // Schmaler und laenger als der d8, und mit einer tiefen Zickzack-Kante:
-    // die erste Fassung war nur eine etwas laengere Raute und daneben nicht
-    // auseinanderzuhalten. Die Silhouette allein muss den Unterschied tragen,
-    // die Facetten sind bei 52 Punkten zu fein dafuer.
-    umriss: 'M50,2 L82,34 L50,98 L18,34 Z',
+    umriss: 'M50,14 L90,42 L90,58 L50,90 L10,58 L10,42 Z',
     facetten: [
-      'M18,34 L34,50 L50,34 L66,50 L82,34',
-      linie(50, 2, 50, 34),
-      linie(34, 50, 34, 62),
-      linie(66, 50, 66, 62),
-      linie(34, 62, 50, 98),
-      linie(66, 62, 50, 98)
+      linie(50, 14, 32, 72),
+      linie(50, 14, 68, 72),
+      linie(32, 72, 68, 72),
+      linie(10, 58, 32, 72),
+      linie(90, 58, 68, 72)
     ],
-    zahlY: 38,
-    zahlGroesse: 22
+    zahlY: 54,
+    zahlGroesse: 24
   },
 
   /**

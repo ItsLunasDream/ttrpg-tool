@@ -2,7 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const { setzeAnzahl, aendereAnzahl, anzahlGesamt, alsAusdruck, wuerfle, MAX_PRO_ART } = entry;
+const {
+  setzeAnzahl,
+  aendereAnzahl,
+  anzahlGesamt,
+  alsAusdruck,
+  wuerfle,
+  MAX_PRO_ART,
+  MAX_MODIFIKATOR,
+  begrenzeModifikator
+} = entry;
 
 /** Liefert einen rng, der auf einem N-seitigen Wuerfel genau `augen` ergibt. */
 function ergibt(seiten, augen) {
@@ -131,4 +140,21 @@ test('nur der Modifikator ohne Wuerfel ergibt genau ihn', () => {
   const wurf = wuerfle({}, 6, 5, () => 0.5);
   assert.equal(wurf.summe, 5);
   assert.equal(wurf.wuerfe.length, 0);
+});
+
+// --- Modifikator -----------------------------------------------------------
+
+test('der Modifikator wird begrenzt', () => {
+  // Ohne Grenze liess sich „999999999" eintippen. Die Zahl stand dann im
+  // Ausdruck und in der Summe und machte jede Wuerfelzahl daneben unlesbar.
+  assert.equal(begrenzeModifikator(999999999), MAX_MODIFIKATOR);
+  assert.equal(begrenzeModifikator(-999999999), -MAX_MODIFIKATOR);
+  assert.equal(begrenzeModifikator(MAX_MODIFIKATOR), MAX_MODIFIKATOR);
+});
+
+test('der Modifikator nimmt nur ganze Zahlen', () => {
+  assert.equal(begrenzeModifikator(3.9), 3);
+  assert.equal(begrenzeModifikator(-3.9), -3);
+  assert.equal(begrenzeModifikator(Number.NaN), 0);
+  assert.equal(begrenzeModifikator(Number.POSITIVE_INFINITY), 0);
 });

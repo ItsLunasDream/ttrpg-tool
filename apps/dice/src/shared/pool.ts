@@ -21,6 +21,21 @@ export type Auswahl = Partial<Record<Art, number>>;
 /** Hoechstzahl je Art. Ohne Grenze liesse sich das Feld beliebig fuellen. */
 export const MAX_PRO_ART = 100;
 
+/**
+ * Die Grenze des Modifikators.
+ *
+ * Zuerst gab es keine: getippt wurde „999999999", und die Zahl stand so im
+ * Ausdruck und in der Summe, wo sie jede Wuerfelzahl unlesbar machte. Vier
+ * Stellen sind weit jenseits dessen, was am Tisch vorkommt.
+ */
+export const MAX_MODIFIKATOR = 9999;
+
+/** Schneidet einen getippten Modifikator auf das Erlaubte zurecht. */
+export function begrenzeModifikator(wert: number): number {
+  if (!Number.isFinite(wert)) return 0;
+  return Math.max(-MAX_MODIFIKATOR, Math.min(MAX_MODIFIKATOR, Math.trunc(wert)));
+}
+
 export interface Einzelwurf {
   readonly art: Art;
   readonly seiten: number;

@@ -38,6 +38,32 @@ app.whenReady().then(async () => {
     return;
   }
   const js = (a) => sicht.webContents.executeJavaScript(a);
+
+  /**
+   * Echte Tastenanschlaege statt gesetzter Werte.
+   *
+   * Der Unterschied ist nicht theoretisch: ein Zahlenfeld nimmt ein getipptes
+   * Minus nur an, solange es leer ist, und `el.value = '-'` verwirft es
+   * sofort. Ein Fehler beim Modifikator war deshalb mit gesetzten Werten
+   * ueberhaupt nicht zu sehen — und ein anderer, den es gar nicht gab,
+   * schien vorhanden.
+   */
+  const tippe = async (text) => {
+    for (const zeichen of text) {
+      sicht.webContents.sendInputEvent({ type: 'keyDown', keyCode: zeichen });
+      sicht.webContents.sendInputEvent({ type: 'char', keyCode: zeichen });
+      sicht.webContents.sendInputEvent({ type: 'keyUp', keyCode: zeichen });
+      await warte(45);
+    }
+  };
+  const leereFeld = async () => {
+    for (let i = 0; i < 12; i++) {
+      sicht.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Backspace' });
+      sicht.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Backspace' });
+      await warte(25);
+    }
+  };
+
   const konsole = [];
   sicht.webContents.on('console-message', (_e, l, t) => {
     if (l >= 2) konsole.push(t.slice(0, 160));
@@ -119,6 +145,37 @@ app.whenReady().then(async () => {
   await warte(400);
   const ausdruck = await js("document.querySelector('.buehne__ausdruck').textContent");
   pruefe(ausdruck === '3d20 - 2d4 + 5', `der Ausdruck stimmt (${ausdruck})`);
+
+  // --- Eintippen ----------------------------------------------------------
+  // Der Nutzer hat ausdruecklich verlangt, die Anzahl eintippen zu koennen,
+  // „eine 3 oder aber auch eine -2". Beim Modifikator ging genau das nicht:
+  // im Feld stand immer eine Zahl, nie nichts, und ein Zahlenfeld haelt ein
+  // getipptes Minus nur fest, solange es leer ist. Aus „-" und „5" wurde die
+  // Anzeige „05", also +5, und ueber die Pfeile herunterzuklicken war der
+  // einzige Weg zu einem Abzug.
+  await js("document.querySelector('.feld input').focus(); document.querySelector('.feld input').select(); true");
+  await leereFeld();
+  await tippe('-7');
+  await warte(200);
+  const mod = await js("document.querySelector('.feld input').value");
+  pruefe(mod === '-7', `ein negativer Modifikator laesst sich eintippen (${JSON.stringify(mod)})`);
+
+  // Und er ist begrenzt: ohne Grenze stand „999999999" im Ausdruck und in der
+  // Summe, wo die Zahl jede Wuerfelzahl daneben unlesbar machte.
+  await js("document.querySelector('.feld input').focus(); document.querySelector('.feld input').select(); true");
+  await leereFeld();
+  await tippe('999999999');
+  await warte(200);
+  const gross = await js("document.querySelector('.feld input').value");
+  pruefe(gross === '9999', `ein riesiger Modifikator wird gekappt (${JSON.stringify(gross)})`);
+
+  // Zurueck auf den Wert, den die folgenden Pruefungen erwarten.
+  await js("document.querySelector('.feld input').focus(); document.querySelector('.feld input').select(); true");
+  await leereFeld();
+  await tippe('5');
+  await warte(200);
+  const zurueck = await js("document.querySelector('.buehne__ausdruck').textContent");
+  pruefe(zurueck === '3d20 - 2d4 + 5', `der Ausdruck steht wieder (${zurueck})`);
 
   await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
   await warte(1400);

@@ -12,6 +12,8 @@ import {
   aendereAnzahl,
   alsAusdruck,
   anzahlGesamt,
+  begrenzeModifikator,
+  MAX_MODIFIKATOR,
   setzeAnzahl,
   wuerfle,
   type Auswahl,
@@ -110,10 +112,24 @@ export function App() {
 
         <label className="feld">
           <span className="feld__label">{t('feld.modifikator')}</span>
+          {/*
+            Bei Null steht hier nichts, nur der Platzhalter — und das ist kein
+            Schoenheitsgrund: stuende die 0 im Feld, koennte man keinen
+            negativen Modifikator eintippen. Ein Zahlenfeld haelt ein
+            getipptes Minus nur fest, solange es leer ist; ist es nicht leer,
+            wird aus „-" und „5" die Anzeige „05", also +5. Genau das ist
+            passiert, und ueber die Pfeile herunterzuklicken war der einzige
+            Weg zu einem Abzug.
+          */}
           <input
             type="number"
-            value={modifikator}
-            onChange={(ereignis) => setModifikator(Number.parseInt(ereignis.target.value, 10) || 0)}
+            value={modifikator === 0 ? '' : modifikator}
+            placeholder="0"
+            min={-MAX_MODIFIKATOR}
+            max={MAX_MODIFIKATOR}
+            onChange={(ereignis) =>
+              setModifikator(begrenzeModifikator(Number.parseInt(ereignis.target.value, 10) || 0))
+            }
           />
         </label>
 
@@ -175,7 +191,11 @@ export function App() {
         onZurueckholen={(eintrag) => {
           setAuswahl(eintrag.auswahl);
           setModifikator(eintrag.modifikator);
-          setEinstellungen((vorher) => ({ ...vorher, eigeneSeiten: eintrag.eigeneSeiten }));
+          // Ueber aendereEinstellungen und nicht ueber setEinstellungen: die
+          // Seitenzahl des eigenen Wuerfels ist eine Einstellung und muss
+          // mitgeschrieben werden. Sonst zeigt das Feld nach dem Zurueckholen
+          // die alte Zahl und nach dem naechsten Start wieder eine andere.
+          aendereEinstellungen({ eigeneSeiten: eintrag.eigeneSeiten });
         }}
       />
     </div>
