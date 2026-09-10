@@ -1,4 +1,6 @@
 // Sammelpunkt fuer die Tests: buendelt die reinen Logikmodule ohne Electron.
+export { findeUebernahme } from '../src/main/uebernahme';
+export { zieheUmbenennungNach, effektiverStand } from '../src/renderer/entwuerfe';
 export { findWikiLinks, rewriteWikiLinks, normalizeName } from '../src/shared/wikilinks';
 export {
   DEFAULT_NOTE_TYPES,

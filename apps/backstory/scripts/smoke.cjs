@@ -144,8 +144,19 @@ async function save(window) {
  * Dateidialoge blockieren einen automatischen Durchlauf. Fuer den Rauchtest
  * werden sie durch feste Antworten ersetzt.
  */
+/** Was der Nachfrage-Dialog vor Plattenaktionen antworten soll. */
+let speicherAntwort = 0; // 0 = Speichern und fortfahren
+const nachgefragt = [];
+
 function stubDialogs(exportDir) {
   fs.mkdirSync(exportDir, { recursive: true });
+
+  // Ohne Autosave fragt der Export, was mit Ungespeichertem geschehen soll.
+  // Der Dialog ist ein Systemfenster; hier wird er beantwortet.
+  dialog.showMessageBox = async (...args) => {
+    nachgefragt.push(args.length > 1 ? args[1] : args[0]);
+    return { response: speicherAntwort, checkboxChecked: false };
+  };
 
   dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [exportDir] });
   dialog.showSaveDialog = async (...args) => {
@@ -679,8 +690,15 @@ app.whenReady().then(async () => {
 
       const unsavedDir = path.join(userData, 'export-ungesichert');
       stubDialogs(unsavedDir);
+      nachgefragt.length = 0;
+      speicherAntwort = 0; // Speichern und fortfahren
       await menuAction(window, 'Kampagne als Markdown');
-      await sleep(2500);
+      await sleep(3000);
+
+      // Frueher schrieb der Export ungefragt. Ohne Autosave darf er das nicht
+      // mehr — er fragt, und erst die Antwort „Speichern und fortfahren"
+      // bringt die Aenderung in die Ausgabe.
+      check(nachgefragt.length === 1, 'Der Export hat nicht nach Ungespeichertem gefragt');
 
       const dir = fs.readdirSync(unsavedDir).map((n) => path.join(unsavedDir, n)).find((e) => fs.statSync(e).isDirectory());
       check(Boolean(dir), 'Export ohne Autosave hat keinen Ordner angelegt');

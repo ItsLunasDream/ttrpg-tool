@@ -3,6 +3,10 @@
 Werkzeuge für Pen-&-Paper-Kampagnen, die nebeneinander in einem Fenster
 laufen. Alles bleibt lokal auf der eigenen Platte.
 
+- **Initiative Tracker** — Kampfreihenfolge, Trefferpunkte und Zustände am
+  Spieltisch verfolgen. Systemneutral, mit Gruppen für Monsterhorden.
+- **Würfel** — Würfelpool aus d4 bis d100 und einem eigenen Würfel
+  zusammenstellen, rollen und das Ergebnis sehen. Auch mit Abzug (`1d20 − 1d4`).
 - **Backstory Creator** — Figuren, Orte und ihre Beziehungen aufschreiben:
   Rich-Text-Editor, Wiki-Verlinkung zwischen Notizen, strukturierte
   Steckbrieffelder und gerichtete Beziehungen, gespeichert als Markdown.
@@ -42,6 +46,14 @@ Nur nötig, wenn du am Code arbeiten willst.
 Benutzerordner. Sonst meldet npm `Could not read package.json`. Wechsle vorher
 mit `cd` in den Ordner, in dem diese README liegt.
 
+**Nach jedem `git pull` einmal `npm install`.** Bringt ein Pull ein neues
+geteiltes Paket mit, legt npm dessen Verweis in `node_modules` erst beim
+nächsten Installieren an — sonst scheitert der Build an Meldungen, die den
+Grund nicht nennen (`Rollup failed to resolve import`, `Cannot find module
+'vitest'`). `scripts/pruefe-installation.mjs` fängt das ab und sagt es
+stattdessen im Klartext; es läuft vor `dev`, `start`, `build`, `test`,
+`typecheck` und den Rauchtests mit.
+
 ```bash
 cd Pfad\zum\Projektordner
 npm install
@@ -67,6 +79,8 @@ Wurzel und delegieren an die passenden Ordner:
 apps/backstory/    Der Backstory Creator selbst (Electron-Anwendung)
 apps/shell/        TTRPG-Tools: die Hülle, in die die Werkzeuge eingebettet werden
 apps/mapmaker/     TTRPG Map Editor: Kartenzeichner (Tauri-Anwendung), siehe unten
+apps/initiative/   Initiative Tracker: Kampfreihenfolge am Spieltisch, siehe unten
+apps/dice/         Würfel: Würfelpool zusammenstellen und rollen, siehe unten
 packages/dice/     Geteiltes Paket: Würfelausdrücke lesen und werfen
 packages/i18n/     Geteiltes Paket: Sprachwahl und Textersetzung
 packages/motion/   Geteiltes Paket: Zeiten, Kurven und Grundanimationen der Oberfläche
@@ -77,9 +91,10 @@ packages/motion/   Geteiltes Paket: Zeiten, Kurven und Grundanimationen der Ober
 Haupteinstieg, in ihr laufen die Werkzeuge eingebettet. Für den Backstory
 Creator für sich gibt es `npm run dev:backstory`, `npm run start:backstory`,
 `npm run smoke:backstory`, `npm run roundtrip`, `npm run dist:win` und
-`npm run dist:linux`; für den Kartenmacher `npm run dev:mapmaker`. `npm run
-build`, `npm run typecheck` und `npm test` laufen dagegen über alle
-Workspaces, Apps und Pakete eingeschlossen. Ein Befehl gezielt für einen
+`npm run dist:linux`; für den Kartenmacher `npm run dev:mapmaker`, für den
+Initiative Tracker `npm run dev:initiative`, für den Würfel `npm run
+dev:dice`. `npm run build`, `npm run typecheck` und `npm test` laufen dagegen
+über alle Workspaces, Apps und Pakete eingeschlossen. Ein Befehl gezielt für einen
 Workspace: `npm run <skript> -w apps/backstory` bzw. `-w packages/dice`.
 
 ### TTRPG Map Editor
@@ -110,6 +125,77 @@ Systembibliotheken, die dort fehlen. Ebenso noch nicht angeschlossen: der
 End-to-End-Lauf unter `e2e/` (braucht einen installierten Browser) und die
 `build:portable`-Variante. Alle drei funktionieren lokal unverändert, siehe
 `apps/mapmaker/CLAUDE.md`.
+
+### Initiative Tracker
+
+`apps/initiative` verfolgt die Zugreihenfolge im Kampf. Systemneutral: ein
+Eintrag hat eine Initiative, Trefferpunkte und Zustände — was die Zahlen
+bedeuten, entscheidet der Tisch. Das Würfeln der Initiative (über
+`packages/dice`, mit dem Feinwert als Modifikator) ist eine Zugabe, keine
+Voraussetzung, und läuft nur für Gegner: Spielerfiguren würfeln am Tisch
+selbst.
+
+Die Regeln stehen in `src/shared/kampf.ts` als reine Funktionen, ohne
+Oberfläche und ohne Dateien. Am Spieltisch fällt ein Fehler in der
+Zugreihenfolge niemandem sofort auf, und wenn doch, lässt er sich nicht
+nachstellen — er muss sich prüfen lassen, bevor er passiert.
+
+**Gruppen** sind der Grund, warum die Trefferpunkte nicht am Eintrag hängen:
+sechs Goblins würfeln *eine* Initiative und haben sechs getrennte
+Trefferpunktsätze. Ein Eintrag mit einem Körper ist der Normalfall und sieht
+aus wie eine einzelne Kreatur.
+
+**Zwei Sorten Daten, bewusst verschieden behandelt:** Begegnungen sind
+Dokumente (Markdown mit YAML-Kopf, der Rumpf trägt die Taktiknotiz); der
+laufende Kampf ist Sitzungszustand und liegt als JSON daneben. Ihn als
+Markdown zu führen hätte den Anschein erweckt, man solle ihn aufheben.
+
+**Bilder** werden in den eigenen Ordner kopiert, nicht verlinkt: ein Verweis
+irgendwohin zeigt ins Leere, sobald jemand aufräumt — und das fällt erst
+mitten im Kampf auf. Der Dateiname kommt aus dem Inhalt, und `bildPfad` prüft
+ihn, bevor er in einen Pfad wandert.
+
+Bedienung: **Leertaste heißt weiter**, die eine Handlung, die hundertmal pro
+Abend passiert. Schaden wird eingetippt und mit Enter angewendet, nicht über
+Plus- und Minusknöpfe geklickt — Schaden ist selten eins.
+
+### Würfel
+
+`apps/dice` stellt einen Würfelpool zusammen und rollt ihn. Gewürfelt wird
+über `packages/dice`; die Anwendung zeichnet.
+
+**Die Form ist das Einzige, woran man eine Würfelart erkennt** — Farbe und
+Muster gelten für alle gemeinsam. Deshalb sind die Umrisse nicht die
+geometrisch korrekten Projektionen der Körper (ein d10 sieht von oben aus wie
+ein Zehneck, ein d12 wie ein Zwölfeck — beide wären von einem Kreis kaum zu
+unterscheiden), sondern die Silhouetten, die man von Würfelbildern kennt.
+Drei Formen mussten nach einem Blick auf das laufende Programm geändert
+werden, weil sie neben ihren Nachbarn nicht auseinanderzuhalten waren: der d6
+(war ein Sechseck wie der d20), der d10 (war eine Raute wie der d8) und der
+eigene Würfel (war rund wie der d100).
+
+**Die Auswahl ist eine Zahl je Art, die negativ sein darf.** `3` beim d20 und
+`-2` beim d4 heißt `3d20 - 2d4`. Linksklick auf das Symbol legt einen dazu,
+Rechtsklick nimmt einen weg. Im Ausdruck steht erst, was dazugezählt wird —
+sonst hieße derselbe Wurf „-2d4 + 3d20" und läse sich wie ein Fehler.
+
+**Die Zahlenfarbe wird gerechnet, nicht eingestellt.** Die Würfelfarbe ist
+frei wählbar, und auf Hellgelb ist eine weiße Zahl unlesbar. `zahlenFarbe`
+nimmt die relative Leuchtdichte nach WCAG — nicht das Mittel der drei Kanäle:
+Grün trägt viel mehr zur empfundenen Helligkeit bei als Blau.
+
+**Effekte:** Glitzer beim Höchstwurf, violette Streifen bei einer 1, beide
+einzeln abschaltbar. Abzugswürfel bekommen keinen — eine 4 auf dem d4 in
+`1d20 - 1d4` ist die höchste Zahl und für den Wurf das schlechteste Ergebnis.
+Zu jedem Effekt gehört ein ruhender Teil (goldener Schein, violetter
+Schleier): laufende Funken allein sind je nach Augenblick gerade
+zusammengeschnurrt, und ein Blick auf den Tisch trifft dann nichts.
+
+Der Verlauf hält die letzten 40 Würfe **nur für diese Sitzung** und wird nicht
+geschrieben — ein Wurf ist ein Ereignis am Tisch, kein Dokument.
+
+Gemessen: 100 Würfel gleichzeitig laufen mit p50 16,7 ms, also mit vollen 60
+Bildern je Sekunde (unter Xvfb ohne GPU).
 
 ### TTRPG-Tools: die Hülle
 

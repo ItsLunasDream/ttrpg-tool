@@ -1,0 +1,282 @@
+/**
+ * Rauchtest des Wuerfels — in der Huelle, an der laufenden Anwendung.
+ *
+ * Die Modelltests unter apps/dice/tests pruefen die Rechnung: Pool, Ausdruck,
+ * Abzugswuerfel, Lesbarkeit der Zahlenfarbe. Was sie nicht sehen koennen, ist,
+ * ob ein Klick ankommt: ob die Formen gezeichnet werden, ob ein Rechtsklick
+ * verringert statt das Kontextmenue zu oeffnen, ob die Effekte erscheinen und
+ * ob hundert Wuerfel die Anwendung stehenlassen.
+ *
+ * Aufruf: xvfb-run -a electron scripts/smoke-dice.cjs --no-sandbox
+ */
+const { app, BaseWindow } = require('electron');
+const path = require('node:path');
+const fs = require('node:fs');
+const os = require('node:os');
+
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'dice-smoke-'));
+app.setPath('userData', path.join(tmp, 'userData'));
+process.env.TTRPG_TOOLS_START_APP = 'dice';
+require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
+
+const warte = (ms) => new Promise((r) => setTimeout(r, ms));
+const fehler = [];
+const pruefe = (b, t) => {
+  console.log(`  ${b ? 'ok  ' : 'FEHL'} ${t}`);
+  if (!b) fehler.push(t);
+};
+
+const SETZ = `const setz = (el, v) => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el, v); el.dispatchEvent(new Event('input',{bubbles:true})); };`;
+
+app.whenReady().then(async () => {
+  await warte(5000);
+  const fenster = BaseWindow.getAllWindows()[0];
+  const sicht = fenster?.contentView?.children?.[1];
+  pruefe(Boolean(sicht), 'der Wuerfel haengt als eigene Ansicht im Fenster');
+  if (!sicht) {
+    app.exit(1);
+    return;
+  }
+  const js = (a) => sicht.webContents.executeJavaScript(a);
+
+  /**
+   * Echte Tastenanschlaege statt gesetzter Werte.
+   *
+   * Der Unterschied ist nicht theoretisch: ein Zahlenfeld nimmt ein getipptes
+   * Minus nur an, solange es leer ist, und `el.value = '-'` verwirft es
+   * sofort. Ein Fehler beim Modifikator war deshalb mit gesetzten Werten
+   * ueberhaupt nicht zu sehen — und ein anderer, den es gar nicht gab,
+   * schien vorhanden.
+   */
+  const tippe = async (text) => {
+    for (const zeichen of text) {
+      sicht.webContents.sendInputEvent({ type: 'keyDown', keyCode: zeichen });
+      sicht.webContents.sendInputEvent({ type: 'char', keyCode: zeichen });
+      sicht.webContents.sendInputEvent({ type: 'keyUp', keyCode: zeichen });
+      await warte(45);
+    }
+  };
+  const leereFeld = async () => {
+    for (let i = 0; i < 12; i++) {
+      sicht.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Backspace' });
+      sicht.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Backspace' });
+      await warte(25);
+    }
+  };
+
+  const konsole = [];
+  sicht.webContents.on('console-message', (_e, l, t) => {
+    if (l >= 2) konsole.push(t.slice(0, 160));
+  });
+
+  pruefe(await js("Boolean(document.querySelector('.wuerfelapp'))"), 'seine Oberflaeche steht');
+  pruefe(await js("typeof window.dice === 'object'"), 'die Bruecke zum Hauptprozess ist da');
+  pruefe(
+    (await js("document.querySelectorAll('.artfeld').length")) === 8,
+    'alle acht Wuerfelarten stehen zur Wahl'
+  );
+
+  // Jede Art muss eine eigene Form haben — sie ist das Einzige, woran man sie
+  // erkennt. Verglichen werden die Pfaddaten der Umrisse.
+  const formen = await js(
+    "JSON.stringify([...document.querySelectorAll('.artfeld svg > path:first-of-type')].map(p => p.getAttribute('d')))"
+  );
+  const eindeutig = new Set(JSON.parse(formen));
+  pruefe(eindeutig.size === 8, `alle acht Formen sind verschieden (${eindeutig.size} von 8)`);
+
+  // Dasselbe fuer die vier Musterknoepfe. Sie zeigen denselben Wuerfel in
+  // vier Mustern, unterscheiden sich also nur in der Fuellung. Hier lag ein
+  // Fehler, den erst der Nutzer im Bild gesehen hat: die Kennung des
+  // Farbverlaufs enthielt das Muster nicht, alle vier Definitionen hiessen
+  // gleich, und weil bei doppelter Kennung im selben Dokument die erste
+  // gewinnt, sahen alle vier Knoepfe aus wie der erste.
+  //
+  // Geprueft wird die Regel dahinter, nicht der eine Fall: keine zwei
+  // Definitionen im Dokument duerfen denselben Namen bei verschiedenem
+  // Inhalt tragen. Das faengt auch den naechsten Fall, etwa zwei Wuerfel
+  // derselben Art in verschiedenen Farben nebeneinander.
+  //
+  // Zwei Anlaeufe davor taugten nicht, und beide fielen erst in der
+  // Gegenprobe durch: ein Vergleich der Definitionen blieb gruen, weil im
+  // Bildbaum auch beim Fehler vier verschiedene Verlaeufe stehen — sie werden
+  // nur nicht gezeichnet. Ein Vergleich der aufgenommenen Bilder blieb
+  // ebenfalls gruen, weil Marmor und Sternenhimmel zusaetzlich Adern und
+  // Sterne zeichnen und der ausgewaehlte Knopf einen eigenen Hintergrund hat.
+  const doppelte = JSON.parse(
+    await js(`(() => {
+      const nachName = new Map();
+      for (const el of document.querySelectorAll('svg defs > [id]')) {
+        const inhalt = el.tagName + ':' + el.getAttribute('cx') + ',' + el.getAttribute('cy') + ',' + el.getAttribute('r') +
+          ',' + el.getAttribute('x1') + ',' + el.getAttribute('y1') + ',' + el.getAttribute('x2') + ',' + el.getAttribute('y2') +
+          '|' + [...el.children].map((k) => k.tagName + k.getAttribute('offset') + k.getAttribute('stop-color') +
+            k.getAttribute('stop-opacity') + (k.getAttribute('d') || '')).join(',');
+        const bekannt = nachName.get(el.id);
+        if (bekannt === undefined) nachName.set(el.id, inhalt);
+        else if (bekannt !== inhalt) nachName.set(el.id, null);
+      }
+      return JSON.stringify([...nachName].filter(([, inhalt]) => inhalt === null).map(([name]) => name));
+    })()`)
+  );
+  pruefe(
+    doppelte.length === 0,
+    `keine Definition traegt denselben Namen bei anderem Inhalt${doppelte.length ? ` (${doppelte.join(', ')})` : ''}`
+  );
+  pruefe(
+    (await js("document.querySelectorAll('.musterknopf').length")) === 4,
+    'alle vier Muster stehen zur Wahl'
+  );
+
+  // --- Klicken ------------------------------------------------------------
+  await js("[...document.querySelectorAll('.artfeld .wuerfel')][5].click(); true");
+  await warte(300);
+  pruefe((await js("[...document.querySelectorAll('.artfeld__zahl')][5].value")) === '1', 'Linksklick legt einen dazu');
+
+  await js(`(() => { const w = [...document.querySelectorAll('.artfeld .wuerfel')][5];
+    const e = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    const abgewehrt = !w.dispatchEvent(e);
+    window.__abgewehrt = abgewehrt; return true; })()`);
+  await warte(300);
+  pruefe((await js("[...document.querySelectorAll('.artfeld__zahl')][5].value")) === '', 'Rechtsklick nimmt einen weg');
+  pruefe(await js('window.__abgewehrt'), 'und unterdrueckt dabei das Kontextmenue');
+
+  // --- Abzugswuerfel ------------------------------------------------------
+  await js(`(() => { ${SETZ} const f = [...document.querySelectorAll('.artfeld__zahl')];
+    setz(f[5], '3'); setz(f[0], '-2'); setz(document.querySelector('.feld input'), '5'); return true; })()`);
+  await warte(400);
+  const ausdruck = await js("document.querySelector('.buehne__ausdruck').textContent");
+  pruefe(ausdruck === '3d20 - 2d4 + 5', `der Ausdruck stimmt (${ausdruck})`);
+
+  // --- Eintippen ----------------------------------------------------------
+  // Der Nutzer hat ausdruecklich verlangt, die Anzahl eintippen zu koennen,
+  // „eine 3 oder aber auch eine -2". Beim Modifikator ging genau das nicht:
+  // im Feld stand immer eine Zahl, nie nichts, und ein Zahlenfeld haelt ein
+  // getipptes Minus nur fest, solange es leer ist. Aus „-" und „5" wurde die
+  // Anzeige „05", also +5, und ueber die Pfeile herunterzuklicken war der
+  // einzige Weg zu einem Abzug.
+  await js("document.querySelector('.feld input').focus(); document.querySelector('.feld input').select(); true");
+  await leereFeld();
+  await tippe('-7');
+  await warte(200);
+  const mod = await js("document.querySelector('.feld input').value");
+  pruefe(mod === '-7', `ein negativer Modifikator laesst sich eintippen (${JSON.stringify(mod)})`);
+
+  // Und er ist begrenzt: ohne Grenze stand „999999999" im Ausdruck und in der
+  // Summe, wo die Zahl jede Wuerfelzahl daneben unlesbar machte.
+  await js("document.querySelector('.feld input').focus(); document.querySelector('.feld input').select(); true");
+  await leereFeld();
+  await tippe('999999999');
+  await warte(200);
+  const gross = await js("document.querySelector('.feld input').value");
+  pruefe(gross === '9999', `ein riesiger Modifikator wird gekappt (${JSON.stringify(gross)})`);
+
+  // Zurueck auf den Wert, den die folgenden Pruefungen erwarten.
+  await js("document.querySelector('.feld input').focus(); document.querySelector('.feld input').select(); true");
+  await leereFeld();
+  await tippe('5');
+  await warte(200);
+  const zurueck = await js("document.querySelector('.buehne__ausdruck').textContent");
+  pruefe(zurueck === '3d20 - 2d4 + 5', `der Ausdruck steht wieder (${zurueck})`);
+
+  await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+  await warte(1400);
+  pruefe(
+    (await js("document.querySelectorAll('.wuerfel--abzug').length")) === 2,
+    'Abzugswuerfel sind als solche zu sehen'
+  );
+
+  // Die Summe muss zu den abgebildeten Zahlen passen — sonst rechnet man sie
+  // im Kopf nach und haelt das Werkzeug fuer kaputt.
+  const rechnung = await js(`(() => {
+    const zahlen = [...document.querySelectorAll('.buehne__tisch .wuerfel')].map((w) => ({
+      wert: Number(w.querySelector('text').textContent),
+      abzug: w.classList.contains('wuerfel--abzug')
+    }));
+    const summe = zahlen.reduce((s, z) => s + (z.abzug ? -z.wert : z.wert), 0) + 5;
+    return JSON.stringify({ summe, gezeigt: Number(document.querySelector('.buehne__summe-zahl').textContent) });
+  })()`);
+  const { summe, gezeigt } = JSON.parse(rechnung);
+  pruefe(summe === gezeigt, `die Summe passt zu den Wuerfeln (${summe} gegen ${gezeigt})`);
+
+  pruefe(
+    (await js("document.querySelectorAll('.verlauf__liste li').length")) === 1,
+    'der Wurf steht im Verlauf'
+  );
+
+  // --- Die Anzahl bleibt stehen -------------------------------------------
+  pruefe(
+    (await js("[...document.querySelectorAll('.artfeld__zahl')][5].value")) === '3',
+    'die Anzahl setzt sich nach dem Wurf NICHT zurueck'
+  );
+
+  // --- Effekte ------------------------------------------------------------
+  // Solange wuerfeln, bis eine 20 und eine 1 dabei sind. Bei 20 Wuerfeln ist
+  // beides in wenigen Versuchen da; bleibt es aus, ist der Test nicht rot,
+  // sondern sagt es.
+  await js(`(() => { ${SETZ} const f = [...document.querySelectorAll('.artfeld__zahl')];
+    f.forEach((x) => setz(x, '0')); setz(f[5], '20'); return true; })()`);
+  let glitzer = 0;
+  let streifen = 0;
+  for (let versuch = 0; versuch < 20 && (glitzer === 0 || streifen === 0); versuch++) {
+    await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+    await warte(1000);
+    glitzer = Math.max(glitzer, await js("document.querySelectorAll('.glitzer').length"));
+    streifen = Math.max(streifen, await js("document.querySelectorAll('.streifen').length"));
+  }
+  pruefe(glitzer > 0, `der Hoechstwurf glitzert (${glitzer} gesehen)`);
+  pruefe(streifen > 0, `die Eins bekommt Streifen (${streifen} gesehen)`);
+
+  // Abgeschaltet heisst abgeschaltet.
+  await js("[...document.querySelectorAll('.aussehen__schalter input')][0].click(); true");
+  await warte(200);
+  await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+  await warte(1200);
+  pruefe(
+    (await js("document.querySelectorAll('.glitzer').length")) === 0,
+    'abgeschalteter Glitzer bleibt aus'
+  );
+  await js("[...document.querySelectorAll('.aussehen__schalter input')][0].click(); true");
+
+  // --- Hundert Wuerfel ----------------------------------------------------
+  // Der Nutzer nennt das einen Extremfall; realistisch sind rund zwanzig.
+  // Gemessen wird trotzdem, damit die Zahl bekannt ist statt geschaetzt.
+  await js(`(() => { ${SETZ} const f = [...document.querySelectorAll('.artfeld__zahl')];
+    f.forEach((x) => setz(x, '0')); setz(f[5], '100'); return true; })()`);
+  await warte(400);
+  const gemessen = await js(`(() => new Promise((fertig) => {
+    const knopf = [...document.querySelectorAll('button')].find((b) => /Roll|Rollen/.test(b.textContent));
+    const bilder = [];
+    let letzte = performance.now();
+    let laeuft = true;
+    function tick(jetzt) {
+      bilder.push(jetzt - letzte);
+      letzte = jetzt;
+      if (laeuft) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+    knopf.click();
+    setTimeout(() => {
+      laeuft = false;
+      const sortiert = bilder.slice(1).sort((a, b) => a - b);
+      fertig(JSON.stringify({
+        anzahl: document.querySelectorAll('.buehne__tisch .wuerfel').length,
+        p50: sortiert[Math.floor(sortiert.length * 0.5)],
+        p95: sortiert[Math.floor(sortiert.length * 0.95)],
+        max: sortiert[sortiert.length - 1]
+      }));
+    }, 1600);
+  }))()`);
+  const m = JSON.parse(gemessen);
+  console.log(
+    `  100 Wuerfel: ${m.anzahl} gezeichnet, Bildabstand p50 ${m.p50.toFixed(1)}ms, ` +
+      `p95 ${m.p95.toFixed(1)}ms, max ${m.max.toFixed(1)}ms`
+  );
+  pruefe(m.anzahl === 100, 'alle hundert Wuerfel werden gezeichnet');
+  // Die Grenze ist bewusst weit: hundert ist der Extremfall, und der darf
+  // ruckeln. Was nicht passieren darf, ist Stillstand.
+  pruefe(m.p95 < 120, `die Anwendung bleibt bedienbar (p95 ${m.p95.toFixed(1)}ms)`);
+
+  pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' | ') || 'keine'})`);
+
+  console.log(fehler.length ? `\n${fehler.length} Pruefung(en) fehlgeschlagen.` : '\nWuerfel bestanden.');
+  app.exit(fehler.length ? 1 : 0);
+});

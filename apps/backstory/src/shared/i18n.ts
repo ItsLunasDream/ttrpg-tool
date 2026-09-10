@@ -98,6 +98,8 @@ const de = {
   'editor.saved': 'Gespeichert',
   'editor.words': '{count} Wörter',
   'editor.autosaveOffHint': 'Autosave ist aus. Strg+S speichert.',
+  'list.unsaved': 'Nicht gespeichert',
+  'bar.unsavedCount': '{count} nicht gespeichert',
   'editor.ambiguous':
     'Der Name „{name}" wird von mehreren Notizen benutzt. Links darauf treffen immer dieselbe, das ist womöglich nicht die gemeinte. Vergib einen eindeutigen Titel oder Alias.',
   'editor.placeholder': 'Schreib los. Mit [[ verlinkst du andere Notizen.',
@@ -481,6 +483,8 @@ const en: Partial<Record<MessageKey, string>> = {
   'editor.saved': 'Saved',
   'editor.words': '{count} words',
   'editor.autosaveOffHint': 'Autosave is off. Ctrl+S saves.',
+  'list.unsaved': 'Not saved',
+  'bar.unsavedCount': '{count} not saved',
   'editor.ambiguous':
     'The name “{name}” is used by more than one note. Links to it always hit the same one, which may not be the one you meant. Give it a unique title or alias.',
   'editor.placeholder': 'Start writing. Type [[ to link another note.',

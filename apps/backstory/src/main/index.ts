@@ -55,7 +55,12 @@ async function createWindow(embed: BackstoryEmbed): Promise<void> {
   window.on('close', (event) => {
     if (mayClose || window.webContents.isDestroyed()) return;
     event.preventDefault();
-    void embed.flush(window.webContents).then(() => {
+    // `darfSchliessen` fragt nach Ungespeichertem und zeigt noetigenfalls den
+    // Dialog. Sagt es nein, hat die Person abgebrochen — dann bleibt das
+    // Fenster offen, und `mayClose` bleibt falsch, damit der naechste Versuch
+    // wieder fragt.
+    void embed.darfSchliessen(window.webContents, window).then((erlaubt) => {
+      if (!erlaubt) return;
       mayClose = true;
       window.close();
     });

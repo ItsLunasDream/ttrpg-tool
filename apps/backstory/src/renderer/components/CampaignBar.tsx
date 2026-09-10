@@ -7,6 +7,8 @@ interface Props {
   activeCampaignId: string | null;
   settings: AppSettings;
   graphOpen: boolean;
+  /** Wie viele Notizen ungespeicherte Aenderungen haben. 0 blendet die Anzeige aus. */
+  ungespeichertAnzahl: number;
   onSelect: (campaignId: string) => void;
   onCreate: () => void;
   onRename: () => void;
@@ -81,6 +83,14 @@ export function CampaignBar(props: Props) {
       <span className="campaign-bar__autosave">
         {t(settings.autosaveEnabled ? 'bar.autosaveOn' : 'bar.autosaveOff')}
       </span>
+      {/* Ohne Autosave koennen mehrere Notizen gleichzeitig ungespeichert
+          sein. Diese Zahl ist die einzige Stelle, die das auf einen Blick
+          sagt — in der Liste sieht man nur, was gerade sichtbar ist. */}
+      {props.ungespeichertAnzahl > 0 ? (
+        <span className="campaign-bar__ungespeichert">
+          {t('bar.unsavedCount', { count: props.ungespeichertAnzahl })}
+        </span>
+      ) : null}
       <button type="button" onClick={props.onOpenHelp}>
         {t('bar.help')}
       </button>

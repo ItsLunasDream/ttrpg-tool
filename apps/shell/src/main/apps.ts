@@ -21,12 +21,18 @@
  */
 import { join } from 'node:path';
 import { app, session as electronSession, WebContentsView, shell } from 'electron';
+import type { BaseWindow } from 'electron';
 import type { WebContents } from 'electron';
 import {
   mountBackstory,
   registerAssetScheme as registerBackstoryScheme
 } from '../../../backstory/src/main/embed';
 import { mountMapmaker } from '../../../mapmaker/src/embed';
+import {
+  mountInitiative,
+  registriereBildSchema as registriereInitiativeSchema
+} from '../../../initiative/src/main/embed';
+import { mountDice } from '../../../dice/src/main/embed';
 import type { Language } from '../shared/i18n';
 
 export interface MontierteApp {
@@ -54,8 +60,18 @@ export interface MontierteApp {
    * Bildlauf. Beim Wechsel hin und her waere jedes Mal alles zurueckgesetzt.
    */
   istGeladen(): boolean;
-  /** Sichert Ungespeichertes und wartet darauf. Vor dem Schliessen aufzurufen. */
+  /** Sichert Ungespeichertes und wartet darauf. */
   flush(): Promise<void>;
+  /**
+   * Fragt vor dem Schliessen nach Ungespeichertem und antwortet, ob
+   * geschlossen werden darf.
+   *
+   * Fehlt bei Anwendungen, die nichts zu verlieren haben — die Huelle wertet
+   * ein fehlendes `darfSchliessen` als „ja". `flush` reicht dafuer nicht: es
+   * schreibt kommentarlos, und wer den Autosave ausschaltet, will gefragt
+   * werden.
+   */
+  darfSchliessen?(elternfenster: BaseWindow): Promise<boolean>;
   /**
    * Setzt die Sprache dieser Anwendung von aussen — fehlt, wenn eine
    * Anwendung das (noch) nicht unterstuetzt. Die Huelle ruft das bei jeder
@@ -85,6 +101,7 @@ export interface MontageHaken {
  */
 export function registerSchemes(): void {
   registerBackstoryScheme();
+  registriereInitiativeSchema();
 }
 
 /**
@@ -112,6 +129,28 @@ export function appDistDir(id: string, ...weiter: string[]): string {
     ? join(process.resourcesPath, 'apps', id, 'dist')
     : join(__dirname, '..', '..', '..', id, 'dist');
   return join(wurzel, ...weiter);
+}
+
+/**
+ * Wo das *eigenstaendige* Programm einer Anwendung seine Daten haette.
+ *
+ * Electron leitet den Datenordner aus dem Namen der Anwendung ab, und der ist
+ * eigenstaendig ein anderer als hier: die Huelle heisst „TTRPG-Tools", das
+ * gepackte Einzelprogramm „Backstory Creator", und aus dem Workspace
+ * gestartet gilt der Name aus seiner package.json. Alle drei liegen
+ * nebeneinander im selben uebergeordneten Verzeichnis.
+ *
+ * Zurueckgegeben werden die Speicherorte, nicht die Datenordner: die
+ * Uebernahme setzt den Speicherort, nicht die Einstellungen der anderen
+ * Installation.
+ */
+function fruehereSpeicherorte(id: string): string[] {
+  const namen: Record<string, string[]> = {
+    // Gepackt und aus dem Workspace — beide Schreibweisen kommen vor.
+    backstory: ['Backstory Creator', 'backstory-creator']
+  };
+  const daneben = app.getPath('appData');
+  return (namen[id] ?? []).map((name) => join(daneben, name, 'vault'));
 }
 
 /** Wohin eine Anwendung ihre Daten legt. */
@@ -198,7 +237,92 @@ async function lade(
 export async function mountApp(id: string, haken: MontageHaken): Promise<MontierteApp | null> {
   if (id === 'backstory') return montiereBackstory(id, haken);
   if (id === 'mapmaker') return montiereMapmaker(id, haken);
+  if (id === 'initiative') return montiereInitiative(id, haken);
+  if (id === 'dice') return montiereDice(id, haken);
   return null;
+}
+
+async function montiereDice(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountDice({
+    userDataDir: datenordner(id),
+    distDir: appDistDir(id, 'main'),
+    partition: sitzung(id),
+    devServerUrl: process.env.DICE_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+  };
+}
+
+async function montiereInitiative(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountInitiative({
+    userDataDir: datenordner(id),
+    // Der Tracker buendelt seinen Hauptprozessteil nach dist/main, die
+    // Oberflaeche nach dist/renderer — wie der Backstory Creator.
+    distDir: appDistDir(id, 'main'),
+    partition: sitzung(id),
+    devServerUrl: process.env.INITIATIVE_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+  });
+
+  // Vor dem Laden: die Kopfzeile muss stehen, bevor die erste Antwort kommt.
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      // Wie beim Karteneditor: der Tracker liest seine Sprache aus dem
+      // eigenen Browserspeicher, bevor die Huelle ihm etwas sagen kann.
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+  };
 }
 
 async function montiereBackstory(id: string, haken: MontageHaken): Promise<MontierteApp> {
@@ -208,7 +332,10 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
     partition: sitzung(id),
     devServerUrl: process.env.BACKSTORY_DEV_SERVER_URL,
     language: haken.language,
-    onLanguageChange: haken.onLanguageChange
+    onLanguageChange: haken.onLanguageChange,
+    // Wer den Backstory Creator bisher einzeln benutzt hat, soll seine
+    // Kampagnen hier wiederfinden und nicht vor einer leeren Sammlung stehen.
+    uebernahmeKandidaten: fruehereSpeicherorte(id)
   });
 
   const sicht = new WebContentsView({
@@ -233,6 +360,8 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
     },
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(sicht.webContents as WebContents),
+    darfSchliessen: (elternfenster) =>
+      eingebettet.darfSchliessen(sicht.webContents as WebContents, elternfenster),
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
   };
 }

@@ -1,0 +1,631 @@
+/*
+ * Aussehen des Initiative Trackers.
+ *
+ * Am Spieltisch wird diese Oberflaeche aus zwei Metern Entfernung gelesen,
+ * oft im Halbdunkel und im Vorbeigehen. Deshalb: grosse Zahlen, kraeftiger
+ * Kontrast fuer die eine Zeile, die gerade dran ist, und alles andere ruhig.
+ */
+
+:root {
+  --grund: #14161c;
+  --grund-hoch: #1b1e26;
+  --grund-zeile: #1e222c;
+  --rand: #2a2e39;
+  --text: #e6e8ee;
+  --text-leise: #939aab;
+  --betont: #7aa2f7;
+  --gefahr: #e5484d;
+  --heil: #4a9d5f;
+  --radius: 10px;
+
+  /* Die Rueckmeldefarben des Bewegungspakets an diese Palette angleichen. */
+  --motion-ok: #4a9d5f;
+  --motion-fehler: #e5484d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--grund);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+:focus-visible {
+  outline: 2px solid var(--betont);
+  outline-offset: 1px;
+  border-radius: 6px;
+}
+
+button {
+  background: #262b36;
+  border: 1px solid var(--rand);
+  color: var(--text);
+  font: inherit;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background var(--motion-feedback) var(--motion-ease-standard),
+    border-color var(--motion-feedback) var(--motion-ease-standard);
+}
+
+button:hover:not(:disabled) {
+  background: #303646;
+}
+
+button:active:not(:disabled) {
+  /* Der Druckpunkt: kurz nachgeben, schneller als alles andere. */
+  transform: scale(0.97);
+  transition-duration: var(--motion-feedback);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.knopf--haupt {
+  background: var(--betont);
+  border-color: var(--betont);
+  color: #0d1017;
+  font-weight: 600;
+}
+
+.knopf--haupt:hover:not(:disabled) {
+  background: #8fb3ff;
+}
+
+.knopf--gefahr {
+  color: var(--gefahr);
+}
+
+.knopf--gefahr:hover:not(:disabled) {
+  background: #33222a;
+}
+
+input,
+select,
+textarea {
+  background: #12141a;
+  border: 1px solid var(--rand);
+  color: var(--text);
+  font: inherit;
+  padding: 5px 8px;
+  border-radius: 6px;
+  transition: border-color var(--motion-feedback) var(--motion-ease-standard);
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--betont);
+}
+
+/* Die Pfeilchen an Zahlenfeldern kosten Platz und werden nie benutzt. */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  appearance: textfield;
+}
+
+.schmal {
+  width: 64px;
+}
+
+/* ---------- Aufbau ---------- */
+
+.tracker {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.laedt {
+  height: 100%;
+  background: var(--grund);
+}
+
+.leiste {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--grund-hoch);
+  border-bottom: 1px solid var(--rand);
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+}
+
+.leiste__titel {
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.leiste__name {
+  color: var(--text-leise);
+}
+
+/*
+ * Die Rundenzahl. Sie wechselt selten und ist dann wichtig — der kurze
+ * Auftritt beim Wechsel ist die einzige Bewegung, die hier etwas *meldet*.
+ */
+.leiste__runde {
+  background: #262b36;
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-weight: 600;
+}
+
+.leiste__fueller {
+  flex: 1;
+}
+
+.leiste__trenner {
+  width: 1px;
+  height: 20px;
+  background: var(--rand);
+}
+
+.leiste__sprache {
+  padding: 5px 6px;
+}
+
+/* ---------- Liste ---------- */
+
+.liste {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.leer {
+  margin: auto;
+  text-align: center;
+  color: var(--text-leise);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.leer__titel {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.leer__text {
+  margin: 0;
+  max-width: 40ch;
+  line-height: 1.5;
+}
+
+/* ---------- Zeile ---------- */
+
+.zeile {
+  background: var(--grund-zeile);
+  border: 1px solid var(--rand);
+  border-left: 3px solid transparent;
+  border-radius: var(--radius);
+  transition: border-color var(--motion-state) var(--motion-ease-standard),
+    background var(--motion-state) var(--motion-ease-standard);
+}
+
+/*
+ * Wer dran ist. Das muss aus zwei Metern zu erkennen sein, ohne zu lesen —
+ * deshalb der Balken links und der hellere Grund, nicht nur eine Farbe im
+ * Text.
+ */
+.zeile--dran {
+  border-left-color: var(--betont);
+  background: #232a3a;
+}
+
+.zeile--liegt {
+  opacity: 0.5;
+}
+
+.zeile--liegt .zeile__name {
+  text-decoration: line-through;
+}
+
+.zeile__kopf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+}
+
+/* Die Initiative ist die Zahl, nach der man sucht: gross und monospaced,
+   damit die Spalte trotz verschiedener Ziffern bündig bleibt. */
+.zeile__ini {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 2.2em;
+  text-align: right;
+  color: var(--betont);
+}
+
+.zeile__bild {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #12141a;
+  border: 1px solid var(--rand);
+  flex: 0 0 auto;
+}
+
+.zeile__bild--leer {
+  display: grid;
+  place-items: center;
+  color: var(--text-leise);
+  font-weight: 600;
+}
+
+.zeile__name {
+  background: none;
+  border: 0;
+  padding: 4px 6px;
+  text-align: left;
+  font-size: 16px;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zeile__name:hover {
+  background: #ffffff0d;
+}
+
+.zeile__namenlos {
+  color: var(--text-leise);
+}
+
+.zeile__marke {
+  font-size: 11px;
+  color: var(--text-leise);
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
+.zeile__dran {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--betont);
+  white-space: nowrap;
+}
+
+.zeile__koerper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* ---------- Trefferpunkte ---------- */
+
+.koerper {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #12141a;
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  padding: 2px 6px;
+}
+
+.koerper--liegt {
+  border-color: var(--gefahr);
+  opacity: 0.7;
+}
+
+/*
+ * Schaden und Heilung leuchten kurz auf. Kein Wackeln: das Feld bleibt, wo es
+ * ist, damit der naechste Tastendruck trifft. Die Farbe bleibt auch bei
+ * „weniger Bewegung\" — sie ist die Rueckmeldung, nicht die Zierde.
+ */
+.koerper--schaden {
+  animation: motion-aufleuchten-fehler var(--motion-attention) var(--motion-ease-exit);
+}
+
+.koerper--heilung {
+  animation: motion-aufleuchten-ok var(--motion-attention) var(--motion-ease-exit);
+}
+
+.koerper__marke {
+  font-size: 11px;
+  color: var(--text-leise);
+  min-width: 1.2em;
+  text-align: right;
+}
+
+.koerper__hp {
+  width: 3.2em;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: none;
+  border: 0;
+  padding: 2px;
+}
+
+.koerper__max {
+  color: var(--text-leise);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.koerper__temp {
+  color: var(--heil);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.koerper__schaden {
+  width: 3.4em;
+  text-align: center;
+  padding: 2px 4px;
+  border-style: dashed;
+}
+
+/* ---------- Zustaende ---------- */
+
+.zeile__zustaende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px 8px 58px;
+}
+
+.zustand {
+  font-size: 12px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #2c2438;
+  border-color: #453a55;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.zustand__runden {
+  font-variant-numeric: tabular-nums;
+  background: #453a55;
+  border-radius: 999px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+/* ---------- Ausklapp ---------- */
+
+.ausklapp {
+  border-top: 1px solid var(--rand);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ausklapp__felder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.feld {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.feld__label {
+  font-size: 11px;
+  color: var(--text-leise);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.feld--haken {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 6px;
+}
+
+.ausklapp__zustand {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ausklapp__knoepfe {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ausklapp__notiz {
+  min-height: 54px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* ---------- Fuss ---------- */
+
+.fuss {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--grund-hoch);
+  border-top: 1px solid var(--rand);
+  flex: 0 0 auto;
+}
+
+/* Der Knopf, der hundertmal pro Abend gedrueckt wird: gross und immer an
+   derselben Stelle. */
+.fuss__weiter {
+  font-size: 15px;
+  padding: 8px 22px;
+}
+
+.fuss__hinweis {
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.fuss__zahl {
+  color: var(--text-leise);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Begegnungen ---------- */
+
+.begegnungen {
+  position: relative;
+  margin: 12px 14px 0;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+
+.begegnungen__leer {
+  margin: 0;
+  color: var(--text-leise);
+}
+
+.begegnungen__liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.begegnungen__liste li {
+  display: flex;
+  gap: 6px;
+}
+
+.begegnungen__liste li > button:first-child {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.begegnungen__zahl {
+  color: var(--text-leise);
+}
+
+.begegnungen__zu {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  padding: 2px 8px;
+  background: none;
+  border: 0;
+  color: var(--text-leise);
+}
+
+/* ---------- Meldung ---------- */
+
+.meldung {
+  position: fixed;
+  bottom: 62px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  padding: 7px 18px;
+  box-shadow: 0 8px 26px #00000066;
+}
+
+/*
+ * Die Taktiknotiz zur Begegnung. Ausklappbar und nicht dauerhaft sichtbar:
+ * im Kampf braucht man die Liste, den Plan nur davor und zwischendurch.
+ */
+.taktik {
+  margin: 12px 14px 0;
+  min-height: 90px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.knopf--an {
+  border-color: var(--betont);
+  color: var(--betont);
+}
+
+/* ---------- Dialoge ---------- */
+
+.dialog__grund {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #0b0d12cc;
+  z-index: 20;
+}
+
+.dialog {
+  min-width: min(360px, calc(100vw - 40px));
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 48px #00000066;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialog:focus {
+  /* Fokus nur, damit Escape ankommt — umranden muss man ihn dafuer nicht. */
+  outline: none;
+}
+
+.dialog__titel {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dialog__knoepfe {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

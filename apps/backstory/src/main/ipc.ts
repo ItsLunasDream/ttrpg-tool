@@ -124,6 +124,45 @@ export function registerIpc(context: IpcContext): void {
     return context.settings;
   });
 
+  /**
+   * Fragt vor einer Aktion, die den Stand auf der Platte braucht (Export,
+   * Aufraeumen, der Assistent), was mit Ungespeichertem geschehen soll.
+   *
+   * Antwort: 'speichern' | 'ohne' | 'abbrechen'.
+   *
+   * Derselbe Dialog wie beim Schliessen, und aus demselben Grund nativ: er
+   * muss auch dann sichtbar sein, wenn die Anwendung in der Huelle unter
+   * deren eigenen Dialogen liegt.
+   */
+  handle<[number], 'speichern' | 'ohne' | 'abbrechen'>('app:frage-speichern', async (anzahl) => {
+    const deutsch = context.settings.language === 'de';
+    const fenster = BrowserWindow.getFocusedWindow();
+    const optionen: Electron.MessageBoxOptions = {
+      type: 'question',
+      title: deutsch ? 'Nicht gespeicherte Änderungen' : 'Unsaved changes',
+      message: deutsch
+        ? anzahl === 1
+          ? 'Eine Notiz ist nicht gespeichert.'
+          : `${anzahl} Notizen sind nicht gespeichert.`
+        : anzahl === 1
+          ? 'One note is not saved.'
+          : `${anzahl} notes are not saved.`,
+      detail: deutsch
+        ? 'Diese Aktion arbeitet mit dem Stand auf der Platte. Ungespeichertes fehlt darin.'
+        : 'This action works on what is on disk. Unsaved changes are missing from it.',
+      buttons: deutsch
+        ? ['Speichern und fortfahren', 'Ohne Speichern fortfahren', 'Abbrechen']
+        : ['Save and continue', 'Continue without saving', 'Cancel'],
+      defaultId: 0,
+      cancelId: 2,
+      noLink: true
+    };
+    const { response } = fenster
+      ? await dialog.showMessageBox(fenster, optionen)
+      : await dialog.showMessageBox(optionen);
+    return response === 0 ? 'speichern' : response === 1 ? 'ohne' : 'abbrechen';
+  });
+
   handle<[], PromptCategory[]>('prompts:get', () => vault.readPrompts(context.settings.language));
 
   handle<[], void>('prompts:reveal', async () => {

@@ -468,6 +468,22 @@ mark {
   color: var(--accent);
 }
 
+/* Der Punkt an einer Notiz mit ungespeicherten Aenderungen. Ohne Autosave
+   koennen das mehrere gleichzeitig sein, und ohne Markierung findet man sie
+   nicht wieder. */
+.note-list__ungespeichert {
+  color: var(--accent);
+  margin-left: 6px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.campaign-bar__ungespeichert {
+  color: var(--accent);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .note-editor__warning {
   background: var(--accent-soft);
   color: var(--accent);
