@@ -774,3 +774,82 @@ body {
     opacity: 0.4;
   }
 }
+
+/* ---------- Uebergang: das Symbol waechst ueber den Schirm ---------- */
+
+/*
+ * Beginnt genau dort, wo die Kachel lag, und endet im ganzen Fenster.
+ *
+ * Bewegt werden left/top/width/height und nicht `transform: scale`. Das ist
+ * die teurere Sorte Animation, hier aber die richtige: beim Skalieren zoege
+ * sich das Symbol darin mit in die Breite, und aus dem runden Rand wuerde
+ * ein Oval. Es ist ein einziges Element fuer eine Drittelsekunde.
+ *
+ * `z-index` ueber allem in der Huelle. Die eingebettete Ansicht liegt
+ * trotzdem darueber — sie ist kein HTML-Element, sondern eine eigene
+ * Ansicht des Fensters. Genau deshalb wartet der Hauptprozess die Dauer ab,
+ * bevor er sie hervorholt.
+ */
+.uebergang {
+  position: fixed;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  overflow: hidden;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  transition: left var(--uebergang-dauer, 340ms) var(--motion-ease-enter),
+    top var(--uebergang-dauer, 340ms) var(--motion-ease-enter),
+    width var(--uebergang-dauer, 340ms) var(--motion-ease-enter),
+    height var(--uebergang-dauer, 340ms) var(--motion-ease-enter),
+    border-radius var(--uebergang-dauer, 340ms) var(--motion-ease-enter);
+}
+
+.uebergang--gross {
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  border-color: transparent;
+}
+
+/*
+ * Das Symbol waechst mit, aber langsamer als das Feld — sonst wirkt es, als
+ * fluege es einem entgegen. Es bleibt in der Mitte und wird gross genug, um
+ * gesehen zu werden, ohne den Schirm zu fuellen.
+ */
+.uebergang__icon {
+  display: flex;
+  color: var(--betont);
+  transform: scale(1);
+  transition: transform var(--uebergang-dauer, 340ms) var(--motion-ease-enter);
+}
+
+.uebergang--gross .uebergang__icon {
+  transform: scale(1.6);
+}
+
+/* Kommt erst, wenn das Feld ausgewachsen ist und das Werkzeug noch fehlt. */
+.uebergang__warten {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/*
+ * Weniger Bewegung: den Uebergang gibt es dann gar nicht — die Huelle baut
+ * ihn erst nicht auf (siehe App.tsx). Diese Regel ist der Gurt fuer den
+ * Fall, dass er doch einmal ins Bild kommt.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .uebergang,
+  .uebergang__icon {
+    transition: none;
+  }
+}

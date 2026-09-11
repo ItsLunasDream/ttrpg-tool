@@ -854,6 +854,39 @@ app.whenReady().then(async () => {
     check(!imVault.includes('writing-prompts.json'),
       'die alte sprachlose writing-prompts.json ist wieder da');
 
+    // 16a. Bewegung: kommen die gemeinsamen Zeiten hier an?
+    /*
+     * Geprueft wird nicht, wie es aussieht — das kann kein Test —, sondern
+     * dass die Stilvorlage des Bewegungspakets ueberhaupt geladen ist und
+     * dass die Stellen, die sich bewegen sollen, eine Animation tragen.
+     *
+     * Ohne diese Pruefung faellt ein vergessener Import erst auf, wenn
+     * jemand hinsieht: nichts bewegt sich, und nichts ist kaputt.
+     */
+    /*
+     * In Millisekunden umgerechnet und nicht als Text verglichen: der
+     * Minifizierer schreibt `160ms` als `.16s`, und ein Vergleich auf den
+     * Wortlaut faellt darueber, obwohl alles stimmt. (Genau das ist hier
+     * beim ersten Anlauf passiert.)
+     */
+    const motionMs = await run(
+      window,
+      `const roh = getComputedStyle(document.documentElement)
+         .getPropertyValue('--motion-state').trim();
+       if (!roh) return 0;
+       const zahl = parseFloat(roh);
+       return roh.endsWith('ms') ? zahl : zahl * 1000;`
+    );
+    check(motionMs === 160, `die gemeinsamen Bewegungszeiten sind nicht geladen (${motionMs})`);
+    check(
+      (await run(
+        window,
+        `const e = document.querySelector('.note-editor__columns');
+         return e ? getComputedStyle(e).animationName : 'kein Editor';`
+      )) === 'motion-erscheinen',
+      'der Editorinhalt blendet beim Notizwechsel nicht ein'
+    );
+
     // 16b. Die Vorschlagsliste wechselt die Sprache mit
     /*
      * Gemeldet: "Wenn ich die Sprache auf Englisch stelle ist die Prompt

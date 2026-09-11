@@ -15,6 +15,10 @@
   --danger: #d1635c;
   --radius: 8px;
   color-scheme: dark;
+
+  /* Die Rueckmeldefarben des Bewegungspakets an diese Palette angleichen. */
+  --motion-ok: #6a9d5f;
+  --motion-fehler: #d1635c;
 }
 
 * {
@@ -1763,4 +1767,114 @@ mark {
 
 .kontextmenue__gefaehrlich {
   color: var(--danger);
+}
+
+/* ---------- Bewegung ---------- */
+
+/*
+ * Zeiten und Kurven kommen aus @suite/motion, die Farben von hier. Was
+ * bewegt wird, steht unten; was es bedeutet, in den Kommentaren.
+ */
+
+/*
+ * Der Statuspunkt leuchtet nach dem Speichern kurz gruen auf.
+ *
+ * Nur Farbe, kein Ortswechsel: der Text steht in einer Zeile mit anderen,
+ * und ein Ruecken waere dort ein Zucken. Die fertige Klasse `.motion-ok` des
+ * Pakets passt hier nicht — sie faerbt Rand und Schatten, und ein Text hat
+ * keinen Rand.
+ */
+@keyframes backstory-gespeichert {
+  0% {
+    color: var(--motion-ok);
+  }
+  60% {
+    color: var(--motion-ok);
+  }
+  100% {
+    color: var(--text-muted);
+  }
+}
+
+.status--gespeichert {
+  animation: backstory-gespeichert var(--motion-attention) var(--motion-ease-exit);
+}
+
+/*
+ * Der Toast faehrt von unten ein.
+ *
+ * Eine eigene Bewegung und nicht `.motion-eintritt`: der Toast steht mit
+ * `translateX(-50%)` in der Mitte, und die Klasse des Pakets wuerde diese
+ * Verschiebung ueberschreiben — er spraenge beim Erscheinen nach rechts.
+ */
+@keyframes backstory-toast {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.toast {
+  animation: backstory-toast var(--motion-place) var(--motion-ease-enter);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Erscheinen ja, Verschieben nein. */
+  @keyframes backstory-toast {
+    from {
+      opacity: 0;
+      transform: translate(-50%, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+  }
+}
+
+/*
+ * Beim Notizwechsel blendet der Inhalt ein.
+ *
+ * Ohne das springt der ganze Editor auf einen Schlag um, und bei aehnlich
+ * aussehenden Notizen ist nicht zu sehen, dass sich ueberhaupt etwas getan
+ * hat. Nur Erscheinen, kein Ruecken: der Text soll dort anfangen, wo er
+ * hingehoert, sonst liest man einer Bewegung hinterher.
+ */
+.note-editor__columns {
+  animation: motion-erscheinen var(--motion-state) var(--motion-ease-enter);
+}
+
+/*
+ * Eine Fundstelle leuchtet auf, wenn sie zur aktiven wird.
+ *
+ * Die Suche springt von Stelle zu Stelle, und beide sind gelb unterlegt —
+ * ohne ein kurzes Aufleuchten sucht man nach dem Sprung, wo man gelandet
+ * ist.
+ */
+@keyframes backstory-treffer {
+  from {
+    box-shadow: 0 0 0 3px var(--hit-active);
+  }
+  to {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.search-hit--active {
+  animation: backstory-treffer var(--motion-attention) var(--motion-ease-exit);
+}
+
+/*
+ * Graphknoten erscheinen weich und gestaffelt.
+ *
+ * Die Staffelung setzt der Graph selbst je Knoten (siehe GraphView), sonst
+ * blitzten bei vielen Notizen alle zugleich auf. Kurz gehalten: der letzte
+ * Knoten darf nicht spuerbar spaeter dastehen als der erste.
+ */
+.graph__node {
+  animation: motion-eintritt var(--motion-place) var(--motion-ease-enter) backwards;
 }

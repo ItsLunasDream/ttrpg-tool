@@ -598,8 +598,9 @@ function registriereKanaele(): void {
    * hinter ihr etwas liegt, sonst schriebe sie ihren Text unter eine
    * laufende Anwendung.
    */
-  handle('app:zeigen', async (_event, id: string): Promise<ZeigenErgebnis> => {
+  handle('app:zeigen', async (_event, id: string, fruehestensMs = 0): Promise<ZeigenErgebnis> => {
     if (!fenster) return { zustand: 'nicht-einbettbar' };
+    const begonnen = Date.now();
 
     verbergeAlle();
     aktiveApp = id;
@@ -642,6 +643,17 @@ function registriereKanaele(): void {
       aktiveApp = null;
       return fehlerErgebnis(fehler);
     }
+
+    /*
+     * Nicht vor der Zeit hervorkommen.
+     *
+     * Beim Wechsel aus dem Startmenue waechst in der Huelle das Symbol ueber
+     * den Schirm. Schoebe sich die Ansicht mitten hinein, sieht es aus, als
+     * haette jemand die Animation abgeschnitten. Montiert und geladen wurde
+     * waehrenddessen — gewartet wird nur auf den Rest.
+     */
+    const rest = fruehestensMs - (Date.now() - begonnen);
+    if (rest > 0) await new Promise((fertig) => setTimeout(fertig, rest));
 
     // `holeNachVorn` legt vorher neu aus: das Fenster kann seit dem letzten
     // Mal eine andere Groesse haben.

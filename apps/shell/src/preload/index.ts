@@ -46,8 +46,18 @@ const api = {
      * „ging / ging nicht": ein Werkzeug, das es noch nicht gibt, und eines,
      * dessen Dateien fehlen, brauchen verschiedene Antworten auf dem Schirm.
      */
-    zeigen: (id: string) =>
-      ipcRenderer.invoke('app:zeigen', id) as Promise<import('../main/index').ZeigenErgebnis>,
+    /**
+     * `fruehestensMs` haelt die Ansicht so lange zurueck.
+     *
+     * Gebraucht fuer den Uebergang aus dem Startmenue: dort waechst das
+     * Symbol ueber den Schirm, und die Ansicht darf sich nicht mitten hinein
+     * schieben. Montiert wird trotzdem sofort — die Zeit geht also nicht
+     * verloren, sie wird nur nicht vorzeitig sichtbar.
+     */
+    zeigen: (id: string, fruehestensMs = 0) =>
+      ipcRenderer.invoke('app:zeigen', id, fruehestensMs) as Promise<
+        import('../main/index').ZeigenErgebnis
+      >,
     /** Zurueck ins Startmenue. Die Anwendungen bleiben geladen. */
     startmenue: () => ipcRenderer.invoke('app:startmenue') as Promise<void>,
     /**
