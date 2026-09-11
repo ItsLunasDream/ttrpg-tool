@@ -335,7 +335,19 @@ body {
    * also an und brach mitten drin ab. Zwei Zahlen, die zusammenpassen
    * mussten und es nicht taten; jetzt meldet die Animation ihr Ende selbst.
    */
-  animation: schiene-wischt 1100ms var(--motion-ease-standard) 1;
+  /*
+   * `forwards` ist hier der Punkt, nicht Beiwerk.
+   *
+   * Ohne die Angabe faellt das Element nach dem letzten Bild auf seinen
+   * unbewegten Zustand zurueck — und der ist `translateX(0)`, also der
+   * Streifen mitten auf dem Symbol. Bis React die Klasse abnimmt, vergeht
+   * ein Bild, und genau das sah man: ein kurzer Strich in der Mitte,
+   * nachdem der Wisch schon durch war.
+   *
+   * Mit `forwards` bleibt der Streifen dort stehen, wo die Animation ihn
+   * hingetragen hat: rechts ausserhalb.
+   */
+  animation: schiene-wischt 1100ms var(--motion-ease-standard) 1 forwards;
   pointer-events: none;
 }
 

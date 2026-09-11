@@ -73,6 +73,24 @@ export function symbolOrdner(datenordner: string): string {
 }
 
 /**
+ * Der mitgelieferte Ordner im Programm.
+ *
+ * Hier liegen die Bilder, die mit der Sammlung ausgeliefert werden — sie
+ * gelten fuer alle, die sie installieren. Der Ordner im Datenordner sticht
+ * sie: wer eigene Bilder hinlegt, will die sehen und nicht die
+ * mitgelieferten.
+ *
+ * Im Paket liegt er unter `resources/symbole` (electron-builder legt ihn
+ * ueber `extraResources` dorthin), im Arbeitsverzeichnis neben dem
+ * Quelltext der Huelle.
+ */
+export function mitgelieferterOrdner(gepackt: boolean, resourcesPath: string): string {
+  return gepackt
+    ? join(resourcesPath, SYMBOL_ORDNER)
+    : join(__dirname, '..', '..', SYMBOL_ORDNER);
+}
+
+/**
  * Legt den Ordner an und schreibt einmal eine Liesmich hinein.
  *
  * Beides nur, wenn es noch nicht da ist: wer die Liesmich geloescht hat,
@@ -96,9 +114,26 @@ export async function richteSymbolOrdnerEin(datenordner: string): Promise<void> 
  * Aufruf scheitert. Gibt es den Ordner nicht, kommt eine leere Sammlung
  * zurueck.
  */
-export async function leseSymbole(datenordner: string): Promise<Record<string, string>> {
-  const ordner = symbolOrdner(datenordner);
+export async function leseSymbole(
+  datenordner: string,
+  mitgeliefert?: string
+): Promise<Record<string, string>> {
+  /*
+   * Zuerst die mitgelieferten, dann die eigenen.
+   *
+   * Die Reihenfolge ist die Regel: was spaeter kommt, gewinnt. Wer ein
+   * eigenes Bild hinlegt, sticht damit das mitgelieferte — und wer es wieder
+   * entfernt, bekommt das mitgelieferte zurueck, ohne etwas einstellen zu
+   * muessen.
+   */
+  const gefunden: Record<string, string> = {};
+  if (mitgeliefert) Object.assign(gefunden, await ausOrdner(mitgeliefert));
+  Object.assign(gefunden, await ausOrdner(symbolOrdner(datenordner)));
+  return gefunden;
+}
 
+/** Liest einen einzelnen Ordner. Fehlt er, kommt eine leere Sammlung zurueck. */
+async function ausOrdner(ordner: string): Promise<Record<string, string>> {
   let dateien: string[];
   try {
     dateien = await readdir(ordner);

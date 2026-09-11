@@ -62,7 +62,12 @@ import {
   type ShellSettings
 } from './settings';
 import { anbieterAus, entschluessle, verschluessle } from './ki';
-import { leseSymbole, richteSymbolOrdnerEin, symbolOrdner } from './symbole';
+import {
+  leseSymbole,
+  mitgelieferterOrdner,
+  richteSymbolOrdnerEin,
+  symbolOrdner
+} from './symbole';
 import { findeKiUebernahme } from './kiUebernahme';
 import { translate } from '../shared/i18n';
 import type { Language } from '../shared/i18n';
@@ -515,7 +520,13 @@ function registriereKanaele(): void {
    * Bei jedem Aufruf frisch von der Platte: wer ein Bild austauscht, drueckt
    * in den Einstellungen auf "neu laden" und will es dann auch sehen.
    */
-  handle('symbole:lesen', () => leseSymbole(app.getPath('userData')));
+  handle('symbole:lesen', () =>
+    leseSymbole(
+      app.getPath('userData'),
+      // Die mitgelieferten zuerst, die eigenen stechen sie.
+      mitgelieferterOrdner(app.isPackaged, process.resourcesPath)
+    )
+  );
 
   /** Oeffnet den Symbolordner im Dateimanager des Systems. */
   handle('symbole:ordner', async () => {
