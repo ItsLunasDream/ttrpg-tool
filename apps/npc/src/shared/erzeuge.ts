@@ -1,7 +1,16 @@
 /**
  * Aus den Tabellen wird eine Figur.
  *
- * Reine Funktionen mit uebergebenem Zufallsgeber — wie `wuerfle()` beim
+ * Die Figur traegt fertige Texte, keine Verweise in die Tabellen. Das ist
+ * Absicht: jedes Feld laesst sich vor dem Export von Hand aendern, und ein
+ * selbst geschriebener Satz hat in keiner Tabelle eine Stelle.
+ *
+ * Gewuerfelt wird in der Sprache, in der gerade gearbeitet wird — die
+ * Tabellen fuehren jeden Eintrag zweisprachig. Eine bereits gewuerfelte Figur
+ * wechselt die Sprache dadurch NICHT mit: sie koennte ja von Hand bearbeitet
+ * sein, und eine Uebersetzung wuerde diese Arbeit ueberschreiben.
+ *
+ * Reine Funktionen mit uebergebenem Zufallsgeber, wie `wuerfle()` beim
  * Wuerfel. So laesst sich pruefen, was sonst nur zu erahnen waere: dass
  * Eigenheiten selten sind, dass seltene Spezies selten bleiben, und dass ein
  * festgehaltenes Feld beim Nachwuerfeln wirklich stehen bleibt.
@@ -14,13 +23,16 @@ import {
   EIGENHEITEN,
   GEHEIMNISSE,
   MOTIVATIONEN,
-  SPEZIES
+  SPEZIES,
+  text,
+  type Paar,
+  type Sprache
 } from './tabellen';
 
 export const NAMENSKLANG = ['weiblich', 'maennlich', 'neutral'] as const;
 export type Namensklang = (typeof NAMENSKLANG)[number];
 
-/** Die Felder, die einzeln nachgewuerfelt und festgehalten werden koennen. */
+/** Die Felder, die einzeln nachgewuerfelt, bearbeitet und festgehalten werden. */
 export const FELDER = [
   'name',
   'spezies',
@@ -48,22 +60,21 @@ export interface Wuensche {
   readonly archetyp: string;
   /** Ein fester Namensklang, oder null fuer gemischt. */
   readonly klang: Namensklang | null;
-  /** Eine feste Spezies, oder null fuer gewuerfelt. */
-  readonly spezies: string | null;
+  /** Die Stelle einer festen Spezies in SPEZIES, oder -1 fuer gewuerfelt. */
+  readonly spezies: number;
 }
 
 export const STANDARD_WUENSCHE: Wuensche = {
   archetyp: 'beliebig',
   klang: null,
-  spezies: null
+  spezies: -1
 };
 
 /**
  * Wie oft eine Figur eine Marotte bekommt.
  *
- * Fuenfzehn von hundert. Der Wert stand so in der Anforderung, und er ist
- * gut begruendet: nicht jede Figur hat einen Tic, und wenn doch, faellt er
- * nicht mehr auf.
+ * Fuenfzehn von hundert. Nicht jede Figur hat einen Tic, und wenn doch,
+ * faellt er nicht mehr auf.
  */
 export const EIGENHEIT_CHANCE = 0.15;
 
@@ -78,57 +89,70 @@ const BEINAME_CHANCE = 0.35;
 /** Wie oft eine seltene Spezies gezogen wird, wenn nichts vorgegeben ist. */
 const SELTEN_CHANCE = 0.25;
 
+/** Die Rufnamen zu einem Klang. Rufnamen sind in jeder Sprache dieselben. */
+export function namenliste(klang: Namensklang): readonly string[] {
+  return klang === 'weiblich' ? WEIBLICH : klang === 'maennlich' ? MAENNLICH : NEUTRAL;
+}
+
 function waehle<T>(liste: readonly T[], rng: () => number): T {
   if (liste.length === 0) throw new Error('leere Liste');
   return liste[Math.min(liste.length - 1, Math.floor(rng() * liste.length))];
 }
 
-function erzeugeName(klang: Namensklang | null, rng: () => number): string {
-  const gewaehlt = klang ?? waehle(NAMENSKLANG, rng);
-  const liste =
-    gewaehlt === 'weiblich' ? WEIBLICH : gewaehlt === 'maennlich' ? MAENNLICH : NEUTRAL;
-  const rufname = waehle(liste, rng);
-  return rng() < BEINAME_CHANCE ? `${rufname} ${waehle(BEINAMEN, rng)}` : rufname;
+function waehleText(liste: readonly Paar[], sprache: Sprache, rng: () => number): string {
+  return text(waehle(liste, rng), sprache);
 }
 
-function erzeugeSpezies(vorgabe: string | null, rng: () => number): string {
-  if (vorgabe) return vorgabe;
+function erzeugeName(klang: Namensklang | null, sprache: Sprache, rng: () => number): string {
+  const gewaehlt = klang ?? waehle(NAMENSKLANG, rng);
+  const rufname = waehle(namenliste(gewaehlt), rng);
+  // Der Rufname bleibt in jeder Sprache derselbe — Mara heisst nirgends
+  // anders. Der Beiname ist eine Beschreibung und wird uebersetzt.
+  return rng() < BEINAME_CHANCE ? `${rufname} ${waehleText(BEINAMEN, sprache, rng)}` : rufname;
+}
+
+function erzeugeSpezies(vorgabe: number, sprache: Sprache, rng: () => number): string {
+  if (vorgabe >= 0 && vorgabe < SPEZIES.length) return text(SPEZIES[vorgabe], sprache);
   // Erst wuerfeln, ob es etwas Seltenes wird, dann innerhalb der Gruppe
   // gleichverteilt. Ueber alle Eintraege gleichverteilt waere jeder zweite
   // Passant ein Golem, und die Welt fuehlte sich an wie ein Jahrmarkt.
   const selten = rng() < SELTEN_CHANCE;
   const gruppe = SPEZIES.filter((art) => art.haeufig !== selten);
-  return waehle(gruppe.length > 0 ? gruppe : SPEZIES, rng).name;
+  return text(waehle(gruppe.length > 0 ? gruppe : SPEZIES, rng), sprache);
 }
 
-function erzeugeBeruf(archetyp: string, rng: () => number): string {
+function erzeugeBeruf(archetyp: string, sprache: Sprache, rng: () => number): string {
   const gefunden = ARCHETYPEN.find((eintrag) => eintrag.id === archetyp);
-  const liste = gefunden && gefunden.berufe.length > 0 ? gefunden.berufe : BERUFE;
-  return waehle(liste, rng);
+  if (!gefunden || gefunden.berufe.length === 0) return waehleText(BERUFE, sprache, rng);
+  // Der Archetyp nennt Berufe ueber ihre deutsche Fassung — das ist der
+  // Schluessel im Innenleben und taucht nirgends in der Oberflaeche auf.
+  const passend = BERUFE.filter((beruf) => gefunden.berufe.includes(beruf.de));
+  return waehleText(passend.length > 0 ? passend : BERUFE, sprache, rng);
 }
 
 /** Ein einzelnes Feld, frisch gewuerfelt. */
 export function erzeugeFeld(
   feld: Feld,
   wuensche: Wuensche,
+  sprache: Sprache,
   rng: () => number
 ): string {
   switch (feld) {
     case 'name':
-      return erzeugeName(wuensche.klang, rng);
+      return erzeugeName(wuensche.klang, sprache, rng);
     case 'spezies':
-      return erzeugeSpezies(wuensche.spezies, rng);
+      return erzeugeSpezies(wuensche.spezies, sprache, rng);
     case 'beruf':
-      return erzeugeBeruf(wuensche.archetyp, rng);
+      return erzeugeBeruf(wuensche.archetyp, sprache, rng);
     case 'aussehen':
-      return waehle(AUSSEHEN, rng);
+      return waehleText(AUSSEHEN, sprache, rng);
     case 'motivation':
-      return waehle(MOTIVATIONEN, rng);
+      return waehleText(MOTIVATIONEN, sprache, rng);
     case 'geheimnis':
-      return waehle(GEHEIMNISSE, rng);
+      return waehleText(GEHEIMNISSE, sprache, rng);
     case 'eigenheit':
       // Die Ausnahme: meistens kommt hier nichts.
-      return rng() < EIGENHEIT_CHANCE ? waehle(EIGENHEITEN, rng) : '';
+      return rng() < EIGENHEIT_CHANCE ? waehleText(EIGENHEITEN, sprache, rng) : '';
   }
 }
 
@@ -136,10 +160,12 @@ export function erzeugeFeld(
  * Eine ganze Figur.
  *
  * `festgehalten` nennt die Felder, die aus `vorher` uebernommen werden. Ohne
- * das wuerfelte man den guten Namen weg, waehrend man den Beruf sucht.
+ * das wuerfelte man den guten Namen weg, waehrend man den Beruf sucht — und
+ * einen von Hand geschriebenen Satz gleich mit.
  */
 export function erzeugeFigur(
   wuensche: Wuensche,
+  sprache: Sprache,
   rng: () => number,
   festgehalten: readonly Feld[] = [],
   vorher: Figur | null = null
@@ -147,7 +173,7 @@ export function erzeugeFigur(
   const behalten = new Set(festgehalten);
   const nimm = (feld: Feld): string => {
     if (behalten.has(feld) && vorher) return vorher[feld];
-    return erzeugeFeld(feld, wuensche, rng);
+    return erzeugeFeld(feld, wuensche, sprache, rng);
   };
 
   return {
@@ -166,16 +192,20 @@ export function erzeugeFigur(
  *
  * Markdown, weil der Backstory Creator Markdown speichert. Leere Felder
  * fallen weg — eine Zeile „Eigenheit: " sagt weniger als keine Zeile.
+ *
+ * Die Beschriftungen kommen mit, damit die Notiz auch ohne dieses Werkzeug
+ * lesbar bleibt; sie stehen in der Sprache, in der exportiert wird.
  */
-export function alsMarkdown(figur: Figur): string {
+export function alsMarkdown(figur: Figur, sprache: Sprache): string {
+  const w = (de: string, en: string) => (sprache === 'de' ? de : en);
   const zeilen = [
-    `**Spezies:** ${figur.spezies}`,
-    `**Tätigkeit:** ${figur.beruf}`,
+    `**${w('Spezies', 'Species')}:** ${figur.spezies}`,
+    `**${w('Tätigkeit', 'Occupation')}:** ${figur.beruf}`,
     '',
-    `**Auffällig:** ${figur.aussehen}`,
-    `**Will:** ${figur.motivation}`,
-    `**Verschweigt:** ${figur.geheimnis}`
+    `**${w('Auffällig', 'Notable')}:** ${figur.aussehen}`,
+    `**${w('Will', 'Wants')}:** ${figur.motivation}`,
+    `**${w('Verschweigt', 'Hides')}:** ${figur.geheimnis}`
   ];
-  if (figur.eigenheit) zeilen.push(`**Eigenheit:** ${figur.eigenheit}`);
+  if (figur.eigenheit) zeilen.push(`**${w('Eigenheit', 'Quirk')}:** ${figur.eigenheit}`);
   return zeilen.join('\n');
 }

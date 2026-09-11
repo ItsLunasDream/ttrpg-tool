@@ -1,3 +1,5 @@
+import type { Paar } from './tabellen';
+
 /**
  * Namen fuer Figuren.
  *
@@ -73,12 +75,40 @@ export const NEUTRAL = [
  * Nicht jede Figur bekommt einen: bei einer Wache am Tor fragt niemand nach
  * dem Nachnamen, und ein Generator, der immer zwei Namen liefert, klingt
  * nach Adelsregister.
+ *
+ * Zweisprachig, anders als die Rufnamen: „Eisenfaust" ist eine Beschreibung
+ * und keine Kennung. Ein Rufname bleibt dagegen in jeder Sprache derselbe —
+ * Mara heisst nirgends anders.
  */
-export const BEINAMEN = [
-  'Eisenfaust', 'Grauhaupt', 'Sturmweber', 'Hollenbeck', 'Rabenstein',
-  'Wintermund', 'Steinbach', 'Morgenroth', 'Dunkelbrunn', 'Hochbaum',
-  'Kesselflick', 'Wagemut', 'Fassbinder', 'Krummholz', 'Mohnfeld',
-  'Silberdorn', 'Aschenwald', 'Rotbart', 'Nebelfern', 'Hagelgrund',
-  'die Ältere', 'vom Hügel', 'aus Talwinkel', 'der Dritte', 'ohne Land',
-  'Zwiefinger', 'Halbschuh', 'Dreibein', 'Leisetritt', 'Spätzünder'
-] as const;
+export const BEINAMEN: readonly Paar[] = [
+  { de: 'Eisenfaust', en: 'Ironfist' },
+  { de: 'Grauhaupt', en: 'Greyhead' },
+  { de: 'Sturmweber', en: 'Stormweaver' },
+  { de: 'Hollenbeck', en: 'Hollowbeck' },
+  { de: 'Rabenstein', en: 'Ravenstone' },
+  { de: 'Wintermund', en: 'Wintermouth' },
+  { de: 'Steinbach', en: 'Stonebrook' },
+  { de: 'Morgenroth', en: 'Dawnred' },
+  { de: 'Dunkelbrunn', en: 'Darkwell' },
+  { de: 'Hochbaum', en: 'Hightree' },
+  { de: 'Kesselflick', en: 'Kettlepatch' },
+  { de: 'Wagemut', en: 'Boldheart' },
+  { de: 'Fassbinder', en: 'Cooper' },
+  { de: 'Krummholz', en: 'Crookwood' },
+  { de: 'Mohnfeld', en: 'Poppyfield' },
+  { de: 'Silberdorn', en: 'Silverthorn' },
+  { de: 'Aschenwald', en: 'Ashwood' },
+  { de: 'Rotbart', en: 'Redbeard' },
+  { de: 'Nebelfern', en: 'Mistfar' },
+  { de: 'Hagelgrund', en: 'Hailground' },
+  { de: 'die Ältere', en: 'the Elder' },
+  { de: 'vom Hügel', en: 'of the Hill' },
+  { de: 'aus Talwinkel', en: 'of Valecorner' },
+  { de: 'der Dritte', en: 'the Third' },
+  { de: 'ohne Land', en: 'Landless' },
+  { de: 'Zwiefinger', en: 'Twofinger' },
+  { de: 'Halbschuh', en: 'Halfshoe' },
+  { de: 'Dreibein', en: 'Threelegs' },
+  { de: 'Leisetritt', en: 'Softstep' },
+  { de: 'Spätzünder', en: 'Slowspark' }
+];

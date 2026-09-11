@@ -1,7 +1,7 @@
 /** Die Bruecke zwischen Oberflaeche und Hauptprozess. */
 import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
-import type { Figur } from '../shared/erzeuge';
+
 
 export interface ExportErgebnis {
   readonly ok: boolean;
@@ -16,8 +16,8 @@ const api = {
    * Auf Knopfdruck und nicht von selbst: eine Figur, die man verwirft, soll
    * nicht schon im Archiv liegen.
    */
-  export: (figur: Figur, markdown: string) =>
-    ipcRenderer.invoke(kanal('export'), figur, markdown) as Promise<ExportErgebnis>
+  export: (titel: string, markdown: string) =>
+    ipcRenderer.invoke(kanal('export'), titel, markdown) as Promise<ExportErgebnis>
 };
 
 export type NpcApi = typeof api;

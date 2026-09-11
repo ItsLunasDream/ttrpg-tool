@@ -152,7 +152,7 @@ button {
 .zeile {
   display: grid;
   grid-template-columns: 96px 1fr auto;
-  align-items: baseline;
+  align-items: start;
   gap: 10px;
   padding: 7px 8px;
   border-radius: 8px;
@@ -162,16 +162,48 @@ button {
   background: var(--grund-hoch);
 }
 
-.zeile dt {
+.zeile__label {
   color: var(--text-leise);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  padding-top: 3px;
 }
 
-.zeile dd {
-  margin: 0;
+/*
+ * Der Wert steht in einem Textfeld, sieht aber aus wie Text.
+ *
+ * Ein Generator, dessen Ergebnis man nur annehmen oder verwerfen kann, zwingt
+ * zum Weiterwuerfeln, bis zufaellig alles passt — dabei fehlt meist nur ein
+ * Wort. Der Rahmen erscheint erst beim Darueberfahren, damit die Figur sich
+ * liest wie ein Steckbrief und nicht wie ein Formular.
+ */
+.zeile__wert {
+  width: 100%;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
   line-height: 1.5;
+  padding: 2px 6px;
+  margin: -2px -6px;
+}
+
+.zeile__wert:hover {
+  border-color: var(--rand);
+}
+
+.zeile__wert:focus {
+  outline: none;
+  border-color: var(--betont);
+  background: var(--grund-tisch);
+}
+
+.zeile__wert::placeholder {
+  color: var(--text-leise);
+  font-style: italic;
 }
 
 /* Ein festgehaltenes Feld bleibt beim naechsten Wurf stehen — das muss man
@@ -181,10 +213,7 @@ button {
   box-shadow: inset 2px 0 0 var(--fest);
 }
 
-.zeile--leer dd {
-  color: var(--text-leise);
-  font-style: italic;
-}
+
 
 .zeile__knoepfe {
   display: flex;

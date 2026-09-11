@@ -2,6 +2,7 @@
 export {
   erzeugeFigur,
   erzeugeFeld,
+  namenliste,
   alsMarkdown,
   FELDER,
   NAMENSKLANG,
@@ -9,6 +10,7 @@ export {
   STANDARD_WUENSCHE
 } from '../src/shared/erzeuge';
 export { WEIBLICH, MAENNLICH, NEUTRAL, BEINAMEN } from '../src/shared/namen';
+export { text } from '../src/shared/tabellen';
 export {
   SPEZIES,
   BERUFE,

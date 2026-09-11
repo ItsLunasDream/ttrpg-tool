@@ -99,6 +99,15 @@ export interface BackstoryEmbed {
   readonly settings: AppSettings;
   readonly vault: Vault;
   /**
+   * Die Einstellungen, wie sie JETZT sind.
+   *
+   * `settings` daneben ist ein Schnappschuss vom Montagezeitpunkt und
+   * veraltet, sobald jemand die Kampagne wechselt. Wer wissen will, woran
+   * gerade gearbeitet wird — etwa der NPC Creator, der seine Figur irgendwo
+   * ablegen muss —, braucht den aktuellen Stand.
+   */
+  aktuelleEinstellungen(): AppSettings;
+  /**
    * Gibt der Oberflaeche Gelegenheit, Ungespeichertes zu sichern, und wartet
    * darauf — laengstens `timeoutMs`.
    *
@@ -177,6 +186,7 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
     devServerUrl: options.devServerUrl ?? null,
     settings,
     vault,
+    aktuelleEinstellungen: () => kontext.settings,
     flush: (webContents, timeoutMs = 3000) => flushWebContents(webContents, timeoutMs),
     darfSchliessen: (webContents, elternfenster) =>
       frageVorDemSchliessen(webContents, kontext.settings.language, elternfenster),

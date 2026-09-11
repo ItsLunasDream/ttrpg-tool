@@ -69,7 +69,7 @@ app.whenReady().then(async () => {
    * laufenden Anwendung, weil der Zustand in der Oberflaeche liegt und die
    * Modelltests nur die Funktion dahinter sehen.
    */
-  const name = () => js("document.querySelector('.zeile dd').textContent");
+  const name = () => js("document.querySelector('.zeile__wert').value");
   const vorher = await name();
   await js("[...document.querySelectorAll('.zeile')][0].querySelectorAll('button')[1].click(); true");
   await warte(200);

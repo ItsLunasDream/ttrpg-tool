@@ -29,7 +29,24 @@ const NOTES_DIR = 'notes';
 const ASSETS_DIR = 'assets';
 const CAMPAIGN_FILE = 'campaign.json';
 const HISTORY_DIR = 'history';
+/**
+ * Die Vorschlagsdatei — eine je Sprache.
+ *
+ * Frueher gab es nur eine, und sie wurde beim ersten Start in der damals
+ * eingestellten Sprache geschrieben. Danach wurde sie gelesen, gleich welche
+ * Sprache gerade galt: wer sie auf Deutsch angelegt hatte, bekam auch mit
+ * englischer Oberflaeche deutsche Vorschlaege. Die Tabelle war zweisprachig,
+ * die Datei nicht.
+ *
+ * Je Sprache eine Datei, weil sie Nutzerdatei ist: wer eigene Vorschlaege
+ * ergaenzt, tut das in der Sprache, in der er schreibt, und eine
+ * automatische Uebersetzung gaebe es dafuer ohnehin nicht.
+ */
 const PROMPTS_FILE = 'writing-prompts.json';
+
+function promptsDatei(language: Language): string {
+  return `writing-prompts.${language}.json`;
+}
 
 /**
  * Mindestabstand zwischen zwei Versionen derselben Notiz. Ohne diese Sperre
@@ -229,13 +246,30 @@ export class Vault {
    * ergaenzen oder die Vorlage komplett ersetzen.
    */
   async readPrompts(language: Language): Promise<PromptCategory[]> {
-    const file = path.join(this.root, PROMPTS_FILE);
+    const file = path.join(this.root, promptsDatei(language));
     try {
       const parsed = JSON.parse(await fs.readFile(file, 'utf8')) as unknown;
       const normalized = normalizePrompts(parsed);
       if (normalized.length) return normalized;
     } catch {
-      // Datei fehlt oder ist unlesbar, unten wird die Vorlage geschrieben.
+      // Datei fehlt oder ist unlesbar, unten wird weitergesucht.
+    }
+
+    // Die alte, sprachlose Datei uebernehmen, falls es sie gibt: wer eigene
+    // Vorschlaege gepflegt hat, soll sie nicht verlieren. Welche Sprache
+    // darin steht, weiss niemand — sie gilt deshalb fuer die, die gerade
+    // eingestellt ist. Passt das nicht, genuegt es, die Datei zu loeschen.
+    const alt = path.join(this.root, PROMPTS_FILE);
+    try {
+      const parsed = JSON.parse(await fs.readFile(alt, 'utf8')) as unknown;
+      const normalized = normalizePrompts(parsed);
+      if (normalized.length) {
+        await writeJson(file, normalized);
+        await fs.rm(alt, { force: true });
+        return normalized;
+      }
+    } catch {
+      // Gab es nicht — dann eben die Vorlage.
     }
 
     const seeded = defaultPrompts(language);
@@ -243,8 +277,8 @@ export class Vault {
     return seeded;
   }
 
-  promptsFile(): string {
-    return path.join(this.root, PROMPTS_FILE);
+  promptsFile(language: Language): string {
+    return path.join(this.root, promptsDatei(language));
   }
 
   // --- Kampagnen -----------------------------------------------------------

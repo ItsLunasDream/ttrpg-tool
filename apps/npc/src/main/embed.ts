@@ -12,7 +12,6 @@ import path from 'node:path';
 import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import { kanal } from '../shared/kanaele';
-import type { Figur } from '../shared/erzeuge';
 
 export interface ExportErgebnis {
   readonly ok: boolean;
@@ -26,7 +25,7 @@ export interface ExportErgebnis {
  * ueberhaupt montiert ist und welche Kampagne offen steht. Der NPC Creator
  * kennt den Vault nicht und soll ihn auch nicht kennen.
  */
-export type Anleger = (figur: Figur, markdown: string) => Promise<ExportErgebnis>;
+export type Anleger = (titel: string, markdown: string) => Promise<ExportErgebnis>;
 
 export interface NpcEmbedOptions {
   readonly distDir: string;
@@ -69,12 +68,12 @@ export async function mountNpc(options: NpcEmbedOptions): Promise<NpcEmbed> {
   // Erst abmelden: nach einem Fehlschlag kann dieselbe Anwendung ein zweites
   // Mal montiert werden, und `handle` weist einen zweiten Handler ab.
   ipcMain.removeHandler(kanal('export'));
-  ipcMain.handle(kanal('export'), async (_e, figur: Figur, markdown: string) => {
+  ipcMain.handle(kanal('export'), async (_e, titel: string, markdown: string) => {
     if (!options.anlegen) {
       return { ok: false, text: 'Der Backstory Creator ist nicht verfügbar.' };
     }
     try {
-      return await options.anlegen(figur, markdown);
+      return await options.anlegen(titel, markdown);
     } catch (fehler) {
       return { ok: false, text: String(fehler instanceof Error ? fehler.message : fehler) };
     }

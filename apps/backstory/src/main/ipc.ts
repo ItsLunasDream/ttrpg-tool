@@ -167,7 +167,7 @@ export function registerIpc(context: IpcContext): void {
 
   handle<[], void>('prompts:reveal', async () => {
     await vault.readPrompts(context.settings.language);
-    await shell.showItemInFolder(vault.promptsFile());
+    await shell.showItemInFolder(vault.promptsFile(context.settings.language));
   });
 
   handle<[], void>('vault:reveal', async () => {

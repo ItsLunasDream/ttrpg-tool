@@ -430,8 +430,17 @@ test('Schreibhilfe wird beim ersten Lesen als Datei angelegt', async () => {
     const prompts = await vault.readPrompts('de');
     assert.ok(prompts.length >= 5);
 
-    const raw = JSON.parse(await readFile(path.join(root, 'writing-prompts.json'), 'utf8'));
+    // Der Dateiname traegt die Sprache. Frueher gab es nur eine Datei, und
+    // sie hielt die Sprache fest, in der sie zuerst angelegt wurde: wer sie
+    // auf Deutsch bekam, sah auch mit englischer Oberflaeche deutsche
+    // Vorschlaege.
+    const raw = JSON.parse(await readFile(path.join(root, 'writing-prompts.de.json'), 'utf8'));
     assert.equal(raw.length, prompts.length, 'Datei wurde nicht geschrieben');
+
+    const englisch = await vault.readPrompts('en');
+    const rawEn = JSON.parse(await readFile(path.join(root, 'writing-prompts.en.json'), 'utf8'));
+    assert.equal(rawEn.length, englisch.length);
+    assert.notEqual(englisch[0].label, prompts[0].label, 'beide Dateien haben denselben Inhalt');
   });
 });
 
@@ -1003,4 +1012,42 @@ test('Ein Lesefehler loescht nicht alle Knotenstellen', async () => {
 
     assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions, { [mira.id]: { x: 1, y: 1 } });
   });
+});
+
+test('Vorschlaege gibt es je Sprache, und die alte Datei geht nicht verloren', async () => {
+  // Frueher gab es nur eine Datei. Sie wurde beim ersten Start in der damals
+  // eingestellten Sprache geschrieben und danach gelesen, gleich welche
+  // Sprache galt: wer sie auf Deutsch angelegt hatte, bekam auch mit
+  // englischer Oberflaeche deutsche Vorschlaege.
+  const root = await mkdtemp(path.join(tmpdir(), 'prompts-'));
+  const vault = new Vault(root);
+  await vault.init();
+
+  const de = await vault.readPrompts('de');
+  const en = await vault.readPrompts('en');
+  assert.ok(de.length > 0 && en.length > 0);
+  assert.notEqual(de[0].label, en[0].label, 'beide Sprachen liefern dieselbe Beschriftung');
+  // Gleicher Aufbau, andere Worte: die Kategorien stimmen ueberein.
+  assert.deepEqual(
+    de.map((k) => k.id),
+    en.map((k) => k.id)
+  );
+  assert.deepEqual(
+    de.map((k) => k.options.length),
+    en.map((k) => k.options.length)
+  );
+
+  // Eigene Eintraege bleiben erhalten.
+  const eigene = [{ id: 'origin', label: 'Meins', options: ['Ein eigener Vorschlag'] }];
+  await writeFile(path.join(root, 'writing-prompts.de.json'), JSON.stringify(eigene), 'utf8');
+  const wieder = await vault.readPrompts('de');
+  assert.equal(wieder[0].options[0], 'Ein eigener Vorschlag');
+
+  // Und eine alte, sprachlose Datei wird uebernommen statt ignoriert.
+  const zweiter = await mkdtemp(path.join(tmpdir(), 'prompts-alt-'));
+  const alt = new Vault(zweiter);
+  await alt.init();
+  await writeFile(path.join(zweiter, 'writing-prompts.json'), JSON.stringify(eigene), 'utf8');
+  const uebernommen = await alt.readPrompts('de');
+  assert.equal(uebernommen[0].options[0], 'Ein eigener Vorschlag');
 });

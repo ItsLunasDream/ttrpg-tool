@@ -35,7 +35,6 @@ import {
 } from '../../../initiative/src/main/embed';
 import { mountDice } from '../../../dice/src/main/embed';
 import { mountNpc } from '../../../npc/src/main/embed';
-import type { Figur } from '../../../npc/src/shared/erzeuge';
 import type { Language } from '../shared/i18n';
 
 export interface MontierteApp {
@@ -310,28 +309,31 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
     devServerUrl: process.env.NPC_DEV_SERVER_URL,
     language: haken.language,
     onLanguageChange: (language) => haken.onLanguageChange(language as Language),
-    anlegen: async (figur: Figur, markdown: string) => {
-      if (!backstoryVault) {
+    anlegen: async (titel: string, markdown: string) => {
+      if (!backstoryEmbed) {
         return {
           ok: false,
           text: 'Öffne den Backstory Creator einmal, dann weiß die Sammlung, wohin.'
         };
       }
-      const kampagnen = await backstoryVault.listCampaigns();
+      const kampagnen = await backstoryEmbed.vault.listCampaigns();
       if (kampagnen.length === 0) {
         return { ok: false, text: 'Es gibt noch keine Kampagne, in die die Figur passt.' };
       }
-      // Die erste Kampagne der Liste. Der Vault gibt die zuletzt geoeffnete
-      // nicht heraus — sie steht in den Einstellungen des Backstory Creators,
-      // und die liest die Huelle nicht mit. Bei mehreren Kampagnen ist das
-      // eine Vereinfachung, die auffallen wird; sie gehoert dann in einen
-      // eigenen Schritt, nicht in diese erste Fassung.
-      const kampagne = kampagnen[0];
+      // Die Kampagne, an der gerade gearbeitet wird. Der Backstory Creator
+      // merkt sie sich in seinen Einstellungen; abgefragt wird der aktuelle
+      // Stand und nicht der Schnappschuss vom Montagezeitpunkt, sonst landete
+      // die Figur nach einem Kampagnenwechsel in der falschen Sammlung.
+      //
+      // Eine Auswahl im NPC Creator waere ein zweites Verzeichnis derselben
+      // Dinge — und wer eine Figur wirft, denkt gerade nicht an Ablageorte.
+      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
 
-      const notiz = await backstoryVault.createNote(kampagne.id, 'character', figur.name);
-      await backstoryVault.saveNote(kampagne.id, { ...notiz, body: markdown });
+      const notiz = await backstoryEmbed.vault.createNote(kampagne.id, 'character', titel);
+      await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
       haken.onEreignis?.('backstory');
-      return { ok: true, text: `${figur.name} → ${kampagne.name}` };
+      return { ok: true, text: `${titel} → ${kampagne.name}` };
     }
   });
 
@@ -416,7 +418,7 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
  * Backstory Creator nie geoeffnet worden, steht hier null — und der Export
  * sagt das ehrlich, statt stumm ins Leere zu schreiben.
  */
-let backstoryVault: BackstoryEmbed['vault'] | null = null;
+let backstoryEmbed: BackstoryEmbed | null = null;
 
 async function montiereBackstory(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountBackstory({
@@ -432,7 +434,7 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
   });
 
   // Fuer den NPC Creator: er legt Figuren hier ab, ohne den Vault zu kennen.
-  backstoryVault = eingebettet.vault;
+  backstoryEmbed = eingebettet;
 
   const sicht = new WebContentsView({
     webPreferences: {
