@@ -27,6 +27,7 @@ const en = {
   'status.planned': 'later',
 
   'stage.placeholder': 'This tool is not ready to be embedded yet.',
+  'stage.loading': 'Opening {name} …',
 
   'stage.failed.title': '{name} could not be opened',
   'stage.failed.missing':
@@ -42,6 +43,12 @@ const en = {
   'settings.languageHint':
     'Applies to this window — its title bar, the start menu and the rail. Each tool keeps its own language setting.',
   'settings.saveFailed': 'Could not save the settings: {detail}',
+
+  'settings.icons': 'Tool icons',
+  'settings.iconsHint':
+    'Drop your own image per tool into this folder — backstory.png, mapmaker.png, initiative.png, dice.png, npc.png. Anything missing keeps the built-in icon.',
+  'settings.iconsOpen': 'Open folder',
+  'settings.iconsReload': 'Reload icons',
 
   'settings.ai': 'AI',
   'settings.aiHint':
@@ -128,6 +135,7 @@ const de: Partial<Record<MessageKey, string>> = {
   'status.planned': 'später',
 
   'stage.placeholder': 'Dieses Werkzeug lässt sich noch nicht einbetten.',
+  'stage.loading': '{name} wird geöffnet …',
 
   'stage.failed.title': '{name} ließ sich nicht öffnen',
   'stage.failed.missing':
@@ -143,6 +151,12 @@ const de: Partial<Record<MessageKey, string>> = {
   'settings.languageHint':
     'Gilt für dieses Fenster — seine Titelleiste, das Startmenü und die Schiene. Jedes Werkzeug behält seine eigene Spracheinstellung.',
   'settings.saveFailed': 'Die Einstellungen ließen sich nicht speichern: {detail}',
+
+  'settings.icons': 'Symbole der Werkzeuge',
+  'settings.iconsHint':
+    'Leg in diesen Ordner ein eigenes Bild je Werkzeug — backstory.png, mapmaker.png, initiative.png, dice.png, npc.png. Wo keines liegt, bleibt das eingebaute.',
+  'settings.iconsOpen': 'Ordner öffnen',
+  'settings.iconsReload': 'Symbole neu laden',
 
   'settings.ai': 'KI',
   'settings.aiHint':

@@ -376,7 +376,7 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
           );
         })}
 
-        {nodes.map((node) => {
+        {nodes.map((node, nummer) => {
           const note = visibleIndex.byId.get(node.id);
           if (!note) return null;
 
@@ -388,6 +388,13 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
               key={node.id}
               data-id={node.id}
               className={`graph__node${dimmed ? ' is-dimmed' : ''}${node.id === activeNoteId ? ' is-active' : ''}`}
+              /*
+               * Gestaffelt, damit der Graph sich aufbaut statt aufzublitzen.
+               * Gedeckelt, weil eine grosse Kampagne sonst sekundenlang
+               * erschiene — der letzte Knoten darf nicht spuerbar spaeter da
+               * sein als der erste.
+               */
+              style={{ animationDelay: `${Math.min(nummer, 20) * 18}ms` }}
               transform={`translate(${node.x} ${node.y})`}
               onMouseEnter={() => setHovered(node.id)}
               onMouseLeave={() => setHovered(null)}

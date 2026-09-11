@@ -82,6 +82,15 @@ export interface MontierteApp {
    * wird.
    */
   setLanguage?(language: Language): Promise<void>;
+  /**
+   * Sagt der Anwendung, dass sich die KI-Einstellung der Sammlung geaendert
+   * hat — fehlt bei Anwendungen ohne KI.
+   *
+   * Die Huelle ruft das bei jeder offenen Anwendung auf. Ohne diese Meldung
+   * fragen sie den Zustand nur einmal beim Laden ab, und wer die KI umstellt,
+   * saehe davon nichts.
+   */
+  meldeKiWechsel?(): void;
 }
 
 /** Was die Huelle jeder Anwendung beim Montieren mitgibt. */
@@ -344,6 +353,14 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
 
       const notiz = await backstoryEmbed.vault.createNote(kampagne.id, 'character', titel);
       await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+
+      // Dem Backstory Creator sagen, dass etwas dazugekommen ist. Ohne das
+      // liegt die Notiz zwar auf der Platte, seine offene Liste zeigt sie
+      // aber nicht — und es sieht aus, als waere der Export ins Leere
+      // gelaufen.
+      if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
+        backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
+      }
       haken.onEreignis?.('backstory');
       return { ok: true, text: `${titel} → ${kampagne.name}` };
     }
@@ -374,7 +391,10 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
     },
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
-    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)    ,
+    // Die KI wird in der Huelle eingerichtet; dieses Werkzeug muss es
+    // erfahren, sonst fragt es den Zustand nur beim Laden ab.
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
   };
 }
 
@@ -431,6 +451,14 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
  * sagt das ehrlich, statt stumm ins Leere zu schreiben.
  */
 let backstoryEmbed: BackstoryEmbed | null = null;
+/**
+ * Die Ansicht des Backstory Creators, solange er montiert ist.
+ *
+ * Gebraucht, um ihm zu sagen, dass hinter seinem Ruecken eine Notiz
+ * dazugekommen ist. Der Embed allein reicht dafuer nicht: `send` braucht die
+ * webContents, und die gehoeren zur Ansicht.
+ */
+let backstorySicht: WebContentsView | null = null;
 
 async function montiereBackstory(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountBackstory({
@@ -462,6 +490,8 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
   });
 
   sichereAb(sicht, eingebettet.devServerUrl);
+  // Damit der NPC Creator ihm sagen kann, dass eine Figur dazugekommen ist.
+  backstorySicht = sicht;
 
   let geladen = false;
   return {
@@ -475,7 +505,10 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
     flush: () => eingebettet.flush(sicht.webContents as WebContents),
     darfSchliessen: (elternfenster) =>
       eingebettet.darfSchliessen(sicht.webContents as WebContents, elternfenster),
-    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)    ,
+    // Die KI wird in der Huelle eingerichtet; dieses Werkzeug muss es
+    // erfahren, sonst fragt es den Zustand nur beim Laden ab.
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
   };
 }
 

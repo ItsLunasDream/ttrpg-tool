@@ -249,3 +249,38 @@ test('der Markdown-Text laesst leere Felder weg und spricht beide Sprachen', () 
   assert.ok(englisch.includes('Quirk'));
   assert.ok(englisch.includes(EIGENHEITEN[0].en));
 });
+
+test('gezielt nachgewuerfelt liefert die Eigenheit immer', () => {
+  // Beim Erzeugen einer Figur faellt sie meistens aus, und das ist so
+  // gewollt. Wer aber auf das Nachwuerfeln GENAU DIESER Zeile drueckt, will
+  // eine Marotte — sechsmal hintereinander ein leeres Feld sieht aus wie ein
+  // Knopf, der nicht reagiert.
+  for (let versuch = 0; versuch < 200; versuch++) {
+    const wert = erzeugeFeld('eigenheit', STANDARD_WUENSCHE, 'de', Math.random, true);
+    assert.notEqual(wert, '', `Versuch ${versuch} kam leer zurueck`);
+  }
+});
+
+test('ohne gezielt bleibt die Eigenheit selten', () => {
+  // Die Gegenrichtung: der Schalter darf nicht versehentlich ueberall gelten.
+  let mit = 0;
+  const WUERFE = 4000;
+  for (let i = 0; i < WUERFE; i++) {
+    if (erzeugeFeld('eigenheit', STANDARD_WUENSCHE, 'de', Math.random) !== '') mit++;
+  }
+  const anteil = mit / WUERFE;
+  assert.ok(
+    anteil > 0.1 && anteil < 0.2,
+    `Anteil ${anteil.toFixed(3)} liegt nicht bei den erwarteten 0,15`
+  );
+});
+
+test('bei allen anderen Feldern aendert gezielt nichts', () => {
+  // Sie liefern ohnehin immer etwas; der Schalter darf dort nicht plötzlich
+  // einen anderen Weg nehmen.
+  for (const feld of ['name', 'spezies', 'beruf', 'aussehen', 'motivation', 'geheimnis']) {
+    const ohne = erzeugeFeld(feld, STANDARD_WUENSCHE, 'de', () => 0.5);
+    const mit = erzeugeFeld(feld, STANDARD_WUENSCHE, 'de', () => 0.5, true);
+    assert.equal(mit, ohne, `${feld} kommt gezielt anders heraus`);
+  }
+});

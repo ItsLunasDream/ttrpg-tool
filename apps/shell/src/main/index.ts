@@ -18,6 +18,37 @@
  * Einbetten spaeter nichts daran umstellt.
  */
 import { app, BaseWindow, WebContentsView, ipcMain, screen, shell, type IpcMainInvokeEvent } from 'electron';
+/**
+ * Startzeit messen, wenn TTRPG_TOOLS_STARTZEIT gesetzt ist.
+ *
+ * Gebaut, weil die Frage „warum dauert der Start so lange?\" von einem
+ * Windows-Rechner kam und hier keiner steht. Geraten haette ich dabei mit
+ * hoher Wahrscheinlichkeit daneben: hier unter Linux vergehen bis zum
+ * Startmenue rund eine halbe Sekunde, und davon entfaellt fast nichts auf
+ * den eigenen Code.
+ *
+ * Kostet im Normalfall nichts: ohne die Variable wird nur eine Zahl
+ * abgelegt und nie wieder angesehen.
+ */
+const START_GEMESSEN = Boolean(process.env.TTRPG_TOOLS_STARTZEIT);
+const startBeginn = Date.now() - Math.round(process.uptime() * 1000);
+const startMarken: [string, number][] = [];
+
+function startMarke(was: string): void {
+  if (!START_GEMESSEN) return;
+  startMarken.push([was, Date.now()]);
+}
+
+function startBericht(): void {
+  if (!START_GEMESSEN || startMarken.length === 0) return;
+  console.log('[shell] Startzeit:');
+  let vorher = startBeginn;
+  for (const [was, zeit] of startMarken) {
+    console.log(`  ${String(zeit - vorher).padStart(6)} ms   ${was}`);
+    vorher = zeit;
+  }
+  console.log(`  ${String(Date.now() - startBeginn).padStart(6)} ms   GESAMT`);
+}
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { berechneAppFlaeche } from '../shared/apps';
@@ -31,6 +62,7 @@ import {
   type ShellSettings
 } from './settings';
 import { anbieterAus, entschluessle, verschluessle } from './ki';
+import { leseSymbole, richteSymbolOrdnerEin, symbolOrdner } from './symbole';
 import { findeKiUebernahme } from './kiUebernahme';
 import { translate } from '../shared/i18n';
 import type { Language } from '../shared/i18n';
@@ -196,6 +228,17 @@ function verbergeAlle(): void {
  * `herkunft` ist die ID der Anwendung selbst — kommt eine Aenderung von dort
  * zurueck, muss sie nicht noch einmal informiert werden.
  */
+/**
+ * Sagt allen offenen Werkzeugen, dass sich die KI-Einstellung geaendert hat.
+ *
+ * Auch dem, in dem gerade gearbeitet wird: anders als bei der Sprache gibt es
+ * hier keine "Ursprungs"-Anwendung, die schon Bescheid wuesste — eingestellt
+ * wird die KI immer in der Huelle.
+ */
+function meldeKiWechsel(): void {
+  for (const montiert of offen.values()) montiert.meldeKiWechsel?.();
+}
+
 function montageHaken(herkunft: string, sprache: Language): MontageHaken {
   return {
     language: sprache,
@@ -465,6 +508,24 @@ function registriereKanaele(): void {
   handle('app:version', () => eigeneFassung());
 
   handle('einstellungen:lesen', async () => ohneSchluessel(await readSettings(einstellungsDatei)));
+
+  /**
+   * Eigene Symbole, als data:-URL je Kennung.
+   *
+   * Bei jedem Aufruf frisch von der Platte: wer ein Bild austauscht, drueckt
+   * in den Einstellungen auf "neu laden" und will es dann auch sehen.
+   */
+  handle('symbole:lesen', () => leseSymbole(app.getPath('userData')));
+
+  /** Oeffnet den Symbolordner im Dateimanager des Systems. */
+  handle('symbole:ordner', async () => {
+    const ordner = symbolOrdner(app.getPath('userData'));
+    // Anlegen, falls ihn jemand geloescht hat — sonst oeffnet sich nichts
+    // und es sieht aus, als sei der Knopf kaputt.
+    await richteSymbolOrdnerEin(app.getPath('userData'));
+    await shell.openPath(ordner);
+    return ordner;
+  });
   /**
    * Schreibt die Einstellungen und gibt zurueck, was danach gilt.
    *
@@ -488,6 +549,11 @@ function registriereKanaele(): void {
     });
     const aktualisiert = await readSettings(einstellungsDatei);
     gemerkteEinstellungen = aktualisiert;
+    // Die Werkzeuge fragen den KI-Zustand nur beim Laden ab. Aendert sich die
+    // Einstellung hier, muessen sie es erfahren — sonst sieht man den
+    // Assistenten weiter, obwohl die KI aus ist, und die Knoepfe im NPC
+    // Creator fehlen, obwohl sie an ist.
+    if (JSON.stringify(aktualisiert.ki) !== JSON.stringify(vorher.ki)) meldeKiWechsel();
     // Die Sprache hier zu aendern ist der Weg ueber den Einstellungen-Dialog
     // der Huelle; es gibt keine "Ursprungs"-Anwendung, die schon Bescheid
     // weiss, deshalb bekommen alle offenen Anwendungen die Meldung.
@@ -536,6 +602,9 @@ function registriereKanaele(): void {
     const vorher = await readSettings(einstellungsDatei);
     gemerkteEinstellungen = { ...vorher, claudeSchluessel: verschluesselt };
     await writeSettings(einstellungsDatei, gemerkteEinstellungen);
+    // Ein Schluessel, der dazukommt oder wegfaellt, entscheidet genauso
+    // darueber, ob die KI benutzbar ist, wie der Anbieter selbst.
+    meldeKiWechsel();
     return Boolean(verschluesselt);
   });
 
@@ -548,8 +617,9 @@ function registriereKanaele(): void {
    * hinter ihr etwas liegt, sonst schriebe sie ihren Text unter eine
    * laufende Anwendung.
    */
-  handle('app:zeigen', async (_event, id: string): Promise<ZeigenErgebnis> => {
+  handle('app:zeigen', async (_event, id: string, fruehestensMs = 0): Promise<ZeigenErgebnis> => {
     if (!fenster) return { zustand: 'nicht-einbettbar' };
+    const begonnen = Date.now();
 
     verbergeAlle();
     aktiveApp = id;
@@ -592,6 +662,17 @@ function registriereKanaele(): void {
       aktiveApp = null;
       return fehlerErgebnis(fehler);
     }
+
+    /*
+     * Nicht vor der Zeit hervorkommen.
+     *
+     * Beim Wechsel aus dem Startmenue waechst in der Huelle das Symbol ueber
+     * den Schirm. Schoebe sich die Ansicht mitten hinein, sieht es aus, als
+     * haette jemand die Animation abgeschnitten. Montiert und geladen wurde
+     * waehrenddessen — gewartet wird nur auf den Rest.
+     */
+    const rest = fruehestensMs - (Date.now() - begonnen);
+    if (rest > 0) await new Promise((fertig) => setTimeout(fertig, rest));
 
     // `holeNachVorn` legt vorher neu aus: das Fenster kann seit dem letzten
     // Mal eine andere Groesse haben.
@@ -650,6 +731,7 @@ function registriereKanaele(): void {
 }
 
 app.whenReady().then(async () => {
+  startMarke('Electron bereit');
   einstellungsDatei = join(app.getPath('userData'), 'einstellungen.json');
   const gelesen = await readSettings(einstellungsDatei);
 
@@ -669,8 +751,17 @@ app.whenReady().then(async () => {
   // gekommen ist. Die Pruefung des gepackten Pakets wartet darauf.
   gemerkteEinstellungen = { ...gelesen, ...uebernommen };
   await writeSettings(einstellungsDatei, gemerkteEinstellungen);
+
+  // Den Symbolordner gleich anlegen, samt Liesmich. Wer eigene Bilder
+  // einsetzen will, soll den Ordner vorfinden und nicht raten muessen, wie
+  // er heisst.
+  await richteSymbolOrdnerEin(app.getPath('userData'));
+  startMarke('Einstellungen gelesen und geschrieben');
   registriereKanaele();
+  startMarke('Kanaele angemeldet');
   await erzeugeFenster();
+  startMarke('Fenster steht');
+  startBericht();
   app.on('activate', () => {
     if (!fenster) void erzeugeFenster();
   });

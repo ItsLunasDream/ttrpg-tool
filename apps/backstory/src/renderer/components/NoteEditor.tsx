@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CHECKED, findNoteType } from '../../shared/noteTypes';
 import type { Note, Relation } from '../../shared/types';
 import { backlinksFor, unresolvedLinks, type NoteIndex } from '../noteIndex';
@@ -69,6 +69,21 @@ export function NoteEditor(props: Props) {
 
   const status = t(saving ? 'editor.saving' : dirty ? 'editor.unsaved' : 'editor.saved');
 
+  /*
+   * Nach dem Speichern leuchtet der Status kurz gruen auf.
+   *
+   * Ausgeloest wird das vom Uebergang „speichert gerade\" zu „gespeichert\",
+   * nicht vom Zustand „gespeichert\": sonst leuchtete es bei jedem
+   * Neuzeichnen erneut, auch wenn seit Minuten nichts passiert ist. Beim
+   * Autosave ist das die einzige Rueckmeldung, die es ueberhaupt gibt.
+   */
+  const [gespeichert, setGespeichert] = useState(false);
+  const speicherteVorher = useRef(saving);
+  useEffect(() => {
+    if (speicherteVorher.current && !saving && !dirty) setGespeichert(true);
+    speicherteVorher.current = saving;
+  }, [saving, dirty]);
+
   return (
     <div className="note-editor">
       <header className="note-editor__head">
@@ -80,7 +95,17 @@ export function NoteEditor(props: Props) {
           aria-label={t('editor.title')}
         />
         <span className="badge">{def.label}</span>
-        <span className={`status status--${dirty ? 'dirty' : 'clean'}`}>{status}</span>
+        <span
+          className={`status status--${dirty ? 'dirty' : 'clean'}${
+            gespeichert ? ' status--gespeichert' : ''
+          }`}
+          // Die Klasse wieder abnehmen, sobald das Aufleuchten durch ist —
+          // eine Klasse, die stehen bleibt, startet beim naechsten Mal nicht
+          // neu.
+          onAnimationEnd={() => setGespeichert(false)}
+        >
+          {status}
+        </span>
         <span className="note-editor__words">{t('editor.words', { count: words })}</span>
         <button type="button" onClick={onSave} disabled={!dirty || saving}>
           {t('editor.save')}
@@ -120,7 +145,13 @@ export function NoteEditor(props: Props) {
         </p>
       ) : null}
 
-      <div className="note-editor__columns">
+      {/*
+        Der `key` ist nicht schmueckendes Beiwerk: ohne ihn behaelt React beim
+        Notizwechsel dasselbe Element, und eine CSS-Animation laeuft nur, wenn
+        das Element neu entsteht. Das Einblenden bliebe also aus — genau bei
+        dem Vorgang, fuer den es gedacht ist.
+      */}
+      <div className="note-editor__columns" key={note.id}>
         <div className="note-editor__main">
           <BodyEditor
             noteId={note.id}

@@ -149,8 +149,48 @@ app.whenReady().then(async () => {
   // bereit ist, wird dieser Teil uebersprungen statt zu scheitern — sonst
   // muesste der Test bei jedem Bauabschnitt umgeschrieben werden.
   if ((await js("document.querySelectorAll('.kachel:not(:disabled)').length")) > 0) {
+    /*
+     * Waehrend des Ladens muss der Ladekreis stehen. Vorher blieb die
+     * Flaeche leer, und ein langsamer Start sah aus wie ein haengendes
+     * Programm.
+     *
+     * Beobachtet statt abgefragt: wie lange das Laden dauert, steht nicht
+     * fest, und ein einzelner Blick danach traefe je nach Rechner mal ins
+     * Leere. Gesucht wird deshalb, ob der Kreis *irgendwann* da war.
+     */
+    /*
+     * Der Uebergang aus dem Startmenue: das Symbol der Kachel waechst ueber
+     * den Schirm, und erst danach kommt der Ladekreis, falls noch geladen
+     * wird.
+     *
+     * Beobachtet statt abgefragt: wie lange das Laden dauert, steht nicht
+     * fest, und ein einzelner Blick danach traefe je nach Rechner mal ins
+     * Leere. Festgehalten wird auch die Groesse, denn ein Feld, das sofort
+     * den ganzen Schirm fuellt, waere kein Wachsen.
+     *
+     * Bewusst OHNE await: die Beobachtung muss laufen, waehrend geklickt
+     * wird. Abgewartet wird sie unten.
+     */
+    const beobachtung = js(`(() => new Promise((fertig) => {
+      const breiten = [];
+      const uhr = setInterval(() => {
+        const feld = document.querySelector('.uebergang');
+        if (feld) breiten.push(Math.round(feld.getBoundingClientRect().width));
+      }, 20);
+      setTimeout(() => { clearInterval(uhr); fertig(breiten); }, 1200);
+    }))()`);
     await js("document.querySelector('.kachel:not(:disabled)').click()");
-    await warte(500);
+    const breiten = await beobachtung;
+    await warte(600);
+    pruefe(breiten.length > 0, 'beim Klick auf eine Kachel laeuft der Uebergang');
+    pruefe(
+      breiten.length > 1 && breiten[breiten.length - 1] > breiten[0],
+      `das Feld waechst wirklich (${breiten[0]} → ${breiten[breiten.length - 1]})`
+    );
+    pruefe(
+      !(await js("Boolean(document.querySelector('.uebergang'))")),
+      'und ist wieder weg, sobald das Werkzeug offen ist'
+    );
     pruefe(await js("Boolean(document.querySelector('.schiene'))"), 'Schiene nach Wechsel da');
     pruefe(
       (await js("document.querySelectorAll('.schiene__eintrag:disabled').length")) > 0,

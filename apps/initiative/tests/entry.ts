@@ -3,6 +3,8 @@
 export {
   leererKampf,
   neuerTeilnehmer,
+  neuesTerrain,
+  TERRAIN_INITIATIVE,
   neuerKoerper,
   reihenfolge,
   istAktiv,

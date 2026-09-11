@@ -46,8 +46,18 @@ const api = {
      * „ging / ging nicht": ein Werkzeug, das es noch nicht gibt, und eines,
      * dessen Dateien fehlen, brauchen verschiedene Antworten auf dem Schirm.
      */
-    zeigen: (id: string) =>
-      ipcRenderer.invoke('app:zeigen', id) as Promise<import('../main/index').ZeigenErgebnis>,
+    /**
+     * `fruehestensMs` haelt die Ansicht so lange zurueck.
+     *
+     * Gebraucht fuer den Uebergang aus dem Startmenue: dort waechst das
+     * Symbol ueber den Schirm, und die Ansicht darf sich nicht mitten hinein
+     * schieben. Montiert wird trotzdem sofort — die Zeit geht also nicht
+     * verloren, sie wird nur nicht vorzeitig sichtbar.
+     */
+    zeigen: (id: string, fruehestensMs = 0) =>
+      ipcRenderer.invoke('app:zeigen', id, fruehestensMs) as Promise<
+        import('../main/index').ZeigenErgebnis
+      >,
     /** Zurueck ins Startmenue. Die Anwendungen bleiben geladen. */
     startmenue: () => ipcRenderer.invoke('app:startmenue') as Promise<void>,
     /**
@@ -97,6 +107,15 @@ const api = {
      * hinaus statt einer Abfrage hinein.
      */
     reduziert: (reduziert: boolean) => ipcRenderer.send('bewegung:reduziert', reduziert)
+  },
+  symbole: {
+    /**
+     * Eigene Symbole, als data:-URL je Kennung des Werkzeugs. Fehlt eines,
+     * steht es nicht darin, und die Oberflaeche nimmt das eingebaute.
+     */
+    lesen: () => ipcRenderer.invoke('symbole:lesen') as Promise<Record<string, string>>,
+    /** Oeffnet den Ordner im Dateimanager. Liefert seinen Pfad zurueck. */
+    ordnerOeffnen: () => ipcRenderer.invoke('symbole:ordner') as Promise<string>
   },
   ki: {
     /**

@@ -854,6 +854,168 @@ app.whenReady().then(async () => {
     check(!imVault.includes('writing-prompts.json'),
       'die alte sprachlose writing-prompts.json ist wieder da');
 
+    // 16a. Bewegung: kommen die gemeinsamen Zeiten hier an?
+    /*
+     * Geprueft wird nicht, wie es aussieht — das kann kein Test —, sondern
+     * dass die Stilvorlage des Bewegungspakets ueberhaupt geladen ist und
+     * dass die Stellen, die sich bewegen sollen, eine Animation tragen.
+     *
+     * Ohne diese Pruefung faellt ein vergessener Import erst auf, wenn
+     * jemand hinsieht: nichts bewegt sich, und nichts ist kaputt.
+     */
+    /*
+     * In Millisekunden umgerechnet und nicht als Text verglichen: der
+     * Minifizierer schreibt `160ms` als `.16s`, und ein Vergleich auf den
+     * Wortlaut faellt darueber, obwohl alles stimmt. (Genau das ist hier
+     * beim ersten Anlauf passiert.)
+     */
+    const motionMs = await run(
+      window,
+      `const roh = getComputedStyle(document.documentElement)
+         .getPropertyValue('--motion-state').trim();
+       if (!roh) return 0;
+       const zahl = parseFloat(roh);
+       return roh.endsWith('ms') ? zahl : zahl * 1000;`
+    );
+    check(motionMs === 160, `die gemeinsamen Bewegungszeiten sind nicht geladen (${motionMs})`);
+    check(
+      (await run(
+        window,
+        `const e = document.querySelector('.note-editor__columns');
+         return e ? getComputedStyle(e).animationName : 'kein Editor';`
+      )) === 'motion-erscheinen',
+      'der Editorinhalt blendet beim Notizwechsel nicht ein'
+    );
+
+    // 16b. Die Vorschlagsliste wechselt die Sprache mit
+    /*
+     * Gemeldet: "Wenn ich die Sprache auf Englisch stelle ist die Prompt
+     * (ohne KI) List immer noch auf Deutsch."
+     *
+     * Der Hauptprozess las immer richtig — die Liste lag nur im Zustand der
+     * Oberflaeche und wurde nach dem ersten Holen nie wieder angefasst.
+     */
+    await clickButton(window, 'Schreibhilfe');
+    await sleep(700);
+    /*
+     * Geprueft werden die Kategorienamen, nicht die Vorschlaege selbst.
+     *
+     * Die Vorschlaege werden bei jedem Oeffnen neu gezogen: sie sind auch
+     * dann verschieden, wenn die Sprache dieselbe geblieben ist. Ein Test auf
+     * "anders als vorher" ging deshalb durch, waehrend unter "Englisch"
+     * weiter deutscher Text stand — genau der gemeldete Fehler, und der Test
+     * sah ihn nicht.
+     */
+    const kategorien = () =>
+      run(
+        window,
+        `return [...document.querySelectorAll('.prompts__categories button')].map((e) => e.textContent).join(' | ');`
+      );
+    const deutscheVorschlaege = await kategorien();
+    await run(window, `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
+    await sleep(400);
+
+    await clickButton(window, 'Einstellungen');
+    await sleep(500);
+    await run(
+      window,
+      `const select = document.querySelector('.modal select');
+       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, 'en');
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;`
+    );
+    await sleep(900);
+    await run(window, `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
+    await sleep(400);
+
+    // Auf Englisch heisst der Knopf "Prompts" — die Oberflaeche ist ja
+    // umgestellt, und genau darum geht es hier.
+    await clickButton(window, 'Prompts');
+    await sleep(900);
+    const englischeVorschlaege = await kategorien();
+    check(
+      deutscheVorschlaege.includes('Herkunftsort'),
+      `Auf Deutsch stehen nicht die deutschen Kategorien da (${deutscheVorschlaege})`
+    );
+    check(
+      englischeVorschlaege.includes('Place of origin'),
+      `Vorschlagsliste bleibt nach dem Sprachwechsel deutsch (${englischeVorschlaege})`
+    );
+    await run(window, `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
+    await sleep(300);
+
+    // Zurueck auf Deutsch, damit die folgenden Pruefungen ihre Texte finden.
+    await clickButton(window, 'Settings');
+    await sleep(500);
+    await run(
+      window,
+      `const select = document.querySelector('.modal select');
+       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, 'de');
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;`
+    );
+    await sleep(900);
+    await run(window, `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
+    await sleep(400);
+
+    // 16c. Rechtsklick auf eine Notiz
+    /*
+     * Geprueft wird die Bedienung, nicht nur die Anwesenheit: dass das Menue
+     * aufgeht, dass Escape es wieder schliesst, und dass Loeschen weiterhin
+     * nachfragt statt sofort zu loeschen. Ein Menue, das ohne Frage loescht,
+     * waere schlimmer als gar keins.
+     */
+    const rechtsklick = `const ziel = document.querySelector('.note-list__scroll button');
+       const kasten = ziel.getBoundingClientRect();
+       ziel.dispatchEvent(new MouseEvent('contextmenu', {
+         bubbles: true, clientX: kasten.left + 10, clientY: kasten.top + 10 }));
+       return true;`;
+    await run(window, rechtsklick);
+    await sleep(400);
+    check(await run(window, `return Boolean(document.querySelector('.kontextmenue'));`),
+      'Rechtsklick auf eine Notiz öffnet kein Menü');
+    check(
+      await run(window, `return document.querySelectorAll('.kontextmenue button').length === 2;`),
+      'Das Menü hat nicht die zwei erwarteten Einträge'
+    );
+
+    await run(window, `document.querySelector('.kontextmenue').dispatchEvent(
+       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
+    await sleep(300);
+    check(await run(window, `return document.querySelector('.kontextmenue') === null;`),
+      'Escape schließt das Kontextmenü nicht');
+
+    // Loeschen muss weiter nachfragen.
+    await run(window, rechtsklick);
+    await sleep(400);
+    await run(window, `[...document.querySelectorAll('.kontextmenue button')]
+       .find((b) => /Löschen|Delete/.test(b.textContent)).click(); return true;`);
+    await sleep(500);
+    check(await run(window, `return Boolean(document.querySelector('.modal'));`),
+      'Löschen aus dem Kontextmenü fragt nicht nach');
+    // Abbrechen: die Notiz soll bleiben.
+    const vorAbbruch = await run(window, `return document.querySelectorAll('.note-list__title').length;`);
+    await run(window, `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
+    await sleep(500);
+    check(
+      (await run(window, `return document.querySelectorAll('.note-list__title').length;`)) === vorAbbruch,
+      'Abbrechen im Löschdialog hat die Notiz trotzdem entfernt'
+    );
+
+    // Umbenennen: der Dialog muss den bisherigen Titel mitbringen.
+    await run(window, rechtsklick);
+    await sleep(400);
+    await run(window, `[...document.querySelectorAll('.kontextmenue button')]
+       .find((b) => /Umbenennen|Rename/.test(b.textContent)).click(); return true;`);
+    await sleep(500);
+    check(
+      await run(window, `const feld = document.querySelector('.modal input');
+         return Boolean(feld && feld.value.length > 0);`),
+      'Umbenennen bringt den bisherigen Titel nicht mit'
+    );
+    await run(window, `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
+    await sleep(400);
+
     // 17. Graph-Ansicht
     await clickButton(window, 'Graph');
     await sleep(1500);

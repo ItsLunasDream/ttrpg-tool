@@ -5,7 +5,8 @@ import entry from '../dist/tests/entry.cjs';
 const {
   leererKampf, neuerTeilnehmer, reihenfolge, beginne, naechsterZug, aendereHp,
   setzeHp, dupliziere, naechsterName, setzeGruppengroesse, setzeZustand,
-  entferneTeilnehmer, fuegeEin, neueId, istAktiv
+  entferneTeilnehmer, fuegeEin, neueId, istAktiv, neuesTerrain, TERRAIN_INITIATIVE,
+  neuerKoerper
 } = entry;
 
 /** Baut einen Kampf aus [name, initiative, hpMax]-Tripeln. */
@@ -182,23 +183,143 @@ test('Duplizieren verschiebt den Zeiger nicht auf den Falschen', () => {
 
 // --- Zustaende -------------------------------------------------------------
 
+/** Kurzform, damit die Tests unten lesbar bleiben. */
+function mitZustand(kampf, wenId, dauer, { runden = 1, frisch = false } = {}) {
+  return setzeZustand(kampf, wenId, {
+    id: neueId(),
+    name: 'Effekt',
+    dauer,
+    rundenRest: dauer === 'offen' ? null : runden,
+    frisch
+  });
+}
+
+const zustaendeVon = (kampf, id) => kampf.teilnehmer.find((t) => t.id === id).zustaende;
+
 test('Zustaende zaehlen am Ende des eigenen Zuges herunter und laufen ab', () => {
   let kampf = beginne(kampfMit(['A', 20], ['B', 10]));
   const a = kampf.teilnehmer[0];
-  kampf = setzeZustand(kampf, a.id, { id: neueId(), name: 'Gelaehmt', rundenRest: 2 });
+  kampf = mitZustand(kampf, a.id, 'zugEnde', { runden: 2 });
   kampf = naechsterZug(kampf); // As Zug endet
-  assert.equal(kampf.teilnehmer[0].zustaende[0].rundenRest, 1);
+  assert.equal(zustaendeVon(kampf, a.id)[0].rundenRest, 1);
   kampf = naechsterZug(kampf); // B
   kampf = naechsterZug(kampf); // As Zug endet erneut
-  assert.equal(kampf.teilnehmer[0].zustaende.length, 0, 'abgelaufen und weg');
+  assert.equal(zustaendeVon(kampf, a.id).length, 0, 'abgelaufen und weg');
 });
 
 test('Zustaende ohne Dauer bleiben stehen', () => {
   let kampf = beginne(kampfMit(['A', 20], ['B', 10]));
   const a = kampf.teilnehmer[0];
-  kampf = setzeZustand(kampf, a.id, { id: neueId(), name: 'Verflucht', rundenRest: null });
+  kampf = mitZustand(kampf, a.id, 'offen');
   for (let i = 0; i < 6; i++) kampf = naechsterZug(kampf);
-  assert.equal(kampf.teilnehmer.find((t) => t.id === a.id).zustaende.length, 1);
+  assert.equal(zustaendeVon(kampf, a.id).length, 1);
+});
+
+test('bis zum Beginn des naechsten Zuges: endet, bevor die Figur handelt', () => {
+  // Gesetzt waehrend Bs Zug, trifft A. A ist als naechstes dran — und der
+  // Effekt soll weg sein, bevor A handelt, nicht danach.
+  let kampf = beginne(kampfMit(['A', 20], ['B', 10]));
+  const a = kampf.teilnehmer[0];
+  kampf = naechsterZug(kampf); // jetzt ist B dran
+  kampf = mitZustand(kampf, a.id, 'zugBeginn');
+  assert.equal(zustaendeVon(kampf, a.id).length, 1, 'waehrend Bs Zug laeuft er noch');
+  kampf = naechsterZug(kampf); // As Zug beginnt
+  assert.equal(zustaendeVon(kampf, a.id).length, 0, 'zu As Zugbeginn ist er weg');
+});
+
+test('bis zum Ende der Runde: endet, wenn die Reihe herum ist', () => {
+  let kampf = beginne(kampfMit(['A', 20], ['B', 10]));
+  const a = kampf.teilnehmer[0];
+  kampf = mitZustand(kampf, a.id, 'rundeEnde');
+  kampf = naechsterZug(kampf); // B ist dran, Runde 1 laeuft noch
+  assert.equal(zustaendeVon(kampf, a.id).length, 1, 'mitten in der Runde laeuft er noch');
+  kampf = naechsterZug(kampf); // zurueck zu A: Runde 2
+  assert.equal(kampf.runde, 2);
+  assert.equal(zustaendeVon(kampf, a.id).length, 0, 'mit der Runde ist er weg');
+});
+
+test('das Rundenende trifft alle zugleich, nicht nur den, der dran ist', () => {
+  let kampf = beginne(kampfMit(['A', 20], ['B', 10]));
+  const [a, b] = kampf.teilnehmer;
+  kampf = mitZustand(kampf, a.id, 'rundeEnde');
+  kampf = mitZustand(kampf, b.id, 'rundeEnde');
+  kampf = naechsterZug(kampf);
+  kampf = naechsterZug(kampf);
+  assert.equal(zustaendeVon(kampf, a.id).length, 0);
+  assert.equal(zustaendeVon(kampf, b.id).length, 0);
+});
+
+test('im eigenen Zug gesetzt, laeuft "bis Zugende" erst in der naechsten Runde ab', () => {
+  /*
+   * Die Stelle, an der sich am Tisch alle streiten. Wer sich in seinem
+   * eigenen Zug einen Effekt "bis zum Ende deines naechsten Zuges" auflaedt,
+   * wird ihn nicht Sekunden spaeter wieder los — gemeint ist der Zug in der
+   * naechsten Runde.
+   */
+  let kampf = beginne(kampfMit(['A', 20], ['B', 10]));
+  const a = kampf.teilnehmer[0];
+  kampf = mitZustand(kampf, a.id, 'zugEnde', { frisch: true });
+
+  kampf = naechsterZug(kampf); // As Zug endet — zaehlt NICHT mit
+  assert.equal(zustaendeVon(kampf, a.id).length, 1, 'der eigene Zug zaehlt nicht mit');
+  assert.equal(zustaendeVon(kampf, a.id)[0].frisch, false, 'die Markierung ist verbraucht');
+
+  kampf = naechsterZug(kampf); // B
+  kampf = naechsterZug(kampf); // As Zug in Runde 2 endet
+  assert.equal(zustaendeVon(kampf, a.id).length, 0, 'am Ende des naechsten Zuges ist er weg');
+});
+
+test('bei "bis Zugbeginn" gilt der Sonderfall NICHT', () => {
+  /*
+   * Anders als bei "bis Zugende", und das ist kein Versehen: wer im eigenen
+   * Zug etwas setzt, hat seinen Zugbeginn schon hinter sich. Der naechste
+   * Zugbeginn, auf den er trifft, ist also wirklich der seines naechsten
+   * Zuges — es gibt hier nichts zu ueberspringen.
+   */
+  let kampf = beginne(kampfMit(['A', 20], ['B', 10]));
+  const a = kampf.teilnehmer[0];
+  kampf = mitZustand(kampf, a.id, 'zugBeginn', { frisch: true });
+  kampf = naechsterZug(kampf); // B
+  assert.equal(zustaendeVon(kampf, a.id).length, 1, 'waehrend Bs Zug laeuft er noch');
+  kampf = naechsterZug(kampf); // As naechster Zug beginnt
+  assert.equal(zustaendeVon(kampf, a.id).length, 0, 'und endet zu As naechstem Zugbeginn');
+});
+
+test('beim Rundenende zaehlt die Markierung nicht: die Runde endet fuer alle gleich', () => {
+  // Anders als bei den beiden Zug-Dauern. Wer im eigenen Zug etwas setzt,
+  // das "bis zum Ende der Runde" gilt, bekommt keine Runde geschenkt.
+  let kampf = beginne(kampfMit(['A', 20], ['B', 10]));
+  const a = kampf.teilnehmer[0];
+  kampf = mitZustand(kampf, a.id, 'rundeEnde', { frisch: true });
+  kampf = naechsterZug(kampf);
+  kampf = naechsterZug(kampf); // Runde 2
+  assert.equal(zustaendeVon(kampf, a.id).length, 0);
+});
+
+test('mehrere Runden Dauer laufen ueber mehrere Runden', () => {
+  let kampf = beginne(kampfMit(['A', 20], ['B', 10]));
+  const a = kampf.teilnehmer[0];
+  kampf = mitZustand(kampf, a.id, 'zugEnde', { runden: 3 });
+  for (let runde = 3; runde > 0; runde--) {
+    assert.equal(zustaendeVon(kampf, a.id)[0].rundenRest, runde, `vor Runde ${runde}`);
+    kampf = naechsterZug(kampf); // As Zug endet
+    kampf = naechsterZug(kampf); // B, dann wieder A
+  }
+  assert.equal(zustaendeVon(kampf, a.id).length, 0);
+});
+
+test('ein Zustand der einen Art laesst die anderen in Ruhe', () => {
+  let kampf = beginne(kampfMit(['A', 20], ['B', 10]));
+  const a = kampf.teilnehmer[0];
+  kampf = mitZustand(kampf, a.id, 'offen');
+  kampf = mitZustand(kampf, a.id, 'rundeEnde');
+  kampf = mitZustand(kampf, a.id, 'zugEnde', { runden: 5 });
+  kampf = naechsterZug(kampf); // As Zug endet
+  const uebrig = zustaendeVon(kampf, a.id);
+  assert.equal(uebrig.length, 3, 'noch ist nichts abgelaufen');
+  assert.equal(uebrig.find((z) => z.dauer === 'offen').rundenRest, null);
+  assert.equal(uebrig.find((z) => z.dauer === 'rundeEnde').rundenRest, 1, 'die Runde laeuft noch');
+  assert.equal(uebrig.find((z) => z.dauer === 'zugEnde').rundenRest, 4, 'nur der wurde gezaehlt');
 });
 
 // --- Ein und Aus -----------------------------------------------------------
@@ -225,4 +346,79 @@ test('istAktiv erkennt liegende und ausgetragene Koerper', () => {
   assert.equal(istAktiv({ ...t, koerper: [{ ...t.koerper[0], hp: 3, hpMax: 3 }] }), true);
   assert.equal(istAktiv({ ...t, koerper: [{ ...t.koerper[0], hp: 0 }] }), false);
   assert.equal(istAktiv({ ...t, koerper: [{ ...t.koerper[0], hp: 3, raus: true }] }), false);
+});
+
+
+// --- Gelaende --------------------------------------------------------------
+
+test('das Gelaende steht bei Initiative 20', () => {
+  assert.equal(neuesTerrain('Rauch').initiative, TERRAIN_INITIATIVE);
+  assert.equal(TERRAIN_INITIATIVE, 20);
+});
+
+test('bei Gleichstand liegt das Gelaende hinter den Figuren', () => {
+  // So steht es im Regelwerk fuer die Unterschlupfaktion: Initiative 20,
+  // "losing initiative ties".
+  const kampf = {
+    ...leererKampf(),
+    teilnehmer: [neuesTerrain('Rauch'), { ...neuerTeilnehmer('Held'), initiative: 20 }]
+  };
+  assert.deepEqual(reihenfolge(kampf.teilnehmer).map((t) => t.name), ['Held', 'Rauch']);
+});
+
+test('wer hoeher wuerfelt, ist vor dem Gelaende dran', () => {
+  // Nicht "ganz oben": 22 schlaegt 20.
+  const kampf = {
+    ...leererKampf(),
+    teilnehmer: [
+      neuesTerrain('Rauch'),
+      { ...neuerTeilnehmer('Flink'), initiative: 22 },
+      { ...neuerTeilnehmer('Traege'), initiative: 8 }
+    ]
+  };
+  assert.deepEqual(reihenfolge(kampf.teilnehmer).map((t) => t.name), ['Flink', 'Rauch', 'Traege']);
+});
+
+test('das Gelaende zaehlt als aktiv, obwohl es keine Trefferpunkte hat', () => {
+  // Ohne diese Ausnahme fiele es sofort aus der Reihenfolge: der Eintrag
+  // stuende da und kaeme nie dran.
+  const gelaende = neuesTerrain('Rauch');
+  assert.equal(gelaende.koerper.length, 0);
+  assert.equal(istAktiv(gelaende), true);
+});
+
+test('das Gelaende kommt je Runde genau einmal an die Reihe', () => {
+  let kampf = beginne({
+    ...leererKampf(),
+    teilnehmer: [
+      { ...neuerTeilnehmer('Flink'), initiative: 25, koerper: [{ ...neuerKoerper(), hp: 10, hpMax: 10 }] },
+      neuesTerrain('Rauch'),
+      { ...neuerTeilnehmer('Traege'), initiative: 5, koerper: [{ ...neuerKoerper(), hp: 10, hpMax: 10 }] }
+    ]
+  });
+
+  const gesehen = [];
+  for (let schritt = 0; schritt < 6; schritt++) {
+    gesehen.push(`${kampf.runde}:${kampf.teilnehmer[kampf.amZug].name}`);
+    kampf = naechsterZug(kampf);
+  }
+  assert.deepEqual(gesehen, [
+    '1:Flink', '1:Rauch', '1:Traege',
+    '2:Flink', '2:Rauch', '2:Traege'
+  ]);
+});
+
+test('das Gelaende bleibt in der Reihenfolge, wenn alle Gegner liegen', () => {
+  // Es ist kein Lebewesen; ein Kampf endet nicht dadurch, dass es noch da
+  // ist. Aber es darf auch nicht dazu fuehren, dass der Zeiger sich im Kreis
+  // dreht — geprueft wird, dass naechsterZug nicht haengen bleibt.
+  let kampf = beginne({
+    ...leererKampf(),
+    teilnehmer: [
+      neuesTerrain('Rauch'),
+      { ...neuerTeilnehmer('Gefallen'), initiative: 5, koerper: [{ ...neuerKoerper(), hp: 0, hpMax: 10 }] }
+    ]
+  });
+  for (let i = 0; i < 4; i++) kampf = naechsterZug(kampf);
+  assert.equal(kampf.teilnehmer[kampf.amZug].name, 'Rauch');
 });

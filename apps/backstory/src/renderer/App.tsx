@@ -45,6 +45,7 @@ type Dialog =
   | { kind: 'deleteCampaign'; campaign: Campaign }
   | { kind: 'newNote'; type: NoteType }
   | { kind: 'deleteNote'; note: Note }
+  | { kind: 'renameNote'; note: Note }
   | { kind: 'noteTypes' }
   | { kind: 'history'; note: Note }
   | { kind: 'prompts' }
@@ -224,6 +225,23 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     });
   }, [onLanguageChange]);
 
+  /*
+   * Die Vorschlagsliste der Schreibhilfe haengt an der Sprache: sie liegt je
+   * Sprache als eigene Datei im Speicherort. Einmal geholt, blieb sie im
+   * Zustand stehen — wer auf Englisch umstellte, bekam weiter die deutsche
+   * Liste, solange das Fenster offen war.
+   *
+   * Weggeworfen und nicht sofort nachgeholt: der Dialog holt sie beim
+   * Oeffnen, und die meisten Sprachwechsel geschehen, ohne dass er je
+   * aufgeht.
+   *
+   * Haengt an `settings.language` und nicht an einem der beiden Wege dorthin:
+   * umgestellt wird hier im Dialog und in der Huelle, und beide landen hier.
+   */
+  useEffect(() => {
+    setPrompts(null);
+  }, [settings?.language]);
+
   const reloadNotes = useCallback(
     async (campaignId: string) => {
       const list = await call(api.notes.list(campaignId));
@@ -238,6 +256,34 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     },
     []
   );
+
+  /*
+   * Die KI wurde in der Huelle an- oder abgeschaltet.
+   *
+   * Ohne das fragte die Oberflaeche den Zustand nur einmal beim Laden ab: wer
+   * die KI abschaltet, saehe den Assistenten weiter, bis zufaellig etwas
+   * anderes ein Neuzeichnen ausloeste.
+   */
+  useEffect(
+    () => api.onKiWechsel(() => void call(api.ai.status()).then(setAiStatus, () => setAiStatus(null))),
+    []
+  );
+
+  /*
+   * Ein anderes Werkzeug hat etwas abgelegt — der NPC Creator eine Figur.
+   *
+   * Nur die Liste wird neu geholt, nicht die offene Notiz: wer gerade
+   * schreibt, soll seinen Text behalten. Ohne das sah es aus, als waere gar
+   * nichts angelegt worden: die Datei lag auf der Platte, die Liste hatte
+   * ihren Stand vom Oeffnen, und beim Zurueckwechseln wird die Ansicht
+   * bewusst nicht neu geladen, weil das den Zustand wegwuerfe.
+   */
+  useEffect(() => {
+    if (!activeCampaignId) return;
+    return api.onFremdeAenderung(() => {
+      void guard(() => reloadNotes(activeCampaignId));
+    });
+  }, [activeCampaignId, guard, reloadNotes]);
 
   useEffect(() => {
     if (!activeCampaignId) {
@@ -743,6 +789,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               onCreate={(type) => setDialog({ kind: 'newNote', type })}
               unreadable={unreadable}
               onRevealVault={() => void guard(() => call(api.vault.reveal()))}
+              onRename={(note) => setDialog({ kind: 'renameNote', note })}
+              onDelete={(note) => setDialog({ kind: 'deleteNote', note })}
             />
           </aside>
 
@@ -1038,6 +1086,37 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
             setDialog({ kind: 'none' });
             setPendingLinkTitle(null);
           }}
+        />
+      ) : null}
+
+      {dialog.kind === 'renameNote' ? (
+        <PromptDialog
+          title={t('dialog.renameNote')}
+          label={t('dialog.newName')}
+          confirmLabel={t('dialog.rename')}
+          initialValue={dialog.note.title}
+          onClose={() => setDialog({ kind: 'none' })}
+          onConfirm={(title) =>
+            void guard(async () => {
+              const campaignId = activeCampaignId;
+              if (!campaignId) return;
+              // Umbenennen zieht die [[Links]] in der ganzen Kampagne mit —
+              // das macht der Vault, nicht die Oberflaeche.
+              const ergebnis = await call(api.notes.rename(campaignId, dialog.note.id, title));
+              const list = await reloadNotes(campaignId);
+              // Steht die umbenannte Notiz gerade im Editor, muss auch dort
+              // der neue Titel stehen.
+              setDraft((vorher) =>
+                vorher && vorher.id === dialog.note.id
+                  ? (list.find((eintrag) => eintrag.id === dialog.note.id) ?? vorher)
+                  : vorher
+              );
+              if (ergebnis.rewritten > 0) {
+                report(t('msg.renamed', { count: ergebnis.rewritten }));
+              }
+              setDialog({ kind: 'none' });
+            })
+          }
         />
       ) : null}
 

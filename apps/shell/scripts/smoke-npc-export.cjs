@@ -52,6 +52,25 @@ app.whenReady().then(async()=>{
     return [neu.name]; })()`);
   pruefe(Array.isArray(kampagnen) && kampagnen.length > 0, `eine Kampagne steht bereit (${kampagnen})`);
 
+  /*
+   * Einmal neu laden.
+   *
+   * Die Kampagne ist eben erst ueber die Bruecke entstanden — der Backstory
+   * Creator hat seine Liste aber beim Oeffnen geholt, als es noch keine gab,
+   * und waehlt deshalb auch keine aus. Ohne dieses Neuladen pruefte der Test
+   * unten gegen eine Oberflaeche ganz ohne Notizliste und faende auch dann
+   * nichts, wenn alles stimmt.
+   *
+   * Nachgestellt wird damit die Lage, die eine Nutzerin wirklich hat: eine
+   * Kampagne, die es beim Oeffnen schon gab.
+   */
+  bs.webContents.reload();
+  await warte(4000);
+  pruefe(
+    (await bjs("Boolean(document.querySelector('.note-list'))")) === true,
+    'nach dem Neuladen steht die Notizliste'
+  );
+
   // --- Zum NPC Creator wechseln und eine Figur uebergeben ------------------
   await mjs("document.querySelector('.schiene__heim').click(); true"); await warte(900);
   const npcKachel = await mjs(`(() => { const k=[...document.querySelectorAll('.kachel:not(:disabled)')]
@@ -105,6 +124,36 @@ app.whenReady().then(async()=>{
   const treffer = dateien.map(p=>fs.readFileSync(p,'utf8')).filter(t=>t.includes('Krug'));
   pruefe(treffer.length===1, `die Notiz liegt auf der Platte (${dateien.length} Dateien, ${treffer.length} mit dem eigenen Satz)`);
   if (treffer[0]) console.log('\n--- Die Notiz ---\n' + treffer[0].slice(0,600));
+
+  // --- Und sieht man sie auch? --------------------------------------------
+  /*
+   * Der eigentlich gemeldete Fehler: "es kommt die Animation, aber die Notiz
+   * wird einfach nicht angelegt."
+   *
+   * Auf der Platte liegt sie, wie oben nachgewiesen. Nur sieht der Backstory
+   * Creator sie nicht: er hat seine Liste beim Oeffnen geladen, und niemand
+   * sagt ihm, dass hinter seinem Ruecken etwas dazugekommen ist. Beim
+   * Zurueckwechseln wird die Ansicht bewusst NICHT neu geladen — das wuerfe
+   * den Zustand weg.
+   *
+   * "Manchmal geht es" passt dazu: wer den Backstory Creator erst nach dem
+   * Export zum ersten Mal oeffnet oder zwischendurch die Kampagne wechselt,
+   * bekommt eine frische Liste.
+   */
+  await mjs("document.querySelector('.schiene__heim').click(); true");
+  await warte(700);
+  await mjs(`(() => { const k=[...document.querySelectorAll('.kachel:not(:disabled)')]
+    .find(x => /Backstory/.test(x.textContent)); if(!k) return false; k.click(); return true; })()`);
+  await warte(2500);
+
+  const inDerListe = await bjs(
+    "[...document.querySelectorAll('.note-list__title')].map(e => e.textContent).join(' | ')"
+  );
+  pruefe(
+    typeof inDerListe === 'string' && inDerListe.includes(name),
+    `die Figur steht in der Liste des Backstory Creators (${name})`
+  );
+  console.log('  (Liste: ' + inDerListe + ')');
 
   console.log(fehler.length?`\n${fehler.length} fehlgeschlagen`:'\nExportlauf bestanden.');
   app.exit(fehler.length?1:0);

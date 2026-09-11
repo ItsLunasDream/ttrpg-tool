@@ -57,7 +57,11 @@ export function App() {
   useEffect(() => onLanguageChange(() => setSprache(getLanguage())), []);
 
   useEffect(() => {
-    void api.ki.da().then(setKiDa, () => setKiDa(false));
+    const frage = () => void api.ki.da().then(setKiDa, () => setKiDa(false));
+    frage();
+    // Und noch einmal, wenn die Einstellung sich aendert. Ohne das saehe man
+    // die Knoepfe erst nach einem Neustart, wenn man die KI einschaltet.
+    return api.ki.beiWechsel(frage);
   }, []);
 
   const wuerfle = useCallback(() => {
@@ -68,7 +72,12 @@ export function App() {
   const nachwuerfeln = useCallback(
     (feld: Feld) => {
       setFigur((vorher) =>
-        vorher ? { ...vorher, [feld]: erzeugeFeld(feld, wuensche, getLanguage(), Math.random) } : vorher
+        vorher
+          ? // `true`: gezielt nachgewuerfelt. Bei der Eigenheit kommt dann
+            // immer etwas, waehrend sie beim Erzeugen einer ganzen Figur
+            // meistens ausfaellt.
+            { ...vorher, [feld]: erzeugeFeld(feld, wuensche, getLanguage(), Math.random, true) }
+          : vorher
       );
       setExportStand('ruht');
     },

@@ -19,7 +19,7 @@ import {
   type MessageKey,
   type MessageParams
 } from '../shared/i18n';
-import { iconFuer, SuiteIcon } from './icons';
+import { AppSymbol, SuiteIcon } from './icons';
 import { KI_VOREINSTELLUNGEN, type KiEinstellungen } from '@suite/ki/einstellungen';
 import { Einstellungen, type KiZustandAnsicht } from './Einstellungen';
 import { Ueber } from './Ueber';
@@ -40,6 +40,20 @@ type Uebersetzer = (key: MessageKey, params?: MessageParams) => string;
 type BuehnenZustand =
   | { zustand: 'laedt' }
   | import('../main/index').ZeigenErgebnis;
+
+/**
+ * Wie lange das Symbol braucht, um ueber den Schirm zu wachsen.
+ *
+ * Laenger als ein Ortswechsel (220 ms), weil hier wirklich etwas weit
+ * unterwegs ist — von einer Kachel bis in jede Ecke. Kuerzer als eine halbe
+ * Sekunde, weil man danach arbeiten will. Die Zahl steht hier und nicht in
+ * @suite/motion: sie gilt fuer diesen einen Uebergang, den es nur in der
+ * Huelle gibt.
+ *
+ * Dieselbe Zahl bekommt der Hauptprozess mit, damit er die Ansicht nicht
+ * mitten hineinschiebt.
+ */
+const UEBERGANG_MS = 340;
 
 export function App() {
   const [aktiv, setAktiv] = useState<string | null>(null);
@@ -66,6 +80,25 @@ export function App() {
    */
   const [ki, setKi] = useState<KiEinstellungen>(KI_VOREINSTELLUNGEN);
   const [kiZustand, setKiZustand] = useState<KiZustandAnsicht | null>(null);
+  const [wenigerBewegung, setWenigerBewegung] = useState(false);
+  /**
+   * Eigene Symbole aus dem Symbolordner, als data:-URL je Kennung.
+   *
+   * Leer ist der Normalfall — dann gelten ueberall die eingebauten.
+   */
+  const [symbole, setSymbole] = useState<Record<string, string>>({});
+  /**
+   * Der laufende Uebergang vom Symbol zum Werkzeug, oder `null`.
+   *
+   * `von` ist die Flaeche der angeklickten Kachel — dort faengt das Wachsen
+   * an. `phase` trennt das Wachsen von dem, was danach kommt: ist das
+   * Werkzeug dann noch nicht da, steht im ausgewachsenen Feld der Ladekreis.
+   */
+  const [uebergang, setUebergang] = useState<{
+    id: string;
+    von: DOMRect;
+    phase: 'waechst' | 'wartet';
+  } | null>(null);
   /** Welcher Dialog offen ist, oder `null`. Es ist immer hoechstens einer. */
   const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | null>(null);
 
@@ -91,6 +124,7 @@ export function App() {
       setSprache(e.language);
       setKi(e.ki);
     });
+    void window.shell.symbole.lesen().then(setSymbole, () => setSymbole({}));
     // Auch der Fensterrahmen des Systems kann maximieren. Ohne diese Meldung
     // zeigte der Knopf danach das falsche Symbol.
     const abmeldenZustand = window.shell.fenster.beiZustandswechsel(({ maximiert: m }) =>
@@ -131,7 +165,12 @@ export function App() {
    */
   useEffect(() => {
     const abfrage = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const melde = () => window.shell.bewegung.reduziert(abfrage.matches);
+    const melde = () => {
+      window.shell.bewegung.reduziert(abfrage.matches);
+      // Auch hier gebraucht: der Uebergang vom Symbol zum Werkzeug ist die
+      // groesste Bewegung der Huelle und faellt dann als Erstes weg.
+      setWenigerBewegung(abfrage.matches);
+    };
     melde();
     abfrage.addEventListener('change', melde);
     return () => abfrage.removeEventListener('change', melde);
@@ -152,28 +191,52 @@ export function App() {
    * die Ansicht ueber die Huelle; hier wird nur noch gemerkt, was sichtbar
    * ist.
    */
-  const waehle = useCallback((id: string | null) => {
+  const waehle = useCallback((id: string | null, von?: DOMRect) => {
     setAktiv(id);
     if (id === null) {
       setBuehne({ zustand: 'laedt' });
+      setUebergang(null);
       void window.shell.app.startmenue();
       return;
     }
     setBuehne({ zustand: 'laedt' });
+
+    /*
+     * Der Uebergang: das Symbol der Kachel waechst ueber den Schirm.
+     *
+     * Nur, wenn der Klick von einer Kachel kam — ueber die Schiene wechselt
+     * man staendig hin und her, und dort waere jedes Mal eine grosse
+     * Bewegung eine Zumutung.
+     *
+     * Der Hauptprozess montiert waehrenddessen. Damit er die Ansicht nicht
+     * mitten in die Animation schiebt, bekommt er die Dauer mit und wartet
+     * sie ab — er verliert dadurch keine Zeit, er montiert ja parallel.
+     */
+    const mitBewegung = Boolean(von) && !wenigerBewegung;
+    if (mitBewegung && von) setUebergang({ id, von, phase: 'waechst' });
+
     window.shell.app
-      .zeigen(id)
-      .then(setBuehne)
+      .zeigen(id, mitBewegung ? UEBERGANG_MS : 0)
+      .then((ergebnis) => {
+        setUebergang(null);
+        setBuehne(ergebnis);
+      })
       // Der Hauptprozess faengt Montagefehler selbst ab und meldet sie als
       // Zustand. Bleibt trotzdem eine Ablehnung uebrig, ist etwas an der
       // Bruecke kaputt — auch das gehoert auf den Schirm und nicht ins Nichts.
       .catch((fehler: unknown) => {
         console.error(`[shell] Werkzeug "${id}" liess sich nicht einbetten:`, fehler);
+        setUebergang(null);
         setBuehne({
           zustand: 'fehler',
           grund: 'sonst',
           detail: fehler instanceof Error ? fehler.message : String(fehler)
         });
       });
+  }, [wenigerBewegung]);
+
+  const ladeSymboleNeu = useCallback(async () => {
+    setSymbole(await window.shell.symbole.lesen());
   }, []);
 
   const setzeSprache = useCallback(async (neu: Language) => {
@@ -271,10 +334,33 @@ export function App() {
       </header>
 
       {eintrag ? (
-        <Buehne eintrag={eintrag} aktiv={aktiv!} setAktiv={waehle} buehne={buehne} t={t} />
+        <Buehne
+          eintrag={eintrag}
+          aktiv={aktiv!}
+          setAktiv={waehle}
+          buehne={buehne}
+          // Waehrend der Uebergang laeuft, traegt er die Ladeanzeige selbst.
+          // Ohne das stuenden zwei gleichzeitig da: eine im wachsenden Feld
+          // und eine daneben auf der Flaeche.
+          uebergangLaeuft={uebergang !== null}
+          symbole={symbole}
+          t={t}
+        />
       ) : (
-        <Startmenue setAktiv={waehle} version={version} t={t} />
+        <Startmenue setAktiv={waehle} version={version} symbole={symbole} t={t} />
       )}
+
+      {uebergang ? (
+        <UebergangsFeld
+          eintrag={uebergang}
+          dauerMs={UEBERGANG_MS}
+          onAusgewachsen={() =>
+            setUebergang((vorher) => (vorher ? { ...vorher, phase: 'wartet' } : vorher))
+          }
+          bild={symbole[uebergang.id]}
+          t={t}
+        />
+      ) : null}
 
       {dialog === 'einstellungen' && (
         <Einstellungen
@@ -285,6 +371,8 @@ export function App() {
           kiZustand={kiZustand}
           pruefeKi={pruefeKi}
           setzeSchluessel={setzeSchluessel}
+          symbolordnerOeffnen={() => window.shell.symbole.ordnerOeffnen()}
+          symboleNeuLaden={ladeSymboleNeu}
           onClose={() => zeigeDialog(null)}
           t={t}
         />
@@ -299,10 +387,20 @@ export function App() {
 function Startmenue({
   setAktiv,
   version,
+  symbole,
   t
 }: {
-  setAktiv: (id: string) => void;
+  /**
+   * `von` ist die Flaeche der angeklickten Kachel.
+   *
+   * Der Uebergang beginnt dort und nicht in der Bildmitte: so verbindet er
+   * die Kachel mit dem Werkzeug, das daraus wird, statt nur ein Effekt zu
+   * sein.
+   */
+  setAktiv: (id: string, von: DOMRect) => void;
   version: string;
+  /** Eigene Symbole je Kennung. Fehlt eines, gilt das eingebaute. */
+  symbole: Record<string, string>;
   t: Uebersetzer;
 }) {
   return (
@@ -312,7 +410,6 @@ function Startmenue({
 
       <div className="kacheln">
         {APPS.map((app, nummer) => {
-          const Icon = iconFuer(app.id);
           const waehlbar = istWaehlbar(app.status);
           return (
             <button
@@ -324,10 +421,10 @@ function Startmenue({
               // da sein als die erste, sonst wartet man auf sie.
               style={{ animationDelay: `${nummer * 35}ms` }}
               disabled={!waehlbar}
-              onClick={() => setAktiv(app.id)}
+              onClick={(ereignis) => setAktiv(app.id, ereignis.currentTarget.getBoundingClientRect())}
             >
               <span className="kachel__icon">
-                <Icon size={64} />
+                <AppSymbol id={app.id} size={64} bild={symbole[app.id]} />
               </span>
               <span className="kachel__name">{t(nameKey(app.id))}</span>
               <span className="kachel__text">{t(descriptionKey(app.id))}</span>
@@ -347,12 +444,16 @@ function Buehne({
   aktiv,
   setAktiv,
   buehne,
+  uebergangLaeuft,
+  symbole,
   t
 }: {
   eintrag: { id: string };
   aktiv: string;
   setAktiv: (id: string | null) => void;
   buehne: BuehnenZustand;
+  uebergangLaeuft: boolean;
+  symbole: Record<string, string>;
   t: Uebersetzer;
 }) {
   const schiene = useRef<HTMLElement>(null);
@@ -376,25 +477,42 @@ function Buehne({
    */
   const [gemeldet, setGemeldet] = useState<readonly string[]>([]);
 
+  /**
+   * Nimmt ein Werkzeug wieder aus der Meldung.
+   *
+   * Muss passieren, sonst liefe die Animation nur ein einziges Mal: eine
+   * Klasse, die stehen bleibt, startet nicht neu.
+   */
+  const wischFertig = useCallback((id: string) => {
+    setGemeldet((vorher) => vorher.filter((eintrag) => eintrag !== id));
+  }, []);
+
   useEffect(() => {
-    const zeitgeber = new Map<string, number>();
+    const notbremse = new Map<string, number>();
     const ab = window.shell?.app?.beiEreignis?.((id) => {
       setGemeldet((vorher) => (vorher.includes(id) ? vorher : [...vorher, id]));
-      // Nach dem Wischen wieder abmelden, sonst liefe die Animation nur
-      // einmal: eine Klasse, die stehen bleibt, startet nicht neu.
-      window.clearTimeout(zeitgeber.get(id));
-      zeitgeber.set(
-        id,
-        window.setTimeout(() => {
-          setGemeldet((vorher) => vorher.filter((eintrag) => eintrag !== id));
-        }, 1400)
-      );
+      /*
+       * Abgeraeumt wird, wenn die Animation zu Ende ist — sie meldet das
+       * selbst (siehe onAnimationEnd an der Schiene).
+       *
+       * Vorher stand hier ein Zeitgeber mit 1400 ms, waehrend die CSS zwei
+       * Durchgaenge zu 1100 ms lief: der zweite Wisch fing an und brach
+       * mitten drin ab. Zwei Zahlen, die zusammenpassen mussten und es nicht
+       * taten.
+       *
+       * Der Zeitgeber bleibt als Notbremse, deutlich laenger als die
+       * Animation. Er greift nur, wenn gar kein `animationend` kommt — etwa
+       * weil das Symbol waehrenddessen aus der Schiene verschwindet. Ohne ihn
+       * bliebe die Farbe dann fuer immer stehen.
+       */
+      window.clearTimeout(notbremse.get(id));
+      notbremse.set(id, window.setTimeout(() => wischFertig(id), 4000));
     });
     return () => {
       ab?.();
-      for (const nummer of zeitgeber.values()) window.clearTimeout(nummer);
+      for (const nummer of notbremse.values()) window.clearTimeout(nummer);
     };
-  }, []);
+  }, [wischFertig]);
 
   // Gemessen statt gerechnet: die Stelle haengt an Knopfhoehen, Abstaenden und
   // dem Trenner. Eine Formel dafuer waere bei der naechsten Aenderung an der
@@ -436,7 +554,6 @@ function Buehne({
         </button>
         <span className="schiene__trenner" />
         {APPS.map((app) => {
-          const Icon = iconFuer(app.id);
           const waehlbar = istWaehlbar(app.status);
           const name = t(nameKey(app.id));
           return (
@@ -449,9 +566,15 @@ function Buehne({
               disabled={!waehlbar}
               aria-current={app.id === aktiv ? 'page' : undefined}
               title={waehlbar ? name : `${name} — ${t(STATUS_KEY[app.status])}`}
+              // Ohne Flaeche: ueber die Schiene wechselt man staendig hin und
+              // her, und dort waere das grosse Wachsen jedes Mal eine
+              // Zumutung. Der Uebergang gehoert dem Startmenue.
               onClick={() => setAktiv(app.id)}
+              // Die Animation liegt auf ::after; ihr Ende steigt bis hierher
+              // auf. So bleibt die Dauer allein in der CSS.
+              onAnimationEnd={() => wischFertig(app.id)}
             >
-              <Icon size={26} />
+              <AppSymbol id={app.id} size={26} bild={symbole[app.id]} />
             </button>
           );
         })}
@@ -462,7 +585,26 @@ function Buehne({
         Ansicht deckt die Flaeche vollstaendig ab. Ein Text an dieser Stelle
         waere unsichtbar, aber Vorlesewerkzeuge laesen ihn vor.
       */}
-      {buehne.zustand === 'offen' || buehne.zustand === 'laedt' ? (
+      {buehne.zustand === 'laedt' && uebergangLaeuft ? (
+        // Der Uebergang deckt die Flaeche ohnehin ab und zeigt dort selbst,
+        // dass geladen wird.
+        <div className="buehne__flaeche" aria-hidden="true" />
+      ) : buehne.zustand === 'laedt' ? (
+        /*
+         * Waehrend ein Werkzeug laedt, soll man sehen, dass etwas passiert.
+         * Vorher blieb die Flaeche leer, und ein langsamer Start sah aus wie
+         * ein haengendes Programm.
+         *
+         * Mit Text daneben, nicht nur mit dem Kreis: ein Kreis allein sagt
+         * "es tut sich etwas", ein Text sagt, was. Bei weniger Bewegung
+         * bleibt nur der Text (siehe styles.css) — dann steht da immer noch
+         * etwas.
+         */
+        <main className="laedt" role="status">
+          <span className="laedt__kreis" aria-hidden="true" />
+          <p className="laedt__text">{t('stage.loading', { name: t(nameKey(eintrag.id)) })}</p>
+        </main>
+      ) : buehne.zustand === 'offen' ? (
         <div className="buehne__flaeche" aria-hidden="true" />
       ) : buehne.zustand === 'fehler' ? (
         <main className="stoerung" role="alert">
@@ -487,6 +629,90 @@ function Buehne({
           <p className="platzhalter__hinweis">{t('stage.placeholder')}</p>
         </main>
       )}
+    </div>
+  );
+}
+
+
+/**
+ * Das Symbol der angeklickten Kachel, das ueber den Schirm waechst.
+ *
+ * Beginnt genau dort, wo die Kachel lag, und endet im ganzen Fenster. Ist
+ * das Werkzeug dann noch nicht da, steht im ausgewachsenen Feld der
+ * Ladekreis — der Uebergang traegt also zweierlei: er verbindet die Kachel
+ * mit dem Werkzeug, und er ueberbrueckt die Zeit, in der sonst nichts zu
+ * sehen waere.
+ */
+function UebergangsFeld({
+  eintrag,
+  dauerMs,
+  onAusgewachsen,
+  bild,
+  t
+}: {
+  eintrag: { id: string; von: DOMRect; phase: 'waechst' | 'wartet' };
+  dauerMs: number;
+  onAusgewachsen: () => void;
+  bild?: string;
+  t: Uebersetzer;
+}) {
+  const [gross, setGross] = useState(false);
+
+  /*
+   * Erst im naechsten Bild wachsen lassen.
+   *
+   * Wird die Endgroesse im selben Durchgang gesetzt wie die Startgroesse,
+   * sieht der Browser nur den Endzustand und es gibt gar keinen Uebergang.
+   * Zwei `requestAnimationFrame`, weil eines nicht reicht: React zeichnet im
+   * ersten, der Browser uebernimmt die Startwerte erst danach.
+   */
+  useEffect(() => {
+    let zweites = 0;
+    const erstes = requestAnimationFrame(() => {
+      zweites = requestAnimationFrame(() => setGross(true));
+    });
+    return () => {
+      cancelAnimationFrame(erstes);
+      cancelAnimationFrame(zweites);
+    };
+  }, []);
+
+  return (
+    <div
+      className={`uebergang ${gross ? 'uebergang--gross' : ''}`}
+      /*
+       * Die Dauer kommt als CSS-Variable aus dem Code, nicht aus der
+       * Stilvorlage: dieselbe Zahl bekommt der Hauptprozess mit, damit er die
+       * Ansicht nicht mitten in die Animation schiebt. Zwei Zahlen an zwei
+       * Stellen liefen frueher oder spaeter auseinander.
+       */
+      style={{
+        ['--uebergang-dauer' as string]: `${dauerMs}ms`,
+        ...(gross
+          ? {}
+          : {
+              left: eintrag.von.left,
+              top: eintrag.von.top,
+              width: eintrag.von.width,
+              height: eintrag.von.height
+            })
+      }}
+      onTransitionEnd={(ereignis) => {
+        // Nur auf die Breite hoeren: alle vier Kanten melden sich, und drei
+        // Meldungen davon sind dieselbe Nachricht.
+        if (ereignis.propertyName === 'width') onAusgewachsen();
+      }}
+      aria-hidden="true"
+    >
+      <span className="uebergang__icon">
+        <AppSymbol id={eintrag.id} size={64} bild={bild} />
+      </span>
+      {eintrag.phase === 'wartet' ? (
+        <span className="uebergang__warten">
+          <span className="laedt__kreis" />
+          <span className="laedt__text">{t('stage.loading', { name: t(nameKey(eintrag.id)) })}</span>
+        </span>
+      ) : null}
     </div>
   );
 }

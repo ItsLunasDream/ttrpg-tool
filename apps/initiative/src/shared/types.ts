@@ -32,15 +32,41 @@ export interface Koerper {
 }
 
 /**
- * Ein Zustand mit Rundenzaehler.
+ * Wann ein Zustand endet.
  *
- * `rundenRest === null` heisst „laeuft, bis jemand ihn wegnimmt\" — nicht
- * jeder Zustand hat eine Dauer, und eine erfundene waere schlimmer als keine.
+ * Die drei Zeitpunkte sind die, die D&D fuer Effekte benutzt; damit sind die
+ * allermeisten Zauber abgedeckt. `offen` ist der vierte Fall: laeuft, bis
+ * jemand ihn wegnimmt — nicht jeder Zustand hat eine Dauer, und eine
+ * erfundene waere schlimmer als keine.
+ */
+export const DAUERN = ['offen', 'zugBeginn', 'zugEnde', 'rundeEnde'] as const;
+export type Dauer = (typeof DAUERN)[number];
+
+/**
+ * Ein Zustand, der zu einem bestimmten Zeitpunkt ablaeuft.
  */
 export interface Zustand {
   readonly id: string;
   readonly name: string;
+  readonly dauer: Dauer;
+  /**
+   * Wie oft der Endpunkt noch erreicht werden muss. `null` bei `offen`.
+   *
+   * Meist 1 — „bis zum Ende deines naechsten Zuges\". Groesser fuer Effekte,
+   * die mehrere Runden halten: „drei Runden\" ist dreimal „bis zum Ende
+   * deines Zuges\".
+   */
   readonly rundenRest: number | null;
+  /**
+   * Gesetzt waehrend des eigenen Zuges der betroffenen Figur.
+   *
+   * Das ist die Stelle, an der sich am Tisch alle streiten. Wer sich in
+   * seinem eigenen Zug einen Effekt „bis zum Ende deines naechsten Zuges\"
+   * auflaedt, wird ihn nicht Sekunden spaeter wieder los — gemeint ist der
+   * Zug in der naechsten Runde. Der erste eigene Zugwechsel zaehlt deshalb
+   * nicht mit, er loescht nur diese Markierung.
+   */
+  readonly frisch: boolean;
 }
 
 export interface Teilnehmer {
@@ -54,6 +80,17 @@ export interface Teilnehmer {
   readonly feinwert: number;
   /** Spielerfiguren stehen im Kampf anders da: sie werden nicht ausgewuerfelt. */
   readonly istSpieler: boolean;
+  /**
+   * Kein Lebewesen, sondern das Gelaende: Rauch, der jede Runde zieht,
+   * Wasser, das steigt, die Falle, die nachlaedt.
+   *
+   * Steht bei Initiative 20 in der Reihenfolge, hinter allen Figuren mit
+   * derselben Zahl — so wie die Unterschlupfaktion im Regelwerk. Nicht ganz
+   * oben: wer 22 gewuerfelt hat, ist vorher dran.
+   *
+   * Hat keine Trefferpunkte und wird nicht ausgewuerfelt.
+   */
+  readonly istTerrain: boolean;
   readonly koerper: readonly Koerper[];
   readonly zustaende: readonly Zustand[];
   /** Dateiname im Bildordner des Trackers, oder null. */

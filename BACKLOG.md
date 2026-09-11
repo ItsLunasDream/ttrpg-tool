@@ -483,6 +483,121 @@ der ältere Rauchtest deshalb nicht mehr das Schloss traf, sondern die KI. Das
 Schloss hat jetzt eine eigene Klasse; ein Test, der auf Reihenfolge zeigt,
 zeigt beim nächsten Knopf wieder daneben.
 
+### Eigene Bilder als Symbole der Werkzeuge
+
+Die eingebauten Symbole sind Vektoren im Quelltext und ausdrücklich
+Platzhalter. Wer eigene will, legt sie in den Ordner `symbole` im Datenordner
+der Hülle, benannt nach der Kennung des Werkzeugs: `backstory.png`,
+`mapmaker.png`, `initiative.png`, `dice.png`, `npc.png`. Zwei Knöpfe in den
+Einstellungen öffnen den Ordner und lesen neu.
+
+Entscheidungen:
+
+- **Der Ordner liegt im Datenordner, nicht im Programmordner.** Dort ist er
+  nach der Installation beschreibbar und überlebt ein Update.
+- **Als `data:`-URL über die Brücke, kein eigenes Protokoll.** Es sind fünf
+  kleine Dateien, die beim Start gelesen werden, und `img-src` lässt `data:`
+  ohnehin zu. Ein Protokoll wäre der sauberere Weg bei vielen oder großen
+  Bildern; hier wäre es Aufwand ohne Gegenwert.
+- **Kein SVG.** Eine SVG-Datei kann Skripte enthalten, und auch wenn sie in
+  einem `img` nicht laufen, ist das eine Tür, die man für ein Symbol nicht
+  aufmachen muss. PNG, JPEG, WebP und GIF decken ab, was aus einem
+  Zeichenprogramm kommt.
+- **Höchstens 2 MB je Datei.** Ein PNG mit 256 Pixeln Kantenlänge liegt bei
+  wenigen zehn Kilobyte. Die Grenze steht gegen den Fall, dass jemand
+  versehentlich ein Foto hineinlegt — als `data:`-URL wandert die Datei durch
+  die Brücke und in den Speicher der Oberfläche.
+- **Jeder Fehlschlag ist still.** Fehlende Datei, kaputtes Bild, unbekanntes
+  Format, zu groß: es gilt das eingebaute Symbol, und sonst passiert nichts.
+  Ein Symbol ist kein Grund für eine Fehlermeldung. Der Rauchtest spielt alle
+  vier Fälle durch.
+- **`object-fit: contain`**, damit ein nicht quadratisches Bild nicht
+  gestaucht wird — lieber Luft an zwei Seiten als eine verzerrte Zeichnung.
+
+Beim ersten Start entsteht der Ordner samt einer LIESMICH, die die
+Dateinamen nennt. Wer eigene Bilder einsetzen will, soll den Ordner
+vorfinden und nicht raten müssen, wie er heißt.
+
+### Bewegung: der Übergang aus dem Startmenü, und die letzten drei Werkzeuge
+
+Beim Klick auf eine Kachel wächst deren Symbol über den ganzen Bildschirm.
+Das war ein ausdrücklicher Wunsch, und der Übergang trägt zweierlei: er
+verbindet die Kachel mit dem Werkzeug, das daraus wird, und er überbrückt die
+Zeit, in der sonst nichts zu sehen wäre. Ist das Feld ausgewachsen und das
+Werkzeug noch nicht da, steht darin der Ladekreis; ist es schneller, sieht
+man ihn gar nicht.
+
+Entscheidungen dabei:
+
+- **Der Übergang beginnt an der Kachel, nicht in der Bildmitte.** Sonst wäre
+  er ein Effekt statt einer Verbindung.
+- **Über die Schiene läuft er nicht.** Dort wechselt man ständig hin und her,
+  und jedes Mal eine große Bewegung wäre eine Zumutung. Er gehört dem
+  Startmenü.
+- **Der Hauptprozess bekommt die Dauer mit und wartet sie ab.** Die
+  eingebettete Ansicht ist kein HTML-Element; sie liegt immer über allem, was
+  die Hülle zeichnet. Schöbe sie sich mitten hinein, sähe es aus, als hätte
+  jemand die Animation abgeschnitten. Montiert und geladen wird
+  währenddessen — es geht keine Zeit verloren, sie wird nur nicht vorzeitig
+  sichtbar.
+- **Bewegt werden left/top/width/height, nicht `transform: scale`.** Die
+  teurere Sorte, hier aber die richtige: beim Skalieren zöge sich das Symbol
+  mit in die Breite und aus dem runden Rand würde ein Oval.
+
+Danach fehlten noch Backstory Creator, Karteneditor und NPC Creator — die
+drei Werkzeuge, die `motion.css` nicht einmal geladen hatten. Jetzt benutzen
+alle fünf dieselben Zeiten und Kurven.
+
+Zwei Fallen dabei, beide erst beim Ausprobieren aufgefallen:
+
+- Das Einblenden beim Notizwechsel braucht einen `key` am Element. Ohne ihn
+  behält React dasselbe Element, und eine CSS-Animation läuft nur, wenn das
+  Element neu entsteht — sie bliebe genau bei dem Vorgang aus, für den sie
+  gedacht ist.
+- Der Toast des Backstory Creators bekommt eine eigene Bewegung statt
+  `.motion-eintritt`: er steht mit `translateX(-50%)` in der Mitte, und die
+  Klasse des Pakets überschreibt diese Verschiebung — er spränge beim
+  Erscheinen nach rechts.
+
+Unangetastet bleiben die Stellen, die schon ihre eigene, stärkere Bewegung
+haben: die fallenden Würfel und die Zeichenfläche des Karteneditors.
+
+### Ladeanzeige und Startzeit
+
+Während ein Werkzeug lädt, steht jetzt ein Ladekreis mit Text daneben. Vorher
+blieb die Fläche leer, und ein langsamer Start sah aus wie ein hängendes
+Programm.
+
+Der Kreis widerspricht einer Entscheidung im Bewegungspaket: dort steht
+ausdrücklich, dass es **keine** Endlosanimation mitbringt, weil eine hängende
+Anwendung damit so lebendig aussieht wie eine arbeitende. Er wurde trotzdem
+gebaut, weil er gewünscht war — abgefedert dadurch, dass er nur während des
+Ladens läuft, dass ein Text danebensteht, und dass er bei
+`prefers-reduced-motion` stillsteht statt zu verschwinden.
+
+**Zur Startzeit: gemessen, nicht geraten.** Hier unter Linux, aus dem
+Arbeitsverzeichnis:
+
+    399 ms   Electron bereit
+     13 ms   Einstellungen gelesen und geschrieben
+      0 ms   Kanäle angemeldet
+    149 ms   Fenster steht
+    565 ms   GESAMT
+
+Drei Viertel der Zeit vergehen, bevor eigener Code überhaupt läuft. Der
+einzige messbare Hebel im Bündel ist das Anthropic-SDK, das im Hauptprozess
+liegt, auch wenn keine KI eingerichtet ist: ohne es startet die Hülle in
+486 statt 533 ms. **47 ms** — zu wenig für den Umbau, den es kosten würde
+(`baueAnbieter` müsste asynchron werden und zöge das durch beide Werkzeuge).
+
+Die gemeldete Langsamkeit kommt von einem Windows-Rechner, und dort kann ich
+nicht messen. Statt zu raten ist die Messung jetzt eingebaut:
+`TTRPG_TOOLS_STARTZEIT=1` gesetzt, und die Hülle schreibt dieselbe Tabelle in
+die Konsole. Erst danach lässt sich sagen, ob die Zeit im eigenen Code liegt
+oder davor — die wahrscheinlichste Erklärung, ein unsigniertes Programm, das
+beim ersten Start vom Virenschutz durchgesehen wird, wäre durch keine
+Codeänderung zu beheben.
+
 ### Verwaiste Bilder aufräumen
 
 „Aufräumen" in der Kopfzeile zeigt Bilddateien, auf die nichts mehr verweist,

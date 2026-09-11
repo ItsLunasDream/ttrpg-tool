@@ -93,6 +93,7 @@ const de = {
   'editor.title': 'Titel',
   'editor.save': 'Speichern',
   'editor.delete': 'Löschen',
+  'list.rename': 'Umbenennen',
   'editor.saving': 'Speichert …',
   'editor.unsaved': 'Nicht gespeichert',
   'editor.saved': 'Gespeichert',
@@ -221,6 +222,7 @@ const de = {
   'dialog.newCampaign': 'Neue Kampagne',
   'dialog.campaignName': 'Name der Kampagne',
   'dialog.renameCampaign': 'Kampagne umbenennen',
+  'dialog.renameNote': 'Notiz umbenennen',
   'dialog.newName': 'Neuer Name',
   'dialog.deleteCampaign': 'Kampagne löschen',
   'dialog.deleteCampaignText':
@@ -481,6 +483,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'editor.title': 'Title',
   'editor.save': 'Save',
   'editor.delete': 'Delete',
+  'list.rename': 'Rename',
   'editor.saving': 'Saving …',
   'editor.unsaved': 'Unsaved',
   'editor.saved': 'Saved',
@@ -609,6 +612,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'dialog.newCampaign': 'New campaign',
   'dialog.campaignName': 'Campaign name',
   'dialog.renameCampaign': 'Rename campaign',
+  'dialog.renameNote': 'Rename note',
   'dialog.newName': 'New name',
   'dialog.deleteCampaign': 'Delete campaign',
   'dialog.deleteCampaignText':

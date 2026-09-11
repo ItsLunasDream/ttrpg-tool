@@ -1041,3 +1041,64 @@ button.ghost.icon.on {
   border: 1px solid var(--line);
   border-radius: 3px;
 }
+
+/* ---------- Bewegung ---------- */
+
+/*
+ * Zurückhaltend und nur außerhalb der Zeichenfläche.
+ *
+ * Auf der Fläche selbst passiert nichts: dort zeichnet Pixi, und wer eine
+ * Linie zieht, will die Linie sehen und keine Begleitbewegung. Bewegt wird
+ * nur die Bedienung drumherum — Werkzeugwechsel, Panels, Dialoge.
+ *
+ * Zeiten und Kurven kommen aus @suite/motion, die Farben von hier.
+ */
+
+/*
+ * Der Werkzeugwechsel. Fünfzehn Knöpfe, und der aktive springt beim Umschalten
+ * hart um — mit einem kurzen Übergang liest sich der Wechsel als Bewegung
+ * statt als Blinken. Kurz, weil er direkt auf den Klick antwortet.
+ */
+button {
+  transition: background var(--motion-feedback) var(--motion-ease-standard),
+    border-color var(--motion-feedback) var(--motion-ease-standard),
+    color var(--motion-feedback) var(--motion-ease-standard);
+}
+
+.toolbar button.tool .shortcut {
+  transition: color var(--motion-feedback) var(--motion-ease-standard);
+}
+
+/*
+ * Ein aufgeklapptes Feld blendet seinen Inhalt ein.
+ *
+ * Nur Erscheinen, kein Rücken: der Inhalt schiebt beim Aufklappen ohnehin
+ * alles darunter nach unten, und eine zweite Bewegung obendrauf wäre unruhig.
+ */
+details[open] > *:not(summary) {
+  animation: motion-erscheinen var(--motion-state) var(--motion-ease-enter);
+}
+
+/*
+ * Dialoge: der Hintergrund blendet ein, der Kasten kommt dazu herein. Zwei
+ * getrennte Bewegungen, weil der Hintergrund die Fläche dahinter abdunkelt
+ * und der Kasten etwas Neues ist.
+ */
+.modal-backdrop {
+  animation: motion-erscheinen var(--motion-state) var(--motion-ease-enter);
+}
+
+.modal {
+  animation: motion-eintritt var(--motion-place) var(--motion-ease-enter);
+}
+
+/*
+ * Ausgewählte Einträge in den Listen links und rechts: Layer, Stempel,
+ * Requisiten. Dieselbe kurze Antwort wie bei den Knöpfen.
+ */
+.layer,
+.stamp-list li,
+.prop-card {
+  transition: background var(--motion-feedback) var(--motion-ease-standard),
+    border-color var(--motion-feedback) var(--motion-ease-standard);
+}

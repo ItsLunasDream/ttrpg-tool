@@ -85,6 +85,29 @@ const api = {
       ipcRenderer.off(channel('app:sprache'), listener);
     };
   },
+  /**
+   * Im Speicherort ist etwas dazugekommen, das nicht aus dieser Oberflaeche
+   * stammt — der NPC Creator hat eine Figur abgelegt. Liefert eine Funktion
+   * zum Abmelden zurueck.
+   */
+  onFremdeAenderung: (callback: () => void): (() => void) => {
+    const listener = () => callback();
+    ipcRenderer.on(channel('app:fremde-aenderung'), listener);
+    return () => {
+      ipcRenderer.off(channel('app:fremde-aenderung'), listener);
+    };
+  },
+  /**
+   * Die KI-Einstellung der Sammlung hat sich geaendert. Liefert eine Funktion
+   * zum Abmelden zurueck.
+   */
+  onKiWechsel: (callback: () => void): (() => void) => {
+    const listener = () => callback();
+    ipcRenderer.on(channel('app:ki-gewechselt'), listener);
+    return () => {
+      ipcRenderer.off(channel('app:ki-gewechselt'), listener);
+    };
+  },
   ai: {
     status: () =>
       invoke<{

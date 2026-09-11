@@ -329,7 +329,13 @@ body {
     #7aa2f700 70%,
     transparent 100%
   );
-  animation: schiene-wischt 1100ms var(--motion-ease-standard) 2;
+  /*
+   * Einmal, nicht zweimal. Vorher liefen zwei Durchgaenge zu 1100 ms, und ein
+   * Zeitgeber nahm die Klasse nach 1400 ms wieder weg — der zweite Wisch fing
+   * also an und brach mitten drin ab. Zwei Zahlen, die zusammenpassen
+   * mussten und es nicht taten; jetzt meldet die Animation ihr Ende selbst.
+   */
+  animation: schiene-wischt 1100ms var(--motion-ease-standard) 1;
   pointer-events: none;
 }
 
@@ -715,4 +721,147 @@ body {
 
 .ueber__verweise button:hover {
   background: #ffffff10;
+}
+
+/* ---------- Ladeanzeige ---------- */
+
+.laedt {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 0;
+}
+
+/*
+ * Ein Ring, dem ein Stueck fehlt, und der sich dreht.
+ *
+ * Das Bewegungspaket bringt bewusst keine Endlosanimation mit: eine haengende
+ * Anwendung sieht damit so lebendig aus wie eine arbeitende. Hier steht sie
+ * trotzdem, weil sie ausdruecklich gewuenscht war — abgefedert dadurch, dass
+ * sie nur waehrend des Ladens laeuft und dass ein Text danebensteht, der auch
+ * ohne Bewegung etwas sagt.
+ */
+.laedt__kreis {
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--rand);
+  border-top-color: var(--betont);
+  border-radius: 50%;
+  animation: huelle-laedt 900ms linear infinite;
+}
+
+@keyframes huelle-laedt {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.laedt__text {
+  color: var(--text-leise);
+  margin: 0;
+}
+
+/*
+ * Weniger Bewegung: der Ring steht still und tritt zurueck. Weg ist er
+ * nicht — sonst spraenge beim Umschalten der Einstellung das Bild.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .laedt__kreis {
+    animation: none;
+    opacity: 0.4;
+  }
+}
+
+/* ---------- Uebergang: das Symbol waechst ueber den Schirm ---------- */
+
+/*
+ * Beginnt genau dort, wo die Kachel lag, und endet im ganzen Fenster.
+ *
+ * Bewegt werden left/top/width/height und nicht `transform: scale`. Das ist
+ * die teurere Sorte Animation, hier aber die richtige: beim Skalieren zoege
+ * sich das Symbol darin mit in die Breite, und aus dem runden Rand wuerde
+ * ein Oval. Es ist ein einziges Element fuer eine Drittelsekunde.
+ *
+ * `z-index` ueber allem in der Huelle. Die eingebettete Ansicht liegt
+ * trotzdem darueber — sie ist kein HTML-Element, sondern eine eigene
+ * Ansicht des Fensters. Genau deshalb wartet der Hauptprozess die Dauer ab,
+ * bevor er sie hervorholt.
+ */
+.uebergang {
+  position: fixed;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  overflow: hidden;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  transition: left var(--uebergang-dauer, 340ms) var(--motion-ease-enter),
+    top var(--uebergang-dauer, 340ms) var(--motion-ease-enter),
+    width var(--uebergang-dauer, 340ms) var(--motion-ease-enter),
+    height var(--uebergang-dauer, 340ms) var(--motion-ease-enter),
+    border-radius var(--uebergang-dauer, 340ms) var(--motion-ease-enter);
+}
+
+.uebergang--gross {
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  border-color: transparent;
+}
+
+/*
+ * Das Symbol waechst mit, aber langsamer als das Feld — sonst wirkt es, als
+ * fluege es einem entgegen. Es bleibt in der Mitte und wird gross genug, um
+ * gesehen zu werden, ohne den Schirm zu fuellen.
+ */
+.uebergang__icon {
+  display: flex;
+  color: var(--betont);
+  transform: scale(1);
+  transition: transform var(--uebergang-dauer, 340ms) var(--motion-ease-enter);
+}
+
+.uebergang--gross .uebergang__icon {
+  transform: scale(1.6);
+}
+
+/* Kommt erst, wenn das Feld ausgewachsen ist und das Werkzeug noch fehlt. */
+.uebergang__warten {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/*
+ * Weniger Bewegung: den Uebergang gibt es dann gar nicht — die Huelle baut
+ * ihn erst nicht auf (siehe App.tsx). Diese Regel ist der Gurt fuer den
+ * Fall, dass er doch einmal ins Bild kommt.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .uebergang,
+  .uebergang__icon {
+    transition: none;
+  }
+}
+
+/*
+ * Ein eigenes Bild als Symbol.
+ *
+ * `object-fit: contain`, damit ein nicht quadratisches Bild nicht gestaucht
+ * wird — lieber Luft an zwei Seiten als eine verzerrte Zeichnung. Keine
+ * Farbe von aussen: wer ein Bild hinlegt, will genau dieses sehen.
+ */
+.app-symbol {
+  object-fit: contain;
+  display: block;
 }

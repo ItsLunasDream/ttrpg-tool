@@ -92,10 +92,16 @@ app.whenReady().then(async () => {
     `[...document.querySelectorAll('button')].find(b => /Settings|Einstellungen/.test(b.textContent)).click(); true`
   );
   await warte(400);
+  // Als Liste geprueft und nicht als aneinandergehaengter Text: seit es
+  // einen zweiten Abschnitt gibt (die Symbole), traf ein Muster auf den
+  // ganzen Text nicht mehr zu, obwohl die Ueberschrift da war.
   const ueberschriften = await js(
-    "[...document.querySelectorAll('.feld__ueberschrift')].map(e => e.textContent).join('|')"
+    "[...document.querySelectorAll('.feld__ueberschrift')].map(e => e.textContent)"
   );
-  pruefe(/^(AI|KI)$/m.test(ueberschriften), 'der Dialog zeigt einen KI-Abschnitt');
+  pruefe(
+    ueberschriften.includes('KI') || ueberschriften.includes('AI'),
+    `der Dialog zeigt einen KI-Abschnitt (${ueberschriften.join(', ')})`
+  );
 
   const felder = await js(
     "[...document.querySelectorAll('.feld__name')].map(e => e.textContent).join('|')"
@@ -165,6 +171,58 @@ app.whenReady().then(async () => {
     `der Grund ist uebersetzt (${zustand.beschreibung.slice(0, 60)})`
   );
   pruefe(zustand.schluessel === undefined, 'der Schluessel selbst kommt nicht zurueck');
+
+  // --- Kommt der Wechsel im Backstory Creator an? --------------------------
+  /*
+   * Gemeldet: "Wenn man im Menue die KI Tools ausschaltet ist es im Backstory
+   * Creator noch nicht aktualisiert. Erst wenn man die Sprache aendert."
+   *
+   * Genau das: die Oberflaeche fragte den Zustand einmal beim Laden ab, und
+   * ein Sprachwechsel loeste zufaellig ein Neuzeichnen aus.
+   */
+  await js("document.querySelector('.huelle') && [...document.querySelectorAll('button')].find(b => /Close|Schließen/.test(b.textContent))?.click(); true");
+  await warte(400);
+  await js(`(() => { const k=[...document.querySelectorAll('.kachel:not(:disabled)')]
+    .find(x => /Backstory/.test(x.textContent)); if(!k) return false; k.click(); return true; })()`);
+  await warte(5000);
+
+  const bs = fenster.contentView.children.find((v) =>
+    v.webContents.getURL().includes('/apps/backstory/')
+  );
+  pruefe(Boolean(bs), 'der Backstory Creator kommt hoch');
+  if (bs) {
+    const bjs = (a) => bs.webContents.executeJavaScript(a);
+    // Eine Kampagne mit einer Notiz, sonst gibt es keinen Editor und damit
+    // auch keinen Platz, an dem der Assistent stehen koennte.
+    await bjs(`(async () => {
+      const aus = (a) => (a && 'value' in a ? a.value : a);
+      let liste = aus(await window.api.campaigns.list()) ?? [];
+      if (liste.length === 0) liste = [aus(await window.api.campaigns.create('Testrunde'))];
+      const notizen = aus(await window.api.notes.list(liste[0].id)) ?? [];
+      if (notizen.length === 0) await window.api.notes.create(liste[0].id, 'character', 'Probe');
+      return true; })()`);
+    bs.webContents.reload();
+    await warte(4500);
+
+    const assistent = () =>
+      bjs("Boolean(document.querySelector('.assistant')) ? 'an' : (document.querySelector('.panel__empty') ? 'aus' : 'kein Panel')");
+
+    // Gerade steht die KI auf 'claude' mit unbrauchbarem Schluessel — der
+    // Assistent ist dann trotzdem da, nur nicht bereit. Das reicht: geprueft
+    // wird das Kommen und Gehen, nicht die Bereitschaft.
+    pruefe((await assistent()) === 'an', `der Assistent steht (${await assistent()})`);
+
+    await js("window.shell.einstellungen.schreiben({ ki: { anbieter: 'none', ollamaAdresse: 'x', ollamaModell: 'y', claudeModell: 'z' } })");
+    await warte(1200);
+    pruefe(
+      (await assistent()) === 'aus',
+      `KI aus: der Assistent verschwindet ohne Sprachwechsel (${await assistent()})`
+    );
+
+    await js("window.shell.einstellungen.schreiben({ ki: { anbieter: 'ollama', ollamaAdresse: 'http://127.0.0.1:1', ollamaModell: 'egal', claudeModell: 'claude-opus-5' } })");
+    await warte(1200);
+    pruefe((await assistent()) === 'an', `und wieder an: er kommt zurueck (${await assistent()})`);
+  }
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
 

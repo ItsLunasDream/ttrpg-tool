@@ -8,8 +8,9 @@
  * jederzeit vorkommt.
  */
 import { useState, type ReactNode } from 'react';
+import { Kontextmenue } from './Kontextmenue';
 import { t } from './i18n';
-import type { Koerper, Teilnehmer } from '../shared/types';
+import { DAUERN, type Dauer, type Koerper, type Teilnehmer } from '../shared/types';
 
 interface Props {
   readonly teilnehmer: Teilnehmer;
@@ -25,13 +26,17 @@ interface Props {
   onGruppe(anzahl: number): void;
   onDuplizieren(): void;
   onEntfernen(): void;
-  onZustand(name: string, runden: number | null): void;
+  onZustand(name: string, dauer: Dauer, runden: number | null): void;
   onZustandWeg(zustandId: string): void;
   onBild(): void;
+  /** Rechtsklick auf die Zeile: umbenennen. Fragt nach dem neuen Namen. */
+  onUmbenennen(): void;
 }
 
 export function Zeile(props: Props) {
   const { teilnehmer, amZug, laeuft, offen } = props;
+  /** Das offene Rechtsklickmenue, mit der Stelle des Zeigers. */
+  const [menue, setMenue] = useState<{ x: number; y: number } | null>(null);
   const lebt = teilnehmer.koerper.some((koerper) => !koerper.raus && koerper.hp > 0);
   const gruppe = teilnehmer.koerper.length > 1;
 
@@ -39,6 +44,7 @@ export function Zeile(props: Props) {
     <section
       className={[
         'zeile',
+        teilnehmer.istTerrain ? 'zeile--terrain' : '',
         amZug ? 'zeile--dran' : '',
         !lebt ? 'zeile--liegt' : '',
         offen ? 'zeile--offen' : '',
@@ -56,7 +62,13 @@ export function Zeile(props: Props) {
           {teilnehmer.initiative}
         </span>
 
-        {props.bildUrl ? (
+        {teilnehmer.istTerrain ? (
+          // Kein Bild, kein Anfangsbuchstabe: das Gelaende ist keine Figur,
+          // und ein Portraitplatz daneben liesse es wie eine aussehen.
+          <span className="zeile__bild zeile__bild--terrain" aria-hidden="true">
+            ◆
+          </span>
+        ) : props.bildUrl ? (
           <img className="zeile__bild" src={props.bildUrl} alt="" />
         ) : (
           <span className="zeile__bild zeile__bild--leer" aria-hidden="true">
@@ -64,7 +76,15 @@ export function Zeile(props: Props) {
           </span>
         )}
 
-        <button type="button" className="zeile__name" onClick={props.onOeffnen}>
+        <button
+          type="button"
+          className="zeile__name"
+          onClick={props.onOeffnen}
+          onContextMenu={(ereignis) => {
+            ereignis.preventDefault();
+            setMenue({ x: ereignis.clientX, y: ereignis.clientY });
+          }}
+        >
           {teilnehmer.name || <em className="zeile__namenlos">{t('feld.name')}</em>}
           {gruppe ? (
             <span className="zeile__marke">{t('gruppe.mitglieder', { n: teilnehmer.koerper.length })}</span>
@@ -73,15 +93,21 @@ export function Zeile(props: Props) {
         </button>
 
         <div className="zeile__koerper">
-          {teilnehmer.koerper.map((koerper) => (
-            <KoerperFeld
-              key={koerper.id}
-              koerper={koerper}
-              zeigeMarke={gruppe}
-              onSchaden={(betrag) => props.onSchaden(koerper.id, betrag)}
-              onSetzeHp={(wert) => props.onSetzeHp(koerper.id, wert)}
-            />
-          ))}
+          {teilnehmer.istTerrain ? (
+            // Keine Trefferpunkte: das Gelaende laesst sich nicht totschlagen.
+            // Stattdessen steht dort, wann es an die Reihe kommt.
+            <span className="zeile__terrainhinweis">{t('terrain.hinweis')}</span>
+          ) : (
+            teilnehmer.koerper.map((koerper) => (
+              <KoerperFeld
+                key={koerper.id}
+                koerper={koerper}
+                zeigeMarke={gruppe}
+                onSchaden={(betrag) => props.onSchaden(koerper.id, betrag)}
+                onSetzeHp={(wert) => props.onSetzeHp(koerper.id, wert)}
+              />
+            ))
+          )}
         </div>
 
         {amZug ? <span className="zeile__dran">{t('amZug')}</span> : null}
@@ -95,7 +121,10 @@ export function Zeile(props: Props) {
               type="button"
               className="zustand"
               onClick={() => props.onZustandWeg(zustand.id)}
-              title={t('knopf.entfernen')}
+              // Wann er ablaeuft, steht in der Kurzinfo statt in der Marke:
+              // auf dem Chip ist kein Platz fuer einen ganzen Satz, und im
+              // Kampf zaehlt die Zahl.
+              title={`${t(`dauer.${zustand.dauer}`)} · ${t('knopf.entfernen')}`}
             >
               {zustand.name}
               {zustand.rundenRest !== null ? <span className="zustand__runden">{zustand.rundenRest}</span> : null}
@@ -115,6 +144,19 @@ export function Zeile(props: Props) {
           onEntfernen={props.onEntfernen}
           onZustand={props.onZustand}
           onBild={props.onBild}
+        />
+      ) : null}
+
+      {menue ? (
+        <Kontextmenue
+          x={menue.x}
+          y={menue.y}
+          onSchliessen={() => setMenue(null)}
+          eintraege={[
+            { text: t('knopf.umbenennen'), onWahl: props.onUmbenennen },
+            { text: t('knopf.duplizieren'), onWahl: props.onDuplizieren },
+            { text: t('knopf.entfernen'), gefaehrlich: true, onWahl: props.onEntfernen }
+          ]}
         />
       ) : null}
     </section>
@@ -212,17 +254,25 @@ function Ausklapp({
   onGruppe: (anzahl: number) => void;
   onDuplizieren: () => void;
   onEntfernen: () => void;
-  onZustand: (name: string, runden: number | null) => void;
+  onZustand: (name: string, dauer: Dauer, runden: number | null) => void;
   onBild: () => void;
 }) {
   const [zustandName, setZustandName] = useState('');
   const [zustandRunden, setZustandRunden] = useState('');
+  // 'zugEnde' als Vorgabe: das ist die Dauer der allermeisten Zauber.
+  const [zustandDauer, setZustandDauer] = useState<Dauer>('zugEnde');
 
   function zustandHinzu() {
     const name = zustandName.trim();
     if (!name) return;
     const runden = Number.parseInt(zustandRunden, 10);
-    onZustand(name, Number.isFinite(runden) && runden > 0 ? runden : null);
+    // Ohne Zahl gilt einmal — "bis zum Ende deines naechsten Zuges" ist
+    // einmal. Bei 'offen' spielt die Zahl keine Rolle.
+    onZustand(
+      name,
+      zustandDauer,
+      zustandDauer === 'offen' ? null : Number.isFinite(runden) && runden > 0 ? runden : 1
+    );
     setZustandName('');
     setZustandRunden('');
   }
@@ -308,10 +358,24 @@ function Ausklapp({
             }
           }}
         />
+        <select
+          className="ausklapp__dauer"
+          value={zustandDauer}
+          title={t('feld.dauer')}
+          onChange={(e) => setZustandDauer(e.target.value as Dauer)}
+        >
+          {DAUERN.map((dauer) => (
+            <option key={dauer} value={dauer}>
+              {t(`dauer.${dauer}`)}
+            </option>
+          ))}
+        </select>
         <input
           type="number"
           className="schmal"
           placeholder={t('feld.runden')}
+          // Bei 'offen' gibt es nichts zu zaehlen.
+          disabled={zustandDauer === 'offen'}
           value={zustandRunden}
           onChange={(e) => setZustandRunden(e.target.value)}
           onKeyDown={(e) => {

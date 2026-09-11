@@ -31,6 +31,10 @@ interface Props {
   readonly kiZustand: KiZustandAnsicht | null;
   readonly pruefeKi: () => Promise<void>;
   readonly setzeSchluessel: (schluessel: string) => Promise<void>;
+  /** Oeffnet den Ordner fuer eigene Symbole im Dateimanager. */
+  readonly symbolordnerOeffnen: () => Promise<string>;
+  /** Liest die Symbole neu von der Platte. */
+  readonly symboleNeuLaden: () => Promise<void>;
   readonly onClose: () => void;
   readonly t: (key: MessageKey, params?: MessageParams) => string;
 }
@@ -43,6 +47,8 @@ export function Einstellungen({
   kiZustand,
   pruefeKi,
   setzeSchluessel,
+  symbolordnerOeffnen,
+  symboleNeuLaden,
   onClose,
   t
 }: Props) {
@@ -193,6 +199,17 @@ export function Einstellungen({
           ) : null}
         </>
       ) : null}
+
+      <h3 className="feld__ueberschrift">{t('settings.icons')}</h3>
+      <p className="feld__hinweis">{t('settings.iconsHint')}</p>
+      <div className="feld__knoepfe">
+        <button type="button" onClick={() => melde(symbolordnerOeffnen())}>
+          {t('settings.iconsOpen')}
+        </button>
+        <button type="button" onClick={() => melde(symboleNeuLaden())}>
+          {t('settings.iconsReload')}
+        </button>
+      </div>
 
       {fehler && <p className="feld__fehler">{fehler}</p>}
     </Dialog>
