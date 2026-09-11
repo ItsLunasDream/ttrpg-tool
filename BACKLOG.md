@@ -514,8 +514,14 @@ Entscheidungen:
 - **`object-fit: contain`**, damit ein nicht quadratisches Bild nicht
   gestaucht wird — lieber Luft an zwei Seiten als eine verzerrte Zeichnung.
 
-Beim ersten Start entsteht der Ordner samt einer LIESMICH, die die
-Dateinamen nennt. Wer eigene Bilder einsetzen will, soll den Ordner
+**Drei Ebenen, und wer gewinnt:** eigene Bilder im Datenordner stechen die
+mitgelieferten in `apps/shell/symbole/`, und die stechen die eingebauten
+Vektoren. Der mitgelieferte Ordner gehört ins Repository und wird über
+`extraResources` ins Paket gelegt — so gelten Bilder, die dort landen, für
+alle, die die Sammlung installieren, und nicht nur auf einem Rechner.
+
+Beim ersten Start entsteht der Ordner im Datenordner samt einer LIESMICH, die
+die Dateinamen nennt. Wer eigene Bilder einsetzen will, soll den Ordner
 vorfinden und nicht raten müssen, wie er heißt.
 
 ### Bewegung: der Übergang aus dem Startmenü, und die letzten drei Werkzeuge

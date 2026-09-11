@@ -37,6 +37,17 @@ export class MeasureTool implements Tool {
   private linien = new Graphics();
   private beschriftung = new Container();
   private attached = false;
+  /**
+   * Wie viele Beschriftungen im aktuellen Durchgang schon vergeben sind.
+   *
+   * Die Text-Knoten werden wiederverwendet statt bei jedem Bild neu angelegt.
+   * Vorher entstand bei jeder Mausbewegung ein `new Text(...)`, und das
+   * heisst in Pixi: eine neue Textur, die gleich darauf wieder weggeworfen
+   * wird. Ein Dutzend Mal je Sekunde raeumt das den Texturspeicher um — auf
+   * manchen Treibern sichtbar als kurzes schwarzes Bild ueber der ganzen
+   * Flaeche.
+   */
+  private vergeben = 0;
 
   constructor() {
     this.lagen.addChild(this.linien);
@@ -114,7 +125,11 @@ export class MeasureTool implements Tool {
   private leeren(ctx: ToolContext): void {
     this.punkte = [];
     this.linien.clear();
-    this.beschriftung.removeChildren().forEach((k) => k.destroy());
+    // Die Knoten bleiben stehen und werden nur unsichtbar: sie beim
+    // Werkzeugwechsel wegzuwerfen und beim naechsten Mal neu anzulegen war
+    // der zweite Moment, in dem der Texturspeicher umgeraeumt wurde.
+    this.vergeben = 0;
+    this.versteckeRest();
     if (this.attached) {
       ctx.renderer.removeOverlay(this.lagen);
       this.attached = false;
@@ -133,8 +148,13 @@ export class MeasureTool implements Tool {
     const grid = ctx.doc.grid;
     const zoom = ctx.renderer.camera.zoom;
     const g = this.linien.clear();
-    this.beschriftung.removeChildren().forEach((k) => k.destroy());
-    if (this.punkte.length < 2) return;
+    // Nicht wegwerfen, sondern von vorn vergeben. Was am Ende uebrig bleibt,
+    // wird unsichtbar gestellt.
+    this.vergeben = 0;
+    if (this.punkte.length < 2) {
+      this.versteckeRest();
+      return;
+    }
 
     // Strichstärken gegen den Zoom rechnen: eine Messlinie soll bei jeder
     // Vergrößerung gleich dick aussehen.
@@ -170,10 +190,38 @@ export class MeasureTool implements Tool {
     // Auch in die Statuszeile: dort sucht man Zahlen, und beim Ziehen liegt
     // die Hand über der Beschriftung auf der Karte.
     ctx.state.setStatusMessage(t('measure.status', { value: beschriftung }));
+    this.versteckeRest();
+  }
+
+  /** Stellt die Knoten unsichtbar, die dieser Durchgang nicht gebraucht hat. */
+  private versteckeRest(): void {
+    for (let i = this.vergeben; i < this.beschriftung.children.length; i++) {
+      this.beschriftung.children[i].visible = false;
+    }
   }
 
   private text(inhalt: string, x: number, y: number, zoom: number, groesse: number): void {
-    const style = new TextStyle({
+    let knoten = this.beschriftung.children[this.vergeben] as Text | undefined;
+
+    if (!knoten) {
+      knoten = new Text({ text: inhalt, style: this.stil(groesse) });
+      knoten.anchor.set(0.5, 1);
+      this.beschriftung.addChild(knoten);
+    } else {
+      knoten.visible = true;
+      // Nur setzen, was sich geaendert hat: jede Zuweisung an `text` oder
+      // `style` laesst Pixi die Textur neu zeichnen.
+      if (knoten.text !== inhalt) knoten.text = inhalt;
+      if (knoten.style.fontSize !== 15 * groesse) knoten.style = this.stil(groesse);
+    }
+
+    knoten.position.set(x, y);
+    knoten.scale.set(1 / zoom);
+    this.vergeben++;
+  }
+
+  private stil(groesse: number): TextStyle {
+    return new TextStyle({
       fontFamily: 'system-ui, sans-serif',
       // Gegen den Zoom skaliert, damit die Schrift lesbar groß bleibt.
       fontSize: 15 * groesse,
@@ -181,10 +229,5 @@ export class MeasureTool implements Tool {
       stroke: { color: SCHATTEN, width: 4 * groesse },
       fontWeight: '600',
     });
-    const knoten = new Text({ text: inhalt, style });
-    knoten.anchor.set(0.5, 1);
-    knoten.position.set(x, y);
-    knoten.scale.set(1 / zoom);
-    this.beschriftung.addChild(knoten);
   }
 }

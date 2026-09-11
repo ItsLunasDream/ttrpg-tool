@@ -109,6 +109,14 @@
           "!tests/**",
           "!**/*.map"
         ]
+      },
+      {
+        "from": "symbole",
+        "to": "symbole",
+        "filter": [
+          "**/*",
+          "!LIESMICH.md"
+        ]
       }
     ],
     "win": {

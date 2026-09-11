@@ -37,7 +37,15 @@ export function Zeile(props: Props) {
   const { teilnehmer, amZug, laeuft, offen } = props;
   /** Das offene Rechtsklickmenue, mit der Stelle des Zeigers. */
   const [menue, setMenue] = useState<{ x: number; y: number } | null>(null);
-  const lebt = teilnehmer.koerper.some((koerper) => !koerper.raus && koerper.hp > 0);
+  /*
+   * Das Gelaende zaehlt immer als aufrecht.
+   *
+   * Es hat keine Trefferpunkte, und ohne diese Ausnahme faende `some` nichts
+   * — die Zeile waere durchgestrichen und blass, als waere das Gelaende
+   * gefallen. Dieselbe Ueberlegung wie bei `istAktiv` im Kampfkern.
+   */
+  const lebt =
+    teilnehmer.istTerrain || teilnehmer.koerper.some((koerper) => !koerper.raus && koerper.hp > 0);
   const gruppe = teilnehmer.koerper.length > 1;
 
   return (
@@ -296,6 +304,17 @@ function Ausklapp({
             onChange={(e) => onAendern((alt) => ({ ...alt, initiative: Number.parseInt(e.target.value, 10) || 0 }))}
           />
         </Feld>
+        {/*
+          Das Gelaende ist kein Lebewesen: Trefferpunkte, Gruppengroesse,
+          Feinwert und der Spieler-Haken ergeben dafuer keinen Sinn. Felder,
+          die man nicht sinnvoll ausfuellen kann, stehen besser gar nicht da
+          — sonst fragt man sich, was man dort eintragen soll.
+
+          Der Feinwert entscheidet Gleichstaende, und beim Gelaende
+          entscheidet die Regel: es liegt immer hinten.
+        */}
+        {teilnehmer.istTerrain ? null : (
+          <>
         <Feld label={t('feld.feinwert')}>
           <input
             type="number"
@@ -343,6 +362,8 @@ function Ausklapp({
           />
           <span>{t('feld.spieler')}</span>
         </label>
+          </>
+        )}
       </div>
 
       <div className="ausklapp__zustand">
@@ -391,14 +412,19 @@ function Ausklapp({
       </div>
 
       <div className="ausklapp__knoepfe">
-        <button type="button" onClick={onBild}>
-          {hatBild ? t('knopf.bildAendern') : t('knopf.bild')}
-        </button>
-        {hatBild ? (
-          <button type="button" onClick={() => onAendern((alt) => ({ ...alt, bild: null }))}>
-            {t('knopf.bildWeg')}
-          </button>
-        ) : null}
+        {/* Kein Portrait fuers Gelaende: es hat kein Gesicht. */}
+        {teilnehmer.istTerrain ? null : (
+          <>
+            <button type="button" onClick={onBild}>
+              {hatBild ? t('knopf.bildAendern') : t('knopf.bild')}
+            </button>
+            {hatBild ? (
+              <button type="button" onClick={() => onAendern((alt) => ({ ...alt, bild: null }))}>
+                {t('knopf.bildWeg')}
+              </button>
+            ) : null}
+          </>
+        )}
         <button type="button" onClick={onDuplizieren}>
           {t('knopf.duplizieren')}
         </button>

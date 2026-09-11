@@ -37,6 +37,31 @@ fs.writeFileSync(path.join(ordner, 'mapmaker.png'), Buffer.alloc(3 * 1024 * 1024
 // Und eine mit einem Format, das nicht vorgesehen ist.
 fs.writeFileSync(path.join(ordner, 'npc.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
 
+/*
+ * Ein mitgeliefertes Symbol, wie es aus dem Repository kaeme.
+ *
+ * Der Ordner liegt im Arbeitsverzeichnis neben dem Quelltext der Huelle;
+ * gepackt legt electron-builder ihn nach resources/symbole. Hier wird die
+ * erste Lage benutzt, weil der Test aus dem Arbeitsverzeichnis laeuft.
+ *
+ * `backstory.png` liegt NUR hier und `dice.png` in beiden Ordnern: so laesst
+ * sich beides pruefen — dass ein mitgeliefertes ankommt, und dass ein
+ * eigenes es sticht.
+ */
+const mitgeliefert = path.join(__dirname, '..', 'symbole');
+const vorhandene = fs.existsSync(mitgeliefert) ? fs.readdirSync(mitgeliefert) : [];
+fs.mkdirSync(mitgeliefert, { recursive: true });
+fs.writeFileSync(path.join(mitgeliefert, 'backstory.png'), MAGENTA_PNG);
+// Ein anderes Bild als das eigene, damit sich die beiden unterscheiden lassen.
+fs.writeFileSync(path.join(mitgeliefert, 'dice.png'), Buffer.concat([MAGENTA_PNG, Buffer.alloc(4)]));
+
+/** Raeumt die Testdateien wieder weg — der Ordner gehoert ins Repository. */
+function raeumeAuf() {
+  for (const datei of fs.readdirSync(mitgeliefert)) {
+    if (!vorhandene.includes(datei)) fs.rmSync(path.join(mitgeliefert, datei), { force: true });
+  }
+}
+
 app.setPath('userData', userData);
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
 
@@ -46,6 +71,12 @@ const pruefe = (b, t) => {
   console.log(`  ${b ? 'ok  ' : 'FEHL'} ${t}`);
   if (!b) fehler.push(t);
 };
+
+// Das Aufraeumen haengt am Ende des Prozesses und nicht nur am Ende des
+// Ablaufs: bricht der Test irgendwo ab, sollen trotzdem keine Testdateien im
+// Repository liegen bleiben.
+app.on('will-quit', raeumeAuf);
+process.on('exit', raeumeAuf);
 
 app.whenReady().then(async () => {
   await warte(4000);
@@ -69,7 +100,19 @@ app.whenReady().then(async () => {
   );
   pruefe(!('mapmaker' in gelesen), 'ein zu grosses Bild wird uebersprungen');
   pruefe(!('npc' in gelesen), 'ein nicht vorgesehenes Format ebenfalls');
-  pruefe(!('backstory' in gelesen), 'wo keine Datei liegt, steht auch nichts');
+  pruefe('backstory' in gelesen, 'ein mitgeliefertes Symbol kommt an');
+  /*
+   * dice.png liegt in BEIDEN Ordnern, mit verschiedenem Inhalt. Geprueft
+   * wird, welches gewonnen hat — und zwar an den Bytes, nicht daran, dass
+   * sich zwei Werte unterscheiden: die beiden Bilder koennten
+   * versehentlich gleich sein, und dann sagte ein Ungleichvergleich nichts.
+   */
+  const eigenesDice = `data:image/png;base64,${MAGENTA_PNG.toString('base64')}`;
+  pruefe(
+    gelesen.dice === eigenesDice,
+    'und ein eigenes sticht das mitgelieferte mit demselben Namen'
+  );
+  pruefe(!('encounter' in gelesen), 'wo nirgends eine Datei liegt, steht auch nichts');
   // Die kaputte Datei hat die richtige Endung: sie wird gelesen und
   // weitergereicht. Aussortiert wird sie erst in der Oberflaeche, wenn der
   // Browser sie nicht anzeigen kann.
@@ -94,9 +137,15 @@ app.whenReady().then(async () => {
   const nachFehler = await js(
     "[...document.querySelectorAll('.kachel__icon')].map(e => e.firstElementChild.tagName).join(',')"
   );
+  /*
+   * Zwei brauchbare Bilder: das eigene fuer dice und das mitgelieferte fuer
+   * backstory. Die kaputte Datei (initiative), die zu grosse (mapmaker) und
+   * das nicht vorgesehene Format (npc) muessen auf das eingebaute
+   * zurueckfallen.
+   */
   pruefe(
-    (nachFehler.match(/IMG/g) ?? []).length === 1,
-    `nur das brauchbare Bild bleibt stehen (${nachFehler})`
+    (nachFehler.match(/IMG/g) ?? []).length === 2,
+    `nur die brauchbaren Bilder bleiben stehen (${nachFehler})`
   );
 
   // --- Der Ordner wird beim Start angelegt, samt Liesmich ------------------
@@ -106,6 +155,7 @@ app.whenReady().then(async () => {
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
 
+  raeumeAuf();
   console.log(fehler.length === 0 ? '\nSymbole bestanden.' : `\n${fehler.length} Fehler.`);
   app.exit(fehler.length === 0 ? 0 : 1);
 });
