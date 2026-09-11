@@ -62,6 +62,7 @@ import {
   type ShellSettings
 } from './settings';
 import { anbieterAus, entschluessle, verschluessle } from './ki';
+import { leseSymbole, richteSymbolOrdnerEin, symbolOrdner } from './symbole';
 import { findeKiUebernahme } from './kiUebernahme';
 import { translate } from '../shared/i18n';
 import type { Language } from '../shared/i18n';
@@ -507,6 +508,24 @@ function registriereKanaele(): void {
   handle('app:version', () => eigeneFassung());
 
   handle('einstellungen:lesen', async () => ohneSchluessel(await readSettings(einstellungsDatei)));
+
+  /**
+   * Eigene Symbole, als data:-URL je Kennung.
+   *
+   * Bei jedem Aufruf frisch von der Platte: wer ein Bild austauscht, drueckt
+   * in den Einstellungen auf "neu laden" und will es dann auch sehen.
+   */
+  handle('symbole:lesen', () => leseSymbole(app.getPath('userData')));
+
+  /** Oeffnet den Symbolordner im Dateimanager des Systems. */
+  handle('symbole:ordner', async () => {
+    const ordner = symbolOrdner(app.getPath('userData'));
+    // Anlegen, falls ihn jemand geloescht hat — sonst oeffnet sich nichts
+    // und es sieht aus, als sei der Knopf kaputt.
+    await richteSymbolOrdnerEin(app.getPath('userData'));
+    await shell.openPath(ordner);
+    return ordner;
+  });
   /**
    * Schreibt die Einstellungen und gibt zurueck, was danach gilt.
    *
@@ -732,6 +751,11 @@ app.whenReady().then(async () => {
   // gekommen ist. Die Pruefung des gepackten Pakets wartet darauf.
   gemerkteEinstellungen = { ...gelesen, ...uebernommen };
   await writeSettings(einstellungsDatei, gemerkteEinstellungen);
+
+  // Den Symbolordner gleich anlegen, samt Liesmich. Wer eigene Bilder
+  // einsetzen will, soll den Ordner vorfinden und nicht raten muessen, wie
+  // er heisst.
+  await richteSymbolOrdnerEin(app.getPath('userData'));
   startMarke('Einstellungen gelesen und geschrieben');
   registriereKanaele();
   startMarke('Kanaele angemeldet');

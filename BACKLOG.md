@@ -483,6 +483,41 @@ der ältere Rauchtest deshalb nicht mehr das Schloss traf, sondern die KI. Das
 Schloss hat jetzt eine eigene Klasse; ein Test, der auf Reihenfolge zeigt,
 zeigt beim nächsten Knopf wieder daneben.
 
+### Eigene Bilder als Symbole der Werkzeuge
+
+Die eingebauten Symbole sind Vektoren im Quelltext und ausdrücklich
+Platzhalter. Wer eigene will, legt sie in den Ordner `symbole` im Datenordner
+der Hülle, benannt nach der Kennung des Werkzeugs: `backstory.png`,
+`mapmaker.png`, `initiative.png`, `dice.png`, `npc.png`. Zwei Knöpfe in den
+Einstellungen öffnen den Ordner und lesen neu.
+
+Entscheidungen:
+
+- **Der Ordner liegt im Datenordner, nicht im Programmordner.** Dort ist er
+  nach der Installation beschreibbar und überlebt ein Update.
+- **Als `data:`-URL über die Brücke, kein eigenes Protokoll.** Es sind fünf
+  kleine Dateien, die beim Start gelesen werden, und `img-src` lässt `data:`
+  ohnehin zu. Ein Protokoll wäre der sauberere Weg bei vielen oder großen
+  Bildern; hier wäre es Aufwand ohne Gegenwert.
+- **Kein SVG.** Eine SVG-Datei kann Skripte enthalten, und auch wenn sie in
+  einem `img` nicht laufen, ist das eine Tür, die man für ein Symbol nicht
+  aufmachen muss. PNG, JPEG, WebP und GIF decken ab, was aus einem
+  Zeichenprogramm kommt.
+- **Höchstens 2 MB je Datei.** Ein PNG mit 256 Pixeln Kantenlänge liegt bei
+  wenigen zehn Kilobyte. Die Grenze steht gegen den Fall, dass jemand
+  versehentlich ein Foto hineinlegt — als `data:`-URL wandert die Datei durch
+  die Brücke und in den Speicher der Oberfläche.
+- **Jeder Fehlschlag ist still.** Fehlende Datei, kaputtes Bild, unbekanntes
+  Format, zu groß: es gilt das eingebaute Symbol, und sonst passiert nichts.
+  Ein Symbol ist kein Grund für eine Fehlermeldung. Der Rauchtest spielt alle
+  vier Fälle durch.
+- **`object-fit: contain`**, damit ein nicht quadratisches Bild nicht
+  gestaucht wird — lieber Luft an zwei Seiten als eine verzerrte Zeichnung.
+
+Beim ersten Start entsteht der Ordner samt einer LIESMICH, die die
+Dateinamen nennt. Wer eigene Bilder einsetzen will, soll den Ordner
+vorfinden und nicht raten müssen, wie er heißt.
+
 ### Bewegung: der Übergang aus dem Startmenü, und die letzten drei Werkzeuge
 
 Beim Klick auf eine Kachel wächst deren Symbol über den ganzen Bildschirm.

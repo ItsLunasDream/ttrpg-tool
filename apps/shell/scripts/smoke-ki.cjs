@@ -92,10 +92,16 @@ app.whenReady().then(async () => {
     `[...document.querySelectorAll('button')].find(b => /Settings|Einstellungen/.test(b.textContent)).click(); true`
   );
   await warte(400);
+  // Als Liste geprueft und nicht als aneinandergehaengter Text: seit es
+  // einen zweiten Abschnitt gibt (die Symbole), traf ein Muster auf den
+  // ganzen Text nicht mehr zu, obwohl die Ueberschrift da war.
   const ueberschriften = await js(
-    "[...document.querySelectorAll('.feld__ueberschrift')].map(e => e.textContent).join('|')"
+    "[...document.querySelectorAll('.feld__ueberschrift')].map(e => e.textContent)"
   );
-  pruefe(/^(AI|KI)$/m.test(ueberschriften), 'der Dialog zeigt einen KI-Abschnitt');
+  pruefe(
+    ueberschriften.includes('KI') || ueberschriften.includes('AI'),
+    `der Dialog zeigt einen KI-Abschnitt (${ueberschriften.join(', ')})`
+  );
 
   const felder = await js(
     "[...document.querySelectorAll('.feld__name')].map(e => e.textContent).join('|')"

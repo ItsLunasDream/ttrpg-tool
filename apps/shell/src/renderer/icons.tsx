@@ -8,7 +8,7 @@
  * Alles Platzhalter — die endgueltigen Symbole kommen mit den endgueltigen
  * Namen.
  */
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 
 interface IconProps {
   readonly size?: number;
@@ -143,4 +143,43 @@ const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
  */
 export function iconFuer(id: string): (p: IconProps) => ReactElement {
   return NACH_ID[id] ?? SuiteIcon;
+}
+
+/**
+ * Das Symbol eines Werkzeugs: entweder ein eigenes Bild oder das eingebaute.
+ *
+ * Die eingebauten sind Vektoren und erben `currentColor` — sie passen sich
+ * damit von selbst an den Zustand der Kachel an. Ein eigenes Bild kann das
+ * nicht und soll es auch nicht: wer eines hinlegt, will genau dieses sehen.
+ *
+ * Laesst sich das Bild nicht anzeigen — kaputte Datei, unbekanntes Format,
+ * das der Browser doch nicht mag —, faellt es still auf das eingebaute
+ * zurueck. Ein Symbol ist kein Grund fuer eine Fehlermeldung.
+ */
+export function AppSymbol({
+  id,
+  size = 26,
+  bild
+}: {
+  readonly id: string;
+  readonly size?: number;
+  /** Die data:-URL aus dem Symbolordner, oder undefined. */
+  readonly bild?: string;
+}): ReactElement {
+  const [kaputt, setKaputt] = useState(false);
+  const Eingebaut = iconFuer(id);
+
+  if (!bild || kaputt) return <Eingebaut size={size} />;
+
+  return (
+    <img
+      className="app-symbol"
+      src={bild}
+      width={size}
+      height={size}
+      alt=""
+      aria-hidden="true"
+      onError={() => setKaputt(true)}
+    />
+  );
 }

@@ -19,7 +19,7 @@ import {
   type MessageKey,
   type MessageParams
 } from '../shared/i18n';
-import { iconFuer, SuiteIcon } from './icons';
+import { AppSymbol, SuiteIcon } from './icons';
 import { KI_VOREINSTELLUNGEN, type KiEinstellungen } from '@suite/ki/einstellungen';
 import { Einstellungen, type KiZustandAnsicht } from './Einstellungen';
 import { Ueber } from './Ueber';
@@ -82,6 +82,12 @@ export function App() {
   const [kiZustand, setKiZustand] = useState<KiZustandAnsicht | null>(null);
   const [wenigerBewegung, setWenigerBewegung] = useState(false);
   /**
+   * Eigene Symbole aus dem Symbolordner, als data:-URL je Kennung.
+   *
+   * Leer ist der Normalfall — dann gelten ueberall die eingebauten.
+   */
+  const [symbole, setSymbole] = useState<Record<string, string>>({});
+  /**
    * Der laufende Uebergang vom Symbol zum Werkzeug, oder `null`.
    *
    * `von` ist die Flaeche der angeklickten Kachel — dort faengt das Wachsen
@@ -118,6 +124,7 @@ export function App() {
       setSprache(e.language);
       setKi(e.ki);
     });
+    void window.shell.symbole.lesen().then(setSymbole, () => setSymbole({}));
     // Auch der Fensterrahmen des Systems kann maximieren. Ohne diese Meldung
     // zeigte der Knopf danach das falsche Symbol.
     const abmeldenZustand = window.shell.fenster.beiZustandswechsel(({ maximiert: m }) =>
@@ -228,6 +235,10 @@ export function App() {
       });
   }, [wenigerBewegung]);
 
+  const ladeSymboleNeu = useCallback(async () => {
+    setSymbole(await window.shell.symbole.lesen());
+  }, []);
+
   const setzeSprache = useCallback(async (neu: Language) => {
     const gespeichert = await window.shell.einstellungen.schreiben({ language: neu });
     // Angezeigt wird, was wirklich gespeichert wurde, nicht was angeklickt
@@ -332,10 +343,11 @@ export function App() {
           // Ohne das stuenden zwei gleichzeitig da: eine im wachsenden Feld
           // und eine daneben auf der Flaeche.
           uebergangLaeuft={uebergang !== null}
+          symbole={symbole}
           t={t}
         />
       ) : (
-        <Startmenue setAktiv={waehle} version={version} t={t} />
+        <Startmenue setAktiv={waehle} version={version} symbole={symbole} t={t} />
       )}
 
       {uebergang ? (
@@ -345,6 +357,7 @@ export function App() {
           onAusgewachsen={() =>
             setUebergang((vorher) => (vorher ? { ...vorher, phase: 'wartet' } : vorher))
           }
+          bild={symbole[uebergang.id]}
           t={t}
         />
       ) : null}
@@ -358,6 +371,8 @@ export function App() {
           kiZustand={kiZustand}
           pruefeKi={pruefeKi}
           setzeSchluessel={setzeSchluessel}
+          symbolordnerOeffnen={() => window.shell.symbole.ordnerOeffnen()}
+          symboleNeuLaden={ladeSymboleNeu}
           onClose={() => zeigeDialog(null)}
           t={t}
         />
@@ -372,6 +387,7 @@ export function App() {
 function Startmenue({
   setAktiv,
   version,
+  symbole,
   t
 }: {
   /**
@@ -383,6 +399,8 @@ function Startmenue({
    */
   setAktiv: (id: string, von: DOMRect) => void;
   version: string;
+  /** Eigene Symbole je Kennung. Fehlt eines, gilt das eingebaute. */
+  symbole: Record<string, string>;
   t: Uebersetzer;
 }) {
   return (
@@ -392,7 +410,6 @@ function Startmenue({
 
       <div className="kacheln">
         {APPS.map((app, nummer) => {
-          const Icon = iconFuer(app.id);
           const waehlbar = istWaehlbar(app.status);
           return (
             <button
@@ -407,7 +424,7 @@ function Startmenue({
               onClick={(ereignis) => setAktiv(app.id, ereignis.currentTarget.getBoundingClientRect())}
             >
               <span className="kachel__icon">
-                <Icon size={64} />
+                <AppSymbol id={app.id} size={64} bild={symbole[app.id]} />
               </span>
               <span className="kachel__name">{t(nameKey(app.id))}</span>
               <span className="kachel__text">{t(descriptionKey(app.id))}</span>
@@ -428,6 +445,7 @@ function Buehne({
   setAktiv,
   buehne,
   uebergangLaeuft,
+  symbole,
   t
 }: {
   eintrag: { id: string };
@@ -435,6 +453,7 @@ function Buehne({
   setAktiv: (id: string | null) => void;
   buehne: BuehnenZustand;
   uebergangLaeuft: boolean;
+  symbole: Record<string, string>;
   t: Uebersetzer;
 }) {
   const schiene = useRef<HTMLElement>(null);
@@ -535,7 +554,6 @@ function Buehne({
         </button>
         <span className="schiene__trenner" />
         {APPS.map((app) => {
-          const Icon = iconFuer(app.id);
           const waehlbar = istWaehlbar(app.status);
           const name = t(nameKey(app.id));
           return (
@@ -556,7 +574,7 @@ function Buehne({
               // auf. So bleibt die Dauer allein in der CSS.
               onAnimationEnd={() => wischFertig(app.id)}
             >
-              <Icon size={26} />
+              <AppSymbol id={app.id} size={26} bild={symbole[app.id]} />
             </button>
           );
         })}
@@ -629,15 +647,16 @@ function UebergangsFeld({
   eintrag,
   dauerMs,
   onAusgewachsen,
+  bild,
   t
 }: {
   eintrag: { id: string; von: DOMRect; phase: 'waechst' | 'wartet' };
   dauerMs: number;
   onAusgewachsen: () => void;
+  bild?: string;
   t: Uebersetzer;
 }) {
   const [gross, setGross] = useState(false);
-  const Icon = iconFuer(eintrag.id);
 
   /*
    * Erst im naechsten Bild wachsen lassen.
@@ -686,7 +705,7 @@ function UebergangsFeld({
       aria-hidden="true"
     >
       <span className="uebergang__icon">
-        <Icon size={64} />
+        <AppSymbol id={eintrag.id} size={64} bild={bild} />
       </span>
       {eintrag.phase === 'wartet' ? (
         <span className="uebergang__warten">

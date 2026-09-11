@@ -853,3 +853,15 @@ body {
     transition: none;
   }
 }
+
+/*
+ * Ein eigenes Bild als Symbol.
+ *
+ * `object-fit: contain`, damit ein nicht quadratisches Bild nicht gestaucht
+ * wird — lieber Luft an zwei Seiten als eine verzerrte Zeichnung. Keine
+ * Farbe von aussen: wer ein Bild hinlegt, will genau dieses sehen.
+ */
+.app-symbol {
+  object-fit: contain;
+  display: block;
+}

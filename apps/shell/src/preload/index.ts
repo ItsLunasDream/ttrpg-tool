@@ -108,6 +108,15 @@ const api = {
      */
     reduziert: (reduziert: boolean) => ipcRenderer.send('bewegung:reduziert', reduziert)
   },
+  symbole: {
+    /**
+     * Eigene Symbole, als data:-URL je Kennung des Werkzeugs. Fehlt eines,
+     * steht es nicht darin, und die Oberflaeche nimmt das eingebaute.
+     */
+    lesen: () => ipcRenderer.invoke('symbole:lesen') as Promise<Record<string, string>>,
+    /** Oeffnet den Ordner im Dateimanager. Liefert seinen Pfad zurueck. */
+    ordnerOeffnen: () => ipcRenderer.invoke('symbole:ordner') as Promise<string>
+  },
   ki: {
     /**
      * Bereitschaft der KI. `beschreibung` traegt bei Erfolg das Modell, sonst
