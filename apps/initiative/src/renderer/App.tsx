@@ -27,6 +27,7 @@ import {
   naechsterZug,
   neueId,
   neuerTeilnehmer,
+  neuesTerrain,
   setzeGruppengroesse,
   setzeHp,
   setzeZustand
@@ -140,6 +141,18 @@ export function App() {
   }, [setzeUndSichere]);
 
   /**
+   * Das Gelaende als Eintrag in der Reihenfolge.
+   *
+   * Steht bei Initiative 20, hinter allen Figuren mit derselben Zahl — so
+   * wie die Unterschlupfaktion im Regelwerk.
+   */
+  const neuesGelaende = useCallback(() => {
+    const eintrag = neuesTerrain(t('terrain.vorgabe'));
+    setzeUndSichere((vorher) => fuegeEin(vorher, eintrag));
+    setOffen(eintrag.id);
+  }, [setzeUndSichere]);
+
+  /**
    * Initiative auswuerfeln.
    *
    * Nur fuer Gegner: Spielerfiguren wuerfeln am Tisch selbst, und ein
@@ -151,7 +164,8 @@ export function App() {
     setzeUndSichere((vorher) => ({
       ...vorher,
       teilnehmer: vorher.teilnehmer.map((eintrag) =>
-        eintrag.istSpieler
+        // Das Gelaende wuerfelt nicht: es steht fest bei 20.
+        eintrag.istSpieler || eintrag.istTerrain
           ? eintrag
           : { ...eintrag, initiative: rollD20().total + eintrag.feinwert }
       )
@@ -229,6 +243,9 @@ export function App() {
 
         <button type="button" onClick={neu}>
           + {t('knopf.neu')}
+        </button>
+        <button type="button" className="knopf--terrain" onClick={neuesGelaende}>
+          + {t('knopf.terrain')}
         </button>
         <button type="button" onClick={wuerfle} disabled={sortiert.length === 0}>
           {t('knopf.wuerfeln')}
@@ -323,9 +340,22 @@ export function App() {
               onUmbenennen={() => setUmbenennen({ id: teilnehmer.id, name: teilnehmer.name })}
               onDuplizieren={() => setzeUndSichere((vorher) => dupliziere(vorher, teilnehmer.id))}
               onEntfernen={() => setzeUndSichere((vorher) => entferneTeilnehmer(vorher, teilnehmer.id))}
-              onZustand={(name, runden) =>
+              onZustand={(name, dauer, runden) =>
                 setzeUndSichere((vorher) =>
-                  setzeZustand(vorher, teilnehmer.id, { id: neueId(), name, rundenRest: runden })
+                  setzeZustand(vorher, teilnehmer.id, {
+                    id: neueId(),
+                    name,
+                    dauer,
+                    rundenRest: runden,
+                    // Im eigenen Zug gesetzt? Dann zaehlt der erste eigene
+                    // Zugwechsel nicht mit — sonst waere ein Effekt "bis zum
+                    // Ende deines naechsten Zuges" Sekunden spaeter wieder
+                    // weg.
+                    // `teilnehmer` ist seit `beginne()` bereits sortiert,
+                    // `amZug` zeigt also direkt hinein.
+                    frisch:
+                      vorher.laeuft && vorher.teilnehmer[vorher.amZug]?.id === teilnehmer.id
+                  })
                 )
               }
               onZustandWeg={(zustandId) =>

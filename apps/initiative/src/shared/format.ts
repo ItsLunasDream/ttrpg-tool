@@ -9,8 +9,8 @@
  * Plattformfrei: kein `node:fs`. Wer liest und schreibt, entscheidet der
  * Hauptprozess.
  */
-import type { Begegnung, Koerper, Teilnehmer, Zustand } from './types';
-import { SCHEMA_VERSION } from './types';
+import type { Begegnung, Dauer, Koerper, Teilnehmer, Zustand } from './types';
+import { DAUERN, SCHEMA_VERSION } from './types';
 
 /** IDs sind `[A-Za-z0-9_-]+`, der Dateiname ist die ID (Konvention 3). */
 export function istGueltigeId(id: string): boolean {
@@ -116,6 +116,7 @@ function leseTeilnehmer(roh: unknown): Teilnehmer[] {
       initiative: zahl(e.initiative),
       feinwert: zahl(e.feinwert),
       istSpieler: e.istSpieler === true,
+      istTerrain: e.istTerrain === true,
       // Ohne mindestens einen Koerper waere der Eintrag nicht darstellbar.
       koerper: koerper.length > 0 ? koerper : [leerKoerper(index)],
       zustaende: leseZustaende(e.zustaende),
@@ -154,10 +155,29 @@ function leseZustaende(roh: unknown): Zustand[] {
     const name = text(z.name);
     if (!name) return [];
     const rest = z.rundenRest;
+    const rundenRest = typeof rest === 'number' && Number.isFinite(rest) ? rest : null;
+    /*
+     * Begegnungen aus der Zeit vor den drei Zeitpunkten kennen nur den
+     * Rundenzaehler. Der lief am Ende des eigenen Zuges herunter — genau das
+     * heisst heute 'zugEnde'. Ohne Zaehler war es 'offen'.
+     */
+    const roheDauer = text(z.dauer);
+    const dauer = (DAUERN as readonly string[]).includes(roheDauer)
+      ? (roheDauer as Dauer)
+      : rundenRest === null
+        ? 'offen'
+        : 'zugEnde';
     return [{
       id: text(z.id) || `z${index}`,
       name,
-      rundenRest: typeof rest === 'number' && Number.isFinite(rest) ? rest : null
+      dauer,
+      // Ein Zustand mit Endpunkt, aber ohne Zaehler, laeuft beim naechsten
+      // Erreichen ab. Das ist der Normalfall: "bis zum Ende deines
+      // naechsten Zuges" ist einmal.
+      rundenRest: dauer === 'offen' ? null : (rundenRest ?? 1),
+      // Geladen wird nie mitten im eigenen Zug; die Markierung faengt
+      // deshalb bei false an.
+      frisch: false
     }];
   });
 }

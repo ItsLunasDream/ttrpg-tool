@@ -241,6 +241,41 @@ input[type='number'] {
   background: #232a3a;
 }
 
+/*
+ * Das Gelaende. Gruenlich abgesetzt, damit es sich beim Ueberfliegen nicht
+ * unter die Figuren mischt: es ist kein Gegner, es handelt nur auch.
+ *
+ * Die Farbe steht hier und nicht in der Palette oben — sie gilt nur fuer
+ * diesen einen Fall, und ein Token dafuer waere ein Token zu viel.
+ */
+.zeile--terrain {
+  border-left-color: #4f8f5c;
+  background: #1b2620;
+}
+
+.zeile--terrain.zeile--dran {
+  border-left-color: #6fc47f;
+  background: #22362a;
+}
+
+.zeile__bild--terrain {
+  display: grid;
+  place-items: center;
+  color: #6fc47f;
+  background: #22362a;
+}
+
+.zeile__terrainhinweis {
+  color: var(--text-leise);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.knopf--terrain {
+  border-color: #4f8f5c;
+  color: #8fd49c;
+}
+
 .zeile--liegt {
   opacity: 0.5;
 }

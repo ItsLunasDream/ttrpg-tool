@@ -6,7 +6,7 @@
  * niemandem sofort auf, und wenn doch, laesst er sich nicht nachstellen —
  * also muss er sich pruefen lassen, bevor er passiert.
  */
-import type { Kampf, Koerper, Teilnehmer, Zustand } from './types';
+import type { Dauer, Kampf, Koerper, Teilnehmer, Zustand } from './types';
 
 /** Eine ID, die auch ohne `crypto.randomUUID` funktioniert (Node-Tests). */
 export function neueId(): string {
@@ -37,7 +37,32 @@ export function neuerTeilnehmer(name: string, istSpieler = false): Teilnehmer {
     initiative: 0,
     feinwert: 0,
     istSpieler,
+    istTerrain: false,
     koerper: [neuerKoerper()],
+    zustaende: [],
+    bild: null,
+    notiz: ''
+  };
+}
+
+/**
+ * Das Gelaende als Eintrag in der Reihenfolge.
+ *
+ * Initiative 20 wie die Unterschlupfaktion im Regelwerk. Keine Koerper: es
+ * hat keine Trefferpunkte, und ein Feld dafuer waere eine Frage, die niemand
+ * beantworten kann.
+ */
+export const TERRAIN_INITIATIVE = 20;
+
+export function neuesTerrain(name: string): Teilnehmer {
+  return {
+    id: neueId(),
+    name,
+    initiative: TERRAIN_INITIATIVE,
+    feinwert: 0,
+    istSpieler: false,
+    istTerrain: true,
+    koerper: [],
     zustaende: [],
     bild: null,
     notiz: ''
@@ -59,14 +84,26 @@ export function reihenfolge(teilnehmer: readonly Teilnehmer[]): Teilnehmer[] {
       if (b.eintrag.initiative !== a.eintrag.initiative) {
         return b.eintrag.initiative - a.eintrag.initiative;
       }
+      // Bei Gleichstand liegt das Gelaende hinten — so steht es im
+      // Regelwerk fuer die Unterschlupfaktion ("losing initiative ties").
+      if (a.eintrag.istTerrain !== b.eintrag.istTerrain) {
+        return a.eintrag.istTerrain ? 1 : -1;
+      }
       if (b.eintrag.feinwert !== a.eintrag.feinwert) return b.eintrag.feinwert - a.eintrag.feinwert;
       return a.index - b.index;
     })
     .map((eintrag) => eintrag.eintrag);
 }
 
-/** Ob ein Teilnehmer noch mitspielt: mindestens ein Koerper steht. */
+/**
+ * Ob ein Teilnehmer noch mitspielt: mindestens ein Koerper steht.
+ *
+ * Das Gelaende zaehlt immer mit. Es hat keine Trefferpunkte, und ohne diese
+ * Ausnahme fiele es sofort aus der Reihenfolge — der Eintrag stuende da und
+ * kaeme nie dran.
+ */
 export function istAktiv(teilnehmer: Teilnehmer): boolean {
+  if (teilnehmer.istTerrain) return true;
   return teilnehmer.koerper.some((koerper) => !koerper.raus && koerper.hp > 0);
 }
 
@@ -90,53 +127,83 @@ export function beginne(kampf: Kampf): Kampf {
  * bleibt der Zeiger stehen, statt sich im Kreis zu drehen: der Kampf ist dann
  * vorbei, und das entscheidet der Tisch, nicht das Werkzeug.
  *
- * Zustaende laufen am Ende des eigenen Zuges herunter — dort, wo sie in den
- * meisten Systemen ablaufen, und vor allem an *einer* Stelle statt verteilt.
+ * Zustaende laufen an drei Stellen ab, und zwar genau dort, wo sie es in
+ * D&D tun: am Ende des eigenen Zuges, am Anfang des eigenen Zuges, und am
+ * Ende der Runde. Deshalb passiert hier dreierlei, in dieser Reihenfolge:
+ * erst endet der Zug dessen, der dran war, dann faellt gegebenenfalls die
+ * Runde, dann beginnt der Zug des Naechsten.
  */
 export function naechsterZug(kampf: Kampf): Kampf {
   if (!kampf.laeuft || kampf.teilnehmer.length === 0) return kampf;
   if (!kampf.teilnehmer.some(istAktiv)) return kampf;
 
-  const abgelaufen = zaehleZustaendeHerunter(kampf, kampf.amZug);
+  // 1. Der Zug dessen, der dran war, endet.
+  let stand = zaehleAb(kampf, 'zugEnde', kampf.amZug);
 
   let index = kampf.amZug;
-  let runde = abgelaufen.runde;
-  for (let schritt = 0; schritt < abgelaufen.teilnehmer.length; schritt++) {
+  let runde = stand.runde;
+  let gefunden = -1;
+  for (let schritt = 0; schritt < stand.teilnehmer.length; schritt++) {
     index += 1;
-    if (index >= abgelaufen.teilnehmer.length) {
+    if (index >= stand.teilnehmer.length) {
       index = 0;
       runde += 1;
+      // 2. Die Reihe ist herum: die Runde endet, fuer alle zugleich.
+      stand = zaehleAb(stand, 'rundeEnde', null);
     }
-    if (istAktiv(abgelaufen.teilnehmer[index])) {
-      return { ...abgelaufen, amZug: index, runde };
+    if (istAktiv(stand.teilnehmer[index])) {
+      gefunden = index;
+      break;
     }
   }
-  return abgelaufen;
+  if (gefunden < 0) return stand;
+
+  // 3. Der Zug des Naechsten beginnt.
+  stand = zaehleAb(stand, 'zugBeginn', gefunden);
+  return { ...stand, amZug: gefunden, runde };
 }
 
 /**
- * Zaehlt die Zustaende dessen herunter, der gerade dran war, und entfernt die
- * abgelaufenen.
+ * Zaehlt die Zustaende einer Art herunter und entfernt die abgelaufenen.
  *
- * Zustaende ohne Dauer (`rundenRest === null`) bleiben unangetastet.
+ * `index === null` heisst: alle Teilnehmer. Das gilt fuer `rundeEnde`, das
+ * nichts mit einem einzelnen Zug zu tun hat.
+ *
+ * `frisch` ist der Sonderfall, um den es am Tisch immer geht: wer sich im
+ * eigenen Zug einen Effekt „bis zum Ende deines naechsten Zuges" auflaedt,
+ * wird ihn nicht Sekunden spaeter wieder los. Das Ende *dieses* Zuges zaehlt
+ * deshalb nicht mit, es loescht nur die Markierung.
+ *
+ * Und zwar nur dort. Bei `zugBeginn` liegt der eigene Zugbeginn schon
+ * hinter einem, wenn man den Effekt setzt — der naechste, auf den man
+ * trifft, ist also wirklich „der Beginn deines naechsten Zuges". Bei
+ * `rundeEnde` endet die Runde ohnehin fuer alle gleich, egal wer wann etwas
+ * gesetzt hat.
  */
-function zaehleZustaendeHerunter(kampf: Kampf, index: number): Kampf {
-  if (index < 0 || index >= kampf.teilnehmer.length) return kampf;
-  const dran = kampf.teilnehmer[index];
-  const zustaende = dran.zustaende
-    .map((zustand) =>
-      zustand.rundenRest === null ? zustand : { ...zustand, rundenRest: zustand.rundenRest - 1 }
-    )
-    .filter((zustand) => zustand.rundenRest === null || zustand.rundenRest > 0);
-  if (zustaende.length === dran.zustaende.length && zustaende.every((z, i) => z === dran.zustaende[i])) {
-    return kampf;
-  }
-  return {
-    ...kampf,
-    teilnehmer: kampf.teilnehmer.map((eintrag, i) =>
-      i === index ? { ...eintrag, zustaende } : eintrag
-    )
-  };
+function zaehleAb(kampf: Kampf, dauer: Dauer, index: number | null): Kampf {
+  if (index !== null && (index < 0 || index >= kampf.teilnehmer.length)) return kampf;
+
+  let etwasGeaendert = false;
+  const teilnehmer = kampf.teilnehmer.map((eintrag, i) => {
+    if (index !== null && i !== index) return eintrag;
+
+    const zustaende = eintrag.zustaende
+      .map((zustand) => {
+        if (zustand.dauer !== dauer || zustand.rundenRest === null) return zustand;
+        if (zustand.frisch && dauer === 'zugEnde') return { ...zustand, frisch: false };
+        return { ...zustand, rundenRest: zustand.rundenRest - 1 };
+      })
+      .filter((zustand) => zustand.rundenRest === null || zustand.rundenRest > 0);
+
+    const gleich =
+      zustaende.length === eintrag.zustaende.length &&
+      zustaende.every((zustand, n) => zustand === eintrag.zustaende[n]);
+    if (gleich) return eintrag;
+    etwasGeaendert = true;
+    return { ...eintrag, zustaende };
+  });
+
+  return etwasGeaendert ? { ...kampf, teilnehmer } : kampf;
 }
 
 /**

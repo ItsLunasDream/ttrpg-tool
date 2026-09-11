@@ -78,6 +78,48 @@ test('Zustaende ohne Namen fallen weg', () => {
   assert.equal(gelesen.teilnehmer[0].zustaende[0].name, 'Gift');
 });
 
+test('Begegnungen von vor den drei Zeitpunkten werden richtig gelesen', () => {
+  /*
+   * Frueher gab es nur einen Rundenzaehler, und der lief am Ende des eigenen
+   * Zuges herunter — genau das heisst heute 'zugEnde'. Ohne Zaehler lief ein
+   * Zustand, bis ihn jemand wegnahm: 'offen'.
+   *
+   * Waere das falsch zugeordnet, aenderte sich still das Verhalten
+   * gespeicherter Begegnungen, und niemand kaeme auf die Idee, dort zu
+   * suchen.
+   */
+  const text =
+    '---\nid: a\nteilnehmer: [{"id":"t1","name":"X","zustaende":[' +
+    '{"id":"z1","name":"Gift","rundenRest":3},' +
+    '{"id":"z2","name":"Verflucht"}]}]\n---\n';
+  const gelesen = leseBegegnung(text, 'a');
+  const [gift, fluch] = gelesen.teilnehmer[0].zustaende;
+
+  assert.equal(gift.dauer, 'zugEnde');
+  assert.equal(gift.rundenRest, 3);
+  assert.equal(gift.frisch, false, 'geladen wird nie mitten im eigenen Zug');
+
+  assert.equal(fluch.dauer, 'offen');
+  assert.equal(fluch.rundenRest, null);
+});
+
+test('Ein Zustand mit Zeitpunkt, aber ohne Zaehler, laeuft einmal', () => {
+  // "bis zum Ende deines naechsten Zuges" ist einmal, nicht null Mal.
+  const text =
+    '---\nid: a\nteilnehmer: [{"id":"t1","name":"X","zustaende":[' +
+    '{"id":"z1","name":"Gebannt","dauer":"rundeEnde"}]}]\n---\n';
+  const gelesen = leseBegegnung(text, 'a');
+  assert.equal(gelesen.teilnehmer[0].zustaende[0].rundenRest, 1);
+});
+
+test('Ein unbekannter Zeitpunkt faellt zurueck, statt die Datei zu verlieren', () => {
+  const text =
+    '---\nid: a\nteilnehmer: [{"id":"t1","name":"X","zustaende":[' +
+    '{"id":"z1","name":"Seltsam","dauer":"irgendwann","rundenRest":2}]}]\n---\n';
+  const gelesen = leseBegegnung(text, 'a');
+  assert.equal(gelesen.teilnehmer[0].zustaende[0].dauer, 'zugEnde');
+});
+
 test('zuId macht aus Namen gueltige Dateinamen', () => {
   assert.equal(zuId('Die Höhle der Goblins'), 'die-hoehle-der-goblins');
   assert.equal(zuId('Straße & Gasse!'), 'strasse-gasse');

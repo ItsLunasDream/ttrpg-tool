@@ -22,6 +22,17 @@ export const texte = {
   'knopf.wuerfeln': ['Initiative würfeln', 'Roll initiative'],
   'knopf.duplizieren': ['Duplizieren', 'Duplicate'],
   'knopf.umbenennen': ['Umbenennen', 'Rename'],
+  'knopf.terrain': ['Gelände', 'Terrain'],
+  'terrain.vorgabe': ['Gelände', 'Terrain'],
+  'terrain.hinweis': [
+    'Kommt bei Initiative 20 an die Reihe, hinter Figuren mit derselben Zahl.',
+    'Acts on initiative 20, after any creature with the same count.'
+  ],
+  'feld.dauer': ['Wann es endet', 'When it ends'],
+  'dauer.offen': ['ohne Ende', 'no end'],
+  'dauer.zugBeginn': ['zu Zugbeginn', 'at start of turn'],
+  'dauer.zugEnde': ['zu Zugende', 'at end of turn'],
+  'dauer.rundeEnde': ['am Rundenende', 'at end of round'],
   'dialog.umbenennen': ['Teilnehmende umbenennen', 'Rename participant'],
   'knopf.entfernen': ['Entfernen', 'Remove'],
   'knopf.speichern': ['Begegnung speichern', 'Save encounter'],
