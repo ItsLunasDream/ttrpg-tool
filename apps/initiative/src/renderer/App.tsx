@@ -63,6 +63,8 @@ export function App() {
    * Electron, und `confirm()` haelt den ganzen Renderer an.
    */
   const [dialog, setDialog] = useState<'speichern' | 'beenden' | null>(null);
+  /** Wer gerade umbenannt wird. Der Dialog fragt nach dem neuen Namen. */
+  const [umbenennen, setUmbenennen] = useState<{ id: string; name: string } | null>(null);
 
   // Die Sprache kann von der Huelle gesetzt werden, ohne dass hier jemand
   // klickt. Ohne diesen Anschluss bliebe die Oberflaeche auf dem alten Stand.
@@ -318,6 +320,7 @@ export function App() {
               onGruppe={(anzahl) =>
                 setzeUndSichere((vorher) => setzeGruppengroesse(vorher, teilnehmer.id, anzahl))
               }
+              onUmbenennen={() => setUmbenennen({ id: teilnehmer.id, name: teilnehmer.name })}
               onDuplizieren={() => setzeUndSichere((vorher) => dupliziere(vorher, teilnehmer.id))}
               onEntfernen={() => setzeUndSichere((vorher) => entferneTeilnehmer(vorher, teilnehmer.id))}
               onZustand={(name, runden) =>
@@ -377,6 +380,23 @@ export function App() {
           onAbschluss={(wert) => {
             setDialog(null);
             if (wert) beende();
+          }}
+        />
+      ) : null}
+
+      {umbenennen ? (
+        <Dialog
+          titel={t('dialog.umbenennen')}
+          vorgabe={umbenennen.name}
+          bestaetigen={t('knopf.umbenennen')}
+          onAbschluss={(wert) => {
+            const wen = umbenennen.id;
+            setUmbenennen(null);
+            if (wert) {
+              setzeUndSichere((vorher) =>
+                mitTeilnehmer(vorher, wen, (alt) => ({ ...alt, name: wert }))
+              );
+            }
           }}
         />
       ) : null}

@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { findNoteType } from '../../shared/noteTypes';
 import type { Note, NoteType, SearchHit, UnreadableNote } from '../../shared/types';
 import type { NoteIndex, SearchFilters } from '../noteIndex';
+import { ContextMenu } from './ContextMenu';
 import { HighlightedText } from './HighlightedText';
 import { useT } from '../i18n';
 
@@ -25,6 +27,10 @@ interface Props {
   /** Dateien, die sich nicht lesen lassen. Leer im Normalfall. */
   unreadable: UnreadableNote[];
   onRevealVault: () => void;
+  /** Rechtsklick auf eine Notiz: umbenennen. */
+  onRename: (note: Note) => void;
+  /** Rechtsklick auf eine Notiz: loeschen. Fragt vorher nach. */
+  onDelete: (note: Note) => void;
 }
 
 export function NoteList({
@@ -38,9 +44,13 @@ export function NoteList({
   onSelect,
   onCreate,
   unreadable,
-  onRevealVault
+  onRevealVault,
+  onRename,
+  onDelete
 }: Props) {
   const t = useT();
+  /** Das offene Rechtsklickmenue: Stelle und betroffene Notiz. */
+  const [menue, setMenue] = useState<{ x: number; y: number; note: Note } | null>(null);
   const grouped = index.types
     .map((def) => ({ def, entries: notes.filter((note) => note.type === def.id) }))
     .filter((group) => group.entries.length > 0);
@@ -133,6 +143,14 @@ export function NoteList({
                         type="button"
                         className={note.id === activeNoteId ? 'is-active' : undefined}
                         onClick={() => onSelect(note.id)}
+                        onContextMenu={(ereignis) => {
+                          ereignis.preventDefault();
+                          // Die Notiz wird dabei ausgewaehlt. Ein Menue ueber
+                          // einer Zeile, die nicht die offene ist, laedt zum
+                          // Verwechseln ein — und Loeschen ist endgueltig.
+                          onSelect(note.id);
+                          setMenue({ x: ereignis.clientX, y: ereignis.clientY, note });
+                        }}
                       >
                         <span className="note-list__title">
                           {hit?.field === 'title' ? (
@@ -171,6 +189,18 @@ export function NoteList({
           ))
         )}
       </div>
+
+      {menue ? (
+        <ContextMenu
+          x={menue.x}
+          y={menue.y}
+          onClose={() => setMenue(null)}
+          items={[
+            { label: t('list.rename'), onSelect: () => onRename(menue.note) },
+            { label: t('editor.delete'), danger: true, onSelect: () => onDelete(menue.note) }
+          ]}
+        />
+      ) : null}
 
       <p className="note-list__total">
         {t('list.total', { total: index.notes.length, visible: notes.length })}

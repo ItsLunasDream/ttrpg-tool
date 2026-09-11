@@ -925,6 +925,64 @@ app.whenReady().then(async () => {
     await run(window, `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
     await sleep(400);
 
+    // 16c. Rechtsklick auf eine Notiz
+    /*
+     * Geprueft wird die Bedienung, nicht nur die Anwesenheit: dass das Menue
+     * aufgeht, dass Escape es wieder schliesst, und dass Loeschen weiterhin
+     * nachfragt statt sofort zu loeschen. Ein Menue, das ohne Frage loescht,
+     * waere schlimmer als gar keins.
+     */
+    const rechtsklick = `const ziel = document.querySelector('.note-list__scroll button');
+       const kasten = ziel.getBoundingClientRect();
+       ziel.dispatchEvent(new MouseEvent('contextmenu', {
+         bubbles: true, clientX: kasten.left + 10, clientY: kasten.top + 10 }));
+       return true;`;
+    await run(window, rechtsklick);
+    await sleep(400);
+    check(await run(window, `return Boolean(document.querySelector('.kontextmenue'));`),
+      'Rechtsklick auf eine Notiz öffnet kein Menü');
+    check(
+      await run(window, `return document.querySelectorAll('.kontextmenue button').length === 2;`),
+      'Das Menü hat nicht die zwei erwarteten Einträge'
+    );
+
+    await run(window, `document.querySelector('.kontextmenue').dispatchEvent(
+       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
+    await sleep(300);
+    check(await run(window, `return document.querySelector('.kontextmenue') === null;`),
+      'Escape schließt das Kontextmenü nicht');
+
+    // Loeschen muss weiter nachfragen.
+    await run(window, rechtsklick);
+    await sleep(400);
+    await run(window, `[...document.querySelectorAll('.kontextmenue button')]
+       .find((b) => /Löschen|Delete/.test(b.textContent)).click(); return true;`);
+    await sleep(500);
+    check(await run(window, `return Boolean(document.querySelector('.modal'));`),
+      'Löschen aus dem Kontextmenü fragt nicht nach');
+    // Abbrechen: die Notiz soll bleiben.
+    const vorAbbruch = await run(window, `return document.querySelectorAll('.note-list__title').length;`);
+    await run(window, `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
+    await sleep(500);
+    check(
+      (await run(window, `return document.querySelectorAll('.note-list__title').length;`)) === vorAbbruch,
+      'Abbrechen im Löschdialog hat die Notiz trotzdem entfernt'
+    );
+
+    // Umbenennen: der Dialog muss den bisherigen Titel mitbringen.
+    await run(window, rechtsklick);
+    await sleep(400);
+    await run(window, `[...document.querySelectorAll('.kontextmenue button')]
+       .find((b) => /Umbenennen|Rename/.test(b.textContent)).click(); return true;`);
+    await sleep(500);
+    check(
+      await run(window, `const feld = document.querySelector('.modal input');
+         return Boolean(feld && feld.value.length > 0);`),
+      'Umbenennen bringt den bisherigen Titel nicht mit'
+    );
+    await run(window, `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
+    await sleep(400);
+
     // 17. Graph-Ansicht
     await clickButton(window, 'Graph');
     await sleep(1500);

@@ -629,3 +629,50 @@ input[type='number'] {
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* ---------- Rechtsklickmenue ---------- */
+
+/*
+ * Liegt ueber allem und an einer festen Stelle im Fenster: die Koordinaten
+ * kommen vom Zeiger, nicht vom Element darunter. `position: fixed` und nicht
+ * `absolute`, damit die scrollende Liste darunter das Menue nicht mitnimmt.
+ */
+.kontextmenue {
+  position: fixed;
+  z-index: 60;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  min-width: 160px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px #0009;
+}
+
+/* Der Kasten hat den Fokus, damit die Pfeiltasten ankommen — sichtbar ist
+   aber der Eintrag, auf dem man steht, nicht der Rahmen darum. */
+.kontextmenue:focus {
+  outline: none;
+}
+
+.kontextmenue button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.kontextmenue button.is-active {
+  background: var(--grund-zeile);
+}
+
+.kontextmenue__gefaehrlich {
+  color: var(--gefahr);
+}

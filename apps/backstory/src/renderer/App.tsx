@@ -45,6 +45,7 @@ type Dialog =
   | { kind: 'deleteCampaign'; campaign: Campaign }
   | { kind: 'newNote'; type: NoteType }
   | { kind: 'deleteNote'; note: Note }
+  | { kind: 'renameNote'; note: Note }
   | { kind: 'noteTypes' }
   | { kind: 'history'; note: Note }
   | { kind: 'prompts' }
@@ -788,6 +789,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               onCreate={(type) => setDialog({ kind: 'newNote', type })}
               unreadable={unreadable}
               onRevealVault={() => void guard(() => call(api.vault.reveal()))}
+              onRename={(note) => setDialog({ kind: 'renameNote', note })}
+              onDelete={(note) => setDialog({ kind: 'deleteNote', note })}
             />
           </aside>
 
@@ -1083,6 +1086,37 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
             setDialog({ kind: 'none' });
             setPendingLinkTitle(null);
           }}
+        />
+      ) : null}
+
+      {dialog.kind === 'renameNote' ? (
+        <PromptDialog
+          title={t('dialog.renameNote')}
+          label={t('dialog.newName')}
+          confirmLabel={t('dialog.rename')}
+          initialValue={dialog.note.title}
+          onClose={() => setDialog({ kind: 'none' })}
+          onConfirm={(title) =>
+            void guard(async () => {
+              const campaignId = activeCampaignId;
+              if (!campaignId) return;
+              // Umbenennen zieht die [[Links]] in der ganzen Kampagne mit —
+              // das macht der Vault, nicht die Oberflaeche.
+              const ergebnis = await call(api.notes.rename(campaignId, dialog.note.id, title));
+              const list = await reloadNotes(campaignId);
+              // Steht die umbenannte Notiz gerade im Editor, muss auch dort
+              // der neue Titel stehen.
+              setDraft((vorher) =>
+                vorher && vorher.id === dialog.note.id
+                  ? (list.find((eintrag) => eintrag.id === dialog.note.id) ?? vorher)
+                  : vorher
+              );
+              if (ergebnis.rewritten > 0) {
+                report(t('msg.renamed', { count: ergebnis.rewritten }));
+              }
+              setDialog({ kind: 'none' });
+            })
+          }
         />
       ) : null}
 

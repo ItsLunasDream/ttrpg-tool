@@ -8,6 +8,7 @@
  * jederzeit vorkommt.
  */
 import { useState, type ReactNode } from 'react';
+import { Kontextmenue } from './Kontextmenue';
 import { t } from './i18n';
 import type { Koerper, Teilnehmer } from '../shared/types';
 
@@ -28,10 +29,14 @@ interface Props {
   onZustand(name: string, runden: number | null): void;
   onZustandWeg(zustandId: string): void;
   onBild(): void;
+  /** Rechtsklick auf die Zeile: umbenennen. Fragt nach dem neuen Namen. */
+  onUmbenennen(): void;
 }
 
 export function Zeile(props: Props) {
   const { teilnehmer, amZug, laeuft, offen } = props;
+  /** Das offene Rechtsklickmenue, mit der Stelle des Zeigers. */
+  const [menue, setMenue] = useState<{ x: number; y: number } | null>(null);
   const lebt = teilnehmer.koerper.some((koerper) => !koerper.raus && koerper.hp > 0);
   const gruppe = teilnehmer.koerper.length > 1;
 
@@ -64,7 +69,15 @@ export function Zeile(props: Props) {
           </span>
         )}
 
-        <button type="button" className="zeile__name" onClick={props.onOeffnen}>
+        <button
+          type="button"
+          className="zeile__name"
+          onClick={props.onOeffnen}
+          onContextMenu={(ereignis) => {
+            ereignis.preventDefault();
+            setMenue({ x: ereignis.clientX, y: ereignis.clientY });
+          }}
+        >
           {teilnehmer.name || <em className="zeile__namenlos">{t('feld.name')}</em>}
           {gruppe ? (
             <span className="zeile__marke">{t('gruppe.mitglieder', { n: teilnehmer.koerper.length })}</span>
@@ -115,6 +128,19 @@ export function Zeile(props: Props) {
           onEntfernen={props.onEntfernen}
           onZustand={props.onZustand}
           onBild={props.onBild}
+        />
+      ) : null}
+
+      {menue ? (
+        <Kontextmenue
+          x={menue.x}
+          y={menue.y}
+          onSchliessen={() => setMenue(null)}
+          eintraege={[
+            { text: t('knopf.umbenennen'), onWahl: props.onUmbenennen },
+            { text: t('knopf.duplizieren'), onWahl: props.onDuplizieren },
+            { text: t('knopf.entfernen'), gefaehrlich: true, onWahl: props.onEntfernen }
+          ]}
         />
       ) : null}
     </section>

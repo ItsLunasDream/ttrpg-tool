@@ -21,6 +21,8 @@ export const texte = {
   'knopf.weiter': ['Weiter', 'Next'],
   'knopf.wuerfeln': ['Initiative würfeln', 'Roll initiative'],
   'knopf.duplizieren': ['Duplizieren', 'Duplicate'],
+  'knopf.umbenennen': ['Umbenennen', 'Rename'],
+  'dialog.umbenennen': ['Teilnehmende umbenennen', 'Rename participant'],
   'knopf.entfernen': ['Entfernen', 'Remove'],
   'knopf.speichern': ['Begegnung speichern', 'Save encounter'],
   'knopf.oeffnen': ['Öffnen', 'Open'],

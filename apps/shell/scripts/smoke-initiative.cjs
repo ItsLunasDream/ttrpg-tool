@@ -94,6 +94,71 @@ app.whenReady().then(async () => {
     pruefe(gespeichert.laeuft === true, 'und weiss, dass der Kampf laeuft');
   }
 
+  // --- Rechtsklick auf eine Teilnehmende ----------------------------------
+  /*
+   * Geprueft wird die Bedienung: dass das Menue aufgeht, dass Escape es
+   * schliesst, und dass Umbenennen wirklich umbenennt — mit dem bisherigen
+   * Namen als Vorgabe, damit man nicht alles neu tippt.
+   */
+  await js(`(() => { const ziel = document.querySelector('.zeile__name');
+    const k = ziel.getBoundingClientRect();
+    ziel.dispatchEvent(new MouseEvent('contextmenu', {
+      bubbles: true, clientX: k.left + 10, clientY: k.top + 10 }));
+    return true; })()`);
+  await warte(400);
+  pruefe(await js("Boolean(document.querySelector('.kontextmenue'))"), 'der Rechtsklick oeffnet ein Menue');
+  pruefe(
+    (await js("document.querySelectorAll('.kontextmenue button').length")) === 3,
+    'mit Umbenennen, Duplizieren und Entfernen'
+  );
+
+  await js(`document.querySelector('.kontextmenue').dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true`);
+  await warte(300);
+  pruefe(
+    !(await js("Boolean(document.querySelector('.kontextmenue'))")),
+    'Escape schliesst es wieder'
+  );
+
+  // Umbenennen durchspielen.
+  await js(`(() => { const ziel = document.querySelector('.zeile__name');
+    const k = ziel.getBoundingClientRect();
+    ziel.dispatchEvent(new MouseEvent('contextmenu', {
+      bubbles: true, clientX: k.left + 10, clientY: k.top + 10 }));
+    return true; })()`);
+  await warte(400);
+  await js(`[...document.querySelectorAll('.kontextmenue button')]
+    .find(b => /Umbenennen|Rename/.test(b.textContent)).click(); true`);
+  await warte(500);
+  pruefe(
+    (await js("document.querySelector('.dialog input')?.value ?? ''")) === 'Goblin',
+    'der Umbenennen-Dialog bringt den bisherigen Namen mit'
+  );
+  await js(`(() => { const f = document.querySelector('.dialog input');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(f, 'Hobgoblin');
+    f.dispatchEvent(new Event('input',{bubbles:true}));
+    [...document.querySelectorAll('.dialog__knoepfe button')].pop().click(); return true; })()`);
+  await warte(700);
+  pruefe(
+    (await js("document.querySelector('.zeile__name').textContent")).includes('Hobgoblin'),
+    'und das Umbenennen kommt in der Zeile an'
+  );
+  // Zurueck, damit die folgenden Pruefungen ihren Namen wiederfinden.
+  await js(`(() => { const ziel = document.querySelector('.zeile__name');
+    const k = ziel.getBoundingClientRect();
+    ziel.dispatchEvent(new MouseEvent('contextmenu', {
+      bubbles: true, clientX: k.left + 10, clientY: k.top + 10 }));
+    return true; })()`);
+  await warte(400);
+  await js(`[...document.querySelectorAll('.kontextmenue button')]
+    .find(b => /Umbenennen|Rename/.test(b.textContent)).click(); true`);
+  await warte(500);
+  await js(`(() => { const f = document.querySelector('.dialog input');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(f, 'Goblin');
+    f.dispatchEvent(new Event('input',{bubbles:true}));
+    [...document.querySelectorAll('.dialog__knoepfe button')].pop().click(); return true; })()`);
+  await warte(700);
+
   // --- Begegnung speichern und laden --------------------------------------
   // Diese beiden Knoepfe hat der Rauchtest zuerst nicht gedrueckt — und genau
   // dort steckte ein Fehler, den keine Modellpruefung sehen konnte: die

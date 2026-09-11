@@ -1716,3 +1716,51 @@ mark {
   border-color: var(--danger);
   color: var(--danger);
 }
+
+/* ---------- Rechtsklickmenue ---------- */
+
+/*
+ * Liegt ueber allem und an einer festen Stelle im Fenster: die Koordinaten
+ * kommen vom Zeiger, nicht vom Element darunter. `position: fixed` und nicht
+ * `absolute`, damit ein scrollender Container darunter das Menue nicht
+ * mitnimmt.
+ */
+.kontextmenue {
+  position: fixed;
+  z-index: 60;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  min-width: 160px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px #0008;
+}
+
+.kontextmenue:focus {
+  /* Der Kasten hat den Fokus, damit die Pfeiltasten ankommen — sichtbar ist
+     aber der Eintrag, auf dem man steht, nicht der Rahmen darum. */
+  outline: none;
+}
+
+.kontextmenue button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.kontextmenue button.is-active {
+  background: var(--bg-hover, #2a2438);
+}
+
+.kontextmenue__gefaehrlich {
+  color: var(--danger);
+}
