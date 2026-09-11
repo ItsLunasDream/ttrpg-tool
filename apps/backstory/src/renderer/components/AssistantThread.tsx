@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AiTask } from '../../main/ai/provider';
+import type { AiTask } from '../../shared/types';
 import { useAssistant } from '../assistant';
 import { useT } from '../i18n';
 

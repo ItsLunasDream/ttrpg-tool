@@ -103,7 +103,24 @@ export interface Campaign {
   graphPositions: Record<string, GraphPosition>;
 }
 
+/**
+ * Welche KI-Anbindung benutzt wird.
+ *
+ * Absichtlich hier ausgeschrieben und nicht aus @suite/ki bezogen: dieses
+ * Modul liest auch die Oberflaeche, und ein Import aus dem KI-Paket zoege
+ * dessen Abhaengigkeiten in das Buendel des Renderers. Die Werte sind
+ * dieselben; ein Modultest haelt beide Listen zusammen.
+ */
 export type AiProviderId = 'none' | 'ollama' | 'claude';
+
+/** Die drei Aufgaben, die der Assistent uebernimmt. Kein Textgenerator. */
+export type AiTask = 'questions' | 'consistency' | 'style';
+
+/** Eine Nachricht im Gespraech mit dem Assistenten. */
+export interface AiMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 export interface AppSettings {
   schemaVersion: number;

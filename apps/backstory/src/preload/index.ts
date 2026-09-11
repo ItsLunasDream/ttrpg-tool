@@ -11,7 +11,7 @@ import type {
   UnreadableNote
 } from '../shared/types';
 import type { PromptCategory } from '../shared/writingPrompts';
-import type { AiMessage, AiTask } from '../main/ai/provider';
+import type { AiMessage, AiTask } from '../shared/types';
 import { channel } from '../shared/channels';
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };

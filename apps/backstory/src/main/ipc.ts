@@ -10,11 +10,12 @@ import { referencedAssets, renderNoteMarkdown, toFileName } from './markdownExpo
 import { exportNotesToPdf } from './pdfExport';
 import type { PromptCategory } from '../shared/writingPrompts';
 import { askProvider, createProvider, decryptSecret, encryptSecret, AiError } from './ai';
-import type { AiMessage, AiTask } from './ai/provider';
 import { findNoteType } from '../shared/noteTypes';
 import { findWikiLinks, normalizeName } from '../shared/wikilinks';
 import { channel } from '../shared/channels';
 import type {
+  AiMessage,
+  AiTask,
   AppSettings,
   Campaign,
   GraphPosition,
@@ -232,12 +233,14 @@ export function registerIpc(context: IpcContext): void {
 
     if (!provider) return { provider: 'none', ready: false, detail: '', hasKey };
 
-    const status = await provider.check();
+    const zustand = await provider.pruefe();
     return {
       provider: provider.id,
-      ready: status.ready,
+      ready: zustand.bereit,
       // Der Grund wird hier uebersetzt, wo die eingestellte Sprache bekannt ist.
-      detail: status.ready ? status.detail : translate(context.settings.language, status.key, status.params),
+      detail: zustand.bereit
+        ? zustand.beschreibung
+        : translate(context.settings.language, zustand.schluessel, zustand.werte),
       hasKey
     };
   });
@@ -285,7 +288,7 @@ export function registerIpc(context: IpcContext): void {
           }
         );
       } catch (error) {
-        if (error instanceof AiError) throw new VaultError(error.key, error.params);
+        if (error instanceof AiError) throw new VaultError(error.schluessel, error.werte);
         throw error;
       }
     }

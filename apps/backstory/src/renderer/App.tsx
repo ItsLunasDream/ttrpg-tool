@@ -35,7 +35,7 @@ import { HelpDialog } from './components/HelpDialog';
 import { AboutDialog } from './components/AboutDialog';
 import type { AiStatus } from './components/AssistantPanel';
 import { AssistantProvider } from './assistant';
-import type { AiMessage, AiTask } from '../main/ai/provider';
+import type { AiMessage, AiTask } from '../shared/types';
 
 type Dialog =
   | { kind: 'none' }
