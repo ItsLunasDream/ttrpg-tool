@@ -49,6 +49,17 @@ function promptsDatei(language: Language): string {
 }
 
 /**
+ * Ob an einer Vorschlagsliste ueberhaupt etwas geaendert wurde.
+ *
+ * Verglichen wird gegen beide mitgelieferten Vorlagen. Stimmt sie mit einer
+ * ueberein, steckt keine Arbeit darin, die es zu retten gaebe.
+ */
+function istBearbeitet(liste: PromptCategory[]): boolean {
+  const wie = (andere: PromptCategory[]) => JSON.stringify(andere) === JSON.stringify(liste);
+  return !wie(defaultPrompts('de')) && !wie(defaultPrompts('en'));
+}
+
+/**
  * Mindestabstand zwischen zwei Versionen derselben Notiz. Ohne diese Sperre
  * wuerde der Autosave im Sekundentakt hunderte fast gleicher Staende anlegen.
  * Innerhalb des Fensters bleibt der aelteste Stand erhalten, man kommt also
@@ -255,19 +266,30 @@ export class Vault {
       // Datei fehlt oder ist unlesbar, unten wird weitergesucht.
     }
 
-    // Die alte, sprachlose Datei uebernehmen, falls es sie gibt: wer eigene
-    // Vorschlaege gepflegt hat, soll sie nicht verlieren. Welche Sprache
-    // darin steht, weiss niemand — sie gilt deshalb fuer die, die gerade
-    // eingestellt ist. Passt das nicht, genuegt es, die Datei zu loeschen.
+    /*
+     * Die alte, sprachlose Datei uebernehmen, falls es sie gibt: wer eigene
+     * Vorschlaege gepflegt hat, soll sie nicht verlieren.
+     *
+     * Aber nur dann. Eine Datei, die noch genau der Vorlage entspricht,
+     * enthaelt keine Arbeit und wird verworfen — sonst landete sie in der
+     * Sprache, die beim ersten Oeffnen der Schreibhilfe zufaellig eingestellt
+     * war, und wer danach umschaltete, bekaeme dort die Liste der anderen
+     * Sprache zu sehen. Welche Sprache in der alten Datei steht, weiss
+     * niemand; darum ist Wegwerfen hier das Ehrlichere.
+     *
+     * Wurde sie bearbeitet, gilt sie fuer die gerade eingestellte Sprache.
+     * Passt das nicht, genuegt es, die Datei zu loeschen.
+     */
     const alt = path.join(this.root, PROMPTS_FILE);
     try {
       const parsed = JSON.parse(await fs.readFile(alt, 'utf8')) as unknown;
       const normalized = normalizePrompts(parsed);
-      if (normalized.length) {
+      if (normalized.length && istBearbeitet(normalized)) {
         await writeJson(file, normalized);
         await fs.rm(alt, { force: true });
         return normalized;
       }
+      if (normalized.length) await fs.rm(alt, { force: true });
     } catch {
       // Gab es nicht — dann eben die Vorlage.
     }

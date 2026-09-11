@@ -463,6 +463,45 @@ test('Eigene Schreibhilfe-Datei wird benutzt und repariert', async () => {
   });
 });
 
+test('Eine unveraenderte alte Schreibhilfe-Datei wird nicht in die falsche Sprache uebernommen', async () => {
+  /*
+   * Bis die Liste je Sprache abgelegt wurde, gab es eine sprachlose
+   * writing-prompts.json. Sie einfach zu uebernehmen hiesse: sie landet in
+   * der Sprache, die beim ersten Oeffnen der Schreibhilfe zufaellig
+   * eingestellt war — und wer danach umschaltet, bekommt dort die Liste der
+   * anderen Sprache zu sehen.
+   *
+   * Steckt keine eigene Arbeit darin, wird sie deshalb verworfen. Welche
+   * Sprache in ihr steht, weiss ohnehin niemand.
+   */
+  await withVault(async (vault, root) => {
+    const deutscheVorlage = await vault.readPrompts('de');
+    await writeFile(path.join(root, 'writing-prompts.json'), JSON.stringify(deutscheVorlage));
+
+    const englisch = await vault.readPrompts('en');
+    assert.notDeepEqual(
+      englisch.map((eintrag) => eintrag.label),
+      deutscheVorlage.map((eintrag) => eintrag.label),
+      'die deutsche Liste ist als englische durchgerutscht'
+    );
+  });
+});
+
+test('Eine bearbeitete alte Schreibhilfe-Datei bleibt erhalten', async () => {
+  // Die Gegenrichtung: wer eigene Vorschlaege gepflegt hat, soll sie nicht
+  // verlieren, nur weil die Ablage sich geaendert hat.
+  await withVault(async (vault, root) => {
+    await writeFile(
+      path.join(root, 'writing-prompts.json'),
+      JSON.stringify([{ id: 'eigene', label: 'Selbst geschrieben', options: ['Mein Vorschlag'] }])
+    );
+
+    const gelesen = await vault.readPrompts('en');
+    assert.equal(gelesen[0].label, 'Selbst geschrieben');
+    assert.deepEqual(gelesen[0].options, ['Mein Vorschlag']);
+  });
+});
+
 test('Unlesbare Schreibhilfe-Datei faellt auf die Vorlage zurueck', async () => {
   await withVault(async (vault, root) => {
     await writeFile(path.join(root, 'writing-prompts.json'), 'kein json');

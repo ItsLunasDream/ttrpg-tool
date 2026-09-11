@@ -224,6 +224,23 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     });
   }, [onLanguageChange]);
 
+  /*
+   * Die Vorschlagsliste der Schreibhilfe haengt an der Sprache: sie liegt je
+   * Sprache als eigene Datei im Speicherort. Einmal geholt, blieb sie im
+   * Zustand stehen — wer auf Englisch umstellte, bekam weiter die deutsche
+   * Liste, solange das Fenster offen war.
+   *
+   * Weggeworfen und nicht sofort nachgeholt: der Dialog holt sie beim
+   * Oeffnen, und die meisten Sprachwechsel geschehen, ohne dass er je
+   * aufgeht.
+   *
+   * Haengt an `settings.language` und nicht an einem der beiden Wege dorthin:
+   * umgestellt wird hier im Dialog und in der Huelle, und beide landen hier.
+   */
+  useEffect(() => {
+    setPrompts(null);
+  }, [settings?.language]);
+
   const reloadNotes = useCallback(
     async (campaignId: string) => {
       const list = await call(api.notes.list(campaignId));

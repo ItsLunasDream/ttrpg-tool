@@ -854,6 +854,77 @@ app.whenReady().then(async () => {
     check(!imVault.includes('writing-prompts.json'),
       'die alte sprachlose writing-prompts.json ist wieder da');
 
+    // 16b. Die Vorschlagsliste wechselt die Sprache mit
+    /*
+     * Gemeldet: "Wenn ich die Sprache auf Englisch stelle ist die Prompt
+     * (ohne KI) List immer noch auf Deutsch."
+     *
+     * Der Hauptprozess las immer richtig — die Liste lag nur im Zustand der
+     * Oberflaeche und wurde nach dem ersten Holen nie wieder angefasst.
+     */
+    await clickButton(window, 'Schreibhilfe');
+    await sleep(700);
+    /*
+     * Geprueft werden die Kategorienamen, nicht die Vorschlaege selbst.
+     *
+     * Die Vorschlaege werden bei jedem Oeffnen neu gezogen: sie sind auch
+     * dann verschieden, wenn die Sprache dieselbe geblieben ist. Ein Test auf
+     * "anders als vorher" ging deshalb durch, waehrend unter "Englisch"
+     * weiter deutscher Text stand — genau der gemeldete Fehler, und der Test
+     * sah ihn nicht.
+     */
+    const kategorien = () =>
+      run(
+        window,
+        `return [...document.querySelectorAll('.prompts__categories button')].map((e) => e.textContent).join(' | ');`
+      );
+    const deutscheVorschlaege = await kategorien();
+    await run(window, `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
+    await sleep(400);
+
+    await clickButton(window, 'Einstellungen');
+    await sleep(500);
+    await run(
+      window,
+      `const select = document.querySelector('.modal select');
+       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, 'en');
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;`
+    );
+    await sleep(900);
+    await run(window, `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
+    await sleep(400);
+
+    // Auf Englisch heisst der Knopf "Prompts" — die Oberflaeche ist ja
+    // umgestellt, und genau darum geht es hier.
+    await clickButton(window, 'Prompts');
+    await sleep(900);
+    const englischeVorschlaege = await kategorien();
+    check(
+      deutscheVorschlaege.includes('Herkunftsort'),
+      `Auf Deutsch stehen nicht die deutschen Kategorien da (${deutscheVorschlaege})`
+    );
+    check(
+      englischeVorschlaege.includes('Place of origin'),
+      `Vorschlagsliste bleibt nach dem Sprachwechsel deutsch (${englischeVorschlaege})`
+    );
+    await run(window, `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
+    await sleep(300);
+
+    // Zurueck auf Deutsch, damit die folgenden Pruefungen ihre Texte finden.
+    await clickButton(window, 'Settings');
+    await sleep(500);
+    await run(
+      window,
+      `const select = document.querySelector('.modal select');
+       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, 'de');
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;`
+    );
+    await sleep(900);
+    await run(window, `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`);
+    await sleep(400);
+
     // 17. Graph-Ansicht
     await clickButton(window, 'Graph');
     await sleep(1500);
