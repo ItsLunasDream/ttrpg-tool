@@ -17,6 +17,10 @@
   --betont: #7aa2f7;
   --fest: #e0af68;
   --radius: 10px;
+
+  /* Die Rueckmeldefarben des Bewegungspakets an diese Palette angleichen. */
+  --motion-ok: #4a9d5f;
+  --motion-fehler: #d1635c;
 }
 
 * {
@@ -407,4 +411,60 @@ button {
   font-size: 11px;
   line-height: 1.4;
   margin: 6px 0 0;
+}
+
+/* ---------- Bewegung ---------- */
+
+/*
+ * Zeiten und Kurven kommen aus @suite/motion, die Farben von hier.
+ *
+ * Zurueckhaltend: das Werkzeug wird benutzt, waehrend die Gruppe wartet.
+ * Eine Figur, die sich erst aufbauen muss, kostet genau die Sekunden, die
+ * hier keiner hat.
+ */
+
+/* Der Rahmen um ein Feld kommt und geht, statt zu blinken. */
+.zeile__wert {
+  transition: border-color var(--motion-feedback) var(--motion-ease-standard),
+    background var(--motion-feedback) var(--motion-ease-standard);
+}
+
+/*
+ * Das Schloss faerbt die Zeile. Ein Uebergang darauf, damit man sieht, dass
+ * der eigene Klick es war — bei sieben gleich aussehenden Zeilen sonst
+ * schwer zu sagen, welche man getroffen hat.
+ */
+.zeile {
+  transition: background var(--motion-state) var(--motion-ease-standard),
+    box-shadow var(--motion-state) var(--motion-ease-standard);
+}
+
+.zeile__knoepfe button,
+.knopf--haupt,
+.knopf--ki {
+  transition: background var(--motion-feedback) var(--motion-ease-standard),
+    border-color var(--motion-feedback) var(--motion-ease-standard),
+    color var(--motion-feedback) var(--motion-ease-standard);
+}
+
+/*
+ * Eine gemerkte Figur kommt in die Liste herein.
+ *
+ * Die Merkliste ist der einzige Ort im Werkzeug, an dem etwas dazukommt,
+ * ohne dass man hinsieht — der Blick liegt beim Merken auf der Figur, nicht
+ * auf der Liste rechts.
+ */
+.merkliste__liste li {
+  animation: motion-eintritt var(--motion-place) var(--motion-ease-enter);
+}
+
+/*
+ * Eine Stoerung erscheint, statt einfach dazustehen.
+ *
+ * Sie steht unter den Knoepfen, wo man nach einem Klick ohnehin hinsieht.
+ * Ohne Bewegung uebersieht man sie, wenn sie beim zweiten Versuch denselben
+ * Text traegt wie beim ersten.
+ */
+.stoerung {
+  animation: motion-eintritt var(--motion-state) var(--motion-ease-enter);
 }

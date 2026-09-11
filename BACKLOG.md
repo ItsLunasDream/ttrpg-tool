@@ -483,6 +483,50 @@ der ältere Rauchtest deshalb nicht mehr das Schloss traf, sondern die KI. Das
 Schloss hat jetzt eine eigene Klasse; ein Test, der auf Reihenfolge zeigt,
 zeigt beim nächsten Knopf wieder daneben.
 
+### Bewegung: der Übergang aus dem Startmenü, und die letzten drei Werkzeuge
+
+Beim Klick auf eine Kachel wächst deren Symbol über den ganzen Bildschirm.
+Das war ein ausdrücklicher Wunsch, und der Übergang trägt zweierlei: er
+verbindet die Kachel mit dem Werkzeug, das daraus wird, und er überbrückt die
+Zeit, in der sonst nichts zu sehen wäre. Ist das Feld ausgewachsen und das
+Werkzeug noch nicht da, steht darin der Ladekreis; ist es schneller, sieht
+man ihn gar nicht.
+
+Entscheidungen dabei:
+
+- **Der Übergang beginnt an der Kachel, nicht in der Bildmitte.** Sonst wäre
+  er ein Effekt statt einer Verbindung.
+- **Über die Schiene läuft er nicht.** Dort wechselt man ständig hin und her,
+  und jedes Mal eine große Bewegung wäre eine Zumutung. Er gehört dem
+  Startmenü.
+- **Der Hauptprozess bekommt die Dauer mit und wartet sie ab.** Die
+  eingebettete Ansicht ist kein HTML-Element; sie liegt immer über allem, was
+  die Hülle zeichnet. Schöbe sie sich mitten hinein, sähe es aus, als hätte
+  jemand die Animation abgeschnitten. Montiert und geladen wird
+  währenddessen — es geht keine Zeit verloren, sie wird nur nicht vorzeitig
+  sichtbar.
+- **Bewegt werden left/top/width/height, nicht `transform: scale`.** Die
+  teurere Sorte, hier aber die richtige: beim Skalieren zöge sich das Symbol
+  mit in die Breite und aus dem runden Rand würde ein Oval.
+
+Danach fehlten noch Backstory Creator, Karteneditor und NPC Creator — die
+drei Werkzeuge, die `motion.css` nicht einmal geladen hatten. Jetzt benutzen
+alle fünf dieselben Zeiten und Kurven.
+
+Zwei Fallen dabei, beide erst beim Ausprobieren aufgefallen:
+
+- Das Einblenden beim Notizwechsel braucht einen `key` am Element. Ohne ihn
+  behält React dasselbe Element, und eine CSS-Animation läuft nur, wenn das
+  Element neu entsteht — sie bliebe genau bei dem Vorgang aus, für den sie
+  gedacht ist.
+- Der Toast des Backstory Creators bekommt eine eigene Bewegung statt
+  `.motion-eintritt`: er steht mit `translateX(-50%)` in der Mitte, und die
+  Klasse des Pakets überschreibt diese Verschiebung — er spränge beim
+  Erscheinen nach rechts.
+
+Unangetastet bleiben die Stellen, die schon ihre eigene, stärkere Bewegung
+haben: die fallenden Würfel und die Zeichenfläche des Karteneditors.
+
 ### Ladeanzeige und Startzeit
 
 Während ein Werkzeug lädt, steht jetzt ein Ladekreis mit Text daneben. Vorher
