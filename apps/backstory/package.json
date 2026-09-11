@@ -5,7 +5,7 @@
   "description": "Desktop-Tool zum Schreiben von D&D-Charakter-Backstorys",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ItsLunasDream/backstory-creator"
+    "url": "https://github.com/ItsLunasDream/ttrpg-tool"
   },
   "main": "dist/main/index.js",
   "scripts": {
