@@ -111,11 +111,29 @@ export const SuiteIcon = (p: IconProps) => (
   </Rahmen>
 );
 
+/**
+ * NPC Creator: Kopf und Schultern, daneben ein Funke.
+ *
+ * Eine Person allein waere vom Initiative Tracker kaum zu unterscheiden —
+ * der Funke sagt, dass hier jemand entsteht und nicht verwaltet wird.
+ */
+function NpcIcon({ size = 26 }: IconProps): ReactElement {
+  return (
+    <Rahmen size={size}>
+      <circle cx="20" cy="17" r="7" />
+      <path d="M8 40c0-6.6 5.4-12 12-12s12 5.4 12 12" />
+      <path d="M36 10v8M32 14h8" />
+      <path d="M38 24v4M36 26h4" />
+    </Rahmen>
+  );
+}
+
 const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
   backstory: BackstoryIcon,
   mapmaker: MapmakerIcon,
   initiative: InitiativeIcon,
   dice: DiceIcon,
+  npc: NpcIcon,
   encounter: EncounterIcon
 };
 

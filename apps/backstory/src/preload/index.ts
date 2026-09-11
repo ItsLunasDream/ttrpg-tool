@@ -11,7 +11,7 @@ import type {
   UnreadableNote
 } from '../shared/types';
 import type { PromptCategory } from '../shared/writingPrompts';
-import type { AiMessage, AiTask } from '../main/ai/provider';
+import type { AiMessage, AiTask } from '../shared/types';
 import { channel } from '../shared/channels';
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: string };
@@ -86,7 +86,14 @@ const api = {
     };
   },
   ai: {
-    status: () => invoke<{ provider: string; ready: boolean; detail: string; hasKey: boolean }>('ai:status'),
+    status: () =>
+      invoke<{
+        provider: string;
+        ready: boolean;
+        detail: string;
+        hasKey: boolean;
+        managedByShell: boolean;
+      }>('ai:status'),
     setApiKey: (apiKey: string) => invoke<AppSettings>('ai:setApiKey', apiKey),
     ask: (
       campaignId: string,

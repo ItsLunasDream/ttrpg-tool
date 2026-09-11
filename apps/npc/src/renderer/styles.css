@@ -1,0 +1,410 @@
+/*
+ * Aussehen des NPC Creators.
+ *
+ * Die Figur ist der Inhalt. Die Vorgaben links und die Merkliste rechts
+ * bleiben ruhig und dunkel, damit in der Mitte nur das steht, was man
+ * vorlesen will.
+ */
+
+:root {
+  --grund: #14161c;
+  --grund-hoch: #1b1e26;
+  --grund-tisch: #10121a;
+  --rand: #2a2e39;
+  --linie: #2a2e39;
+  --text: #e6e8ee;
+  --text-leise: #939aab;
+  --betont: #7aa2f7;
+  --fest: #e0af68;
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--grund);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+.npcapp {
+  display: grid;
+  grid-template-columns: 232px 1fr 236px;
+  height: 100%;
+}
+
+/* ---------- Vorgaben ---------- */
+
+.vorgaben {
+  background: var(--grund-hoch);
+  border-right: 1px solid var(--rand);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.vorgaben__titel {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-leise);
+}
+
+.feld {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.feld__label {
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.feld select,
+.feld input {
+  background: var(--grund-tisch);
+  border: 1px solid var(--rand);
+  border-radius: 7px;
+  color: var(--text);
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.knopf--haupt {
+  background: var(--betont);
+  border: 0;
+  border-radius: 8px;
+  color: #0f1117;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 9px 14px;
+}
+
+.knopf--haupt:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.vorgaben .knopf--haupt {
+  margin-top: auto;
+}
+
+/* ---------- Die Figur ---------- */
+
+.buehne {
+  padding: 22px 26px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.buehne__leer {
+  margin: auto;
+  color: var(--text-leise);
+}
+
+.figur__name {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: -0.01em;
+}
+
+.figur__zeile {
+  margin: 2px 0 18px;
+  color: var(--betont);
+  font-size: 15px;
+}
+
+.figur {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/*
+ * Eine Zeile je Feld, mit den beiden Knoepfen rechts.
+ *
+ * Die Knoepfe stehen immer da und erscheinen nicht erst beim Darueberfahren:
+ * am Tisch sucht man nicht nach einer Schaltflaeche, die sich versteckt.
+ */
+.zeile {
+  display: grid;
+  grid-template-columns: 96px 1fr auto;
+  align-items: start;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 8px;
+}
+
+.zeile:hover {
+  background: var(--grund-hoch);
+}
+
+.zeile__label {
+  color: var(--text-leise);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-top: 3px;
+}
+
+/*
+ * Der Wert steht in einem Textfeld, sieht aber aus wie Text.
+ *
+ * Ein Generator, dessen Ergebnis man nur annehmen oder verwerfen kann, zwingt
+ * zum Weiterwuerfeln, bis zufaellig alles passt — dabei fehlt meist nur ein
+ * Wort. Der Rahmen erscheint erst beim Darueberfahren, damit die Figur sich
+ * liest wie ein Steckbrief und nicht wie ein Formular.
+ */
+.zeile__wert {
+  width: 100%;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 2px 6px;
+  margin: -2px -6px;
+}
+
+.zeile__wert:hover {
+  border-color: var(--rand);
+}
+
+.zeile__wert:focus {
+  outline: none;
+  border-color: var(--betont);
+  background: var(--grund-tisch);
+}
+
+.zeile__wert::placeholder {
+  color: var(--text-leise);
+  font-style: italic;
+}
+
+/* Ein festgehaltenes Feld bleibt beim naechsten Wurf stehen — das muss man
+   sehen, sonst wundert man sich, warum sich nichts aendert. */
+.zeile--fest {
+  background: #e0af6814;
+  box-shadow: inset 2px 0 0 var(--fest);
+}
+
+
+
+.zeile__knoepfe {
+  display: flex;
+  gap: 2px;
+}
+
+.zeile__knoepfe button {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-leise);
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 6px;
+}
+
+.zeile__knoepfe button:hover {
+  border-color: var(--rand);
+  color: var(--text);
+}
+
+/*
+ * Das geschlossene Schloss faellt auf, das offene nicht.
+ *
+ * Die beiden Zeichen allein unterscheiden sich zu wenig, um sie im
+ * Vorbeigehen auseinanderzuhalten — die Farbe macht den Unterschied, und sie
+ * ist dieselbe wie der Streifen am Rand der Zeile.
+ */
+.zeile__knoepfe button[aria-pressed='true'] {
+  color: var(--fest);
+  border-color: #e0af6855;
+  background: #e0af6814;
+}
+
+.zeile__knoepfe button[aria-pressed='false'] {
+  opacity: 0.55;
+}
+
+.buehne__knoepfe {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.buehne__knoepfe button:not(.knopf--haupt) {
+  background: none;
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  color: var(--text-leise);
+  padding: 9px 14px;
+}
+
+.buehne__knoepfe button:not(.knopf--haupt):hover {
+  color: var(--text);
+  border-color: var(--text-leise);
+}
+
+.stoerung {
+  color: #e5484d;
+  font-size: 13px;
+}
+
+/* ---------- Merkliste ---------- */
+
+.merkliste {
+  background: var(--grund-hoch);
+  border-left: 1px solid var(--rand);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.merkliste__kopf {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--rand);
+}
+
+/* Der Hinweis steht unter dem Titel, nicht daneben: nebeneinander brach er
+   in der schmalen Spalte auf drei Zeilen um. */
+.merkliste__hinweis {
+  grid-column: 1;
+}
+
+.merkliste__leeren {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.merkliste__titel {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-leise);
+}
+
+.merkliste__hinweis {
+  font-size: 11px;
+  color: var(--text-leise);
+  opacity: 0.75;
+  grid-column: 1;
+}
+
+.merkliste__leeren {
+  padding: 2px 8px;
+  font-size: 11px;
+  background: none;
+  border: 1px solid var(--linie);
+  border-radius: 6px;
+  color: var(--text-leise);
+}
+
+.merkliste__liste {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.merkliste__liste button {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text);
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.merkliste__liste button:hover {
+  border-color: var(--rand);
+  background: var(--grund-tisch);
+}
+
+.merkliste__name {
+  font-weight: 600;
+}
+
+.merkliste__rolle {
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+/*
+ * Die KI-Knoepfe.
+ *
+ * Deutlich anders als Wuerfeln und Schloss: was aus den Tabellen kommt, ist
+ * kostenlos und sofort da; was die KI schreibt, dauert und kann Geld kosten.
+ * Der Unterschied soll man sehen, bevor man klickt.
+ */
+.knopf--ki {
+  background: none;
+  border: 1px solid var(--ki, #9a7ad6);
+  color: var(--ki, #9a7ad6);
+  border-radius: 8px;
+  font: inherit;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.knopf--ki:hover:not(:disabled) {
+  background: #9a7ad61f;
+}
+
+.knopf--ki:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.zeile__ki {
+  color: var(--ki, #9a7ad6);
+}
+
+.zeile__ki:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Steht unter dem KI-Knopf und sagt, was er tut und wo er herkommt. */
+.vorgaben__hinweis {
+  color: var(--text-leise, #939aab);
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 6px 0 0;
+}

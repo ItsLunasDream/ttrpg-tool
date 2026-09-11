@@ -8,6 +8,12 @@ interface Props {
   settings: AppSettings;
   /** Ob bereits ein API-Schluessel hinterlegt ist. Der Schluessel selbst nie. */
   hasApiKey: boolean;
+  /**
+   * Ob eine Huelle die KI fuehrt. Dann wird hier nichts eingestellt, sondern
+   * nur gesagt, wo es steht — zwei Stellen fuer dieselbe Sache waeren eine zu
+   * viel, und wer in der falschen einstellt, sucht den Fehler lange.
+   */
+  kiVonHuelle: boolean;
   onSaveApiKey: (apiKey: string) => void;
   onChange: (patch: Partial<AppSettings>) => void;
   onChooseVaultRoot: () => void;
@@ -18,6 +24,7 @@ interface Props {
 export function SettingsDialog({
   settings,
   hasApiKey,
+  kiVonHuelle,
   onSaveApiKey,
   onChange,
   onChooseVaultRoot,
@@ -89,6 +96,10 @@ export function SettingsDialog({
 
       <h4 className="type-editor__heading">{t('settings.ai')}</h4>
 
+      {kiVonHuelle ? (
+        <p className="modal__hint">{t('settings.aiManagedByShell')}</p>
+      ) : (
+        <>
       <label className="field">
         <span className="field__label">{t('settings.aiProvider')}</span>
         <select
@@ -153,6 +164,8 @@ export function SettingsDialog({
           <p className="modal__hint">{t('settings.apiKeyHint')}</p>
         </>
       ) : null}
+        </>
+      )}
 
       <label className="field">
         <span className="field__label">{t('settings.location')}</span>

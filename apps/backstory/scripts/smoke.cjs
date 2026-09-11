@@ -839,9 +839,20 @@ app.whenReady().then(async () => {
 
     await save(window);
 
-    // Die Vorschlagsdatei muss im Speicherort liegen und bearbeitbar sein
-    check(fs.existsSync(path.join(userData, 'vault', 'writing-prompts.json')),
-      'writing-prompts.json wurde nicht angelegt');
+    // Die Vorschlagsdatei muss im Speicherort liegen und bearbeitbar sein.
+    //
+    // Je Sprache eine Datei: sie ist Nutzerdatei, und wer eigene Vorschlaege
+    // ergaenzt, tut das in der Sprache, in der er schreibt. Geprueft wird
+    // deshalb das Muster und nicht ein fester Name — welche Sprache der Lauf
+    // gerade hat, ist hier nicht der Punkt.
+    const imVault = fs.readdirSync(path.join(userData, 'vault'));
+    const vorschlagsdateien = imVault.filter((name) => /^writing-prompts\.(de|en)\.json$/.test(name));
+    check(vorschlagsdateien.length > 0,
+      `keine writing-prompts.<sprache>.json angelegt (gefunden: ${imVault.join(', ')})`);
+    // Und der alte sprachlose Name darf nicht zurueckkommen: er fror beim
+    // ersten Start eine Sprache ein, und genau das war der Fehler.
+    check(!imVault.includes('writing-prompts.json'),
+      'die alte sprachlose writing-prompts.json ist wieder da');
 
     // 17. Graph-Ansicht
     await clickButton(window, 'Graph');

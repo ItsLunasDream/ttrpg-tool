@@ -297,9 +297,15 @@ input[type='number'] {
  * Der dunkle Grund macht sie auf jedem Wuerfel lesbar, gleich welche Farbe
  * eingestellt ist.
  */
+/*
+ * Die Zahl sitzt mittig auf dem Wuerfel, nicht darueber.
+ *
+ * Ueber dem Koerper stand sie zuerst, damit sie ihn nicht verdeckt. Bei
+ * mehreren Wuerfeln nebeneinander war dann aber nicht mehr zu erkennen, zu
+ * welchem sie gehoert — sie schwebte genauso gut ueber dem Nachbarn.
+ */
 .marke3d__zahl {
   position: relative;
-  transform: translateY(-34px);
   min-width: 24px;
   padding: 1px 7px;
   border-radius: 999px;
@@ -516,6 +522,28 @@ input[type='number'] {
 
 .verlauf__titel {
   font-weight: 600;
+}
+
+/*
+ * Der Knopf zum Leeren sitzt im Kopf des Verlaufs, rechts.
+ *
+ * Unauffaellig gehalten: er loescht etwas, und ein auffaelliger Knopf laedt
+ * zum Danebengreifen ein. Der Verlauf lebt ohnehin nur in dieser Sitzung.
+ */
+.verlauf__leeren {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 11px;
+  background: none;
+  border: 1px solid var(--linie);
+  border-radius: 6px;
+  color: var(--text-leise);
+  cursor: pointer;
+}
+
+.verlauf__leeren:hover {
+  color: var(--text);
+  border-color: var(--text-leise);
 }
 
 .verlauf__hinweis {

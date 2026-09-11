@@ -382,6 +382,107 @@ Entscheidungen dabei:
 - Fehlermeldungen der Anbieter tragen Schlüssel statt fertiger Texte, sonst
   wären sie bei englischer Oberfläche weiterhin deutsch
 
+### KI für die ganze Sammlung: packages/ki und die Hülle
+
+Der NPC Creator sollte die KI mitbenutzen, und ein zweiter Satz derselben
+Dateien wären zwei Sätze, die auseinanderlaufen. Also wanderten die Anbieter
+nach `packages/ki`, und die Einstellung selbst in die Hülle.
+
+Was dabei entschieden wurde:
+
+- **Das Paket bringt den Mechanismus, nicht die Aufgaben.** Die Anbieter, die
+  Fehlerschlüssel, die Schnittstelle. Was gefragt wird, bleibt bei der
+  Anwendung, die fragt — `prompts.ts` des Backstory Creators wanderte nicht
+  mit. Die Schnittstelle wurde dabei schmaler: `frage()` nimmt nur noch
+  Systemanweisung und Nachrichten, statt einer Anfrage mit Notiz und Aufgabe,
+  die beide Anbieter ohnehin ignoriert haben. So passt sie auch auf Fragen,
+  in denen keine Notiz vorkommt.
+- **Der Schlüsselbund bleibt draußen.** Verschlüsseln kann nur, wer ihn kennt,
+  und `electron` hat in einem geteilten Paket nichts zu suchen (Regel 4). Der
+  Schlüssel wird beim Bauen des Anbieters übergeben.
+- **Ein zweiter Einstiegspunkt `@suite/ki/einstellungen`.** Eine Oberfläche
+  muss die Einstellungen anzeigen, ohne die Anbieter mitzuladen. Über den
+  Hauptzugang kam das Anthropic-SDK ins Bündel des Renderers — gemessen, nicht
+  vermutet: es stand wirklich darin. Jetzt nicht mehr, und ein Rauchtest
+  würde es merken.
+- **Die Einstellung liegt in der Hülle, nicht je Werkzeug.** Ein Sprachmodell
+  richtet man einmal ein und benutzt es dann überall; wer den Schlüssel in
+  jedem Werkzeug neu eintippen müsste, tippt ihn zweimal falsch. Anders als
+  die Sprache, die jedes Werkzeug bewusst für sich führt.
+- **Eingebettet gilt die der Hülle, eigenständig die eigene.** Der Backstory
+  Creator bekommt eine `kiQuelle` durchgereicht; ist sie gesetzt, verschwindet
+  sein eigener KI-Abschnitt aus den Einstellungen und ein Satz sagt, wo es
+  stattdessen steht. Zwei Stellen für dieselbe Sache wären eine zu viel, und
+  wer in der falschen einstellt, sucht den Fehler lange.
+- **Übernahme statt Neueintippen.** Wer die KI früher im Backstory Creator
+  eingerichtet hat, findet sie beim ersten Start der Hülle wieder. Der
+  verschlüsselte Schlüssel wandert unverändert mit: derselbe Rechner,
+  derselbe Schlüsselbund. Genau einmal — steht in der Hülle schon etwas,
+  greift die Übernahme nicht mehr.
+- **„Ein Schlüssel ist hinterlegt" heißt: er lässt sich auch aufmachen.** Ein
+  Block aus einem anderen Konto ist so gut wie keiner. Sonst stünde in den
+  Einstellungen „Ein Schlüssel ist hinterlegt" direkt neben „Kein
+  API-Schlüssel hinterlegt".
+- **Die Bereitschaftsprüfung hat eine Frist.** Vier Sekunden, ohne
+  Wiederholung. Das SDK wartet von sich aus zehn Minuten, und wer auf
+  „Verbindung prüfen" drückt, will nicht zehn Minuten warten, um zu erfahren,
+  dass kein Netz da ist. Aufgefallen ist das im Rauchtest, der daran hing.
+- **Teilstücke werden zusammengeführt, nicht ersetzt.** Die Oberfläche schickt
+  nur, was sie geändert hat. Würde das als ganze Einstellungsdatei gelten,
+  löschte ein Sprachwechsel die KI-Einstellung — und niemand käme auf die
+  Idee, dort zu suchen. Ein Rauchtest hält genau das fest.
+
+### KI im NPC Creator: frei vorschlagen, nicht aus der Tabelle
+
+Die Entscheidung kam von der Nutzerin: „KI soll unabhängig von der Tabelle
+Vorschläge geben." Die Tabellen bleiben der Weg ohne KI und ändern sich nicht;
+das Modell schlägt daneben frei vor. Wäre es auf die Tabelleneinträge
+festgelegt, wäre es ein langsamer und teurer Würfel.
+
+Zwei Wege: ein Knopf für die ganze Figur, und einer je Zeile für ein
+einzelnes Feld.
+
+Der Unterschied zum Assistenten des Backstory Creators ist grundsätzlich.
+Dort darf das Modell ausdrücklich **nicht** schreiben, weil die
+Hintergrundgeschichte der Autorin gehört. Hier **soll** es schreiben — eine
+Randfigur, die gleich am Tisch auftaucht, will niemand selbst ausformulieren.
+Dieselbe Anbindung, entgegengesetzte Systemanweisung.
+
+Was dabei entschieden wurde:
+
+- **Festgehaltene Felder gehen als gesetzt mit** und werden nicht neu
+  erfunden, genau wie beim Würfeln. Sonst wäre das Schloss beim KI-Knopf
+  wirkungslos, und das fällt erst auf, wenn der gute Name weg ist. Ein leeres
+  Feld gilt dabei nicht als gesetzt: „Das steht fest: Eigenheit: " wäre eine
+  Vorgabe ohne Inhalt und hielte das Feld dauerhaft leer.
+- **Ein Vorschlag wird behandelt wie ein getippter Text.** Er landet im selben
+  bearbeitbaren Feld und wird dabei festgehalten — er ist jetzt der Wert, den
+  man behalten will.
+- **Eine Länge steht in der Anweisung, nicht nur im Code.** Die
+  Tabelleneinträge sind Halbsätze; ein Modell, dem man nichts sagt, schreibt
+  einen Absatz, und die Figur ließe sich nicht mehr überfliegen. Beim
+  Auswerten wird trotzdem gekürzt: ein Modell, das sich nicht an die
+  Abmachung hält, darf die Figur nicht unlesbar machen.
+- **Bei der Eigenheit wird ausdrücklich gebremst.** Bei den Tabellen sorgt die
+  Wahrscheinlichkeit dafür, dass die meisten Figuren keine Marotte haben. Ohne
+  einen Satz dazu liefert das Modell jedes Mal eine Schrulle, und jede Figur
+  wird zur Karikatur.
+- **Ohne eingerichtete KI sind die Knöpfe nicht da**, nicht ausgegraut.
+  Eingerichtet wird sie in der Hülle; hier gäbe es dafür nichts zu klicken,
+  und ein grauer Knopf wäre eine Einladung zum Suchen.
+- **Ein Fehlschlag lässt die Figur unangetastet.** Unbrauchbare Antwort,
+  Fehler des Anbieters, kein Netz: es kommt ein Satz, kein halb ersetztes
+  Feld und kein abgebrochener Aufruf.
+- **`connect-src` bleibt zu.** Die Anfrage geht vom Hauptprozess aus. Der
+  Renderer bekommt keinen Netzzugriff, und der API-Schlüssel erreicht ihn nie.
+
+Der Rauchtest täuscht nur das Modell vor — ein kleiner HTTP-Server, der sich
+wie Ollama verhält. Alles davor und danach ist echt. Dabei fiel auf, dass der
+neue KI-Knopf die Reihenfolge der Knöpfe in einer Zeile verschoben hatte und
+der ältere Rauchtest deshalb nicht mehr das Schloss traf, sondern die KI. Das
+Schloss hat jetzt eine eigene Klasse; ein Test, der auf Reihenfolge zeigt,
+zeigt beim nächsten Knopf wieder daneben.
+
 ### Verwaiste Bilder aufräumen
 
 „Aufräumen" in der Kopfzeile zeigt Bilddateien, auf die nichts mehr verweist,

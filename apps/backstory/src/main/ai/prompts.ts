@@ -1,4 +1,5 @@
-import type { AiRequest, AiTask } from './provider';
+import type { AiTask } from '../../shared/types';
+import type { AiRequest } from './index';
 
 /**
  * Der Assistent stellt Fragen und prueft, er schreibt nicht. Das steht so im

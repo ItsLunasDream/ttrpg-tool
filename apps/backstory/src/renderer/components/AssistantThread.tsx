@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AiTask } from '../../main/ai/provider';
+import type { AiTask } from '../../shared/types';
 import { useAssistant } from '../assistant';
 import { useT } from '../i18n';
 
@@ -8,6 +8,8 @@ export interface AiStatus {
   ready: boolean;
   detail: string;
   hasKey: boolean;
+  /** Ob eine Huelle die KI fuehrt. Dann wird sie nicht hier eingerichtet. */
+  managedByShell: boolean;
 }
 
 interface Props {

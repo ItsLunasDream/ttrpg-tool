@@ -428,6 +428,40 @@ app.whenReady().then(async () => {
       `die Leinwand folgt der Fenstergroesse (Abweichung ${nachher.join(' x ')})`
     );
 
+    /*
+     * Viele Wuerfel: die Zahlen muessen trotzdem kommen.
+     *
+     * Ab etwa fuenfzig Wuerfeln erschienen sie zeitweise gar nicht mehr. Der
+     * Deckel der Anzeige begrenzt Bilder, nicht Sekunden, und wenn ein Bild
+     * bei vielen Koerpern und schwacher Grafik lange braucht, laeuft die
+     * Anzeige minutenlang. Der Zeitwaechter sass zuerst in der Bildschleife
+     * und kam deshalb nie an die Reihe; jetzt haengt er an der Uhr.
+     *
+     * Diese Pruefung sichert das Ergebnis, nicht den Weg dorthin: ist die
+     * Anzeige schnell genug, laeuft sie regulaer durch und die Notbremse
+     * bleibt unbenutzt. Eine Gegenprobe mit abgeschalteter Notbremse blieb
+     * deshalb gruen — der Fehler haengt an der Geschwindigkeit des Rechners,
+     * und den Fall erzwingt der Test nicht.
+     */
+    await js(`(() => { ${SETZ} const f = [...document.querySelectorAll('.artfeld__zahl')];
+      f.forEach((x) => setz(x, '')); setz(f[5], '50'); return true; })()`);
+    await warte(400);
+    await js('window.__wurf3d = null; true');
+    await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+    let vieleFertig = null;
+    for (let versuch = 0; versuch < 40; versuch++) {
+      await warte(500);
+      vieleFertig = JSON.parse((await js('JSON.stringify(window.__wurf3d ?? null)')) ?? 'null');
+      if (vieleFertig && vieleFertig.laeuft === false) break;
+    }
+    await warte(700);
+    const vieleMarken = await js("document.querySelectorAll('.marke3d__zahl').length");
+    pruefe(
+      vieleMarken === 50,
+      `auch bei fuenfzig Wuerfeln stehen alle Zahlen da (${vieleMarken})`
+    );
+    if (vieleFertig) console.log(`  info fuenfzig Wuerfel: ${vieleFertig.ms} ms`);
+
     // Zurueck auf flach: der Schalter muss in beide Richtungen wirken.
     await js(`${schalter}.querySelector('input').click(); true`);
     await warte(500);
@@ -450,6 +484,22 @@ app.whenReady().then(async () => {
       'ohne Grafikbeschleunigung bleibt es bei der flachen Darstellung'
     );
   }
+
+  // --- Verlauf leeren -----------------------------------------------------
+  const eintraege = await js("document.querySelectorAll('.verlauf__liste li').length");
+  pruefe(eintraege > 0, `im Verlauf stehen Wuerfe (${eintraege})`);
+  pruefe(await js("Boolean(document.querySelector('.verlauf__leeren'))"), 'der Knopf zum Leeren ist da');
+  await js("document.querySelector('.verlauf__leeren').click(); true");
+  await warte(400);
+  pruefe(
+    (await js("document.querySelectorAll('.verlauf__liste li').length")) === 0,
+    'nach dem Leeren ist der Verlauf leer'
+  );
+  // Ohne Eintraege gibt es nichts zu leeren, also auch keinen Knopf.
+  pruefe(
+    !(await js("Boolean(document.querySelector('.verlauf__leeren'))")),
+    'und der Knopf ist mit den Eintraegen verschwunden'
+  );
 
   // --- Hundert Wuerfel ----------------------------------------------------
   // Der Nutzer nennt das einen Extremfall; realistisch sind rund zwanzig.

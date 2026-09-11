@@ -300,6 +300,61 @@ body {
   cursor: pointer;
 }
 
+/*
+ * Eine Farbe wischt ueber das Symbol: dort ist etwas dazugekommen.
+ *
+ * Einheitlich fuer alle Werkzeuge — der NPC Creator legt eine Figur im
+ * Backstory Creator an, und dessen Symbol wischt. Wer das ausloest, spielt
+ * fuer das Aussehen keine Rolle; deshalb steht die Animation hier in der
+ * Huelle und nicht in der meldenden Anwendung.
+ *
+ * Als Ueberlagerung und nicht als Hintergrund des Knopfes: der Wisch soll
+ * ueber dem Symbol liegen, nicht dahinter.
+ */
+.schiene__eintrag {
+  position: relative;
+  overflow: hidden;
+}
+
+.schiene__eintrag--gemeldet::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    #7aa2f700 30%,
+    #7aa2f7cc 50%,
+    #7aa2f700 70%,
+    transparent 100%
+  );
+  animation: schiene-wischt 1100ms var(--motion-ease-standard) 2;
+  pointer-events: none;
+}
+
+.schiene__eintrag--gemeldet {
+  color: var(--betont);
+}
+
+@keyframes schiene-wischt {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(120%);
+  }
+}
+
+/* Weniger Bewegung: kein Wischen, aber die Farbe bleibt — die Meldung geht
+   nicht verloren, nur ihre Bewegung. */
+@media (prefers-reduced-motion: reduce) {
+  .schiene__eintrag--gemeldet::after {
+    animation: none;
+    background: #7aa2f733;
+  }
+}
+
 .schiene__heim {
   color: var(--betont);
 }
@@ -568,6 +623,42 @@ body {
   color: var(--schliessen);
   font-size: 12px;
   margin: 8px 0 0;
+}
+
+/*
+ * Eingaben sehen aus wie Auswahlfelder. Der einzige Unterschied ist, dass
+ * man hineinschreibt — das soll man ihnen nicht auch noch ansehen muessen.
+ */
+.feld__eingabe {
+  background: #232834;
+  color: var(--text);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  font: inherit;
+  padding: 5px 8px;
+  min-width: 140px;
+  flex: 1 1 auto;
+  max-width: 260px;
+}
+
+.feld__ueberschrift {
+  font-size: 14px;
+  margin: 20px 0 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rand);
+}
+
+/* Die erste Ueberschrift braucht keine Trennlinie: darueber ist der Rand. */
+.feld__ueberschrift:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.feld__knoepfe {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 /* ---------- Ueber ---------- */

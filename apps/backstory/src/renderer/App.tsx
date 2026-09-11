@@ -35,7 +35,7 @@ import { HelpDialog } from './components/HelpDialog';
 import { AboutDialog } from './components/AboutDialog';
 import type { AiStatus } from './components/AssistantPanel';
 import { AssistantProvider } from './assistant';
-import type { AiMessage, AiTask } from '../main/ai/provider';
+import type { AiMessage, AiTask } from '../shared/types';
 
 type Dialog =
   | { kind: 'none' }
@@ -949,6 +949,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         <SettingsDialog
           settings={settings}
           hasApiKey={aiStatus?.hasKey ?? false}
+          kiVonHuelle={aiStatus?.managedByShell ?? false}
           onSaveApiKey={(apiKey) =>
             void guard(async () => {
               setSettings(await call(api.ai.setApiKey(apiKey)));

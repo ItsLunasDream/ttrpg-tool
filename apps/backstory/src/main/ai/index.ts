@@ -1,36 +1,91 @@
+/**
+ * Der KI-Assistent des Backstory Creators.
+ *
+ * Wie mit einem Modell gesprochen wird, steht in @suite/ki — dort liegen die
+ * Anbieter, die Fehlerschluessel und die Schnittstelle. Hier steht nur, was
+ * dieser Anwendung eigen ist: welche Aufgaben der Assistent uebernimmt, was
+ * er dabei nicht darf (prompts.ts), und wo der API-Schluessel liegt.
+ *
+ * Der Schluessel bleibt hier und nicht im Paket: verschluesseln kann nur,
+ * wer den Schluesselbund des Systems kennt, und `electron` hat in einem
+ * geteilten Paket nichts zu suchen (Regel 4).
+ */
 import { safeStorage } from 'electron';
-import { ClaudeProvider, DEFAULT_CLAUDE_MODEL } from './claude';
-import { OllamaProvider } from './ollama';
+import {
+  baueAnbieter,
+  CLAUDE_VOREINSTELLUNG,
+  KiFehler,
+  type KiAnbieter,
+  type KiEinstellungen,
+  type KiNachricht
+} from '@suite/ki';
 import { systemPrompt, userPrompt } from './prompts';
-import { AiError, type AiProvider, type AiRequest } from './provider';
-import type { AppSettings } from '../../shared/types';
+import type { Language } from '../../shared/i18n';
+import type { AiMessage, AiTask, AppSettings } from '../../shared/types';
 
-export { AiError, DEFAULT_CLAUDE_MODEL };
-export type { AiProvider, AiRequest, AiMessage } from './provider';
+export { KiFehler as AiError };
+export type { KiAnbieter as AiProvider } from '@suite/ki';
+export const DEFAULT_CLAUDE_MODEL = CLAUDE_VOREINSTELLUNG;
+
+/** Was der Assistent zum Antworten braucht. */
+export interface AiRequest {
+  task: AiTask;
+  language: Language;
+  /** Die Notiz, um die es geht, bereits als Klartext aufbereitet. */
+  note: string;
+  /** Verlinkte Notizen als Kontext, gekuerzt. */
+  context: string;
+  /** Bisheriger Gespraechsverlauf, aelteste Nachricht zuerst. */
+  history: AiMessage[];
+  /** Rueckfrage der Nutzerin. Ist sie gesetzt, gilt sie statt der Aufgabe. */
+  followUp?: string;
+}
 
 /**
- * Waehlt den eingestellten Anbieter aus. Der Rest der Anwendung kennt nur das
- * Interface, ein Wechsel aendert hier eine Zeile.
+ * Woher die KI-Anbindung kommt, wenn nicht aus den eigenen Einstellungen.
+ *
+ * Gesetzt, wenn die Huelle die KI fuer die ganze Sammlung fuehrt. Eine
+ * Funktion, kein Schnappschuss: eine Aenderung dort soll hier sofort gelten.
  */
-export function createProvider(settings: AppSettings, apiKey: string): AiProvider | null {
-  switch (settings.aiProvider) {
-    case 'ollama':
-      return new OllamaProvider({ baseUrl: settings.ollamaBaseUrl, model: settings.ollamaModel });
-    case 'claude':
-      return new ClaudeProvider({ apiKey, model: settings.claudeModel || DEFAULT_CLAUDE_MODEL });
-    default:
-      return null;
+export type KiQuelle = () => { einstellungen: KiEinstellungen; schluessel: string };
+
+/**
+ * Waehlt den eingestellten Anbieter aus.
+ *
+ * Fuehrt die Huelle die KI, gilt deren Einstellung; sonst die eigene. Der
+ * eigenstaendige Start uebergibt keine Quelle und aendert sich damit nicht.
+ */
+export function createProvider(
+  settings: AppSettings,
+  apiKey: string,
+  kiQuelle?: KiQuelle
+): KiAnbieter | null {
+  if (kiQuelle) {
+    const quelle = kiQuelle();
+    return baueAnbieter(quelle.einstellungen, quelle.schluessel);
   }
+  return baueAnbieter(
+    {
+      anbieter: settings.aiProvider,
+      ollamaAdresse: settings.ollamaBaseUrl,
+      ollamaModell: settings.ollamaModel,
+      claudeModell: settings.claudeModel
+    },
+    apiKey
+  );
 }
 
 export async function askProvider(
-  provider: AiProvider,
+  provider: KiAnbieter,
   request: AiRequest,
   onChunk: (text: string) => void
 ): Promise<string> {
   const language = request.language === 'en' ? 'en' : 'de';
-  const messages = [...request.history, { role: 'user' as const, content: userPrompt(request) }];
-  return provider.ask(request, systemPrompt(language), messages, onChunk);
+  const nachrichten: KiNachricht[] = [
+    ...request.history.map((eintrag) => ({ rolle: eintrag.role, inhalt: eintrag.content })),
+    { rolle: 'user', inhalt: userPrompt(request) }
+  ];
+  return provider.frage({ system: systemPrompt(language), nachrichten }, onChunk);
 }
 
 /**

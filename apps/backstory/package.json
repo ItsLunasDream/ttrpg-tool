@@ -113,6 +113,7 @@
   "dependencies": {
     "@tiptap/extension-task-item": "^2.27.3",
     "@tiptap/extension-task-list": "^2.27.3",
-    "@suite/i18n": "*"
+    "@suite/i18n": "*",
+    "@suite/ki": "*"
   }
 }

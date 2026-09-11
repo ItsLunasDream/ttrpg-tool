@@ -280,6 +280,7 @@ const de = {
   'error.versionMissing': 'Diese Fassung gibt es nicht mehr.',
   'error.selectNeedsOptions': 'Die Auswahlliste „{label}" braucht mindestens einen Wert.',
   'error.noAiProvider': 'Es ist keine KI-Anbindung eingerichtet.',
+  'error.aiManagedByShell': 'Der API-Schlüssel gehört in die Einstellungen des Rahmens.',
   'error.noteMissing': 'Diese Notiz gibt es nicht mehr.',
   'error.aiNoConnection': 'Keine Verbindung: Läuft Ollama?',
   'error.aiTimeout': 'Zeitüberschreitung. Läuft Ollama, und ist das Modell geladen?',
@@ -378,6 +379,8 @@ const de = {
     'Rückfragen schicken den bisherigen Verlauf mit. Bei der Claude API kostet das entsprechend mehr.',
 
   'settings.ai': 'Assistent',
+  'settings.aiManagedByShell':
+    'Die KI wird für die ganze Sammlung eingerichtet — in den Einstellungen des Rahmens, oben links.',
   'settings.aiProvider': 'KI-Anbindung',
   'settings.aiNone': 'Keine',
   'settings.aiOllama': 'Ollama (lokal, kostenlos)',
@@ -665,6 +668,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'error.versionMissing': 'This version no longer exists.',
   'error.selectNeedsOptions': 'The dropdown “{label}” needs at least one value.',
   'error.noAiProvider': 'No AI connection is set up.',
+  'error.aiManagedByShell': 'The API key belongs in the shell settings.',
   'error.noteMissing': 'This note no longer exists.',
   'error.aiNoConnection': 'No connection: is Ollama running?',
   'error.aiTimeout': 'Timed out. Is Ollama running and the model loaded?',
@@ -763,6 +767,8 @@ const en: Partial<Record<MessageKey, string>> = {
     'Follow-ups send the conversation so far. With the Claude API that costs accordingly more.',
 
   'settings.ai': 'Assistant',
+  'settings.aiManagedByShell':
+    'The AI is set up once for the whole suite — in the shell settings, top left.',
   'settings.aiProvider': 'AI connection',
   'settings.aiNone': 'None',
   'settings.aiOllama': 'Ollama (local, free)',

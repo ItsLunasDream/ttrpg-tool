@@ -23,7 +23,16 @@ import { readFileSync } from 'node:fs';
 import { berechneAppFlaeche } from '../shared/apps';
 import { mountApp, registerSchemes, type MontageHaken, type MontierteApp } from './apps';
 import { brichFahrtAb, fahreEin } from './fahrt';
-import { readSettings, writeSettings, type ShellSettings } from './settings';
+import {
+  DEFAULT_SETTINGS,
+  ohneSchluessel,
+  readSettings,
+  writeSettings,
+  type ShellSettings
+} from './settings';
+import { anbieterAus, entschluessle, verschluessle } from './ki';
+import { findeKiUebernahme } from './kiUebernahme';
+import { translate } from '../shared/i18n';
 import type { Language } from '../shared/i18n';
 import {
   readWindowState,
@@ -63,6 +72,15 @@ const offen = new Map<string, MontierteApp>();
 let aktiveApp: string | null = null;
 let zustandsDatei = '';
 let einstellungsDatei = '';
+/**
+ * Die Einstellungen, wie sie zuletzt auf der Platte standen.
+ *
+ * Gebraucht, weil die KI-Quelle synchron antworten muss: die eingebetteten
+ * Anwendungen fragen sie mitten im Bearbeiten einer Anfrage, und dort auf
+ * eine Datei zu warten waere eine Verzoegerung ohne Gegenwert. Geschrieben
+ * wird weiterhin ueber `writeSettings`; hier steht nur die Kopie.
+ */
+let gemerkteEinstellungen: ShellSettings = DEFAULT_SETTINGS;
 /** Zeitgeber, der das Speichern der Fensterlage buendelt. */
 let speicherZeitgeber: NodeJS.Timeout | null = null;
 /** Wird gesetzt, sobald die Anwendungen ihr Ungespeichertes gesichert haben. */
@@ -181,7 +199,18 @@ function verbergeAlle(): void {
 function montageHaken(herkunft: string, sprache: Language): MontageHaken {
   return {
     language: sprache,
-    onLanguageChange: (language) => void aktualisiereSammlungssprache(language, herkunft)
+    onLanguageChange: (language) => void aktualisiereSammlungssprache(language, herkunft),
+    // Meldet der Oberflaeche, dass sich in einer ANDEREN Anwendung etwas
+    // getan hat. Die Huelle laesst dann eine Farbe ueber deren Symbol
+    // wischen — einheitlich fuer alle Werkzeuge, gleich wer es ausloest.
+    onEreignis: (appId) => huelle?.webContents.send('app:ereignis', appId),
+    // Die KI wird einmal in der Huelle eingerichtet und hier durchgereicht.
+    // Bei jedem Aufruf frisch gelesen: wer sie umstellt, soll das im
+    // naechsten Klick merken und nicht erst nach einem Neustart.
+    kiQuelle: () => ({
+      einstellungen: gemerkteEinstellungen.ki,
+      schluessel: entschluessle(gemerkteEinstellungen.claudeSchluessel)
+    })
   };
 }
 
@@ -202,7 +231,8 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
 async function aktualisiereSammlungssprache(language: Language, herkunft: string | null): Promise<void> {
   const aktuell = await readSettings(einstellungsDatei);
   if (aktuell.language === language) return;
-  await writeSettings(einstellungsDatei, { ...aktuell, language });
+  gemerkteEinstellungen = { ...aktuell, language };
+  await writeSettings(einstellungsDatei, gemerkteEinstellungen);
 
   // Die Oberflaeche der Huelle selbst (Titelleiste, Startmenue, Schiene, die
   // Einstellungen, falls sie gerade offen sind) muss ebenfalls nachziehen.
@@ -434,7 +464,7 @@ function registriereKanaele(): void {
   handle('fenster:ist-maximiert', () => fenster?.isMaximized() ?? false);
   handle('app:version', () => eigeneFassung());
 
-  handle('einstellungen:lesen', () => readSettings(einstellungsDatei));
+  handle('einstellungen:lesen', async () => ohneSchluessel(await readSettings(einstellungsDatei)));
   /**
    * Schreibt die Einstellungen und gibt zurueck, was danach gilt.
    *
@@ -442,17 +472,71 @@ function registriereKanaele(): void {
    * Werte weg, und die Oberflaeche soll den bereinigten Stand anzeigen statt
    * eines, den es so nicht gibt.
    */
-  handle('einstellungen:schreiben', async (_event, neu: ShellSettings) => {
+  handle('einstellungen:schreiben', async (_event, neu: Partial<ShellSettings>) => {
     const vorher = await readSettings(einstellungsDatei);
-    await writeSettings(einstellungsDatei, neu);
+    // Zusammengefuehrt, nicht ersetzt: die Oberflaeche schickt nur, was sie
+    // geaendert hat. Wuerde das als ganze Einstellungsdatei gelten, raeumte
+    // ein Sprachwechsel die KI-Einstellung weg.
+    //
+    // Der Schluessel kommt dabei immer aus dem Bestand, nie aus der
+    // Oberflaeche: sie bekommt ihn nicht zu sehen und wuerde ihn sonst mit
+    // einem leeren Feld ueberschreiben.
+    await writeSettings(einstellungsDatei, {
+      ...vorher,
+      ...neu,
+      claudeSchluessel: vorher.claudeSchluessel
+    });
     const aktualisiert = await readSettings(einstellungsDatei);
+    gemerkteEinstellungen = aktualisiert;
     // Die Sprache hier zu aendern ist der Weg ueber den Einstellungen-Dialog
     // der Huelle; es gibt keine "Ursprungs"-Anwendung, die schon Bescheid
     // weiss, deshalb bekommen alle offenen Anwendungen die Meldung.
     if (aktualisiert.language !== vorher.language) {
       for (const montiert of offen.values()) void montiert.setLanguage?.(aktualisiert.language);
     }
-    return aktualisiert;
+    return ohneSchluessel(aktualisiert);
+  });
+
+  /**
+   * Bereitschaft der KI.
+   *
+   * Der Grund wird hier uebersetzt, wo die eingestellte Sprache bekannt ist —
+   * die Anbieter liefern Schluessel, keine fertigen Texte.
+   */
+  handle('ki:status', async () => {
+    const einstellungen = await readSettings(einstellungsDatei);
+    // Nicht bloss "es steht etwas in der Datei", sondern "es laesst sich
+    // auch aufmachen". Ein Block aus einem anderen Konto oder von einem neu
+    // aufgesetzten System ist so gut wie keiner, und die Oberflaeche soll
+    // nicht "Ein Schluessel ist hinterlegt" neben "Kein API-Schluessel
+    // hinterlegt" stellen.
+    const hatSchluessel = Boolean(entschluessle(einstellungen.claudeSchluessel));
+    const anbieter = anbieterAus(einstellungen);
+    if (!anbieter) return { anbieter: 'none', bereit: false, beschreibung: '', hatSchluessel };
+
+    const zustand = await anbieter.pruefe();
+    return {
+      anbieter: anbieter.id,
+      bereit: zustand.bereit,
+      beschreibung: zustand.bereit
+        ? zustand.beschreibung
+        : translate(einstellungen.language, zustand.schluessel, zustand.werte),
+      hatSchluessel
+    };
+  });
+
+  /** Der Schluessel wird verschluesselt abgelegt und nie zurueckgegeben. */
+  handle('ki:schluessel-setzen', async (_event, schluessel: string) => {
+    const verschluesselt = verschluessle(schluessel.trim());
+    if (verschluesselt === null) {
+      // Lieber gar nicht speichern als im Klartext. Die Oberflaeche sagt das
+      // weiter, statt so zu tun, als waere es gelungen.
+      throw new Error('KEIN_SCHLUESSELBUND');
+    }
+    const vorher = await readSettings(einstellungsDatei);
+    gemerkteEinstellungen = { ...vorher, claudeSchluessel: verschluesselt };
+    await writeSettings(einstellungsDatei, gemerkteEinstellungen);
+    return Boolean(verschluesselt);
   });
 
   /**
@@ -567,11 +651,24 @@ function registriereKanaele(): void {
 
 app.whenReady().then(async () => {
   einstellungsDatei = join(app.getPath('userData'), 'einstellungen.json');
+  const gelesen = await readSettings(einstellungsDatei);
+
+  // Wer die KI frueher im Backstory Creator eingerichtet hat, soll sie nicht
+  // neu eintippen muessen — ein API-Schluessel ist nichts, was man eben
+  // nachschlaegt. Passiert genau einmal: danach steht hier etwas, und die
+  // Uebernahme greift nicht mehr.
+  const uebernommen = await findeKiUebernahme(
+    gelesen,
+    join(app.getPath('userData'), 'backstory', 'settings.json')
+  );
+  if (uebernommen) console.log('[shell] KI-Einstellung aus dem Backstory Creator uebernommen');
+
   // Einmal anlegen, wenn es sie noch nicht gibt. Zwei Gruende: wer nachsehen
   // will, was sich einstellen laesst, findet die Datei, statt raten zu
   // muessen — und sie ist der Beleg dafuer, dass der Hauptprozess bis hierher
   // gekommen ist. Die Pruefung des gepackten Pakets wartet darauf.
-  await writeSettings(einstellungsDatei, await readSettings(einstellungsDatei));
+  gemerkteEinstellungen = { ...gelesen, ...uebernommen };
+  await writeSettings(einstellungsDatei, gemerkteEinstellungen);
   registriereKanaele();
   await erzeugeFenster();
   app.on('activate', () => {

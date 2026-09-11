@@ -33,10 +33,10 @@ export {
 } from '../src/renderer/noteIndex';
 export { Vault } from '../src/main/vault';
 export { zipDirectory } from '../src/main/export';
-export { OllamaProvider } from '../src/main/ai/ollama';
 export { systemPrompt, userPrompt } from '../src/main/ai/prompts';
 export { renderNoteMarkdown, referencedAssets, toFileName } from '../src/main/markdownExport';
 export { defaultPrompts } from '../src/shared/writingPrompts';
 export { layoutGraph } from '../src/renderer/graph/layout';
 export { buildGraphEdges, buildGraphNodes } from '../src/renderer/graph/build';
 export { CHANNEL_PREFIX, channel } from '../src/shared/channels';
+export { istAnbieterId } from '@suite/ki';

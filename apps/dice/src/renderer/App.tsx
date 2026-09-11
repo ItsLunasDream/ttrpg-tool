@@ -6,7 +6,7 @@
  * Sache mehrmals hintereinander, und sie jedes Mal neu zusammenzuklicken waere
  * die haeufigste Handlung, die man sich sparen kann.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ARTEN, artName, seitenVon, type Art } from '../shared/formen';
 import {
   aendereAnzahl,
@@ -54,6 +54,15 @@ export function App() {
   // sich waehrend einer Sitzung nicht, und die Probe legt jedes Mal eine
   // Leinwand an.
   const [grafikDa] = useState(kannDreiD);
+  /*
+   * Welcher Wurf gerade auf dem Tisch liegt und ob er schon gelaufen ist.
+   *
+   * Beides liegt hier und nicht in der Buehne: die wird beim Umschalten
+   * zwischen flacher und Koerperdarstellung ausgehaengt und verloere ihr
+   * Gedaechtnis. Ohne das fielen die Wuerfel bei jedem Umschalten erneut.
+   */
+  const wurfNummer = useRef(0);
+  const gezeigt = useRef(-1);
 
   useEffect(() => onLanguageChange(() => setSprache(getLanguage())), []);
 
@@ -109,6 +118,7 @@ export function App() {
     // waehrend der Drehung zwei Wuerfe ausloesen.
     const neuerWurf = wuerfle(auswahl, einstellungen.eigeneSeiten, modifikator);
     window.setTimeout(() => {
+      wurfNummer.current += 1;
       setWurf(neuerWurf);
       setRollt(false);
       setVerlauf((vorher) =>
@@ -197,7 +207,16 @@ export function App() {
           nichts kommen.
         */}
         {dreiDAn ? (
-          <Buehne3d einwuerfe={dreiDEinwuerfe} einstellungen={einstellungen} rollt={rollt} />
+          <Buehne3d
+            einwuerfe={dreiDEinwuerfe}
+            einstellungen={einstellungen}
+            rollt={rollt}
+            wurfId={wurfNummer.current}
+            animieren={gezeigt.current !== wurfNummer.current}
+            onGezeigt={() => {
+              gezeigt.current = wurfNummer.current;
+            }}
+          />
         ) : (
           <div className="buehne__tisch">
             {wurf && !rollt
@@ -240,6 +259,7 @@ export function App() {
 
       <Verlauf
         eintraege={verlauf}
+        onLeeren={() => setVerlauf([])}
         onZurueckholen={(eintrag) => {
           setAuswahl(eintrag.auswahl);
           setModifikator(eintrag.modifikator);

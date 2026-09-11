@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { AiMessage, AiTask } from '../main/ai/provider';
+import type { AiMessage, AiTask } from '../shared/types';
 
 /** Was der Assistent gerade weiss und tut. */
 export interface Assistant {

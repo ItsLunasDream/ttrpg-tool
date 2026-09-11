@@ -18,6 +18,7 @@ export const texte = {
   'verlauf.leer': ['Noch nichts gewürfelt', 'Nothing rolled yet'],
   'verlauf.hinweis': ['Nur für diese Sitzung', 'This session only'],
   'verlauf.holen': ['Diesen Wurf zurückholen', 'Load this pool again'],
+  'verlauf.leeren': ['Verlauf leeren', 'Clear history'],
   'aussehen.titel': ['Aussehen', 'Appearance'],
   'aussehen.farbe': ['Farbe', 'Colour'],
   'aussehen.muster': ['Muster', 'Pattern'],
