@@ -90,3 +90,52 @@ test('ohne JSON kommt null zurueck, kein Absturz', () => {
   assert.equal(leseJsonAntwort('Das kann ich leider nicht.'), null);
   assert.equal(leseJsonAntwort(''), null);
 });
+
+/**
+ * Die Bereitschaftspruefung muss aufgeben, statt zu haengen.
+ *
+ * Das SDK wartet von sich aus zehn Minuten. Wer auf "Verbindung pruefen"
+ * drueckt, will nicht zehn Minuten warten, um zu erfahren, dass kein Netz da
+ * ist.
+ *
+ * Dieser Test steht hier, weil die Frist beim ersten Anlauf wirkungslos war:
+ * sie ging als zweites Argument an `models.retrieve`, und das sind die
+ * Parameter der Anfrage, nicht ihre Optionen. TypeScript hat es dann gemeldet
+ * — aber erst, nachdem ein Rauchtest daran haengen geblieben war, ohne dass
+ * ihm jemand ansehen konnte, woran.
+ */
+test('die Bereitschaftspruefung gibt auf, statt zu haengen', async () => {
+  const original = globalThis.fetch;
+  // Eine Antwort, die nie kommt — aber auf den Abbruch hoert. Genau so
+  // verhaelt sich ein Netz, das Pakete verschluckt, statt abzulehnen.
+  globalThis.fetch = (_url, init = {}) =>
+    new Promise((_loese, brichAb) => {
+      init.signal?.addEventListener('abort', () => brichAb(new Error('aborted')));
+    });
+
+  try {
+    const anbieter = new ClaudeAnbieter({ schluessel: 'sk-test', modell: 'claude-opus-5' });
+    const beginn = Date.now();
+
+    /*
+     * Mit eigener Uhr daneben. Ohne sie wartet dieser Test bei einer
+     * wirkungslosen Frist einfach mit — und ein haengender Test sagt nichts,
+     * er wird irgendwann abgewuergt und niemand weiss, woran.
+     *
+     * Die Frist sind vier Sekunden. Acht lassen Luft fuer eine langsame
+     * Maschine und schlagen trotzdem an, wenn gar keine Frist wirkt.
+     */
+    let uhr;
+    const zustand = await Promise.race([
+      anbieter.pruefe(),
+      new Promise((_loese, brichAb) => {
+        uhr = setTimeout(() => brichAb(new Error('pruefe() hat nach 8 s nicht aufgegeben')), 8000);
+      })
+    ]).finally(() => clearTimeout(uhr));
+
+    assert.equal(zustand.bereit, false);
+    assert.ok(Date.now() - beginn < 8000);
+  } finally {
+    globalThis.fetch = original;
+  }
+});

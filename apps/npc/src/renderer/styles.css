@@ -365,3 +365,46 @@ button {
   font-size: 12px;
   color: var(--text-leise);
 }
+
+/*
+ * Die KI-Knoepfe.
+ *
+ * Deutlich anders als Wuerfeln und Schloss: was aus den Tabellen kommt, ist
+ * kostenlos und sofort da; was die KI schreibt, dauert und kann Geld kosten.
+ * Der Unterschied soll man sehen, bevor man klickt.
+ */
+.knopf--ki {
+  background: none;
+  border: 1px solid var(--ki, #9a7ad6);
+  color: var(--ki, #9a7ad6);
+  border-radius: 8px;
+  font: inherit;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.knopf--ki:hover:not(:disabled) {
+  background: #9a7ad61f;
+}
+
+.knopf--ki:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.zeile__ki {
+  color: var(--ki, #9a7ad6);
+}
+
+.zeile__ki:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Steht unter dem KI-Knopf und sagt, was er tut und wo er herkommt. */
+.vorgaben__hinweis {
+  color: var(--text-leise, #939aab);
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 6px 0 0;
+}

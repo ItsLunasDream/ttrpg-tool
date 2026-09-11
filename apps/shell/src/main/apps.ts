@@ -318,6 +318,9 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
     devServerUrl: process.env.NPC_DEV_SERVER_URL,
     language: haken.language,
     onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    // Auch hier die KI der Sammlung. Der NPC Creator hat keine eigene Ablage
+    // und soll auch keine eigene Einstellung bekommen.
+    kiQuelle: haken.kiQuelle,
     anlegen: async (titel: string, markdown: string) => {
       if (!backstoryEmbed) {
         return {

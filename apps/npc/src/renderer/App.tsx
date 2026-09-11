@@ -42,8 +42,23 @@ export function App() {
   const [exportStand, setExportStand] = useState<'ruht' | 'laeuft' | 'fertig' | 'fehler'>('ruht');
   const [exportText, setExportText] = useState('');
   const [, setSprache] = useState<Language>(getLanguage);
+  /**
+   * Ob eine KI eingerichtet ist.
+   *
+   * Ist sie es nicht, sind die Knoepfe gar nicht da — nicht ausgegraut.
+   * Eingerichtet wird sie in der Huelle, hier gibt es dafuer nichts zu
+   * klicken, und ein grauer Knopf waere eine Einladung zum Suchen.
+   */
+  const [kiDa, setKiDa] = useState(false);
+  /** Welches Feld die KI gerade beantwortet, 'alle' fuer die ganze Figur. */
+  const [kiLaeuft, setKiLaeuft] = useState<Feld | 'alle' | null>(null);
+  const [kiFehler, setKiFehler] = useState<string | null>(null);
 
   useEffect(() => onLanguageChange(() => setSprache(getLanguage())), []);
+
+  useEffect(() => {
+    void api.ki.da().then(setKiDa, () => setKiDa(false));
+  }, []);
 
   const wuerfle = useCallback(() => {
     setFigur((vorher) => erzeugeFigur(wuensche, getLanguage(), Math.random, festgehalten, vorher));
@@ -79,6 +94,67 @@ export function App() {
       vorher.includes(feld) ? vorher.filter((eintrag) => eintrag !== feld) : [...vorher, feld]
     );
   }, []);
+
+  /**
+   * Ein Feld von der KI vorschlagen lassen.
+   *
+   * Das Ergebnis landet im selben Eingabefeld wie ein getippter Text und
+   * wird genauso festgehalten: es ist jetzt der Wert, den man behalten will,
+   * und der naechste Wurf soll ihn nicht wegraeumen.
+   *
+   * Schlaegt es fehl, bleibt die Figur unangetastet. Ein halb ersetztes Feld
+   * waere schlimmer als keins.
+   */
+  const kiFeld = useCallback(
+    async (feld: Feld) => {
+      if (!figur) return;
+      setKiLaeuft(feld);
+      setKiFehler(null);
+      const ergebnis = await api.ki.feld(feld, figur, wuensche, getLanguage());
+      setKiLaeuft(null);
+      if (!ergebnis.ok || ergebnis.wert === null) {
+        setKiFehler(t(ergebnis.grund as TextKey));
+        return;
+      }
+      aendere(feld, ergebnis.wert);
+    },
+    [figur, wuensche, aendere]
+  );
+
+  /**
+   * Eine ganze Figur von der KI.
+   *
+   * Festgehaltene Felder bleiben stehen, genau wie beim Wuerfeln — sonst
+   * waere das Schloss hier wirkungslos, und das faellt erst auf, wenn der
+   * gute Name weg ist.
+   */
+  const kiFigur = useCallback(async () => {
+    setKiLaeuft('alle');
+    setKiFehler(null);
+    const ergebnis = await api.ki.figur(figur, [...festgehalten], wuensche, getLanguage());
+    setKiLaeuft(null);
+    if (!ergebnis.ok || ergebnis.wert === null) {
+      setKiFehler(t(ergebnis.grund as TextKey));
+      return;
+    }
+    const neu = ergebnis.wert;
+    setFigur((vorher) => {
+      // Als Grundlage die vorhandene Figur, damit festgehaltene Felder und
+      // solche, zu denen die KI nichts geliefert hat, stehen bleiben. Gibt es
+      // noch keine, wird erst eine gewuerfelt: dann fuellt die KI nur die
+      // Luecken, und leer bleibt nichts.
+      const grundlage =
+        vorher ?? erzeugeFigur(wuensche, getLanguage(), Math.random, festgehalten, null);
+      const zusammen = { ...grundlage };
+      for (const feld of FELDER) {
+        if (festgehalten.includes(feld)) continue;
+        const wert = neu[feld];
+        if (wert !== undefined) zusammen[feld] = wert;
+      }
+      return zusammen;
+    });
+    setExportStand('ruht');
+  }, [figur, festgehalten, wuensche]);
 
   const exportiere = useCallback(async () => {
     if (!figur) return;
@@ -151,6 +227,20 @@ export function App() {
         <button type="button" className="knopf--haupt" onClick={wuerfle}>
           {t('knopf.wuerfeln')}
         </button>
+
+        {kiDa ? (
+          <>
+            <button
+              type="button"
+              className="knopf--ki"
+              onClick={() => void kiFigur()}
+              disabled={kiLaeuft !== null}
+            >
+              {kiLaeuft === 'alle' ? t('ki.figurLaeuft') : t('ki.figur')}
+            </button>
+            <p className="vorgaben__hinweis">{t('ki.hinweis')}</p>
+          </>
+        ) : null}
       </aside>
 
       <main className="buehne">
@@ -171,6 +261,9 @@ export function App() {
                   onAendern={(wert) => aendere(feld, wert)}
                   onNachwuerfeln={() => nachwuerfeln(feld)}
                   onFest={() => schalteFest(feld)}
+                  onKi={kiDa ? () => void kiFeld(feld) : undefined}
+                  kiLaeuft={kiLaeuft === feld}
+                  kiGesperrt={kiLaeuft !== null}
                 />
               ))}
             </div>
@@ -203,6 +296,7 @@ export function App() {
             </div>
 
             {exportStand === 'fehler' ? <p className="stoerung">{exportText}</p> : null}
+            {kiFehler ? <p className="stoerung">{kiFehler}</p> : null}
           </>
         ) : (
           <p className="buehne__leer">{t('leer')}</p>
@@ -256,7 +350,10 @@ function Zeile({
   fest,
   onAendern,
   onNachwuerfeln,
-  onFest
+  onFest,
+  onKi,
+  kiLaeuft,
+  kiGesperrt
 }: {
   feld: Feld;
   wert: string;
@@ -264,6 +361,11 @@ function Zeile({
   onAendern: (wert: string) => void;
   onNachwuerfeln: () => void;
   onFest: () => void;
+  /** Fehlt, wenn keine KI eingerichtet ist — dann ist der Knopf gar nicht da. */
+  onKi?: () => void;
+  kiLaeuft: boolean;
+  /** Waehrend irgendeine KI-Anfrage laeuft, ist keine zweite moeglich. */
+  kiGesperrt: boolean;
 }) {
   // Ein leeres Feld ist bei der Eigenheit der Normalfall und keine Luecke —
   // deshalb steht dort ein Platzhalter und nicht nichts.
@@ -285,8 +387,21 @@ function Zeile({
         <button type="button" onClick={onNachwuerfeln} title={t('knopf.nachwuerfeln')}>
           ↻
         </button>
+        {onKi ? (
+          <button
+            type="button"
+            className="zeile__ki"
+            onClick={onKi}
+            disabled={kiGesperrt}
+            title={t('ki.feld')}
+            aria-label={t('ki.feld')}
+          >
+            {kiLaeuft ? '…' : '✦'}
+          </button>
+        ) : null}
         <button
           type="button"
+          className="zeile__schloss"
           onClick={onFest}
           title={fest ? t('knopf.losgeben') : t('knopf.festhalten')}
           aria-pressed={fest}

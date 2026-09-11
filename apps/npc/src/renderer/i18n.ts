@@ -40,7 +40,57 @@ export const texte = {
   'ablage.leer': ['Nur für diese Sitzung', 'This session only'],
   'ablage.merken': ['Merken', 'Keep'],
   'ablage.holen': ['Diese Figur zurückholen', 'Load this character again'],
-  'ablage.leeren': ['Liste leeren', 'Clear list']
+  'ablage.leeren': ['Liste leeren', 'Clear list'],
+
+  'ki.figur': ['Von der KI', 'Ask the AI'],
+  'ki.figurLaeuft': ['Die KI denkt …', 'The AI is thinking …'],
+  'ki.feld': ['Von der KI vorschlagen lassen', 'Let the AI suggest this'],
+  'ki.hinweis': [
+    'Die KI schlägt frei vor, nicht aus den Tabellen. Eingerichtet wird sie in den Einstellungen des Rahmens.',
+    'The AI suggests freely, not from the tables. It is set up in the shell settings.'
+  ],
+
+  'error.aiNoProvider': [
+    'Es ist keine KI eingerichtet.',
+    'No AI is set up.'
+  ],
+  'error.aiKeinJson': [
+    'Die KI hat geantwortet, aber nicht so, dass sich etwas übernehmen ließe. Versuch es noch einmal.',
+    'The AI answered, but not in a way anything could be taken from. Try again.'
+  ],
+  'error.aiNoConnection': ['Keine Verbindung: Läuft Ollama?', 'No connection: is Ollama running?'],
+  'error.aiTimeout': [
+    'Zeitüberschreitung. Läuft Ollama, und ist das Modell geladen?',
+    'Timed out. Is Ollama running and the model loaded?'
+  ],
+  'error.aiHttp': ['Der Anbieter meldet einen Fehler.', 'The provider reported an error.'],
+  'error.aiEmpty': ['Die KI hat nichts geliefert.', 'The AI returned nothing.'],
+  'error.aiAuth': [
+    'Der API-Schlüssel wird nicht akzeptiert.',
+    'The API key is not accepted.'
+  ],
+  'error.aiRateLimit': [
+    'Zu viele Anfragen. Versuch es gleich noch einmal.',
+    'Too many requests. Try again in a moment.'
+  ],
+  'error.aiModelMissing': [
+    'Dieses Modell gibt es nicht oder du hast keinen Zugriff darauf.',
+    'That model does not exist or you have no access to it.'
+  ],
+  'error.aiRefused': [
+    'Die Anfrage wurde abgelehnt. Formuliere die Vorgaben anders.',
+    'The request was declined. Phrase the constraints differently.'
+  ],
+  'error.aiNoModels': [
+    'In Ollama ist kein Modell installiert.',
+    'No model is installed in Ollama.'
+  ],
+  'error.aiModelNotInstalled': [
+    'Das eingestellte Modell ist in Ollama nicht installiert.',
+    'The selected model is not installed in Ollama.'
+  ],
+  'error.aiNoKey': ['Kein API-Schlüssel hinterlegt.', 'No API key stored.'],
+  'error.aiOther': ['Die KI meldet einen Fehler.', 'The AI reported an error.']
 } as const;
 
 export type TextKey = keyof typeof texte;

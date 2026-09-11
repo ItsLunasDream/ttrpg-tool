@@ -11,7 +11,18 @@
 import path from 'node:path';
 import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
+import { baueAnbieter, KiFehler, leseJsonAntwort } from '@suite/ki';
+import type { KiEinstellungen } from '@suite/ki/einstellungen';
 import { kanal } from '../shared/kanaele';
+import {
+  feldAnweisung,
+  figurAnweisung,
+  systemAnweisung,
+  uebernehmbareFelder,
+  uebernehmbarerWert
+} from '../shared/kiAufgaben';
+import type { Feld, Figur, Wuensche } from '../shared/erzeuge';
+import type { Sprache } from '../shared/tabellen';
 
 export interface ExportErgebnis {
   readonly ok: boolean;
@@ -27,6 +38,27 @@ export interface ExportErgebnis {
  */
 export type Anleger = (titel: string, markdown: string) => Promise<ExportErgebnis>;
 
+/**
+ * Woher die KI-Anbindung kommt.
+ *
+ * Die Huelle richtet sie einmal fuer die ganze Sammlung ein und reicht sie
+ * durch; dieses Werkzeug fuehrt keine eigene. Fehlt sie, gibt es hier keine
+ * KI — und die Knoepfe dafuer sind gar nicht erst da.
+ *
+ * Eine Funktion und kein Schnappschuss: wer sie umstellt, soll das im
+ * naechsten Klick merken.
+ */
+export type KiQuelle = () => { einstellungen: KiEinstellungen; schluessel: string };
+
+/** Was bei einer KI-Anfrage herauskommt. Ein Fehler ist kein Absturz. */
+export interface KiErgebnis<T> {
+  readonly ok: boolean;
+  /** Bei Erfolg das Ergebnis, sonst null. */
+  readonly wert: T | null;
+  /** Bei Misserfolg der Schluessel der Meldung, sonst leer. */
+  readonly grund: string;
+}
+
 export interface NpcEmbedOptions {
   readonly distDir: string;
   readonly devServerUrl?: string;
@@ -34,6 +66,8 @@ export interface NpcEmbedOptions {
   readonly onLanguageChange?: (language: string) => void;
   /** Legt die Figur an. Fehlt sie, meldet der Export das ehrlich. */
   readonly anlegen?: Anleger;
+  /** Die KI der Sammlung. Fehlt sie, gibt es hier keine KI. */
+  readonly kiQuelle?: KiQuelle;
 }
 
 export interface NpcEmbed {
@@ -49,9 +83,11 @@ export interface NpcEmbed {
  * Die Richtlinie.
  *
  * Alles aus den eigenen Dateien. `style-src` braucht 'unsafe-inline', weil
- * React Stile ueber `style`-Attribute setzt; `connect-src` geht nirgendwohin
- * — die Tabellen liegen im Buendel, und eine KI-Anbindung gibt es noch
- * nicht. Kommt sie, muss diese Zeile bewusst geoeffnet werden.
+ * React Stile ueber `style`-Attribute setzt; `connect-src` geht nirgendwohin.
+ *
+ * Das gilt auch mit KI: die Anfrage geht vom Hauptprozess aus, nicht von der
+ * Oberflaeche. So bleibt der Renderer ohne Netzzugriff, und der API-Schluessel
+ * erreicht ihn nie. Diese Zeile muss deshalb NICHT geoeffnet werden.
  */
 const CSP = [
   "default-src 'self'",
@@ -78,6 +114,82 @@ export async function mountNpc(options: NpcEmbedOptions): Promise<NpcEmbed> {
       return { ok: false, text: String(fehler instanceof Error ? fehler.message : fehler) };
     }
   });
+
+  // --- KI ------------------------------------------------------------------
+
+  /**
+   * Baut den Anbieter fuer diese eine Anfrage.
+   *
+   * Jedes Mal neu, weil die Einstellung sich zwischendurch geaendert haben
+   * kann. Das kostet nichts: es ist ein Objekt, keine Verbindung.
+   */
+  const anbieter = () => {
+    if (!options.kiQuelle) return null;
+    const quelle = options.kiQuelle();
+    return baueAnbieter(quelle.einstellungen, quelle.schluessel);
+  };
+
+  /**
+   * Fragt das Modell und liest JSON aus der Antwort.
+   *
+   * Ein Fehler kommt als Ergebnis zurueck und nicht als Ausnahme: die
+   * Oberflaeche soll ihn anzeigen und die Figur stehen lassen, nicht in einen
+   * abgebrochenen Aufruf laufen.
+   */
+  async function frage<T>(
+    sprache: Sprache,
+    anweisung: string,
+    auswerten: (gelesen: unknown) => T | null
+  ): Promise<KiErgebnis<T>> {
+    const gewaehlt = anbieter();
+    if (!gewaehlt) return { ok: false, wert: null, grund: 'error.aiNoProvider' };
+
+    try {
+      const antwort = await gewaehlt.frage(
+        {
+          system: systemAnweisung(sprache),
+          nachrichten: [{ rolle: 'user', inhalt: anweisung }]
+        },
+        // Teiltexte interessieren hier nicht: es kommt ein kurzes JSON, und
+        // ein halb geschriebenes JSON kann die Oberflaeche nicht anzeigen.
+        () => {}
+      );
+
+      const gelesen = leseJsonAntwort(antwort);
+      if (gelesen === null) return { ok: false, wert: null, grund: 'error.aiKeinJson' };
+
+      const wert = auswerten(gelesen);
+      if (wert === null) return { ok: false, wert: null, grund: 'error.aiKeinJson' };
+      return { ok: true, wert, grund: '' };
+    } catch (fehler) {
+      if (fehler instanceof KiFehler) return { ok: false, wert: null, grund: fehler.schluessel };
+      return { ok: false, wert: null, grund: 'error.aiOther' };
+    }
+  }
+
+  /** Ob die KI ueberhaupt da ist. Die Oberflaeche blendet die Knoepfe danach ein. */
+  ipcMain.removeHandler(kanal('ki:da'));
+  ipcMain.handle(kanal('ki:da'), () => anbieter() !== null);
+
+  ipcMain.removeHandler(kanal('ki:feld'));
+  ipcMain.handle(
+    kanal('ki:feld'),
+    (_e, feld: Feld, figur: Figur, wuensche: Wuensche, sprache: Sprache) =>
+      frage(sprache, feldAnweisung(feld, figur, wuensche, sprache), uebernehmbarerWert)
+  );
+
+  ipcMain.removeHandler(kanal('ki:figur'));
+  ipcMain.handle(
+    kanal('ki:figur'),
+    (_e, figur: Figur | null, festgehalten: Feld[], wuensche: Wuensche, sprache: Sprache) =>
+      frage(sprache, figurAnweisung(figur, festgehalten, wuensche, sprache), (gelesen) => {
+        const felder = uebernehmbareFelder(gelesen);
+        // Kommt gar nichts Brauchbares zurueck, gilt das als Fehlschlag. Eine
+        // Figur, bei der sich nichts geaendert hat, sieht sonst aus wie ein
+        // Knopf, der nicht reagiert.
+        return Object.keys(felder).length > 0 ? felder : null;
+      })
+  );
 
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));
   ipcMain.on(kanal('sprache:gewechselt'), (_event, language: string) => {

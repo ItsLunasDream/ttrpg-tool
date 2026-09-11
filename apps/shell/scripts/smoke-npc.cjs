@@ -71,7 +71,7 @@ app.whenReady().then(async () => {
    */
   const name = () => js("document.querySelector('.zeile__wert').value");
   const vorher = await name();
-  await js("[...document.querySelectorAll('.zeile')][0].querySelectorAll('button')[1].click(); true");
+  await js("[...document.querySelectorAll('.zeile')][0].querySelector('.zeile__schloss').click(); true");
   await warte(200);
   pruefe(
     await js("[...document.querySelectorAll('.zeile')][0].classList.contains('zeile--fest')"),
@@ -87,7 +87,7 @@ app.whenReady().then(async () => {
   pruefe(gleich, 'und bleibt ueber acht Wuerfe stehen');
 
   // Freigeben: danach darf er sich wieder aendern.
-  await js("[...document.querySelectorAll('.zeile')][0].querySelectorAll('button')[1].click(); true");
+  await js("[...document.querySelectorAll('.zeile')][0].querySelector('.zeile__schloss').click(); true");
   await warte(160);
   let geaendert = false;
   for (let versuch = 0; versuch < 20 && !geaendert; versuch++) {

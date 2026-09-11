@@ -20,3 +20,11 @@ export {
   EIGENHEITEN,
   ARCHETYPEN
 } from '../src/shared/tabellen';
+export {
+  systemAnweisung,
+  feldAnweisung,
+  figurAnweisung,
+  uebernehmbareFelder,
+  uebernehmbarerWert,
+  MAX_ZEICHEN
+} from '../src/shared/kiAufgaben';

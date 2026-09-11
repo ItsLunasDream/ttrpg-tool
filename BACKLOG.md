@@ -432,6 +432,57 @@ Was dabei entschieden wurde:
   löschte ein Sprachwechsel die KI-Einstellung — und niemand käme auf die
   Idee, dort zu suchen. Ein Rauchtest hält genau das fest.
 
+### KI im NPC Creator: frei vorschlagen, nicht aus der Tabelle
+
+Die Entscheidung kam von der Nutzerin: „KI soll unabhängig von der Tabelle
+Vorschläge geben." Die Tabellen bleiben der Weg ohne KI und ändern sich nicht;
+das Modell schlägt daneben frei vor. Wäre es auf die Tabelleneinträge
+festgelegt, wäre es ein langsamer und teurer Würfel.
+
+Zwei Wege: ein Knopf für die ganze Figur, und einer je Zeile für ein
+einzelnes Feld.
+
+Der Unterschied zum Assistenten des Backstory Creators ist grundsätzlich.
+Dort darf das Modell ausdrücklich **nicht** schreiben, weil die
+Hintergrundgeschichte der Autorin gehört. Hier **soll** es schreiben — eine
+Randfigur, die gleich am Tisch auftaucht, will niemand selbst ausformulieren.
+Dieselbe Anbindung, entgegengesetzte Systemanweisung.
+
+Was dabei entschieden wurde:
+
+- **Festgehaltene Felder gehen als gesetzt mit** und werden nicht neu
+  erfunden, genau wie beim Würfeln. Sonst wäre das Schloss beim KI-Knopf
+  wirkungslos, und das fällt erst auf, wenn der gute Name weg ist. Ein leeres
+  Feld gilt dabei nicht als gesetzt: „Das steht fest: Eigenheit: " wäre eine
+  Vorgabe ohne Inhalt und hielte das Feld dauerhaft leer.
+- **Ein Vorschlag wird behandelt wie ein getippter Text.** Er landet im selben
+  bearbeitbaren Feld und wird dabei festgehalten — er ist jetzt der Wert, den
+  man behalten will.
+- **Eine Länge steht in der Anweisung, nicht nur im Code.** Die
+  Tabelleneinträge sind Halbsätze; ein Modell, dem man nichts sagt, schreibt
+  einen Absatz, und die Figur ließe sich nicht mehr überfliegen. Beim
+  Auswerten wird trotzdem gekürzt: ein Modell, das sich nicht an die
+  Abmachung hält, darf die Figur nicht unlesbar machen.
+- **Bei der Eigenheit wird ausdrücklich gebremst.** Bei den Tabellen sorgt die
+  Wahrscheinlichkeit dafür, dass die meisten Figuren keine Marotte haben. Ohne
+  einen Satz dazu liefert das Modell jedes Mal eine Schrulle, und jede Figur
+  wird zur Karikatur.
+- **Ohne eingerichtete KI sind die Knöpfe nicht da**, nicht ausgegraut.
+  Eingerichtet wird sie in der Hülle; hier gäbe es dafür nichts zu klicken,
+  und ein grauer Knopf wäre eine Einladung zum Suchen.
+- **Ein Fehlschlag lässt die Figur unangetastet.** Unbrauchbare Antwort,
+  Fehler des Anbieters, kein Netz: es kommt ein Satz, kein halb ersetztes
+  Feld und kein abgebrochener Aufruf.
+- **`connect-src` bleibt zu.** Die Anfrage geht vom Hauptprozess aus. Der
+  Renderer bekommt keinen Netzzugriff, und der API-Schlüssel erreicht ihn nie.
+
+Der Rauchtest täuscht nur das Modell vor — ein kleiner HTTP-Server, der sich
+wie Ollama verhält. Alles davor und danach ist echt. Dabei fiel auf, dass der
+neue KI-Knopf die Reihenfolge der Knöpfe in einer Zeile verschoben hatte und
+der ältere Rauchtest deshalb nicht mehr das Schloss traf, sondern die KI. Das
+Schloss hat jetzt eine eigene Klasse; ein Test, der auf Reihenfolge zeigt,
+zeigt beim nächsten Knopf wieder daneben.
+
 ### Verwaiste Bilder aufräumen
 
 „Aufräumen" in der Kopfzeile zeigt Bilddateien, auf die nichts mehr verweist,

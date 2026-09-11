@@ -43,7 +43,10 @@ export class ClaudeAnbieter implements KiAnbieter {
       // Mit Frist. Das SDK wartet von sich aus zehn Minuten, und wer auf
       // "Verbindung pruefen" drueckt, will nicht zehn Minuten warten, um zu
       // erfahren, dass kein Netz da ist.
-      await this.klient.models.retrieve(this.einstellung.modell, { timeout: PRUEF_FRIST_MS, maxRetries: 0 });
+      await this.klient.models.retrieve(this.einstellung.modell, null, {
+        timeout: PRUEF_FRIST_MS,
+        maxRetries: 0
+      });
       return { bereit: true, beschreibung: this.beschreibe() };
     } catch (fehler) {
       const { schluessel, werte } = ordne(fehler);
