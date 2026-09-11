@@ -63,6 +63,8 @@ const en = {
   'app.initiative.description': 'Keep track of turn order in combat',
   'app.dice.name': 'Dice',
   'app.dice.description': 'Roll dice expressions, with advantage and disadvantage',
+  'app.npc.name': 'NPC Creator',
+  'app.npc.description': 'Roll a character the table can meet right away',
   'app.encounter.name': 'Encounters',
   'app.encounter.description': 'Plan and balance fights'
 };
@@ -125,6 +127,8 @@ const de: Partial<Record<MessageKey, string>> = {
   'app.initiative.description': 'Zugreihenfolge im Kampf verwalten',
   'app.dice.name': 'Würfel',
   'app.dice.description': 'Würfelausdrücke werfen, mit Vorteil und Nachteil',
+  'app.npc.name': 'NPC Creator',
+  'app.npc.description': 'Eine Figur würfeln, die der Tisch sofort treffen kann',
   'app.encounter.name': 'Begegnungen',
   'app.encounter.description': 'Kämpfe planen und ausbalancieren'
 };

@@ -181,7 +181,11 @@ function verbergeAlle(): void {
 function montageHaken(herkunft: string, sprache: Language): MontageHaken {
   return {
     language: sprache,
-    onLanguageChange: (language) => void aktualisiereSammlungssprache(language, herkunft)
+    onLanguageChange: (language) => void aktualisiereSammlungssprache(language, herkunft),
+    // Meldet der Oberflaeche, dass sich in einer ANDEREN Anwendung etwas
+    // getan hat. Die Huelle laesst dann eine Farbe ueber deren Symbol
+    // wischen — einheitlich fuer alle Werkzeuge, gleich wer es ausloest.
+    onEreignis: (appId) => huelle?.webContents.send('app:ereignis', appId)
   };
 }
 

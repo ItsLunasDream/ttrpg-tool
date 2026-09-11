@@ -69,6 +69,20 @@ const api = {
         ipcRenderer.off('app:gestartet-mit', hoerer);
       };
     },
+    /**
+     * Meldet, dass sich in einer anderen Anwendung etwas getan hat.
+     *
+     * Liefert die ID der Anwendung, in der es geschah — die Oberflaeche laesst
+     * daraufhin eine Farbe ueber deren Symbol wischen. Abmelden ueber die
+     * zurueckgegebene Funktion.
+     */
+    beiEreignis: (fn: (id: string) => void): (() => void) => {
+      const hoerer = (_e: unknown, id: string) => fn(id);
+      ipcRenderer.on('app:ereignis', hoerer);
+      return () => {
+        ipcRenderer.off('app:ereignis', hoerer);
+      };
+    },
     /** Oeffnet eine http(s)-Adresse im Browser des Systems. */
     oeffneExtern: (adresse: string) =>
       ipcRenderer.invoke('app:oeffne-extern', adresse) as Promise<void>

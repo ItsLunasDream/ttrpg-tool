@@ -36,7 +36,8 @@ test('jeder englische Schluessel hat eine deutsche Entsprechung', () => {
 const GLEICH_ERLAUBT = new Set([
   // Eigennamen der Werkzeuge, die in beiden Sprachen gleich heissen.
   'app.backstory.name',
-  'app.initiative.name'
+  'app.initiative.name',
+  'app.npc.name'
 ]);
 
 test('jede App hat Namen und Beschreibung in beiden Sprachen', () => {

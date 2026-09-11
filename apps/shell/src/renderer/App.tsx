@@ -332,6 +332,34 @@ function Buehne({
    */
   const gesetzt = useRef(false);
   const [wandert, setWandert] = useState(false);
+  /*
+   * Welche Werkzeuge gerade etwas gemeldet haben.
+   *
+   * Eine Farbe wischt ueber ihr Symbol und sagt: dort ist etwas dazugekommen.
+   * Die Anzeige gehoert in die Huelle und nicht in die meldende Anwendung —
+   * sie soll ueberall gleich aussehen, gleich wer sie ausloest.
+   */
+  const [gemeldet, setGemeldet] = useState<readonly string[]>([]);
+
+  useEffect(() => {
+    const zeitgeber = new Map<string, number>();
+    const ab = window.shell?.app?.beiEreignis?.((id) => {
+      setGemeldet((vorher) => (vorher.includes(id) ? vorher : [...vorher, id]));
+      // Nach dem Wischen wieder abmelden, sonst liefe die Animation nur
+      // einmal: eine Klasse, die stehen bleibt, startet nicht neu.
+      window.clearTimeout(zeitgeber.get(id));
+      zeitgeber.set(
+        id,
+        window.setTimeout(() => {
+          setGemeldet((vorher) => vorher.filter((eintrag) => eintrag !== id));
+        }, 1400)
+      );
+    });
+    return () => {
+      ab?.();
+      for (const nummer of zeitgeber.values()) window.clearTimeout(nummer);
+    };
+  }, []);
 
   // Gemessen statt gerechnet: die Stelle haengt an Knopfhoehen, Abstaenden und
   // dem Trenner. Eine Formel dafuer waere bei der naechsten Aenderung an der
@@ -382,7 +410,7 @@ function Buehne({
               type="button"
               className={`schiene__eintrag ${app.id === aktiv ? 'schiene__eintrag--an' : ''} ${
                 waehlbar ? '' : 'schiene__eintrag--geplant'
-              }`}
+              } ${gemeldet.includes(app.id) ? 'schiene__eintrag--gemeldet' : ''}`}
               disabled={!waehlbar}
               aria-current={app.id === aktiv ? 'page' : undefined}
               title={waehlbar ? name : `${name} — ${t(STATUS_KEY[app.status])}`}

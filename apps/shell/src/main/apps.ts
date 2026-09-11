@@ -25,7 +25,8 @@ import type { BaseWindow } from 'electron';
 import type { WebContents } from 'electron';
 import {
   mountBackstory,
-  registerAssetScheme as registerBackstoryScheme
+  registerAssetScheme as registerBackstoryScheme,
+  type BackstoryEmbed
 } from '../../../backstory/src/main/embed';
 import { mountMapmaker } from '../../../mapmaker/src/embed';
 import {
@@ -33,6 +34,8 @@ import {
   registriereBildSchema as registriereInitiativeSchema
 } from '../../../initiative/src/main/embed';
 import { mountDice } from '../../../dice/src/main/embed';
+import { mountNpc } from '../../../npc/src/main/embed';
+import type { Figur } from '../../../npc/src/shared/erzeuge';
 import type { Language } from '../shared/i18n';
 
 export interface MontierteApp {
@@ -90,6 +93,18 @@ export interface MontageHaken {
    * ueber ihr eigenes Sprachmenue, nicht durch ein `setLanguage` von aussen.
    */
   readonly onLanguageChange: (language: Language) => void;
+  /**
+   * Wird gerufen, wenn sich in einer anderen Anwendung etwas getan hat.
+   *
+   * Nicht die Anwendung, in der man gerade steht, meldet etwas ueber sich —
+   * sie meldet, dass anderswo etwas dazugekommen ist. Der NPC Creator legt
+   * eine Figur im Backstory Creator an und meldet „backstory"; die Huelle
+   * laesst daraufhin eine Farbe ueber dessen Symbol wischen.
+   *
+   * Die Animation gehoert bewusst in die Huelle und nicht in die Anwendung:
+   * sie soll ueberall gleich aussehen, gleich wer sie ausloest.
+   */
+  readonly onEreignis?: (appId: string) => void;
 }
 
 /**
@@ -239,6 +254,7 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'mapmaker') return montiereMapmaker(id, haken);
   if (id === 'initiative') return montiereInitiative(id, haken);
   if (id === 'dice') return montiereDice(id, haken);
+  if (id === 'npc') return montiereNpc(id, haken);
   return null;
 }
 
@@ -250,6 +266,73 @@ async function montiereDice(id: string, haken: MontageHaken): Promise<MontierteA
     devServerUrl: process.env.DICE_DEV_SERVER_URL,
     language: haken.language,
     onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+  };
+}
+
+/**
+ * Der NPC Creator.
+ *
+ * Er bekommt von der Huelle eine Funktion zum Anlegen — den Vault selbst
+ * bekommt er nicht zu sehen. So bleibt die Kenntnis darueber, wo Notizen
+ * liegen und welche Kampagne offen ist, an einer Stelle.
+ */
+async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountNpc({
+    distDir: appDistDir(id, 'main'),
+    devServerUrl: process.env.NPC_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    anlegen: async (figur: Figur, markdown: string) => {
+      if (!backstoryVault) {
+        return {
+          ok: false,
+          text: 'Öffne den Backstory Creator einmal, dann weiß die Sammlung, wohin.'
+        };
+      }
+      const kampagnen = await backstoryVault.listCampaigns();
+      if (kampagnen.length === 0) {
+        return { ok: false, text: 'Es gibt noch keine Kampagne, in die die Figur passt.' };
+      }
+      // Die erste Kampagne der Liste. Der Vault gibt die zuletzt geoeffnete
+      // nicht heraus — sie steht in den Einstellungen des Backstory Creators,
+      // und die liest die Huelle nicht mit. Bei mehreren Kampagnen ist das
+      // eine Vereinfachung, die auffallen wird; sie gehoert dann in einen
+      // eigenen Schritt, nicht in diese erste Fassung.
+      const kampagne = kampagnen[0];
+
+      const notiz = await backstoryVault.createNote(kampagne.id, 'character', figur.name);
+      await backstoryVault.saveNote(kampagne.id, { ...notiz, body: markdown });
+      haken.onEreignis?.('backstory');
+      return { ok: true, text: `${figur.name} → ${kampagne.name}` };
+    }
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
@@ -325,6 +408,16 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
   };
 }
 
+/**
+ * Der Vault des Backstory Creators, sobald er montiert ist.
+ *
+ * Der NPC Creator legt seine Figuren dort ab, kennt den Vault aber nicht und
+ * soll ihn auch nicht kennen: die Huelle reicht den Zugriff durch. Ist der
+ * Backstory Creator nie geoeffnet worden, steht hier null — und der Export
+ * sagt das ehrlich, statt stumm ins Leere zu schreiben.
+ */
+let backstoryVault: BackstoryEmbed['vault'] | null = null;
+
 async function montiereBackstory(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountBackstory({
     userDataDir: datenordner(id),
@@ -337,6 +430,9 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
     // Kampagnen hier wiederfinden und nicht vor einer leeren Sammlung stehen.
     uebernahmeKandidaten: fruehereSpeicherorte(id)
   });
+
+  // Fuer den NPC Creator: er legt Figuren hier ab, ohne den Vault zu kennen.
+  backstoryVault = eingebettet.vault;
 
   const sicht = new WebContentsView({
     webPreferences: {
