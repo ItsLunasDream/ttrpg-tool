@@ -27,6 +27,7 @@ const en = {
   'status.planned': 'later',
 
   'stage.placeholder': 'This tool is not ready to be embedded yet.',
+  'stage.loading': 'Opening {name} …',
 
   'stage.failed.title': '{name} could not be opened',
   'stage.failed.missing':
@@ -128,6 +129,7 @@ const de: Partial<Record<MessageKey, string>> = {
   'status.planned': 'später',
 
   'stage.placeholder': 'Dieses Werkzeug lässt sich noch nicht einbetten.',
+  'stage.loading': '{name} wird geöffnet …',
 
   'stage.failed.title': '{name} ließ sich nicht öffnen',
   'stage.failed.missing':

@@ -482,7 +482,22 @@ function Buehne({
         Ansicht deckt die Flaeche vollstaendig ab. Ein Text an dieser Stelle
         waere unsichtbar, aber Vorlesewerkzeuge laesen ihn vor.
       */}
-      {buehne.zustand === 'offen' || buehne.zustand === 'laedt' ? (
+      {buehne.zustand === 'laedt' ? (
+        /*
+         * Waehrend ein Werkzeug laedt, soll man sehen, dass etwas passiert.
+         * Vorher blieb die Flaeche leer, und ein langsamer Start sah aus wie
+         * ein haengendes Programm.
+         *
+         * Mit Text daneben, nicht nur mit dem Kreis: ein Kreis allein sagt
+         * "es tut sich etwas", ein Text sagt, was. Bei weniger Bewegung
+         * bleibt nur der Text (siehe styles.css) — dann steht da immer noch
+         * etwas.
+         */
+        <main className="laedt" role="status">
+          <span className="laedt__kreis" aria-hidden="true" />
+          <p className="laedt__text">{t('stage.loading', { name: t(nameKey(eintrag.id)) })}</p>
+        </main>
+      ) : buehne.zustand === 'offen' ? (
         <div className="buehne__flaeche" aria-hidden="true" />
       ) : buehne.zustand === 'fehler' ? (
         <main className="stoerung" role="alert">

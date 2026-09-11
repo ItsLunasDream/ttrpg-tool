@@ -722,3 +722,55 @@ body {
 .ueber__verweise button:hover {
   background: #ffffff10;
 }
+
+/* ---------- Ladeanzeige ---------- */
+
+.laedt {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 0;
+}
+
+/*
+ * Ein Ring, dem ein Stueck fehlt, und der sich dreht.
+ *
+ * Das Bewegungspaket bringt bewusst keine Endlosanimation mit: eine haengende
+ * Anwendung sieht damit so lebendig aus wie eine arbeitende. Hier steht sie
+ * trotzdem, weil sie ausdruecklich gewuenscht war — abgefedert dadurch, dass
+ * sie nur waehrend des Ladens laeuft und dass ein Text danebensteht, der auch
+ * ohne Bewegung etwas sagt.
+ */
+.laedt__kreis {
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--rand);
+  border-top-color: var(--betont);
+  border-radius: 50%;
+  animation: huelle-laedt 900ms linear infinite;
+}
+
+@keyframes huelle-laedt {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.laedt__text {
+  color: var(--text-leise);
+  margin: 0;
+}
+
+/*
+ * Weniger Bewegung: der Ring steht still und tritt zurueck. Weg ist er
+ * nicht — sonst spraenge beim Umschalten der Einstellung das Bild.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .laedt__kreis {
+    animation: none;
+    opacity: 0.4;
+  }
+}

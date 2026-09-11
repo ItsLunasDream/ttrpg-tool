@@ -483,6 +483,42 @@ der ältere Rauchtest deshalb nicht mehr das Schloss traf, sondern die KI. Das
 Schloss hat jetzt eine eigene Klasse; ein Test, der auf Reihenfolge zeigt,
 zeigt beim nächsten Knopf wieder daneben.
 
+### Ladeanzeige und Startzeit
+
+Während ein Werkzeug lädt, steht jetzt ein Ladekreis mit Text daneben. Vorher
+blieb die Fläche leer, und ein langsamer Start sah aus wie ein hängendes
+Programm.
+
+Der Kreis widerspricht einer Entscheidung im Bewegungspaket: dort steht
+ausdrücklich, dass es **keine** Endlosanimation mitbringt, weil eine hängende
+Anwendung damit so lebendig aussieht wie eine arbeitende. Er wurde trotzdem
+gebaut, weil er gewünscht war — abgefedert dadurch, dass er nur während des
+Ladens läuft, dass ein Text danebensteht, und dass er bei
+`prefers-reduced-motion` stillsteht statt zu verschwinden.
+
+**Zur Startzeit: gemessen, nicht geraten.** Hier unter Linux, aus dem
+Arbeitsverzeichnis:
+
+    399 ms   Electron bereit
+     13 ms   Einstellungen gelesen und geschrieben
+      0 ms   Kanäle angemeldet
+    149 ms   Fenster steht
+    565 ms   GESAMT
+
+Drei Viertel der Zeit vergehen, bevor eigener Code überhaupt läuft. Der
+einzige messbare Hebel im Bündel ist das Anthropic-SDK, das im Hauptprozess
+liegt, auch wenn keine KI eingerichtet ist: ohne es startet die Hülle in
+486 statt 533 ms. **47 ms** — zu wenig für den Umbau, den es kosten würde
+(`baueAnbieter` müsste asynchron werden und zöge das durch beide Werkzeuge).
+
+Die gemeldete Langsamkeit kommt von einem Windows-Rechner, und dort kann ich
+nicht messen. Statt zu raten ist die Messung jetzt eingebaut:
+`TTRPG_TOOLS_STARTZEIT=1` gesetzt, und die Hülle schreibt dieselbe Tabelle in
+die Konsole. Erst danach lässt sich sagen, ob die Zeit im eigenen Code liegt
+oder davor — die wahrscheinlichste Erklärung, ein unsigniertes Programm, das
+beim ersten Start vom Virenschutz durchgesehen wird, wäre durch keine
+Codeänderung zu beheben.
+
 ### Verwaiste Bilder aufräumen
 
 „Aufräumen" in der Kopfzeile zeigt Bilddateien, auf die nichts mehr verweist,

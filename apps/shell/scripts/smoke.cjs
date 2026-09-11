@@ -149,8 +149,32 @@ app.whenReady().then(async () => {
   // bereit ist, wird dieser Teil uebersprungen statt zu scheitern — sonst
   // muesste der Test bei jedem Bauabschnitt umgeschrieben werden.
   if ((await js("document.querySelectorAll('.kachel:not(:disabled)').length")) > 0) {
+    /*
+     * Waehrend des Ladens muss der Ladekreis stehen. Vorher blieb die
+     * Flaeche leer, und ein langsamer Start sah aus wie ein haengendes
+     * Programm.
+     *
+     * Beobachtet statt abgefragt: wie lange das Laden dauert, steht nicht
+     * fest, und ein einzelner Blick danach traefe je nach Rechner mal ins
+     * Leere. Gesucht wird deshalb, ob der Kreis *irgendwann* da war.
+     */
+    // Bewusst OHNE await: die Beobachtung muss laufen, waehrend geklickt
+    // wird. Abgewartet wird sie unten.
+    const beobachtung = js(`(() => new Promise((fertig) => {
+      let gefunden = false;
+      const uhr = setInterval(() => {
+        if (document.querySelector('.laedt__kreis')) gefunden = true;
+      }, 20);
+      setTimeout(() => { clearInterval(uhr); fertig(gefunden); }, 1200);
+    }))()`);
     await js("document.querySelector('.kachel:not(:disabled)').click()");
+    const gesehen = await beobachtung;
     await warte(500);
+    pruefe(gesehen === true, 'waehrend des Ladens steht ein Ladekreis');
+    pruefe(
+      !(await js("Boolean(document.querySelector('.laedt__kreis'))")),
+      'und verschwindet, sobald das Werkzeug offen ist'
+    );
     pruefe(await js("Boolean(document.querySelector('.schiene'))"), 'Schiene nach Wechsel da');
     pruefe(
       (await js("document.querySelectorAll('.schiene__eintrag:disabled').length")) > 0,

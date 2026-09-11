@@ -18,6 +18,37 @@
  * Einbetten spaeter nichts daran umstellt.
  */
 import { app, BaseWindow, WebContentsView, ipcMain, screen, shell, type IpcMainInvokeEvent } from 'electron';
+/**
+ * Startzeit messen, wenn TTRPG_TOOLS_STARTZEIT gesetzt ist.
+ *
+ * Gebaut, weil die Frage „warum dauert der Start so lange?\" von einem
+ * Windows-Rechner kam und hier keiner steht. Geraten haette ich dabei mit
+ * hoher Wahrscheinlichkeit daneben: hier unter Linux vergehen bis zum
+ * Startmenue rund eine halbe Sekunde, und davon entfaellt fast nichts auf
+ * den eigenen Code.
+ *
+ * Kostet im Normalfall nichts: ohne die Variable wird nur eine Zahl
+ * abgelegt und nie wieder angesehen.
+ */
+const START_GEMESSEN = Boolean(process.env.TTRPG_TOOLS_STARTZEIT);
+const startBeginn = Date.now() - Math.round(process.uptime() * 1000);
+const startMarken: [string, number][] = [];
+
+function startMarke(was: string): void {
+  if (!START_GEMESSEN) return;
+  startMarken.push([was, Date.now()]);
+}
+
+function startBericht(): void {
+  if (!START_GEMESSEN || startMarken.length === 0) return;
+  console.log('[shell] Startzeit:');
+  let vorher = startBeginn;
+  for (const [was, zeit] of startMarken) {
+    console.log(`  ${String(zeit - vorher).padStart(6)} ms   ${was}`);
+    vorher = zeit;
+  }
+  console.log(`  ${String(Date.now() - startBeginn).padStart(6)} ms   GESAMT`);
+}
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { berechneAppFlaeche } from '../shared/apps';
@@ -669,6 +700,7 @@ function registriereKanaele(): void {
 }
 
 app.whenReady().then(async () => {
+  startMarke('Electron bereit');
   einstellungsDatei = join(app.getPath('userData'), 'einstellungen.json');
   const gelesen = await readSettings(einstellungsDatei);
 
@@ -688,8 +720,12 @@ app.whenReady().then(async () => {
   // gekommen ist. Die Pruefung des gepackten Pakets wartet darauf.
   gemerkteEinstellungen = { ...gelesen, ...uebernommen };
   await writeSettings(einstellungsDatei, gemerkteEinstellungen);
+  startMarke('Einstellungen gelesen und geschrieben');
   registriereKanaele();
+  startMarke('Kanaele angemeldet');
   await erzeugeFenster();
+  startMarke('Fenster steht');
+  startBericht();
   app.on('activate', () => {
     if (!fenster) void erzeugeFenster();
   });
