@@ -13,14 +13,31 @@
  */
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { istAnbieterId, KI_VOREINSTELLUNGEN, type KiEinstellungen } from '@suite/ki/einstellungen';
 import { DEFAULT_LANGUAGE, isLanguage, type Language } from '../shared/i18n';
 
 export interface ShellSettings {
   language: Language;
+  /**
+   * Die KI-Anbindung — fuer die ganze Sammlung, nicht je Werkzeug.
+   *
+   * Anders als die Sprache, die jedes Werkzeug fuer sich fuehrt: ein
+   * Sprachmodell ist etwas, das man einmal einrichtet und dann ueberall
+   * benutzt. Wer den Schluessel in jedem Werkzeug neu eintippen muesste,
+   * tippt ihn zweimal falsch.
+   */
+  ki: KiEinstellungen;
+  /**
+   * Der API-Schluessel, mit dem Schluesselbund des Systems verschluesselt.
+   * Erreicht die Oberflaeche nie — sie erfaehrt nur, ob einer da ist.
+   */
+  claudeSchluessel: string;
 }
 
 export const DEFAULT_SETTINGS: ShellSettings = {
-  language: DEFAULT_LANGUAGE
+  language: DEFAULT_LANGUAGE,
+  ki: KI_VOREINSTELLUNGEN,
+  claudeSchluessel: ''
 };
 
 /** Erzwingt gueltige Werte, egal was in der Datei stand. */
@@ -28,7 +45,28 @@ export function sanitizeSettings(roh: unknown): ShellSettings {
   if (typeof roh !== 'object' || roh === null) return { ...DEFAULT_SETTINGS };
   const wert = roh as Record<string, unknown>;
   return {
-    language: isLanguage(wert.language) ? wert.language : DEFAULT_SETTINGS.language
+    language: isLanguage(wert.language) ? wert.language : DEFAULT_SETTINGS.language,
+    ki: sanitizeKi(wert.ki),
+    claudeSchluessel: typeof wert.claudeSchluessel === 'string' ? wert.claudeSchluessel : ''
+  };
+}
+
+/**
+ * Ein unbekannter Anbieter faellt auf 'none' zurueck, nicht auf den ersten in
+ * der Liste: eine Datei aus einer neueren Fassung soll die KI abschalten und
+ * nicht stillschweigend etwas anderes ansprechen, als dort stand.
+ */
+function sanitizeKi(roh: unknown): KiEinstellungen {
+  if (typeof roh !== 'object' || roh === null) return { ...KI_VOREINSTELLUNGEN };
+  const wert = roh as Record<string, unknown>;
+  const text = (name: string, vorgabe: string) =>
+    typeof wert[name] === 'string' && (wert[name] as string).trim() ? (wert[name] as string) : vorgabe;
+
+  return {
+    anbieter: istAnbieterId(wert.anbieter) ? wert.anbieter : 'none',
+    ollamaAdresse: text('ollamaAdresse', KI_VOREINSTELLUNGEN.ollamaAdresse),
+    ollamaModell: text('ollamaModell', KI_VOREINSTELLUNGEN.ollamaModell),
+    claudeModell: text('claudeModell', KI_VOREINSTELLUNGEN.claudeModell)
   };
 }
 
@@ -44,4 +82,16 @@ export async function writeSettings(datei: string, einstellungen: ShellSettings)
   const sauber = sanitizeSettings(einstellungen);
   await mkdir(dirname(datei), { recursive: true });
   await writeFile(datei, JSON.stringify(sauber, null, 2), 'utf8');
+}
+
+/**
+ * Die Einstellungen, wie die Oberflaeche sie sehen darf.
+ *
+ * Der verschluesselte API-Schluessel bleibt im Hauptprozess. Er waere in der
+ * Oberflaeche zwar immer noch verschluesselt, aber er hat dort schlicht
+ * nichts zu suchen: sie muss nur wissen, *ob* einer da ist, und das sagt ihr
+ * die Bereitschaftspruefung.
+ */
+export function ohneSchluessel(einstellungen: ShellSettings): ShellSettings {
+  return { ...einstellungen, claudeSchluessel: '' };
 }

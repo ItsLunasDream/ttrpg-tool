@@ -19,12 +19,15 @@ test('sanitizeSettings faengt Unsinn ab', () => {
   // Eine Sprache, die es nicht gibt, faellt auf die Vorgabe zurueck, statt
   // die Oberflaeche mit lauter rohen Schluesseln zu fuellen.
   assert.deepEqual(sanitizeSettings({ language: 'fr' }), { ...DEFAULT_SETTINGS });
-  assert.deepEqual(sanitizeSettings({ language: 'de' }), { language: 'de' });
+  assert.deepEqual(sanitizeSettings({ language: 'de' }), { ...DEFAULT_SETTINGS, language: 'de' });
 });
 
 test('unbekannte Felder werden nicht mitgeschleppt', () => {
   // Sonst wuechse die Datei mit jedem Umbau um Reste, die niemand mehr liest.
-  assert.deepEqual(sanitizeSettings({ language: 'de', altlast: 42 }), { language: 'de' });
+  assert.deepEqual(sanitizeSettings({ language: 'de', altlast: 42 }), {
+    ...DEFAULT_SETTINGS,
+    language: 'de'
+  });
 });
 
 test('eine fehlende Datei liefert die Vorgaben', async () => {
@@ -36,8 +39,8 @@ test('geschrieben und wieder gelesen kommt dasselbe heraus', async () => {
   const ordner = await mkdtemp(join(tmpdir(), 'shell-einst-'));
   try {
     const datei = join(ordner, 'einstellungen.json');
-    await writeSettings(datei, { language: 'de' });
-    assert.deepEqual(await readSettings(datei), { language: 'de' });
+    await writeSettings(datei, { ...DEFAULT_SETTINGS, language: 'de' });
+    assert.deepEqual(await readSettings(datei), { ...DEFAULT_SETTINGS, language: 'de' });
   } finally {
     await rm(ordner, { recursive: true, force: true });
   }

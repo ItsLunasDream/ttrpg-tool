@@ -37,7 +37,11 @@ const GLEICH_ERLAUBT = new Set([
   // Eigennamen der Werkzeuge, die in beiden Sprachen gleich heissen.
   'app.backstory.name',
   'app.initiative.name',
-  'app.npc.name'
+  'app.npc.name',
+  // Der Name des Anbieters und das Muster eines Anthropic-Schluessels: beides
+  // ist keine Sprache, sondern eine Schreibweise.
+  'settings.aiClaude',
+  'settings.apiKeyPlaceholder'
 ]);
 
 test('jede App hat Namen und Beschreibung in beiden Sprachen', () => {

@@ -86,7 +86,14 @@ const api = {
     };
   },
   ai: {
-    status: () => invoke<{ provider: string; ready: boolean; detail: string; hasKey: boolean }>('ai:status'),
+    status: () =>
+      invoke<{
+        provider: string;
+        ready: boolean;
+        detail: string;
+        hasKey: boolean;
+        managedByShell: boolean;
+      }>('ai:status'),
     setApiKey: (apiKey: string) => invoke<AppSettings>('ai:setApiKey', apiKey),
     ask: (
       campaignId: string,

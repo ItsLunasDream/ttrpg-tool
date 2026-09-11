@@ -98,10 +98,38 @@ const api = {
      */
     reduziert: (reduziert: boolean) => ipcRenderer.send('bewegung:reduziert', reduziert)
   },
+  ki: {
+    /**
+     * Bereitschaft der KI. `beschreibung` traegt bei Erfolg das Modell, sonst
+     * den Grund — bereits in der eingestellten Sprache.
+     */
+    status: () =>
+      ipcRenderer.invoke('ki:status') as Promise<{
+        anbieter: string;
+        bereit: boolean;
+        beschreibung: string;
+        hatSchluessel: boolean;
+      }>,
+    /**
+     * Legt den API-Schluessel ab. Ein leerer Text entfernt ihn.
+     *
+     * Zurueck kommt er nie. Scheitert das Verschluesseln, weil das System
+     * keinen Schluesselbund bietet, wirft der Aufruf — im Klartext abzulegen
+     * waere schlechter, als es zu lassen.
+     */
+    setzeSchluessel: (schluessel: string) =>
+      ipcRenderer.invoke('ki:schluessel-setzen', schluessel) as Promise<boolean>
+  },
   einstellungen: {
     lesen: () => ipcRenderer.invoke('einstellungen:lesen') as Promise<ShellSettings>,
-    /** Schreibt und liefert den bereinigten Stand zurueck, der danach gilt. */
-    schreiben: (neu: ShellSettings) =>
+    /**
+     * Schreibt und liefert den bereinigten Stand zurueck, der danach gilt.
+     *
+     * Teilstuecke sind erlaubt und die Regel: was nicht mitkommt, bleibt
+     * stehen. Der API-Schluessel laesst sich hierueber nicht setzen — dafuer
+     * gibt es `ki.setzeSchluessel`, und gelesen wird er nie.
+     */
+    schreiben: (neu: Partial<ShellSettings>) =>
       ipcRenderer.invoke('einstellungen:schreiben', neu) as Promise<ShellSettings>,
     /**
      * Die Sprache wurde von aussen geaendert — nicht ueber den

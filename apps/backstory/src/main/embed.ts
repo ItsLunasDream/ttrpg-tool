@@ -22,6 +22,7 @@ import { registerIpc } from './ipc';
 import { handleAssetProtocol, registerAssetScheme } from './assetProtocol';
 import { findeUebernahme } from './uebernahme';
 import { channel } from '../shared/channels';
+import type { KiQuelle } from './ai';
 import type { AppSettings } from '../shared/types';
 
 export { registerAssetScheme };
@@ -88,6 +89,19 @@ export interface BackstoryEmbedOptions {
    * Einstellungen wieder um.
    */
   readonly uebernahmeKandidaten?: readonly string[];
+  /**
+   * Woher die KI-Anbindung kommt, wenn nicht aus den eigenen Einstellungen.
+   *
+   * In der Huelle wird die KI einmal fuer die ganze Sammlung eingerichtet.
+   * Ist das gesetzt, gilt sie hier statt der eigenen, und der Abschnitt in
+   * den Einstellungen dieser Anwendung verschwindet — zwei Stellen fuer
+   * dieselbe Sache waeren eine zu viel, und wer in der falschen einstellt,
+   * sucht den Fehler lange.
+   *
+   * Eine Funktion und kein Schnappschuss: wer die KI in der Huelle umstellt,
+   * soll das im naechsten Klick merken.
+   */
+  readonly kiQuelle?: KiQuelle;
 }
 
 export interface BackstoryEmbed {
@@ -172,7 +186,13 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
   await vault.init();
   handleAssetProtocol(vault, options.partition);
 
-  const kontext = { vault, settingsFile, settings, onLanguageChange: options.onLanguageChange };
+  const kontext = {
+    vault,
+    settingsFile,
+    settings,
+    onLanguageChange: options.onLanguageChange,
+    kiQuelle: options.kiQuelle
+  };
   registerIpc(kontext);
 
   const distDir = options.distDir ?? __dirname;

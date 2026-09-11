@@ -11,41 +11,21 @@
  * verschluesseln kann nur, wer den Schluesselbund des Systems kennt, und das
  * ist die Anwendung.
  */
-import { ClaudeAnbieter, CLAUDE_VOREINSTELLUNG } from './claude';
+import { ClaudeAnbieter } from './claude';
+import { CLAUDE_VOREINSTELLUNG, type KiEinstellungen } from './einstellungen';
 import { OllamaAnbieter } from './ollama';
 import type { KiAnbieter } from './anbieter';
 
 export { KiFehler } from './anbieter';
 export type { KiAnbieter, KiAnfrage, KiNachricht, KiSchluessel, KiWerte, KiZustand } from './anbieter';
 export { OllamaAnbieter } from './ollama';
-export { ClaudeAnbieter, CLAUDE_VOREINSTELLUNG } from './claude';
-
-export type KiAnbieterId = 'none' | 'ollama' | 'claude';
-
-export function istAnbieterId(wert: unknown): wert is KiAnbieterId {
-  return wert === 'none' || wert === 'ollama' || wert === 'claude';
-}
-
-/**
- * Was eingestellt sein muss, damit ein Anbieter entsteht.
- *
- * Der Schluessel steht nicht darin: er liegt verschluesselt in der Anwendung
- * und wird erst beim Bauen dazugegeben, damit er nirgends mitgereicht wird,
- * wo nur die Einstellungen hingehoeren — etwa in die Oberflaeche.
- */
-export interface KiEinstellungen {
-  readonly anbieter: KiAnbieterId;
-  readonly ollamaAdresse: string;
-  readonly ollamaModell: string;
-  readonly claudeModell: string;
-}
-
-export const KI_VOREINSTELLUNGEN: KiEinstellungen = {
-  anbieter: 'none',
-  ollamaAdresse: 'http://127.0.0.1:11434',
-  ollamaModell: 'llama3.1',
-  claudeModell: CLAUDE_VOREINSTELLUNG
-};
+export { ClaudeAnbieter } from './claude';
+export {
+  CLAUDE_VOREINSTELLUNG,
+  istAnbieterId,
+  KI_VOREINSTELLUNGEN
+} from './einstellungen';
+export type { KiAnbieterId, KiEinstellungen } from './einstellungen';
 
 /**
  * Waehlt den eingestellten Anbieter aus. Der Rest der Sammlung kennt nur die

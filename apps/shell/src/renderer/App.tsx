@@ -20,7 +20,8 @@ import {
   type MessageParams
 } from '../shared/i18n';
 import { iconFuer, SuiteIcon } from './icons';
-import { Einstellungen } from './Einstellungen';
+import { KI_VOREINSTELLUNGEN, type KiEinstellungen } from '@suite/ki/einstellungen';
+import { Einstellungen, type KiZustandAnsicht } from './Einstellungen';
 import { Ueber } from './Ueber';
 
 declare global {
@@ -59,6 +60,12 @@ export function App() {
   const [maximiert, setMaximiert] = useState(false);
   const [version, setVersion] = useState('');
   const [sprache, setSprache] = useState<Language>(DEFAULT_LANGUAGE);
+  /**
+   * Die KI-Anbindung der Sammlung. Der API-Schluessel steht nicht darin — er
+   * bleibt im Hauptprozess, hier ist nur zu sehen, ob einer da ist.
+   */
+  const [ki, setKi] = useState<KiEinstellungen>(KI_VOREINSTELLUNGEN);
+  const [kiZustand, setKiZustand] = useState<KiZustandAnsicht | null>(null);
   /** Welcher Dialog offen ist, oder `null`. Es ist immer hoechstens einer. */
   const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | null>(null);
 
@@ -80,7 +87,10 @@ export function App() {
     // Die gespeicherte Sprache kommt erst nach dem ersten Zeichnen an. Bis
     // dahin steht die Voreinstellung da — ein kurzer Wechsel ist besser als
     // ein leeres Fenster, das auf eine Datei wartet.
-    void window.shell.einstellungen.lesen().then((e) => setSprache(e.language));
+    void window.shell.einstellungen.lesen().then((e) => {
+      setSprache(e.language);
+      setKi(e.ki);
+    });
     // Auch der Fensterrahmen des Systems kann maximieren. Ohne diese Meldung
     // zeigte der Knopf danach das falsche Symbol.
     const abmeldenZustand = window.shell.fenster.beiZustandswechsel(({ maximiert: m }) =>
@@ -173,6 +183,26 @@ export function App() {
     setSprache(gespeichert.language);
   }, []);
 
+  const setzeKi = useCallback(async (aenderung: Partial<KiEinstellungen>) => {
+    const gespeichert = await window.shell.einstellungen.schreiben({ ki: { ...ki, ...aenderung } });
+    // Angezeigt wird, was wirklich gespeichert wurde, nicht was angeklickt
+    // wurde: `sanitizeSettings` raeumt ungueltige Werte weg.
+    setKi(gespeichert.ki);
+    // Der alte Befund gilt fuer die alte Einstellung. Ihn stehen zu lassen
+    // waere die unangenehmere Sorte Fehler: er sagt "bereit" ueber etwas,
+    // das gar nicht mehr eingestellt ist.
+    setKiZustand(null);
+  }, [ki]);
+
+  const pruefeKi = useCallback(async () => {
+    setKiZustand(await window.shell.ki.status());
+  }, []);
+
+  const setzeSchluessel = useCallback(async (schluessel: string) => {
+    await window.shell.ki.setzeSchluessel(schluessel);
+    setKiZustand(await window.shell.ki.status());
+  }, []);
+
   const eintrag = aktiv ? findApp(aktiv) : undefined;
 
   return (
@@ -250,6 +280,11 @@ export function App() {
         <Einstellungen
           sprache={sprache}
           setzeSprache={setzeSprache}
+          ki={ki}
+          setzeKi={setzeKi}
+          kiZustand={kiZustand}
+          pruefeKi={pruefeKi}
+          setzeSchluessel={setzeSchluessel}
           onClose={() => zeigeDialog(null)}
           t={t}
         />

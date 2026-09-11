@@ -16,6 +16,7 @@ import {
   CLAUDE_VOREINSTELLUNG,
   KiFehler,
   type KiAnbieter,
+  type KiEinstellungen,
   type KiNachricht
 } from '@suite/ki';
 import { systemPrompt, userPrompt } from './prompts';
@@ -40,8 +41,29 @@ export interface AiRequest {
   followUp?: string;
 }
 
-/** Waehlt den eingestellten Anbieter aus den Einstellungen der Anwendung. */
-export function createProvider(settings: AppSettings, apiKey: string): KiAnbieter | null {
+/**
+ * Woher die KI-Anbindung kommt, wenn nicht aus den eigenen Einstellungen.
+ *
+ * Gesetzt, wenn die Huelle die KI fuer die ganze Sammlung fuehrt. Eine
+ * Funktion, kein Schnappschuss: eine Aenderung dort soll hier sofort gelten.
+ */
+export type KiQuelle = () => { einstellungen: KiEinstellungen; schluessel: string };
+
+/**
+ * Waehlt den eingestellten Anbieter aus.
+ *
+ * Fuehrt die Huelle die KI, gilt deren Einstellung; sonst die eigene. Der
+ * eigenstaendige Start uebergibt keine Quelle und aendert sich damit nicht.
+ */
+export function createProvider(
+  settings: AppSettings,
+  apiKey: string,
+  kiQuelle?: KiQuelle
+): KiAnbieter | null {
+  if (kiQuelle) {
+    const quelle = kiQuelle();
+    return baueAnbieter(quelle.einstellungen, quelle.schluessel);
+  }
   return baueAnbieter(
     {
       anbieter: settings.aiProvider,

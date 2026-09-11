@@ -10,6 +10,7 @@ import { referencedAssets, renderNoteMarkdown, toFileName } from './markdownExpo
 import { exportNotesToPdf } from './pdfExport';
 import type { PromptCategory } from '../shared/writingPrompts';
 import { askProvider, createProvider, decryptSecret, encryptSecret, AiError } from './ai';
+import type { KiQuelle } from './ai';
 import { findNoteType } from '../shared/noteTypes';
 import { findWikiLinks, normalizeName } from '../shared/wikilinks';
 import { channel } from '../shared/channels';
@@ -39,6 +40,12 @@ export interface IpcContext {
    * liefen die Werkzeuge auseinander. Eigenstaendig bleibt es leer.
    */
   onLanguageChange?: (language: AppSettings['language']) => void;
+  /**
+   * Gesetzt, wenn eine Huelle die KI fuer die ganze Sammlung fuehrt. Dann
+   * gilt deren Einstellung statt der eigenen, und die Oberflaeche blendet
+   * ihren KI-Abschnitt aus.
+   */
+  kiQuelle?: KiQuelle;
 }
 
 /** Fehler aus dem Main-Prozess kommen im Renderer als lesbare Meldung an. */
@@ -227,11 +234,22 @@ export function registerIpc(context: IpcContext): void {
 
   // --- KI-Assistent --------------------------------------------------------
 
-  handle<[], { provider: string; ready: boolean; detail: string; hasKey: boolean }>('ai:status', async () => {
-    const provider = createProvider(context.settings, decryptSecret(context.settings.claudeApiKeyEncrypted));
-    const hasKey = Boolean(context.settings.claudeApiKeyEncrypted);
+  handle<
+    [],
+    { provider: string; ready: boolean; detail: string; hasKey: boolean; managedByShell: boolean }
+  >('ai:status', async () => {
+    const provider = createProvider(
+      context.settings,
+      decryptSecret(context.settings.claudeApiKeyEncrypted),
+      context.kiQuelle
+    );
+    // Fuehrt die Huelle die KI, sagt sie auch, ob ein Schluessel da ist.
+    const hasKey = context.kiQuelle
+      ? Boolean(context.kiQuelle().schluessel)
+      : Boolean(context.settings.claudeApiKeyEncrypted);
+    const managedByShell = Boolean(context.kiQuelle);
 
-    if (!provider) return { provider: 'none', ready: false, detail: '', hasKey };
+    if (!provider) return { provider: 'none', ready: false, detail: '', hasKey, managedByShell };
 
     const zustand = await provider.pruefe();
     return {
@@ -241,12 +259,18 @@ export function registerIpc(context: IpcContext): void {
       detail: zustand.bereit
         ? zustand.beschreibung
         : translate(context.settings.language, zustand.schluessel, zustand.werte),
-      hasKey
+      hasKey,
+      managedByShell
     };
   });
 
   /** Der Schluessel wird verschluesselt abgelegt und nie zurueckgegeben. */
   handle<[string], AppSettings>('ai:setApiKey', async (apiKey) => {
+    // Fuehrt die Huelle die KI, gehoert der Schluessel dorthin. Hier einen
+    // zweiten abzulegen hiesse, dass zwei Stellen sich widersprechen koennen
+    // und die eine davon wirkungslos ist.
+    if (context.kiQuelle) throw new VaultError('error.aiManagedByShell');
+
     const encrypted = encryptSecret(apiKey.trim());
     if (encrypted === null) throw new VaultError('error.noSecureStorage');
 
@@ -260,7 +284,11 @@ export function registerIpc(context: IpcContext): void {
   handleWithEvent<[string, string, AiTask, string, AiMessage[], string], string>(
     'ai:ask',
     async (event, campaignId, noteId, task, streamId, history, followUp) => {
-      const provider = createProvider(context.settings, decryptSecret(context.settings.claudeApiKeyEncrypted));
+      const provider = createProvider(
+        context.settings,
+        decryptSecret(context.settings.claudeApiKeyEncrypted),
+        context.kiQuelle
+      );
       if (!provider) throw new VaultError('error.noAiProvider');
 
       const campaign = await vault.getCampaign(campaignId);

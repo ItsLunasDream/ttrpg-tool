@@ -6,6 +6,7 @@
  * Die Oberflaeche erfaehrt nur, ob einer hinterlegt ist.
  */
 import Anthropic from '@anthropic-ai/sdk';
+export { CLAUDE_VOREINSTELLUNG } from './einstellungen';
 import { KiFehler, type KiAnbieter, type KiAnfrage, type KiSchluessel, type KiWerte, type KiZustand } from './anbieter';
 
 export interface ClaudeEinstellung {
@@ -13,8 +14,15 @@ export interface ClaudeEinstellung {
   readonly modell: string;
 }
 
-/** Voreinstellung. Bewusst nicht kleiner gewaehlt, die Wahl gehoert der Nutzerin. */
-export const CLAUDE_VOREINSTELLUNG = 'claude-opus-5';
+/**
+ * Wie lange die Bereitschaftspruefung hoechstens dauern darf.
+ *
+ * Vier Sekunden wie bei Ollama, und ohne Wiederholung: es ist eine Frage nach
+ * einem Modellnamen,
+ * keine Anfrage an das Modell. Dauert sie laenger, ist etwas am Netz und
+ * nicht am Modell, und genau das soll dastehen.
+ */
+const PRUEF_FRIST_MS = 4000;
 
 export class ClaudeAnbieter implements KiAnbieter {
   readonly id = 'claude';
@@ -32,7 +40,10 @@ export class ClaudeAnbieter implements KiAnbieter {
     if (!this.einstellung.schluessel.trim()) return { bereit: false, schluessel: 'error.aiNoKey' };
 
     try {
-      await this.klient.models.retrieve(this.einstellung.modell);
+      // Mit Frist. Das SDK wartet von sich aus zehn Minuten, und wer auf
+      // "Verbindung pruefen" drueckt, will nicht zehn Minuten warten, um zu
+      // erfahren, dass kein Netz da ist.
+      await this.klient.models.retrieve(this.einstellung.modell, { timeout: PRUEF_FRIST_MS, maxRetries: 0 });
       return { bereit: true, beschreibung: this.beschreibe() };
     } catch (fehler) {
       const { schluessel, werte } = ordne(fehler);

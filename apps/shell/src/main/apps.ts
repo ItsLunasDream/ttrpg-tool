@@ -35,6 +35,7 @@ import {
 } from '../../../initiative/src/main/embed';
 import { mountDice } from '../../../dice/src/main/embed';
 import { mountNpc } from '../../../npc/src/main/embed';
+import type { KiQuelle } from './ki';
 import type { Language } from '../shared/i18n';
 
 export interface MontierteApp {
@@ -104,6 +105,14 @@ export interface MontageHaken {
    * sie soll ueberall gleich aussehen, gleich wer sie ausloest.
    */
   readonly onEreignis?: (appId: string) => void;
+  /**
+   * Die KI-Anbindung der Sammlung.
+   *
+   * Eingerichtet wird sie einmal in der Huelle; die Werkzeuge bekommen sie
+   * durchgereicht, statt jedes eine eigene zu fuehren. Eine Funktion und kein
+   * Schnappschuss: wer sie umstellt, soll das im naechsten Klick merken.
+   */
+  readonly kiQuelle?: KiQuelle;
 }
 
 /**
@@ -430,7 +439,10 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
     onLanguageChange: haken.onLanguageChange,
     // Wer den Backstory Creator bisher einzeln benutzt hat, soll seine
     // Kampagnen hier wiederfinden und nicht vor einer leeren Sammlung stehen.
-    uebernahmeKandidaten: fruehereSpeicherorte(id)
+    uebernahmeKandidaten: fruehereSpeicherorte(id),
+    // In der Huelle wird die KI einmal fuer alle eingerichtet. Der eigene
+    // Abschnitt in den Einstellungen dieser Anwendung verschwindet dadurch.
+    kiQuelle: haken.kiQuelle
   });
 
   // Fuer den NPC Creator: er legt Figuren hier ab, ohne den Vault zu kennen.

@@ -625,6 +625,42 @@ body {
   margin: 8px 0 0;
 }
 
+/*
+ * Eingaben sehen aus wie Auswahlfelder. Der einzige Unterschied ist, dass
+ * man hineinschreibt — das soll man ihnen nicht auch noch ansehen muessen.
+ */
+.feld__eingabe {
+  background: #232834;
+  color: var(--text);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  font: inherit;
+  padding: 5px 8px;
+  min-width: 140px;
+  flex: 1 1 auto;
+  max-width: 260px;
+}
+
+.feld__ueberschrift {
+  font-size: 14px;
+  margin: 20px 0 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rand);
+}
+
+/* Die erste Ueberschrift braucht keine Trennlinie: darueber ist der Rand. */
+.feld__ueberschrift:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.feld__knoepfe {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 /* ---------- Ueber ---------- */
 
 .ueber {

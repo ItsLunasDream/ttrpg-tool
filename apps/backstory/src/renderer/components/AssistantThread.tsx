@@ -8,6 +8,8 @@ export interface AiStatus {
   ready: boolean;
   detail: string;
   hasKey: boolean;
+  /** Ob eine Huelle die KI fuehrt. Dann wird sie nicht hier eingerichtet. */
+  managedByShell: boolean;
 }
 
 interface Props {

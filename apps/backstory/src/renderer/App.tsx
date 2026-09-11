@@ -949,6 +949,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         <SettingsDialog
           settings={settings}
           hasApiKey={aiStatus?.hasKey ?? false}
+          kiVonHuelle={aiStatus?.managedByShell ?? false}
           onSaveApiKey={(apiKey) =>
             void guard(async () => {
               setSettings(await call(api.ai.setApiKey(apiKey)));

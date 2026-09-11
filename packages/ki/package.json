@@ -5,7 +5,8 @@
   "description": "Anbindung an Sprachmodelle — plattformfreies, geteiltes Paket",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./einstellungen": "./src/einstellungen.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
