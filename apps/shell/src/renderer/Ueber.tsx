@@ -11,7 +11,7 @@ import type { MessageKey, MessageParams } from '../shared/i18n';
 import { Dialog } from './Dialog';
 import { SuiteIcon } from './icons';
 
-const REPO_URL = 'https://github.com/ItsLunasDream/backstory-creator';
+const REPO_URL = 'https://github.com/ItsLunasDream/ttrpg-tool';
 const LICENSE_URL = `${REPO_URL}/blob/main/LICENSE`;
 
 interface Props {
