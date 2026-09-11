@@ -76,7 +76,7 @@ test('bei der Eigenheit wird ausdruecklich gebremst', () => {
 test('die Vorgaben gehen mit', () => {
   const wuensche = { archetyp: 'wache', klang: 'weiblich', spezies: 0 };
   const anweisung = figurAnweisung(null, [], wuensche, 'de');
-  assert.match(anweisung, /weiblich/);
+  assert.match(anweisung, /feminin/);
   assert.match(anweisung, new RegExp(SPEZIES[0].de));
   assert.match(anweisung, /Richtung:/);
 });

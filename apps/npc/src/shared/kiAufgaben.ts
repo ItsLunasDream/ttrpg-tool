@@ -87,7 +87,7 @@ function vorgaben(wuensche: Wuensche, sprache: Sprache): string[] {
   if (wuensche.klang) {
     const klang =
       sprache === 'de'
-        ? { weiblich: 'weiblich', maennlich: 'männlich', neutral: 'geschlechtsneutral' }
+        ? { weiblich: 'feminin', maennlich: 'maskulin', neutral: 'geschlechtsneutral' }
         : { weiblich: 'feminine', maennlich: 'masculine', neutral: 'gender-neutral' };
     zeilen.push(
       sprache === 'de'

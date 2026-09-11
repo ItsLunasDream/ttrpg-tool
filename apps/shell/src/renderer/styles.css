@@ -329,7 +329,13 @@ body {
     #7aa2f700 70%,
     transparent 100%
   );
-  animation: schiene-wischt 1100ms var(--motion-ease-standard) 2;
+  /*
+   * Einmal, nicht zweimal. Vorher liefen zwei Durchgaenge zu 1100 ms, und ein
+   * Zeitgeber nahm die Klasse nach 1400 ms wieder weg — der zweite Wisch fing
+   * also an und brach mitten drin ab. Zwei Zahlen, die zusammenpassen
+   * mussten und es nicht taten; jetzt meldet die Animation ihr Ende selbst.
+   */
+  animation: schiene-wischt 1100ms var(--motion-ease-standard) 1;
   pointer-events: none;
 }
 

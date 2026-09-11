@@ -153,6 +153,20 @@ export interface BackstoryEmbed {
    * dort, und die Meldung liefe im Kreis.
    */
   setLanguage(webContents: WebContents, language: AppSettings['language']): Promise<void>;
+  /**
+   * Sagt der Oberflaeche, dass im Speicherort etwas dazugekommen ist, das
+   * nicht von ihr stammt.
+   *
+   * Gebraucht, seit der NPC Creator Figuren hier ablegt. Die Notiz landet auf
+   * der Platte, aber die offene Liste hat ihren Stand vom Oeffnen — und beim
+   * Zurueckwechseln wird die Ansicht bewusst nicht neu geladen, das wuerfe
+   * den Zustand weg. Ohne diese Meldung sieht es aus, als waere gar nichts
+   * angelegt worden.
+   *
+   * Nur die Liste wird neu geholt, nicht die offene Notiz: wer gerade
+   * schreibt, soll seinen Text behalten.
+   */
+  meldeFremdeAenderung(webContents: WebContents): void;
 }
 
 /**
@@ -210,6 +224,9 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
     flush: (webContents, timeoutMs = 3000) => flushWebContents(webContents, timeoutMs),
     darfSchliessen: (webContents, elternfenster) =>
       frageVorDemSchliessen(webContents, kontext.settings.language, elternfenster),
+    meldeFremdeAenderung: (webContents) => {
+      if (!webContents.isDestroyed()) webContents.send(channel('app:fremde-aenderung'));
+    },
     setLanguage: async (webContents, language) => {
       if (kontext.settings.language === language) return;
       kontext.settings = await writeSettings(settingsFile, { ...kontext.settings, language });

@@ -130,12 +130,25 @@ function erzeugeBeruf(archetyp: string, sprache: Sprache, rng: () => number): st
   return waehleText(passend.length > 0 ? passend : BERUFE, sprache, rng);
 }
 
-/** Ein einzelnes Feld, frisch gewuerfelt. */
+/**
+ * Ein einzelnes Feld, frisch gewuerfelt.
+ *
+ * `gezielt` unterscheidet zwei Faelle, die nur bei der Eigenheit auseinander
+ * gehen:
+ *
+ * - Beim Erzeugen einer ganzen Figur faellt die Eigenheit meistens aus. Das
+ *   ist der Sinn der Sache: haette jede Figur eine Marotte, waere keine mehr
+ *   besonders.
+ * - Wer auf das Nachwuerfeln GENAU DIESER Zeile drueckt, will eine Marotte.
+ *   Sechsmal hintereinander ein leeres Feld sieht aus wie ein Knopf, der
+ *   nicht reagiert.
+ */
 export function erzeugeFeld(
   feld: Feld,
   wuensche: Wuensche,
   sprache: Sprache,
-  rng: () => number
+  rng: () => number,
+  gezielt = false
 ): string {
   switch (feld) {
     case 'name':
@@ -151,8 +164,9 @@ export function erzeugeFeld(
     case 'geheimnis':
       return waehleText(GEHEIMNISSE, sprache, rng);
     case 'eigenheit':
-      // Die Ausnahme: meistens kommt hier nichts.
-      return rng() < EIGENHEIT_CHANCE ? waehleText(EIGENHEITEN, sprache, rng) : '';
+      // Die Ausnahme: beim Erzeugen einer Figur kommt hier meistens nichts.
+      // Wer das Feld gezielt nachwuerfelt, bekommt immer etwas.
+      return gezielt || rng() < EIGENHEIT_CHANCE ? waehleText(EIGENHEITEN, sprache, rng) : '';
   }
 }
 

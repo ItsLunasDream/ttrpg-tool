@@ -239,6 +239,22 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     []
   );
 
+  /*
+   * Ein anderes Werkzeug hat etwas abgelegt — der NPC Creator eine Figur.
+   *
+   * Nur die Liste wird neu geholt, nicht die offene Notiz: wer gerade
+   * schreibt, soll seinen Text behalten. Ohne das sah es aus, als waere gar
+   * nichts angelegt worden: die Datei lag auf der Platte, die Liste hatte
+   * ihren Stand vom Oeffnen, und beim Zurueckwechseln wird die Ansicht
+   * bewusst nicht neu geladen, weil das den Zustand wegwuerfe.
+   */
+  useEffect(() => {
+    if (!activeCampaignId) return;
+    return api.onFremdeAenderung(() => {
+      void guard(() => reloadNotes(activeCampaignId));
+    });
+  }, [activeCampaignId, guard, reloadNotes]);
+
   useEffect(() => {
     if (!activeCampaignId) {
       setNotes([]);

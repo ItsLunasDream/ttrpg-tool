@@ -344,6 +344,14 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
 
       const notiz = await backstoryEmbed.vault.createNote(kampagne.id, 'character', titel);
       await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+
+      // Dem Backstory Creator sagen, dass etwas dazugekommen ist. Ohne das
+      // liegt die Notiz zwar auf der Platte, seine offene Liste zeigt sie
+      // aber nicht — und es sieht aus, als waere der Export ins Leere
+      // gelaufen.
+      if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
+        backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
+      }
       haken.onEreignis?.('backstory');
       return { ok: true, text: `${titel} → ${kampagne.name}` };
     }
@@ -431,6 +439,14 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
  * sagt das ehrlich, statt stumm ins Leere zu schreiben.
  */
 let backstoryEmbed: BackstoryEmbed | null = null;
+/**
+ * Die Ansicht des Backstory Creators, solange er montiert ist.
+ *
+ * Gebraucht, um ihm zu sagen, dass hinter seinem Ruecken eine Notiz
+ * dazugekommen ist. Der Embed allein reicht dafuer nicht: `send` braucht die
+ * webContents, und die gehoeren zur Ansicht.
+ */
+let backstorySicht: WebContentsView | null = null;
 
 async function montiereBackstory(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountBackstory({
@@ -462,6 +478,8 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
   });
 
   sichereAb(sicht, eingebettet.devServerUrl);
+  // Damit der NPC Creator ihm sagen kann, dass eine Figur dazugekommen ist.
+  backstorySicht = sicht;
 
   let geladen = false;
   return {

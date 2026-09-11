@@ -68,7 +68,12 @@ export function App() {
   const nachwuerfeln = useCallback(
     (feld: Feld) => {
       setFigur((vorher) =>
-        vorher ? { ...vorher, [feld]: erzeugeFeld(feld, wuensche, getLanguage(), Math.random) } : vorher
+        vorher
+          ? // `true`: gezielt nachgewuerfelt. Bei der Eigenheit kommt dann
+            // immer etwas, waehrend sie beim Erzeugen einer ganzen Figur
+            // meistens ausfaellt.
+            { ...vorher, [feld]: erzeugeFeld(feld, wuensche, getLanguage(), Math.random, true) }
+          : vorher
       );
       setExportStand('ruht');
     },

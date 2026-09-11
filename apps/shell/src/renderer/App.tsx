@@ -376,25 +376,42 @@ function Buehne({
    */
   const [gemeldet, setGemeldet] = useState<readonly string[]>([]);
 
+  /**
+   * Nimmt ein Werkzeug wieder aus der Meldung.
+   *
+   * Muss passieren, sonst liefe die Animation nur ein einziges Mal: eine
+   * Klasse, die stehen bleibt, startet nicht neu.
+   */
+  const wischFertig = useCallback((id: string) => {
+    setGemeldet((vorher) => vorher.filter((eintrag) => eintrag !== id));
+  }, []);
+
   useEffect(() => {
-    const zeitgeber = new Map<string, number>();
+    const notbremse = new Map<string, number>();
     const ab = window.shell?.app?.beiEreignis?.((id) => {
       setGemeldet((vorher) => (vorher.includes(id) ? vorher : [...vorher, id]));
-      // Nach dem Wischen wieder abmelden, sonst liefe die Animation nur
-      // einmal: eine Klasse, die stehen bleibt, startet nicht neu.
-      window.clearTimeout(zeitgeber.get(id));
-      zeitgeber.set(
-        id,
-        window.setTimeout(() => {
-          setGemeldet((vorher) => vorher.filter((eintrag) => eintrag !== id));
-        }, 1400)
-      );
+      /*
+       * Abgeraeumt wird, wenn die Animation zu Ende ist — sie meldet das
+       * selbst (siehe onAnimationEnd an der Schiene).
+       *
+       * Vorher stand hier ein Zeitgeber mit 1400 ms, waehrend die CSS zwei
+       * Durchgaenge zu 1100 ms lief: der zweite Wisch fing an und brach
+       * mitten drin ab. Zwei Zahlen, die zusammenpassen mussten und es nicht
+       * taten.
+       *
+       * Der Zeitgeber bleibt als Notbremse, deutlich laenger als die
+       * Animation. Er greift nur, wenn gar kein `animationend` kommt — etwa
+       * weil das Symbol waehrenddessen aus der Schiene verschwindet. Ohne ihn
+       * bliebe die Farbe dann fuer immer stehen.
+       */
+      window.clearTimeout(notbremse.get(id));
+      notbremse.set(id, window.setTimeout(() => wischFertig(id), 4000));
     });
     return () => {
       ab?.();
-      for (const nummer of zeitgeber.values()) window.clearTimeout(nummer);
+      for (const nummer of notbremse.values()) window.clearTimeout(nummer);
     };
-  }, []);
+  }, [wischFertig]);
 
   // Gemessen statt gerechnet: die Stelle haengt an Knopfhoehen, Abstaenden und
   // dem Trenner. Eine Formel dafuer waere bei der naechsten Aenderung an der
@@ -450,6 +467,9 @@ function Buehne({
               aria-current={app.id === aktiv ? 'page' : undefined}
               title={waehlbar ? name : `${name} — ${t(STATUS_KEY[app.status])}`}
               onClick={() => setAktiv(app.id)}
+              // Die Animation liegt auf ::after; ihr Ende steigt bis hierher
+              // auf. So bleibt die Dauer allein in der CSS.
+              onAnimationEnd={() => wischFertig(app.id)}
             >
               <Icon size={26} />
             </button>
