@@ -97,6 +97,17 @@ const api = {
       ipcRenderer.off(channel('app:fremde-aenderung'), listener);
     };
   },
+  /**
+   * Die KI-Einstellung der Sammlung hat sich geaendert. Liefert eine Funktion
+   * zum Abmelden zurueck.
+   */
+  onKiWechsel: (callback: () => void): (() => void) => {
+    const listener = () => callback();
+    ipcRenderer.on(channel('app:ki-gewechselt'), listener);
+    return () => {
+      ipcRenderer.off(channel('app:ki-gewechselt'), listener);
+    };
+  },
   ai: {
     status: () =>
       invoke<{

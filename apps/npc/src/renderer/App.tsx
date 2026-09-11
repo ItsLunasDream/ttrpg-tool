@@ -57,7 +57,11 @@ export function App() {
   useEffect(() => onLanguageChange(() => setSprache(getLanguage())), []);
 
   useEffect(() => {
-    void api.ki.da().then(setKiDa, () => setKiDa(false));
+    const frage = () => void api.ki.da().then(setKiDa, () => setKiDa(false));
+    frage();
+    // Und noch einmal, wenn die Einstellung sich aendert. Ohne das saehe man
+    // die Knoepfe erst nach einem Neustart, wenn man die KI einschaltet.
+    return api.ki.beiWechsel(frage);
   }, []);
 
   const wuerfle = useCallback(() => {

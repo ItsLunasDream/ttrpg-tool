@@ -167,6 +167,15 @@ export interface BackstoryEmbed {
    * schreibt, soll seinen Text behalten.
    */
   meldeFremdeAenderung(webContents: WebContents): void;
+  /**
+   * Sagt der Oberflaeche, dass sich die KI-Einstellung der Sammlung geaendert
+   * hat.
+   *
+   * Ohne das fragt sie den Zustand nur einmal beim Laden ab: wer die KI in
+   * der Huelle abschaltet, saehe den Assistenten weiter, bis zufaellig etwas
+   * anderes ein Neuzeichnen ausloest.
+   */
+  meldeKiWechsel(webContents: WebContents): void;
 }
 
 /**
@@ -226,6 +235,9 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
       frageVorDemSchliessen(webContents, kontext.settings.language, elternfenster),
     meldeFremdeAenderung: (webContents) => {
       if (!webContents.isDestroyed()) webContents.send(channel('app:fremde-aenderung'));
+    },
+    meldeKiWechsel: (webContents) => {
+      if (!webContents.isDestroyed()) webContents.send(channel('app:ki-gewechselt'));
     },
     setLanguage: async (webContents, language) => {
       if (kontext.settings.language === language) return;

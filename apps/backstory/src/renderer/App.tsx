@@ -240,6 +240,18 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   );
 
   /*
+   * Die KI wurde in der Huelle an- oder abgeschaltet.
+   *
+   * Ohne das fragte die Oberflaeche den Zustand nur einmal beim Laden ab: wer
+   * die KI abschaltet, saehe den Assistenten weiter, bis zufaellig etwas
+   * anderes ein Neuzeichnen ausloeste.
+   */
+  useEffect(
+    () => api.onKiWechsel(() => void call(api.ai.status()).then(setAiStatus, () => setAiStatus(null))),
+    []
+  );
+
+  /*
    * Ein anderes Werkzeug hat etwas abgelegt — der NPC Creator eine Figur.
    *
    * Nur die Liste wird neu geholt, nicht die offene Notiz: wer gerade

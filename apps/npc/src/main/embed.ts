@@ -77,6 +77,14 @@ export interface NpcEmbed {
   readonly csp: string;
   flush(): Promise<void>;
   setLanguage(webContents: WebContents, language: string): Promise<void>;
+  /**
+   * Sagt der Oberflaeche, dass sich die KI-Einstellung der Sammlung geaendert
+   * hat.
+   *
+   * Ohne das fragt sie nur einmal beim Laden, ob eine KI da ist: wer sie
+   * danach einschaltet, saehe die Knoepfe erst nach einem Neustart.
+   */
+  meldeKiWechsel(webContents: WebContents): void;
 }
 
 /**
@@ -209,6 +217,9 @@ export async function mountNpc(options: NpcEmbedOptions): Promise<NpcEmbed> {
     },
     setLanguage: async (webContents, language) => {
       if (!webContents.isDestroyed()) webContents.send(kanal('sprache:gesetzt'), language);
+    },
+    meldeKiWechsel: (webContents) => {
+      if (!webContents.isDestroyed()) webContents.send(kanal('ki:gewechselt'));
     }
   };
 }

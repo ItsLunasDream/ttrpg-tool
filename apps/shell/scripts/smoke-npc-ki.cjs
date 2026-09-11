@@ -78,7 +78,7 @@ modell.listen(0, '127.0.0.1', () => {
   app.setPath('userData', userData);
   process.env.TTRPG_TOOLS_START_APP = 'npc';
   require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
-  starte();
+  starte(port);
 });
 
 const warte = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -88,7 +88,7 @@ const pruefe = (b, t) => {
   if (!b) fehler.push(t);
 };
 
-function starte() {
+function starte(port) {
   app.whenReady().then(async () => {
     await warte(5000);
     const fenster = BaseWindow.getAllWindows()[0];
@@ -196,6 +196,35 @@ function starte() {
       'ein Fehler des Anbieters ebenfalls'
     );
     pruefe(!(await stoerung()).startsWith('error.'), 'auch hier steht ein Satz da');
+
+    // --- Im laufenden Betrieb abschalten ------------------------------------
+    /*
+     * Gemeldet: "Wenn ich in den Einstellungen die KI angeschaltet habe, sehe
+     * ich nirgends ein KI Feature." Und umgekehrt beim Abschalten.
+     *
+     * Die Werkzeuge fragten den Zustand nur beim Laden ab. Wer die
+     * Einstellung danach aenderte, sah davon nichts — bis zufaellig etwas
+     * anderes ein Neuzeichnen ausloeste, etwa ein Sprachwechsel.
+     */
+    const huelle = fenster.contentView.children[0];
+    const hjs = (a) => huelle.webContents.executeJavaScript(a);
+
+    await hjs("window.shell.einstellungen.schreiben({ ki: { anbieter: 'none', ollamaAdresse: 'x', ollamaModell: 'y', claudeModell: 'z' } })");
+    await warte(900);
+    pruefe(
+      (await js("Boolean(document.querySelector('.knopf--ki'))")) === false,
+      'die KI abgeschaltet: die Knoepfe verschwinden ohne weiteres Zutun'
+    );
+
+    // --- Und wieder an --------------------------------------------------------
+    await hjs(
+      `window.shell.einstellungen.schreiben({ ki: { anbieter: 'ollama', ollamaAdresse: 'http://127.0.0.1:${port}', ollamaModell: 'testmodell', claudeModell: 'claude-opus-5' } })`
+    );
+    await warte(900);
+    pruefe(
+      (await js("Boolean(document.querySelector('.knopf--ki'))")) === true,
+      'und wieder an: sie kommen zurueck'
+    );
 
     pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
 

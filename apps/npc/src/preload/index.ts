@@ -42,6 +42,15 @@ const api = {
    */
   ki: {
     da: () => ipcRenderer.invoke(kanal('ki:da')) as Promise<boolean>,
+    /**
+     * Die KI-Einstellung der Sammlung hat sich geaendert. Liefert eine
+     * Funktion zum Abmelden zurueck.
+     */
+    beiWechsel: (callback: () => void): (() => void) => {
+      const hoerer = () => callback();
+      ipcRenderer.on(kanal('ki:gewechselt'), hoerer);
+      return () => ipcRenderer.off(kanal('ki:gewechselt'), hoerer);
+    },
     feld: (feld: Feld, figur: Figur, wuensche: Wuensche, sprache: Sprache) =>
       ipcRenderer.invoke(kanal('ki:feld'), feld, figur, wuensche, sprache) as Promise<
         KiErgebnis<string>

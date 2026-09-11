@@ -82,6 +82,15 @@ export interface MontierteApp {
    * wird.
    */
   setLanguage?(language: Language): Promise<void>;
+  /**
+   * Sagt der Anwendung, dass sich die KI-Einstellung der Sammlung geaendert
+   * hat — fehlt bei Anwendungen ohne KI.
+   *
+   * Die Huelle ruft das bei jeder offenen Anwendung auf. Ohne diese Meldung
+   * fragen sie den Zustand nur einmal beim Laden ab, und wer die KI umstellt,
+   * saehe davon nichts.
+   */
+  meldeKiWechsel?(): void;
 }
 
 /** Was die Huelle jeder Anwendung beim Montieren mitgibt. */
@@ -382,7 +391,10 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
     },
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
-    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)    ,
+    // Die KI wird in der Huelle eingerichtet; dieses Werkzeug muss es
+    // erfahren, sonst fragt es den Zustand nur beim Laden ab.
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
   };
 }
 
@@ -493,7 +505,10 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
     flush: () => eingebettet.flush(sicht.webContents as WebContents),
     darfSchliessen: (elternfenster) =>
       eingebettet.darfSchliessen(sicht.webContents as WebContents, elternfenster),
-    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)    ,
+    // Die KI wird in der Huelle eingerichtet; dieses Werkzeug muss es
+    // erfahren, sonst fragt es den Zustand nur beim Laden ab.
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
   };
 }
 

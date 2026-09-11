@@ -196,6 +196,17 @@ function verbergeAlle(): void {
  * `herkunft` ist die ID der Anwendung selbst — kommt eine Aenderung von dort
  * zurueck, muss sie nicht noch einmal informiert werden.
  */
+/**
+ * Sagt allen offenen Werkzeugen, dass sich die KI-Einstellung geaendert hat.
+ *
+ * Auch dem, in dem gerade gearbeitet wird: anders als bei der Sprache gibt es
+ * hier keine "Ursprungs"-Anwendung, die schon Bescheid wuesste — eingestellt
+ * wird die KI immer in der Huelle.
+ */
+function meldeKiWechsel(): void {
+  for (const montiert of offen.values()) montiert.meldeKiWechsel?.();
+}
+
 function montageHaken(herkunft: string, sprache: Language): MontageHaken {
   return {
     language: sprache,
@@ -488,6 +499,11 @@ function registriereKanaele(): void {
     });
     const aktualisiert = await readSettings(einstellungsDatei);
     gemerkteEinstellungen = aktualisiert;
+    // Die Werkzeuge fragen den KI-Zustand nur beim Laden ab. Aendert sich die
+    // Einstellung hier, muessen sie es erfahren — sonst sieht man den
+    // Assistenten weiter, obwohl die KI aus ist, und die Knoepfe im NPC
+    // Creator fehlen, obwohl sie an ist.
+    if (JSON.stringify(aktualisiert.ki) !== JSON.stringify(vorher.ki)) meldeKiWechsel();
     // Die Sprache hier zu aendern ist der Weg ueber den Einstellungen-Dialog
     // der Huelle; es gibt keine "Ursprungs"-Anwendung, die schon Bescheid
     // weiss, deshalb bekommen alle offenen Anwendungen die Meldung.
@@ -536,6 +552,9 @@ function registriereKanaele(): void {
     const vorher = await readSettings(einstellungsDatei);
     gemerkteEinstellungen = { ...vorher, claudeSchluessel: verschluesselt };
     await writeSettings(einstellungsDatei, gemerkteEinstellungen);
+    // Ein Schluessel, der dazukommt oder wegfaellt, entscheidet genauso
+    // darueber, ob die KI benutzbar ist, wie der Anbieter selbst.
+    meldeKiWechsel();
     return Boolean(verschluesselt);
   });
 
