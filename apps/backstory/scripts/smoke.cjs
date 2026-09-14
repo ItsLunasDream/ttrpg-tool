@@ -346,6 +346,46 @@ app.whenReady().then(async () => {
     check(await run(window, `return !document.querySelector('.ProseMirror').textContent.includes('Und [[');`),
       'Der Probetext der Pfeiltasten-Pruefung blieb stehen');
 
+    // 5d. Markierter Text und "[[" ergeben einen Verweis, statt ersetzt zu
+    // werden. Geprueft wird an einem eigenen Satz, nicht am bestehenden
+    // Verweis: dort waere das Ergebnis Unsinn.
+    await run(
+      window,
+      `const feld = document.querySelector('.ProseMirror');
+       feld.focus();
+       const auswahl = window.getSelection();
+       auswahl.selectAllChildren(feld);
+       auswahl.collapseToEnd();
+       return true;`
+    );
+    await sleep(200);
+    window.webContents.insertText(' Der Hafen.');
+    await sleep(400);
+    const markiert = await run(
+      window,
+      `const feld = document.querySelector('.ProseMirror');
+       const knoten = (function suche(k) {
+         if (k.nodeType === 3 && k.textContent.includes('Hafen')) return k;
+         for (const kind of k.childNodes) { const treffer = suche(kind); if (treffer) return treffer; }
+         return null;
+       })(feld);
+       const versatz = knoten.textContent.lastIndexOf('Hafen');
+       const bereich = document.createRange();
+       bereich.setStart(knoten, versatz);
+       bereich.setEnd(knoten, versatz + 5);
+       const auswahl = window.getSelection();
+       auswahl.removeAllRanges();
+       auswahl.addRange(bereich);
+       feld.focus();
+       return auswahl.toString();`
+    );
+    check(markiert === 'Hafen', `Die Probe hat nicht "Hafen" markiert, sondern "${markiert}"`);
+    await sleep(200);
+    window.webContents.insertText('[[');
+    await sleep(600);
+    check(await run(window, `return document.querySelector('.ProseMirror').textContent.includes('[[Hafen]]');`),
+      'Markierter Text wurde beim Tippen von "[[" nicht umschlossen');
+
     // 6. Kurzinfo-Karte muss den Textanfang zeigen
     await run(
       window,
