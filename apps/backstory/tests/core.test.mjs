@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const {pastedMarkdownToHtml, findWikiLinks, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, DEFAULT_LANGUAGE, CHANNEL_PREFIX, channel, layoutGraph, buildGraphEdges, buildGraphNodes, mergeNoteTypes, countMergeChanges, factoryFieldKey, finalizeNewEntries} = entry;
+const {pastedMarkdownToHtml, findWikiLinks, insideWikiLink, rewriteWikiLinks, parseFrontmatter, stringifyFrontmatter, countWords, markdownToHtml, htmlToMarkdown, buildIndex, backlinksFor, unresolvedLinks, searchNotes, findOccurrences, textPreview, stripMarkdown, DEFAULT_NOTE_TYPES, findNoteType, fieldLabel, toKey, translate, isLanguage, LANGUAGES, MESSAGE_KEYS, assetUrl, assetPath, renderNoteMarkdown, referencedAssets, toFileName, defaultPrompts, DEFAULT_LANGUAGE, CHANNEL_PREFIX, channel, layoutGraph, buildGraphEdges, buildGraphNodes, mergeNoteTypes, countMergeChanges, factoryFieldKey, finalizeNewEntries} = entry;
 
 /** Baut einen Index mit den Standardtypen. */
 function makeIndex(notes) {
@@ -35,6 +35,21 @@ test('findWikiLinks erkennt Ziel und Anzeigetext', () => {
 
 test('findWikiLinks ignoriert leere und unvollstaendige Links', () => {
   assert.equal(findWikiLinks('[[]] und [[offen').length, 0);
+});
+
+test('insideWikiLink erkennt die Stelle mitten in einem fertigen Verweis', () => {
+  const text = 'Sie traf [[Elara]] am Hafen.';
+  const innen = text.indexOf('Elara') + 3;
+  assert.equal(insideWikiLink(text, innen), true);
+});
+
+test('insideWikiLink laesst die Raender und offene Klammern frei', () => {
+  const text = 'Sie traf [[Elara]] am Hafen.';
+  // Direkt vor dem `[[` und direkt hinter dem `]]` faengt man einen neuen an.
+  assert.equal(insideWikiLink(text, text.indexOf('[[')), false);
+  assert.equal(insideWikiLink(text, text.indexOf(']]') + 2), false);
+  // Ein frisch begonnener Verweis ist noch keiner.
+  assert.equal(insideWikiLink('Sie traf [[Ela', 14), false);
 });
 
 test('rewriteWikiLinks zieht Umbenennungen nach und behaelt Anzeigetexte', () => {

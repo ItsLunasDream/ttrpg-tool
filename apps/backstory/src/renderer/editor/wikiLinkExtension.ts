@@ -1,7 +1,7 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view';
-import { findWikiLinks } from '../../shared/wikilinks';
+import { findWikiLinks, insideWikiLink } from '../../shared/wikilinks';
 
 export interface SuggestionState {
   query: string;
@@ -41,6 +41,12 @@ function suggestionAt(view: EditorView): SuggestionState | null {
   const textBefore = $from.parent.textBetween(0, $from.parentOffset, '\n', '\n');
   const open = readOpenLink(textBefore);
   if (!open) return null;
+
+  // Im Inneren eines fertigen Verweises sieht es nach links wie ein frisch
+  // begonnener aus: `[[Ela` ohne `]]`. Ohne diese Pruefung schlaegt die Liste
+  // den halben Titel vor, legt ihn an und haengt ein zweites `]]` an.
+  const ganzerAbsatz = $from.parent.textBetween(0, $from.parent.content.size, '\n', '\n');
+  if (insideWikiLink(ganzerAbsatz, $from.parentOffset)) return null;
 
   const from = $from.pos - open.offset;
   const coords = view.coordsAtPos(from);

@@ -279,6 +279,29 @@ app.whenReady().then(async () => {
     check(await run(window, `return /\\d+ Wörter/.test(document.querySelector('.note-editor__words').textContent);`),
       'Wortzaehler fehlt');
 
+    // 5b. Der Cursor mitten im fertigen Verweis darf keine Vorschlagsliste
+    // oeffnen. Nach links sieht es dort aus wie ein frisch begonnener Link
+    // (`[[Mira` ohne `]]`) — frueher schlug die Liste deshalb den halben
+    // Titel vor, legte ihn als neue Notiz an und haengte ein zweites `]]` an.
+    const vorherText = await run(window, `return document.querySelector('.ProseMirror').textContent;`);
+    await run(
+      window,
+      `const knoten = [...document.querySelectorAll('.ProseMirror .wikilink')][0].firstChild;
+       const bereich = document.createRange();
+       bereich.setStart(knoten, 4);
+       bereich.collapse(true);
+       const auswahl = window.getSelection();
+       auswahl.removeAllRanges();
+       auswahl.addRange(bereich);
+       document.querySelector('.ProseMirror').focus();
+       return true;`
+    );
+    await sleep(400);
+    check(await run(window, `return document.querySelector('.suggestions') === null;`),
+      'Vorschlagsliste oeffnet mitten in einem fertigen Verweis');
+    check(await run(window, `return document.querySelector('.ProseMirror').textContent;`) === vorherText,
+      'Der Text hat sich beim Klick in den Verweis veraendert');
+
     // 6. Kurzinfo-Karte muss den Textanfang zeigen
     await run(
       window,
