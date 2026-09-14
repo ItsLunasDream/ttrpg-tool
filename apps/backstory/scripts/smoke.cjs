@@ -132,6 +132,14 @@ async function setField(window, label, value) {
   await sleep(250);
 }
 
+/** Einen Tastendruck ans Fenster schicken, so wie save() es fuer Strg+S tut. */
+async function taste(window, key) {
+  await run(
+    window,
+    `window.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, bubbles: true })); return true;`
+  );
+}
+
 async function save(window) {
   await run(
     window,
@@ -301,6 +309,42 @@ app.whenReady().then(async () => {
       'Vorschlagsliste oeffnet mitten in einem fertigen Verweis');
     check(await run(window, `return document.querySelector('.ProseMirror').textContent;`) === vorherText,
       'Der Text hat sich beim Klick in den Verweis veraendert');
+
+    // 5c. Die Vorschlagsliste muss sich mit den Pfeiltasten bedienen lassen.
+    // Der Probetext wird hinterher wieder entfernt, damit die folgenden
+    // Pruefungen denselben Notiztext vorfinden wie vorher.
+    const PROBE = ' Und [[Mi';
+    await run(
+      window,
+      `const feld = document.querySelector('.ProseMirror');
+       feld.focus();
+       const auswahl = window.getSelection();
+       auswahl.selectAllChildren(feld);
+       auswahl.collapseToEnd();
+       return true;`
+    );
+    await sleep(200);
+    window.webContents.insertText(PROBE);
+    await sleep(600);
+    check(await run(window, `return document.querySelectorAll('.suggestions button').length >= 2;`),
+      'Die Vorschlagsliste zeigt weniger als zwei Eintraege');
+    const ersterEintrag = await run(window, `return document.querySelector('.suggestions button.is-active')?.textContent ?? null;`);
+    await taste(window, 'ArrowDown');
+    await sleep(300);
+    const zweiterEintrag = await run(window, `return document.querySelector('.suggestions button.is-active')?.textContent ?? null;`);
+    check(zweiterEintrag !== null && zweiterEintrag !== ersterEintrag,
+      `Pfeil runter bleibt beim ersten Eintrag (${ersterEintrag})`);
+    await taste(window, 'Escape');
+    await sleep(300);
+    check(await run(window, `return document.querySelector('.suggestions') === null;`), 'Escape schliesst die Liste nicht');
+
+    for (let i = 0; i < PROBE.length; i += 1) {
+      window.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Backspace' });
+      window.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Backspace' });
+    }
+    await sleep(600);
+    check(await run(window, `return !document.querySelector('.ProseMirror').textContent.includes('Und [[');`),
+      'Der Probetext der Pfeiltasten-Pruefung blieb stehen');
 
     // 6. Kurzinfo-Karte muss den Textanfang zeigen
     await run(

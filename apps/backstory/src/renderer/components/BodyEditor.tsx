@@ -53,6 +53,24 @@ interface Props {
 
 const MAX_SUGGESTIONS = 8;
 
+
+/**
+ * Was eine Vorschlagsliste ausmacht: die Stelle und die getippte Anfrage.
+ *
+ * Die Ansicht meldet ihren Zustand bei JEDER Neuzeichnung, nicht nur beim
+ * Tippen — und eine Neuzeichnung loest schon das Setzen der Auswahl aus.
+ * Ohne diesen Schluessel sprang die Auswahl deshalb sofort wieder auf den
+ * ersten Eintrag, und Escape schloss die Liste nur fuer einen Wimpernschlag.
+ */
+function vorschlagsSchluessel(state: SuggestionState | null): string | null {
+  return state ? `${state.from}:${state.query}` : null;
+}
+
+function gleicherVorschlag(a: SuggestionState | null, b: SuggestionState | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.from === b.from && a.to === b.to && a.query === b.query && a.left === b.left && a.top === b.top;
+}
+
 export function BodyEditor({
   noteId,
   markdown,
@@ -72,6 +90,10 @@ export function BodyEditor({
   const t = useT();
   const [suggestion, setSuggestion] = useState<SuggestionState | null>(null);
   const [highlight, setHighlight] = useState(0);
+  /** Der zuletzt gemeldete Vorschlag. Nur ein echter Wechsel setzt die Auswahl zurueck. */
+  const letzterVorschlag = useRef<string | null>(null);
+  /** Mit Escape weggeklickt. Kommt erst wieder, wenn sich die Anfrage aendert. */
+  const abgelehnt = useRef<string | null>(null);
   const [matchCount, setMatchCount] = useState(0);
   const [activeMatch, setActiveMatch] = useState(-1);
   // Eigene Suche im Dokument, unabhaengig von der Suche in der Seitenleiste.
@@ -189,8 +211,18 @@ export function BodyEditor({
           handlersRef.current.onHoverNote(note, rect);
         },
         onSuggestion: (state) => {
-          setSuggestion(state);
-          setHighlight(0);
+          const schluessel = vorschlagsSchluessel(state);
+          if (schluessel !== null && schluessel === abgelehnt.current) {
+            setSuggestion(null);
+            return;
+          }
+
+          abgelehnt.current = null;
+          if (schluessel !== letzterVorschlag.current) {
+            letzterVorschlag.current = schluessel;
+            setHighlight(0);
+          }
+          setSuggestion((vorher) => (gleicherVorschlag(vorher, state) ? vorher : state));
         }
       }),
     []
@@ -410,6 +442,7 @@ export function BodyEditor({
         }
       } else if (event.key === 'Escape') {
         event.preventDefault();
+        abgelehnt.current = vorschlagsSchluessel(suggestion);
         setSuggestion(null);
       }
     }
