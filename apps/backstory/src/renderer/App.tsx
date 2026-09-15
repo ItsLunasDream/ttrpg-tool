@@ -781,6 +781,19 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         onRename={() => activeCampaign && setDialog({ kind: 'renameCampaign', campaign: activeCampaign })}
         onDelete={() => activeCampaign && setDialog({ kind: 'deleteCampaign', campaign: activeCampaign })}
         onExport={exportiereKampagneZip}
+        onImport={() =>
+          void guard(async () => {
+            // Auch hier gilt: erst sichern, was offen ist. Das Einlesen
+            // wechselt die Kampagne, und ein Entwurf bliebe sonst haengen.
+            if (!(await bereitFuerPlattenaktion())) return;
+            const eingelesen = await call(api.importCampaignZip());
+            if (!eingelesen) return;
+            const liste = await call(api.campaigns.list());
+            setCampaigns(liste);
+            setActiveCampaignId(eingelesen.id);
+            report(t('msg.imported', { name: eingelesen.name }));
+          })
+        }
         onExportMarkdown={exportiereKampagneMarkdown}
         onExportPdf={exportiereKampagnePdf}
         onToggleGraph={() => setShowGraph((previous) => !previous)}

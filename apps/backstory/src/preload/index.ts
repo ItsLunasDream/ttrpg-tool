@@ -201,6 +201,8 @@ const api = {
     deleteMany: (campaignId: string, names: string[]) =>
       invoke<number>('asset:deleteMany', campaignId, names)
   },
+  /** Liest eine gesicherte Kampagne ein. Null, wenn der Dialog abgebrochen wurde. */
+  importCampaignZip: () => invoke<Campaign | null>('campaign:import'),
   exportCampaignZip: (campaignId: string, campaignName: string) =>
     invoke<string | null>('export:campaignZip', campaignId, campaignName),
   exportPdf: {

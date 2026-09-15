@@ -11,6 +11,7 @@ interface Props {
   ungespeichertAnzahl: number;
   onSelect: (campaignId: string) => void;
   onCreate: () => void;
+  onImport: () => void;
   onRename: () => void;
   onDelete: () => void;
   onExport: () => void;
@@ -63,6 +64,9 @@ export function CampaignBar(props: Props) {
           { label: t('bar.noteTypes'), onSelect: props.onEditNoteTypes, disabled: noCampaign, separated: true },
           { label: t('cleanup.open'), onSelect: props.onCleanup, disabled: noCampaign },
           { label: t('bar.exportZip'), onSelect: props.onExport, disabled: noCampaign, separated: true },
+          // Der Weg zurueck steht neben dem hin. Eine Sicherung, die man nur
+          // von Hand zurueckspielen kann, ist keine.
+          { label: t('bar.importZip'), onSelect: props.onImport },
           { label: t('export.markdownCampaign'), onSelect: props.onExportMarkdown, disabled: noCampaign },
           { label: t('export.pdfCampaign'), onSelect: props.onExportPdf, disabled: noCampaign },
           {

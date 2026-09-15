@@ -495,6 +495,22 @@ export function registerIpc(context: IpcContext): void {
     await zipDirectory(sourceDir, result.filePath);
     return result.filePath;
   });
+
+  /**
+   * Der Weg zurueck. Die eingelesene Kampagne bekommt immer eine neue
+   * Kennung; eine vorhandene wird nie ueberschrieben.
+   */
+  handle<[], Campaign | null>('campaign:import', async () => {
+    const window = BrowserWindow.getFocusedWindow();
+    const options = {
+      properties: ['openFile' as const],
+      filters: [{ name: 'ZIP-Archiv', extensions: ['zip'] }]
+    };
+    const result = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options);
+    if (result.canceled || result.filePaths.length === 0) return null;
+
+    return vault.importCampaign(result.filePaths[0]);
+  });
 }
 
 /** Ordnername aus dem Kampagnennamen, ohne Zeichen, die Dateisysteme stoeren. */
