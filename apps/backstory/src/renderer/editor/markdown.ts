@@ -347,7 +347,8 @@ export function htmlToMarkdown(html: string, toRelative?: (url: string) => strin
  * Wiki-Links werden auf ihren Anzeigetext reduziert.
  */
 export function stripMarkdown(markdown: string): string {
-  return wikiLinkText(markdown)
+  return loeseMaskierung(
+    schuetzeMaskierte(wikiLinkText(markdown))
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`([^`]*)`/g, '$1')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
@@ -359,9 +360,43 @@ export function stripMarkdown(markdown: string): string {
     .split('\n')
     .map(stripTableRow)
     .join('\n')
-    // Zuletzt, damit die Trenner der Tabelle vorher noch von maskierten
-    // Strichen im Text zu unterscheiden waren.
-    .replace(/\\\|/g, '|');
+      // Zuletzt, damit die Trenner der Tabelle vorher noch von maskierten
+      // Strichen im Text zu unterscheiden waren.
+      .replace(/\\\|/g, '|')
+  );
+}
+
+/**
+ * Platzhalter fuer ein maskiertes Sonderzeichen, aus dem Bereich fuer private
+ * Verwendung. In gewoehnlichem Text kommt er nicht vor.
+ */
+const MASKE_AUF = '\uE010';
+const MASKE_ZU = '\uE011';
+
+/**
+ * Bringt maskierte Sonderzeichen in Sicherheit, bevor die Syntax entfernt wird.
+ *
+ * Beim Speichern maskiert der Markdown-Schreiber alles, was sonst eine
+ * Bedeutung haette: aus einem Stern im Satz wird `\*`. Liess man die
+ * Maskierung stehen, blieb der Backslash in der Kurzinfo sichtbar; loeste man
+ * sie vorher auf, fiel der Stern gleich darauf den Regeln fuer Auszeichnung
+ * zum Opfer. Beides war zu sehen.
+ *
+ * Der Strich bleibt bewusst maskiert: er trennt weiter unten die
+ * Tabellenspalten, und ein Strich im Text waere davon sonst nicht mehr zu
+ * unterscheiden.
+ */
+function schuetzeMaskierte(text: string): string {
+  return text.replace(
+    /\\([!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{}~])/g,
+    (_ganz, zeichen: string) => `${MASKE_AUF}${zeichen.codePointAt(0)}${MASKE_ZU}`
+  );
+}
+
+function loeseMaskierung(text: string): string {
+  return text.replace(/\uE010(\d+)\uE011/g, (_ganz, code: string) =>
+    String.fromCodePoint(Number(code))
+  );
 }
 
 const TABLE_ROW = /^\s*\|(.*)\|\s*$/;

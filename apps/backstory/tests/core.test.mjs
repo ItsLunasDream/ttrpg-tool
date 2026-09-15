@@ -37,6 +37,22 @@ test('findWikiLinks ignoriert leere und unvollstaendige Links', () => {
   assert.equal(findWikiLinks('[[]] und [[offen').length, 0);
 });
 
+test('stripMarkdown gibt maskierte Sonderzeichen unveraendert zurueck', () => {
+  // So steht es nach dem Speichern in der Datei: der Schreiber maskiert, was
+  // sonst Auszeichnung waere. In der Kurzinfo standen dafuer Backslashes.
+  const gespeichert = 'Ein Stern \\* und ein Strich \\_ und \\[Klammern\\] (rund).';
+  assert.equal(stripMarkdown(gespeichert), 'Ein Stern * und ein Strich _ und [Klammern] (rund).');
+});
+
+test('stripMarkdown entfernt echte Auszeichnung weiterhin', () => {
+  assert.equal(stripMarkdown('Ein **fettes** und _kursives_ Wort'), 'Ein fettes und kursives Wort');
+  assert.equal(stripMarkdown('Siehe [hier](http://x.y) nach'), 'Siehe hier nach');
+});
+
+test('stripMarkdown haelt maskierte Striche von den Tabellentrennern auseinander', () => {
+  assert.equal(stripMarkdown('| a \\| b | c |'), ' a | b   c ');
+});
+
 test('insideWikiLink erkennt die Stelle mitten in einem fertigen Verweis', () => {
   const text = 'Sie traf [[Elara]] am Hafen.';
   const innen = text.indexOf('Elara') + 3;
