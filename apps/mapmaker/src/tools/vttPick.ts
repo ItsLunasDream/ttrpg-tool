@@ -12,6 +12,7 @@ import {
   segmentIntersectsRect,
   type Rect,
 } from '@/model/geometry';
+import { abstandZurNotiz, notenForm } from '@/model/noteShape';
 import type { LightSource, MapDocument, MapNote, Portal, Wall } from '@/model/types';
 import type { SelectFilter } from '@/model/toolSettings';
 import type { Point } from '@/model/grid';
@@ -115,17 +116,22 @@ export function pickLight(doc: MapDocument, p: Point, tolerance: number): LightS
 /**
  * Notiz am nächsten zum Punkt.
  *
- * Der Pin ist so groß wie in `size` angegeben; getroffen wird trotzdem über
- * eine feste Toleranz um den Mittelpunkt. Eine große Notiz soll nicht schwerer
- * danebenzuklicken sein als eine kleine.
+ * Getroffen wird der ganze Pin, Kopf und Stiel, plus der Toleranzsaum außen
+ * herum. Früher zählte allein der Abstand zu `x`/`y` — und das ist die
+ * Spitze, nicht der Kopf. Bei der Vorgabegröße liegt die Kopfmitte rund
+ * vierzig Einheiten über der Spitze, die Toleranz war sechzehn: der sichtbare
+ * Teil des Pins war damit unanklickbar, und das Notiz-Werkzeug legte bei
+ * jedem Versuch eine neue Notiz an, statt die vorhandene zu öffnen.
  */
 export function pickNote(doc: MapDocument, p: Point, tolerance: number): MapNote | null {
   let best: MapNote | null = null;
-  let bestDistSq = tolerance * tolerance;
+  let bestAbstand = tolerance;
   for (const note of doc.vtt.notes) {
-    const d = (note.x - p.x) ** 2 + (note.y - p.y) ** 2;
-    if (d < bestDistSq) {
-      bestDistSq = d;
+    const abstand = abstandZurNotiz(notenForm(note, doc.grid.tileSize), p.x, p.y);
+    // `<=`, damit ein Klick mitten in den Kopf (Abstand 0) auch dann zählt,
+    // wenn die Toleranz 0 wäre.
+    if (abstand <= bestAbstand) {
+      bestAbstand = abstand;
       best = note;
     }
   }
@@ -186,12 +192,14 @@ export function vttItemBounds(
   if (ref.kind === 'notes') {
     const note = doc.vtt.notes.find((n) => n.id === ref.id);
     if (!note) return null;
-    const half = (note.size * doc.grid.tileSize) / 2;
+    // Die Hülle des Tropfens, nicht ein Quadrat um die Spitze: sonst säße der
+    // Auswahlrahmen neben dem Pin, den er meint.
+    const form = notenForm(note, doc.grid.tileSize);
     return {
-      minX: note.x - half,
-      minY: note.y - half,
-      maxX: note.x + half,
-      maxY: note.y + half,
+      minX: form.kopfX - form.r,
+      minY: form.kopfY - form.r,
+      maxX: form.kopfX + form.r,
+      maxY: form.spitzeY,
     };
   }
   const light = doc.vtt.lights.find((l) => l.id === ref.id);
