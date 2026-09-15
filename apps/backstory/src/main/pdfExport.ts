@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { BrowserWindow } from 'electron';
 import { marked } from 'marked';
-import { wikiLinkText } from '../shared/wikilinks';
+import { anker, nachNamen, verlinkeImDokument } from './pdfVerweise';
 import { findNoteType } from '../shared/noteTypes';
 import type { Note, NoteTypeDef } from '../shared/types';
 import { formatFieldValue, type ExportLabels } from './markdownExport';
@@ -66,6 +66,11 @@ const PRINT_STYLE = `
   .section { margin-top: 14pt; }
   .section h2 { border-bottom: 1pt solid #e2dfe8; font-size: 12pt; padding-bottom: 2pt; }
   ul { margin: 0; padding-left: 16pt; }
+  a { color: inherit; text-decoration: none; }
+  .toc { page-break-after: always; }
+  .toc ol { padding-left: 18pt; }
+  .toc li { margin: 0 0 3pt; }
+  .toc__type { color: #6b6478; font-style: italic; }
 `;
 
 export interface PdfContext {
@@ -74,6 +79,12 @@ export interface PdfContext {
   labels: ExportLabels;
   /** Uebersetzt einen relativen Bildverweis in einen absoluten Dateipfad. */
   resolveAsset: (relativePath: string) => string;
+  /** Inhaltsverzeichnis auf der ersten Seite. */
+  inhaltsverzeichnis?: boolean;
+  /** Seine Ueberschrift, uebersetzt. */
+  inhaltTitel?: string;
+  /** Die Notizen des Dokuments, nach Titel und Alias. Wird intern gesetzt. */
+  enthalten?: Map<string, Note>;
 }
 
 /** Eine Notiz als HTML-Abschnitt fuer den Druck. */
@@ -87,7 +98,7 @@ function renderNote(note: Note, context: PdfContext): string {
     parts.push(`<img class="portrait" src="${fileUrl(portraitPath)}" alt="">`);
   }
 
-  parts.push(`<h1>${escapeHtml(note.title)}</h1>`);
+  parts.push(`<h1 id="${anker(note)}">${escapeHtml(note.title)}</h1>`);
   parts.push(`<p class="note__type">${escapeHtml(def.label)}</p>`);
 
   const filled = def.fields.filter(
@@ -108,8 +119,9 @@ function renderNote(note: Note, context: PdfContext): string {
     parts.push('</dl>');
   }
 
-  // Wiki-Links werden zu ihrem Anzeigetext: im PDF ist nichts klickbar.
-  const body = wikiLinkText(note.body)
+  // Verweise auf Notizen, die mit exportiert werden, werden zu Sprungzielen;
+  // die uebrigen zu ihrem Anzeigetext.
+  const body = verlinkeImDokument(note.body, context.enthalten ?? new Map())
     .replace(/!\[([^\]]*)\]\((assets\/[^)\s]+)\)/g, (whole, alt: string, target: string) => {
       const resolved = context.resolveAsset(target);
       return resolved ? `![${alt}](${fileUrl(resolved)})` : whole;
@@ -134,16 +146,39 @@ function renderNote(note: Note, context: PdfContext): string {
 }
 
 /**
+ * Das Inhaltsverzeichnis auf der ersten Seite.
+ *
+ * Ohne Seitenzahlen: die stehen erst fest, wenn gesetzt ist, und das
+ * Druckfenster sagt es uns nicht. Die Eintraege springen dafuer an ihre
+ * Stelle, und danach faengt die erste Notiz auf einer neuen Seite an.
+ */
+function inhaltsverzeichnis(notes: Note[], context: PdfContext): string {
+  if (!context.inhaltsverzeichnis || notes.length === 0) return '';
+
+  const zeilen = notes
+    .map((note) => {
+      const def = findNoteType(context.types, note.type);
+      return `<li><a href="#${anker(note)}">${escapeHtml(note.title)}</a> <span class="toc__type">${escapeHtml(def.label)}</span></li>`;
+    })
+    .join('\n');
+
+  return `<nav class="toc"><h1>${escapeHtml(context.inhaltTitel ?? 'Inhalt')}</h1><ol>${zeilen}</ol></nav>`;
+}
+
+/**
  * Rendert Notizen in einem unsichtbaren Fenster und schreibt das Ergebnis als
  * PDF. Das Fenster laedt eine temporaere Datei, damit Bilder mit absoluten
  * Pfaden geladen werden koennen.
  */
 export async function exportNotesToPdf(notes: Note[], context: PdfContext, targetFile: string): Promise<void> {
+  // Welche Notizen im Dokument stehen, entscheidet, welche Verweise
+  // Sprungziele werden.
+  context = { ...context, enthalten: nachNamen(notes) };
   const html = `<!doctype html>
 <html lang="de"><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="${PRINT_CSP}">
 <style>${PRINT_STYLE}</style></head>
-<body>${notes.map((note) => renderNote(note, context)).join('\n')}</body></html>`;
+<body>${inhaltsverzeichnis(notes, context)}${notes.map((note) => renderNote(note, context)).join('\n')}</body></html>`;
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'backstory-pdf-'));
   const tempFile = path.join(tempDir, `${randomUUID()}.html`);

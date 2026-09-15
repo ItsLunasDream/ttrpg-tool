@@ -1,6 +1,7 @@
 // Sammelpunkt fuer die Tests: buendelt die reinen Logikmodule ohne Electron.
 export { findeUebernahme } from '../src/main/uebernahme';
 export { harmloserPfad, ohneWurzel, leseArchiv } from '../src/main/einlesen';
+export { anker, nachNamen, verlinkeImDokument } from '../src/main/pdfVerweise';
 export { zieheUmbenennungNach, effektiverStand } from '../src/renderer/entwuerfe';
 export { findWikiLinks, rewriteWikiLinks, normalizeName, insideWikiLink } from '../src/shared/wikilinks';
 export { leseAntwort, leseStuecke } from '../src/shared/antwortMarkdown';

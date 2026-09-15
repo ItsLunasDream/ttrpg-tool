@@ -91,6 +91,25 @@ async function waehleKampagne(window, name) {
   await sleep(1200);
 }
 
+/**
+ * Kampagnenexport: Menueeintrag, dann im Dialog auf Exportieren.
+ *
+ * Der Dialog fragt seit kurzem, welche Notizen mitkommen. Voreingestellt
+ * sind alle, der Test uebernimmt das.
+ */
+async function kampagnenExport(window, label) {
+  await menuAction(window, label);
+  await sleep(500);
+  await run(
+    window,
+    `const knopf = [...document.querySelectorAll('.modal button')].find((b) => b.textContent === 'Exportieren');
+     if (!knopf) throw new Error('Der Export-Dialog kam nicht');
+     knopf.click();
+     return true;`
+  );
+  await sleep(500);
+}
+
 async function menuAction(window, label) {
   await run(
     window,
@@ -958,7 +977,7 @@ app.whenReady().then(async () => {
       stubDialogs(unsavedDir);
       nachgefragt.length = 0;
       speicherAntwort = 0; // Speichern und fortfahren
-      await menuAction(window, 'Kampagne als Markdown');
+      await kampagnenExport(window, 'Kampagne als Markdown');
       await sleep(3000);
 
       // Frueher schrieb der Export ungefragt. Ohne Autosave darf er das nicht
@@ -1019,7 +1038,7 @@ app.whenReady().then(async () => {
 
       // Die Notiz wurde in Abschnitt 14 umbenannt
       await selectNote(window, 'Mira Sturmhand');
-      await menuAction(window, 'Kampagne als Markdown');
+      await kampagnenExport(window, 'Kampagne als Markdown');
       await sleep(2500);
 
       const campaignDir = fs.readdirSync(exportDir).map((name) => path.join(exportDir, name)).find((entry) => fs.statSync(entry).isDirectory());
@@ -1041,7 +1060,7 @@ app.whenReady().then(async () => {
         check(assets.length >= 1, 'keine Bilder im Export');
       }
 
-      await menuAction(window, 'Kampagne als PDF');
+      await kampagnenExport(window, 'Kampagne als PDF');
       await sleep(4000);
 
       const pdf = fs.readdirSync(exportDir).find((name) => name.endsWith('.pdf'));
@@ -1050,6 +1069,45 @@ app.whenReady().then(async () => {
         const bytes = fs.readFileSync(path.join(exportDir, pdf));
         check(bytes.subarray(0, 4).toString() === '%PDF', 'Datei ist kein PDF');
         check(bytes.length > 1000, `PDF ist verdächtig klein: ${bytes.length} Bytes`);
+      }
+
+      // Der Dialog nimmt eine Auswahl entgegen: nur eine Notiz exportieren.
+      const einzelDir = path.join(userData, 'export-auswahl');
+      stubDialogs(einzelDir);
+      await menuAction(window, 'Kampagne als Markdown');
+      await sleep(600);
+      const gewaehlt = await run(
+        window,
+        `const eintraege = [...document.querySelectorAll('.export-liste input')];
+         if (eintraege.length < 2) throw new Error('Die Auswahlliste ist zu kurz');
+         // Alle abwaehlen, dann genau die erste wieder an.
+         [...document.querySelectorAll('.modal button')].find((b) => b.textContent === 'Keine').click();
+         return eintraege.length;`
+      );
+      await sleep(300);
+      await run(window, `document.querySelectorAll('.export-liste input')[0].click(); return true;`);
+      await sleep(300);
+      check(
+        await run(window, `return document.querySelector('.modal__hint').textContent.startsWith('1 von');`),
+        'Der Dialog zaehlt die Auswahl nicht mit'
+      );
+      await run(
+        window,
+        `[...document.querySelectorAll('.modal button')].find((b) => b.textContent === 'Exportieren').click();
+         return true;`
+      );
+      await sleep(2500);
+
+      {
+        const kampagne = fs
+          .readdirSync(einzelDir)
+          .map((name) => path.join(einzelDir, name))
+          .find((eintrag) => fs.statSync(eintrag).isDirectory());
+        const dateien = fs.readdirSync(kampagne).filter((name) => name.endsWith('.md'));
+        check(
+          dateien.length === 1,
+          `Trotz Auswahl wurden ${dateien.length} von ${gewaehlt} Notizen exportiert`
+        );
       }
     }
 

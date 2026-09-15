@@ -30,6 +30,7 @@ import type { Language } from '../shared/i18n';
 import { NoteTypesDialog } from './components/NoteTypesDialog';
 import { HistoryDialog } from './components/HistoryDialog';
 import { PromptsDialog } from './components/PromptsDialog';
+import { ExportDialog, type ExportFormat } from './components/ExportDialog';
 import { GraphView } from './components/GraphView';
 import { CleanupDialog } from './components/CleanupDialog';
 import { HelpDialog } from './components/HelpDialog';
@@ -50,6 +51,7 @@ type Dialog =
   | { kind: 'noteTypes' }
   | { kind: 'history'; note: Note }
   | { kind: 'prompts' }
+  | { kind: 'export'; format: ExportFormat }
   | { kind: 'cleanup' }
   | { kind: 'help' }
   | { kind: 'about' };
@@ -662,23 +664,35 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     });
   }, [activeCampaign, guard, bereitFuerPlattenaktion, report, t]);
 
+  /**
+   * Der Export der ganzen Kampagne fragt erst, was hinein soll. Bei zwanzig
+   * Notizen war "alle" richtig, bei zweihundert selten.
+   */
   const exportiereKampagneMarkdown = useCallback(() => {
-    if (!activeCampaign) return;
-    void guard(async () => {
-      if (!(await bereitFuerPlattenaktion())) return;
-      const result = await call(api.exportMarkdown.campaign(activeCampaign.id));
-      if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
-    });
-  }, [activeCampaign, guard, bereitFuerPlattenaktion, report, t]);
+    if (activeCampaign) setDialog({ kind: 'export', format: 'markdown' });
+  }, [activeCampaign]);
 
   const exportiereKampagnePdf = useCallback(() => {
-    if (!activeCampaign) return;
-    void guard(async () => {
-      if (!(await bereitFuerPlattenaktion())) return;
-      const result = await call(api.exportPdf.campaign(activeCampaign.id, activeCampaign.name));
-      if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
-    });
-  }, [activeCampaign, guard, bereitFuerPlattenaktion, report, t]);
+    if (activeCampaign) setDialog({ kind: 'export', format: 'pdf' });
+  }, [activeCampaign]);
+
+  const fuehreExportAus = useCallback(
+    (format: ExportFormat, noteIds: string[] | null, inhaltsverzeichnis: boolean) => {
+      if (!activeCampaign) return;
+      setDialog({ kind: 'none' });
+      void guard(async () => {
+        if (!(await bereitFuerPlattenaktion())) return;
+        const result =
+          format === 'markdown'
+            ? await call(api.exportMarkdown.campaign(activeCampaign.id, noteIds))
+            : await call(
+                api.exportPdf.campaign(activeCampaign.id, activeCampaign.name, noteIds, inhaltsverzeichnis)
+              );
+        if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
+      });
+    },
+    [activeCampaign, guard, bereitFuerPlattenaktion, report, t]
+  );
 
   /** Aus einem offenen [[Link]] heraus: nur anlegen, wenn es den Namen noch nicht gibt. */
   /**
@@ -995,6 +1009,15 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               setOrphans(await call(api.assets.orphans(activeCampaignId)));
             })
           }
+        />
+      ) : null}
+
+      {dialog.kind === 'export' && activeCampaign ? (
+        <ExportDialog
+          format={dialog.format}
+          index={index}
+          onExport={(noteIds, inhalt) => fuehreExportAus(dialog.format, noteIds, inhalt)}
+          onClose={() => setDialog({ kind: 'none' })}
         />
       ) : null}
 

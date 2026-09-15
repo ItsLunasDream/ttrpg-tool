@@ -426,7 +426,12 @@ export function registerIpc(context: IpcContext): void {
   }
 
   /** Notizen als PDF ausgeben, ueber ein unsichtbares Druckfenster. */
-  async function exportPdf(campaignId: string, noteIds: string[] | null, suggestedName: string) {
+  async function exportPdf(
+    campaignId: string,
+    noteIds: string[] | null,
+    suggestedName: string,
+    inhaltsverzeichnis = false
+  ) {
     const window = BrowserWindow.getFocusedWindow();
     const options = {
       defaultPath: `${slug(suggestedName)}.pdf`,
@@ -462,7 +467,9 @@ export function registerIpc(context: IpcContext): void {
           } catch {
             return '';
           }
-        }
+        },
+        inhaltsverzeichnis,
+        inhaltTitel: translate(language, 'export.toc')
       },
       chosen.filePath
     );
@@ -470,15 +477,17 @@ export function registerIpc(context: IpcContext): void {
     return { path: chosen.filePath, count: selected.length };
   }
 
-  handle<[string, string], { path: string; count: number } | null>('export:campaignPdf', (campaignId, name) =>
-    exportPdf(campaignId, null, name)
+  handle<[string, string, string[] | null, boolean], { path: string; count: number } | null>(
+    'export:campaignPdf',
+    (campaignId, name, noteIds, inhaltsverzeichnis) => exportPdf(campaignId, noteIds, name, inhaltsverzeichnis)
   );
   handle<[string, string, string], { path: string; count: number } | null>('export:notePdf', (campaignId, noteId, title) =>
     exportPdf(campaignId, [noteId], title)
   );
 
-  handle<[string], { path: string; count: number } | null>('export:campaignMarkdown', (campaignId) =>
-    exportMarkdown(campaignId, null)
+  handle<[string, string[] | null], { path: string; count: number } | null>(
+    'export:campaignMarkdown',
+    (campaignId, noteIds) => exportMarkdown(campaignId, noteIds)
   );
   handle<[string, string], { path: string; count: number } | null>('export:noteMarkdown', (campaignId, noteId) =>
     exportMarkdown(campaignId, [noteId])

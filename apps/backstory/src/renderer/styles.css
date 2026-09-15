@@ -553,6 +553,35 @@ mark {
   padding: 3px 7px;
 }
 
+.export-liste {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  list-style: none;
+  margin: 0 0 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px 8px;
+}
+
+.export-liste label {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.export-liste input {
+  margin: 0;
+  width: auto;
+}
+
+.export-liste__typ {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-left: auto;
+}
+
 .woerterbuch {
   list-style: none;
   margin: 0;
