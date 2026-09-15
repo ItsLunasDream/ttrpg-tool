@@ -14,6 +14,7 @@ import type { KiQuelle } from './ai';
 import { findNoteType } from '../shared/noteTypes';
 import { channel } from '../shared/channels';
 import { verlinkteNotizen } from '../shared/kiKontext';
+import { zeichneGraph } from './graphBild';
 import type {
   AiMessage,
   AiTask,
@@ -430,7 +431,8 @@ export function registerIpc(context: IpcContext): void {
     campaignId: string,
     noteIds: string[] | null,
     suggestedName: string,
-    inhaltsverzeichnis = false
+    inhaltsverzeichnis = false,
+    mitGraph = false
   ) {
     const window = BrowserWindow.getFocusedWindow();
     const options = {
@@ -469,7 +471,11 @@ export function registerIpc(context: IpcContext): void {
           }
         },
         inhaltsverzeichnis,
-        inhaltTitel: translate(language, 'export.toc')
+        inhaltTitel: translate(language, 'export.toc'),
+        // Das Netz der GANZEN Kampagne, nicht nur der ausgewaehlten Notizen:
+        // ein halbes Netz zeigt Verbindungen ins Nichts.
+        graphBild: mitGraph ? zeichneGraph(allNotes, campaign.noteTypes, campaign.graphPositions) : '',
+        graphTitel: translate(language, 'export.graph')
       },
       chosen.filePath
     );
@@ -477,9 +483,10 @@ export function registerIpc(context: IpcContext): void {
     return { path: chosen.filePath, count: selected.length };
   }
 
-  handle<[string, string, string[] | null, boolean], { path: string; count: number } | null>(
+  handle<[string, string, string[] | null, boolean, boolean], { path: string; count: number } | null>(
     'export:campaignPdf',
-    (campaignId, name, noteIds, inhaltsverzeichnis) => exportPdf(campaignId, noteIds, name, inhaltsverzeichnis)
+    (campaignId, name, noteIds, inhaltsverzeichnis, mitGraph) =>
+      exportPdf(campaignId, noteIds, name, inhaltsverzeichnis, mitGraph)
   );
   handle<[string, string, string], { path: string; count: number } | null>('export:notePdf', (campaignId, noteId, title) =>
     exportPdf(campaignId, [noteId], title)

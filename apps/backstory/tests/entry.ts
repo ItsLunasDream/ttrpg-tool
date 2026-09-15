@@ -2,6 +2,7 @@
 export { findeUebernahme } from '../src/main/uebernahme';
 export { harmloserPfad, ohneWurzel, leseArchiv } from '../src/main/einlesen';
 export { anker, nachNamen, verlinkeImDokument } from '../src/main/pdfVerweise';
+export { zeichneGraph } from '../src/main/graphBild';
 export { zieheUmbenennungNach, effektiverStand } from '../src/renderer/entwuerfe';
 export { findWikiLinks, rewriteWikiLinks, normalizeName, insideWikiLink } from '../src/shared/wikilinks';
 export { leseAntwort, leseStuecke } from '../src/shared/antwortMarkdown';

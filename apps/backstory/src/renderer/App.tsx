@@ -677,7 +677,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   }, [activeCampaign]);
 
   const fuehreExportAus = useCallback(
-    (format: ExportFormat, noteIds: string[] | null, inhaltsverzeichnis: boolean) => {
+    (format: ExportFormat, noteIds: string[] | null, inhaltsverzeichnis: boolean, mitGraph: boolean) => {
       if (!activeCampaign) return;
       setDialog({ kind: 'none' });
       void guard(async () => {
@@ -686,7 +686,13 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
           format === 'markdown'
             ? await call(api.exportMarkdown.campaign(activeCampaign.id, noteIds))
             : await call(
-                api.exportPdf.campaign(activeCampaign.id, activeCampaign.name, noteIds, inhaltsverzeichnis)
+                api.exportPdf.campaign(
+                  activeCampaign.id,
+                  activeCampaign.name,
+                  noteIds,
+                  inhaltsverzeichnis,
+                  mitGraph
+                )
               );
         if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
       });
@@ -1016,7 +1022,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         <ExportDialog
           format={dialog.format}
           index={index}
-          onExport={(noteIds, inhalt) => fuehreExportAus(dialog.format, noteIds, inhalt)}
+          onExport={(noteIds, inhalt, graph) => fuehreExportAus(dialog.format, noteIds, inhalt, graph)}
           onClose={() => setDialog({ kind: 'none' })}
         />
       ) : null}

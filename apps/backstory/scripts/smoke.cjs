@@ -97,9 +97,20 @@ async function waehleKampagne(window, name) {
  * Der Dialog fragt seit kurzem, welche Notizen mitkommen. Voreingestellt
  * sind alle, der Test uebernimmt das.
  */
-async function kampagnenExport(window, label) {
+async function kampagnenExport(window, label, optionen = {}) {
   await menuAction(window, label);
   await sleep(500);
+  if (optionen.mitGraph) {
+    await run(
+      window,
+      `const kaestchen = [...document.querySelectorAll('.modal .field--inline input')];
+       const netz = kaestchen[kaestchen.length - 1];
+       if (!netz) throw new Error('Die Option fuers Beziehungsnetz fehlt');
+       if (!netz.checked) netz.click();
+       return true;`
+    );
+    await sleep(300);
+  }
   await run(
     window,
     `const knopf = [...document.querySelectorAll('.modal button')].find((b) => b.textContent === 'Exportieren');
@@ -1060,7 +1071,7 @@ app.whenReady().then(async () => {
         check(assets.length >= 1, 'keine Bilder im Export');
       }
 
-      await kampagnenExport(window, 'Kampagne als PDF');
+      await kampagnenExport(window, 'Kampagne als PDF', { mitGraph: true });
       await sleep(4000);
 
       const pdf = fs.readdirSync(exportDir).find((name) => name.endsWith('.pdf'));
@@ -1069,6 +1080,28 @@ app.whenReady().then(async () => {
         const bytes = fs.readFileSync(path.join(exportDir, pdf));
         check(bytes.subarray(0, 4).toString() === '%PDF', 'Datei ist kein PDF');
         check(bytes.length > 1000, `PDF ist verdächtig klein: ${bytes.length} Bytes`);
+      }
+
+      // Das Beziehungsnetz ist eine Seite mehr. Gezaehlt wird gegen einen
+      // zweiten Lauf ohne die Option — eine feste Seitenzahl bewiese nichts,
+      // weil eine Notiz auch von sich aus umbrechen kann.
+      {
+        const ohneDir = path.join(userData, 'export-ohne-netz');
+        stubDialogs(ohneDir);
+        await kampagnenExport(window, 'Kampagne als PDF');
+        await sleep(4000);
+
+        const seiten = (ordner) => {
+          const datei = fs.readdirSync(ordner).find((name) => name.endsWith('.pdf'));
+          const roh = fs.readFileSync(path.join(ordner, datei)).toString('latin1');
+          return Number(/\/Count (\d+)/.exec(roh)?.[1] ?? 0);
+        };
+        const mitNetz = seiten(exportDir);
+        const ohneNetz = seiten(ohneDir);
+        check(
+          mitNetz === ohneNetz + 1,
+          `Mit Netz ${mitNetz} Seiten, ohne ${ohneNetz} — erwartet war genau eine mehr`
+        );
       }
 
       // Der Dialog nimmt eine Auswahl entgegen: nur eine Notiz exportieren.

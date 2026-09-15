@@ -71,6 +71,8 @@ const PRINT_STYLE = `
   .toc ol { padding-left: 18pt; }
   .toc li { margin: 0 0 3pt; }
   .toc__type { color: #6b6478; font-style: italic; }
+  .graph-seite { page-break-before: always; }
+  .graph-bild { height: auto; width: 100%; }
 `;
 
 export interface PdfContext {
@@ -85,6 +87,10 @@ export interface PdfContext {
   inhaltTitel?: string;
   /** Die Notizen des Dokuments, nach Titel und Alias. Wird intern gesetzt. */
   enthalten?: Map<string, Note>;
+  /** Das Beziehungsnetz als SVG, oder leer. Kommt als letzte Seite. */
+  graphBild?: string;
+  /** Seine Ueberschrift, uebersetzt. */
+  graphTitel?: string;
 }
 
 /** Eine Notiz als HTML-Abschnitt fuer den Druck. */
@@ -165,6 +171,12 @@ function inhaltsverzeichnis(notes: Note[], context: PdfContext): string {
   return `<nav class="toc"><h1>${escapeHtml(context.inhaltTitel ?? 'Inhalt')}</h1><ol>${zeilen}</ol></nav>`;
 }
 
+/** Das Beziehungsnetz, als letzte Seite. */
+function graphSeite(context: PdfContext): string {
+  if (!context.graphBild) return '';
+  return `<section class="graph-seite"><h1>${escapeHtml(context.graphTitel ?? 'Netz')}</h1>${context.graphBild}</section>`;
+}
+
 /**
  * Rendert Notizen in einem unsichtbaren Fenster und schreibt das Ergebnis als
  * PDF. Das Fenster laedt eine temporaere Datei, damit Bilder mit absoluten
@@ -178,7 +190,9 @@ export async function exportNotesToPdf(notes: Note[], context: PdfContext, targe
 <html lang="de"><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="${PRINT_CSP}">
 <style>${PRINT_STYLE}</style></head>
-<body>${inhaltsverzeichnis(notes, context)}${notes.map((note) => renderNote(note, context)).join('\n')}</body></html>`;
+<body>${inhaltsverzeichnis(notes, context)}${notes
+    .map((note) => renderNote(note, context))
+    .join('\n')}${graphSeite(context)}</body></html>`;
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'backstory-pdf-'));
   const tempFile = path.join(tempDir, `${randomUUID()}.html`);

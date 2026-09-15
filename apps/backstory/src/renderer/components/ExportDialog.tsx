@@ -10,7 +10,7 @@ export type ExportFormat = 'markdown' | 'pdf';
 interface Props {
   format: ExportFormat;
   index: NoteIndex;
-  onExport: (noteIds: string[] | null, inhaltsverzeichnis: boolean) => void;
+  onExport: (noteIds: string[] | null, inhaltsverzeichnis: boolean, mitGraph: boolean) => void;
   onClose: () => void;
 }
 
@@ -29,6 +29,7 @@ export function ExportDialog({ format, index, onExport, onClose }: Props) {
   const t = useT();
   const [gewaehlt, setGewaehlt] = useState<Set<string>>(() => new Set(index.notes.map((note) => note.id)));
   const [mitInhalt, setMitInhalt] = useState(true);
+  const [mitGraph, setMitGraph] = useState(false);
 
   const alle = index.notes.length;
 
@@ -69,10 +70,16 @@ export function ExportDialog({ format, index, onExport, onClose }: Props) {
       </div>
 
       {format === 'pdf' ? (
-        <label className="field field--inline">
-          <input type="checkbox" checked={mitInhalt} onChange={(event) => setMitInhalt(event.target.checked)} />
-          <span>{t('export.withToc')}</span>
-        </label>
+        <>
+          <label className="field field--inline">
+            <input type="checkbox" checked={mitInhalt} onChange={(event) => setMitInhalt(event.target.checked)} />
+            <span>{t('export.withToc')}</span>
+          </label>
+          <label className="field field--inline">
+            <input type="checkbox" checked={mitGraph} onChange={(event) => setMitGraph(event.target.checked)} />
+            <span>{t('export.withGraph')}</span>
+          </label>
+        </>
       ) : null}
 
       <div className="modal__actions">
@@ -80,7 +87,7 @@ export function ExportDialog({ format, index, onExport, onClose }: Props) {
           type="button"
           className="primary"
           disabled={gewaehlt.size === 0}
-          onClick={() => onExport(gewaehlt.size === alle ? null : [...gewaehlt], mitInhalt)}
+          onClick={() => onExport(gewaehlt.size === alle ? null : [...gewaehlt], mitInhalt, mitGraph)}
         >
           {t('export.start')}
         </button>

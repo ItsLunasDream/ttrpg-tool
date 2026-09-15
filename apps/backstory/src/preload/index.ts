@@ -206,13 +206,20 @@ const api = {
   exportCampaignZip: (campaignId: string, campaignName: string) =>
     invoke<string | null>('export:campaignZip', campaignId, campaignName),
   exportPdf: {
-    campaign: (campaignId: string, name: string, noteIds: string[] | null, inhaltsverzeichnis: boolean) =>
+    campaign: (
+      campaignId: string,
+      name: string,
+      noteIds: string[] | null,
+      inhaltsverzeichnis: boolean,
+      mitGraph: boolean
+    ) =>
       invoke<{ path: string; count: number } | null>(
         'export:campaignPdf',
         campaignId,
         name,
         noteIds,
-        inhaltsverzeichnis
+        inhaltsverzeichnis,
+        mitGraph
       ),
     note: (campaignId: string, noteId: string, title: string) =>
       invoke<{ path: string; count: number } | null>('export:notePdf', campaignId, noteId, title)
