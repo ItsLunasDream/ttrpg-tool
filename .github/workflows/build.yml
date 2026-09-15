@@ -151,6 +151,11 @@ jobs:
 
       - name: An Release anhängen
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
+        # Auf den Commit festgenagelt, nicht auf den Tag: dieser Schritt ist
+        # der einzige mit Schreibrecht, und ein Tag laesst sich umhaengen.
+        # Die vier actions/* darueber kommen von GitHub selbst und bleiben am
+        # Tag. Beim Aktualisieren: neue Fassung heraussuchen, SHA per
+        # `git ls-remote --tags` holen, beides hier eintragen.
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: apps/shell/release/*.exe
