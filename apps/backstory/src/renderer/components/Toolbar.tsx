@@ -12,6 +12,9 @@ interface Props {
   /** Vergroesserung des Notiztextes in Prozent. */
   zoom: number;
   onZoom: (prozent: number) => void;
+  /** Wie viele Abschnitte gerade eingeklappt sind. */
+  eingeklappt: number;
+  onAllesAufklappen: () => void;
 }
 
 interface Action {
@@ -100,7 +103,7 @@ function BreitenFeld({ editor }: { editor: Editor }) {
   );
 }
 
-export function Toolbar({ editor, onInsertImage, onEditLink, zoom, onZoom }: Props) {
+export function Toolbar({ editor, onInsertImage, onEditLink, zoom, onZoom, eingeklappt, onAllesAufklappen }: Props) {
   const t = useT();
   if (!editor) return <div className="toolbar" />;
 
@@ -183,6 +186,18 @@ export function Toolbar({ editor, onInsertImage, onEditLink, zoom, onZoom }: Pro
       </button>
 
       <span className="toolbar__spacer" />
+      {eingeklappt > 0 ? (
+        <button
+          type="button"
+          title={t('editor.expandAll')}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            onAllesAufklappen();
+          }}
+        >
+          ⇕
+        </button>
+      ) : null}
       {/* Der Faktor steht oben rechts und setzt sich per Klick zurueck — so
           braucht man das Tastenkuerzel nicht zu kennen. */}
       <button

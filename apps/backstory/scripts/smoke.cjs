@@ -536,6 +536,102 @@ app.whenReady().then(async () => {
     await sleep(600);
     check(await run(window, `return ${zoomAnzeige} === '100%';`), 'Klick auf die Anzeige setzt nicht zurueck');
 
+    // 5h. Ueberschriften einklappen. Der Zustand ist Ansicht: in der Datei
+    // darf davon nichts stehen.
+    await run(
+      window,
+      `const feld = document.querySelector('.ProseMirror');
+       feld.focus();
+       const auswahl = window.getSelection();
+       auswahl.selectAllChildren(feld);
+       auswahl.collapseToEnd();
+       return true;`
+    );
+    await sleep(200);
+    // Ueber die Werkzeugleiste und die Eingabetaste: insertText schreibt nur
+    // Text, es macht daraus keine Absaetze und keine Ueberschriften.
+    const enter = () => {
+      window.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Return' });
+      window.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Return' });
+    };
+    enter();
+    await sleep(200);
+    window.webContents.insertText('Erster Teil');
+    await sleep(300);
+    await pressToolbar(window, 'H1');
+    await sleep(400);
+    enter();
+    await sleep(200);
+    window.webContents.insertText('Ein Satz darunter.');
+    await sleep(600);
+
+    const klapppfeile = await run(window, `return document.querySelectorAll('.einklapp-pfeil').length;`);
+    check(klapppfeile >= 1, `Kein Pfeil neben der Ueberschrift (${klapppfeile})`);
+
+    // Den Cursor aus dem Abschnitt herausnehmen: steht er darin, klappt er
+    // gleich wieder auf — genau das soll er, damit niemand in unsichtbaren
+    // Text schreibt.
+    await run(
+      window,
+      `const erster = document.querySelector('.ProseMirror > p');
+       const bereich = document.createRange();
+       bereich.setStart(erster.firstChild ?? erster, 0);
+       bereich.collapse(true);
+       const auswahl = window.getSelection();
+       auswahl.removeAllRanges();
+       auswahl.addRange(bereich);
+       return true;`
+    );
+    await sleep(400);
+
+    const vorherSichtbar = await run(
+      window,
+      `return [...document.querySelectorAll('.ProseMirror > *')].filter((e) => !e.classList.contains('ist-eingeklappt')).length;`
+    );
+    await run(window, `document.querySelectorAll('.einklapp-pfeil')[0].dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); return true;`);
+    await sleep(600);
+    const nachherSichtbar = await run(
+      window,
+      `return [...document.querySelectorAll('.ProseMirror > *')].filter((e) => !e.classList.contains('ist-eingeklappt')).length;`
+    );
+    check(nachherSichtbar < vorherSichtbar, `Der Klick hat nichts eingeklappt (${vorherSichtbar} -> ${nachherSichtbar})`);
+    check(
+      await run(window, `return document.querySelector('.ProseMirror').textContent.includes('Erster Teil');`),
+      'Die Ueberschrift selbst ist mitverschwunden'
+    );
+    check(
+      !(await run(window, `return [...document.querySelectorAll('.ProseMirror > *')].some((e) => !e.classList.contains('ist-eingeklappt') && e.textContent === 'Ein Satz darunter.');`)),
+      'Der Text unter der Ueberschrift ist noch sichtbar'
+    );
+
+    // Alles aufklappen bringt sie zurueck.
+    await pressToolbar(window, '⇕');
+    await sleep(600);
+    check(
+      (await run(window, `return [...document.querySelectorAll('.ProseMirror > *')].filter((e) => !e.classList.contains('ist-eingeklappt')).length;`)) === vorherSichtbar,
+      'Alles aufklappen bringt die Abschnitte nicht zurueck'
+    );
+
+    await save(window);
+    {
+      const campaignsDir = path.join(userData, 'vault', 'campaigns');
+      const campaignId = fs.readdirSync(campaignsDir)[0];
+      const notesDir = path.join(campaignsDir, campaignId, 'notes');
+      const roh = fs
+        .readdirSync(notesDir)
+        .filter((datei) => datei.endsWith('.md'))
+        .map((datei) => fs.readFileSync(path.join(notesDir, datei), 'utf8'))
+        .join('\n');
+      check(!roh.includes('eingeklappt') && !roh.includes('collapsed'),
+        'Der eingeklappte Zustand ist in der Notizdatei gelandet');
+      // Die Auszeichnung von vorhin laeuft im Text weiter, das ist normal.
+      // Geprueft wird die Ueberschrift, nicht ihre Auszeichnung.
+      check(
+        /^#+ .*Erster Teil/m.test(roh),
+        `Die Ueberschrift fehlt in der Datei: ${JSON.stringify(roh.slice(-260))}`
+      );
+    }
+
     // 6. Kurzinfo-Karte muss den Textanfang zeigen
     await run(
       window,

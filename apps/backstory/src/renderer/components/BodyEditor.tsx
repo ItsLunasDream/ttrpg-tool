@@ -12,6 +12,7 @@ import TaskItem from '@tiptap/extension-task-item';
 import { ContextMenu } from './ContextMenu';
 import { SizedImage } from '../editor/sizedImage';
 import { Unterstrichen } from '../editor/unterstrichen';
+import { createEinklappExtension, einklappenPluginKey, klappeAllesAuf } from '../editor/einklappen';
 import { createWikiLinkExtension, type SuggestionState } from '../editor/wikiLinkExtension';
 import { createSearchHighlightExtension, replaceMatches, selectMatch } from '../editor/searchHighlight';
 import { htmlToMarkdown, markdownToHtml, pastedMarkdownToHtml } from '../editor/markdown';
@@ -138,6 +139,12 @@ export function BodyEditor({
   // Die ProseMirror-Handler entstehen einmal und brauchen deshalb Referenzen
   // auf die jeweils aktuellen Werte.
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
+  /**
+   * Die Uebersetzung fuer die Erweiterung, die nur einmal gebaut wird. Ohne
+   * Referenz truege der Pfeil die Beschriftung der Sprache von damals.
+   */
+  const tRef = useRef(t);
+  tRef.current = t;
   const importRef = useRef({ campaignId, onImportImage });
   importRef.current = { campaignId, onImportImage };
 
@@ -215,6 +222,11 @@ export function BodyEditor({
     []
   );
 
+  const einklappen = useMemo(
+    () => createEinklappExtension({ titel: (zu) => (zu ? tRef.current('editor.expand') : tRef.current('editor.collapse')) }),
+    []
+  );
+
   const wikiLink = useMemo(
     () =>
       createWikiLinkExtension({
@@ -271,6 +283,7 @@ export function BodyEditor({
       TaskList,
       TaskItem.configure({ nested: true }),
       Unterstrichen,
+      einklappen,
       wikiLink,
       searchHighlight,
       SizedImage.configure({ inline: false, allowBase64: false })
@@ -643,6 +656,10 @@ export function BodyEditor({
         editor={editor}
         zoom={zoom}
         onZoom={onZoom}
+        // Nur, wenn ueberhaupt etwas zu ist. Ein toter Knopf sagt nichts
+        // ueber den Zustand.
+        eingeklappt={editor ? (einklappenPluginKey.getState(editor.state)?.size ?? 0) : 0}
+        onAllesAufklappen={() => editor && klappeAllesAuf(editor.view)}
         onEditLink={() => setLinkDraft(editor?.getAttributes('link').href ?? '')}
         onInsertImage={() =>
           void onPickImage().then((relativePath) => {

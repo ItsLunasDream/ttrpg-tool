@@ -627,6 +627,30 @@ mark {
   padding: 18px 24px 60px;
 }
 
+.ProseMirror .ist-eingeklappt {
+  display: none;
+}
+
+/* Der Pfeil steht im linken Rand. Stuende er im Textfluss, ruecken alle
+   Ueberschriften ein und die Notiz saehe anders aus als vorher. */
+.einklapp-pfeil {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  float: left;
+  font-size: 11px;
+  line-height: inherit;
+  margin-left: -18px;
+  padding: 0;
+  width: 16px;
+}
+
+.einklapp-pfeil:hover:not(:disabled) {
+  background: none;
+  color: var(--accent);
+}
+
 .body-editor__surface .ProseMirror {
   min-height: 100%;
   outline: none;
