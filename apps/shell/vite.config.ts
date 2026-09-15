@@ -13,7 +13,7 @@ export default defineConfig({
     outDir: resolve(__dirname, 'dist/renderer'),
     emptyOutDir: true
   },
-  // Nicht 5173: der Backstory Creator belegt den Port, und in der Entwicklung
+  // Nicht 5173: der Story Creator belegt den Port, und in der Entwicklung
   // laufen beide gleichzeitig.
   server: { port: 5273, strictPort: true }
 });

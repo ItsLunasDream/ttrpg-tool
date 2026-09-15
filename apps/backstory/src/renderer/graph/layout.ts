@@ -198,6 +198,21 @@ function arrange(
 
   const idealDistance = Math.sqrt((width * height) / nodes.length) * 0.7 * spread;
   const repulsion = idealDistance * idealDistance;
+  /*
+   * Ueber diese Entfernung hinaus stossen sich zwei Knoten nicht mehr ab.
+   *
+   * Ohne die Grenze schiebt jeder Knoten jeden anderen, egal wie weit weg —
+   * und eine Notiz ohne Verbindungen, die nichts zurueckzieht, wandert
+   * dadurch bis weit aus dem Bild. Danach streckt das Einpassen alles auf
+   * genau diese Spanne, und die verbundenen Notizen kleben in einer Ecke
+   * aufeinander: unlesbar, waehrend die einzelne allein im Nichts steht.
+   * Genau so sah das gemeldete Bild aus.
+   *
+   * Mit der Grenze spuert die einzelne Notiz nur noch den Zug zur Mitte und
+   * kommt bei etwa dieser Entfernung zur Ruhe — weit genug weg, dass man
+   * sieht, dass sie nicht dazugehoert, nah genug, dass der Rest gross bleibt.
+   */
+  const abstossungsWeite = idealDistance * 2.5;
 
   for (let step = 0; step < iterations; step++) {
     // Abkuehlung: grosse Schritte am Anfang, feine am Ende.
@@ -217,6 +232,8 @@ function arrange(
           dy = random() - 0.5;
           distance = 0.01;
         }
+
+        if (distance > abstossungsWeite) continue;
 
         const force = repulsion / distance;
         const pushX = (dx / distance) * force;

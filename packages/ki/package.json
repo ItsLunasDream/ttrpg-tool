@@ -2,6 +2,7 @@
   "name": "@suite/ki",
   "version": "0.2.0",
   "private": true,
+  "license": "AGPL-3.0-or-later",
   "description": "Anbindung an Sprachmodelle — plattformfreies, geteiltes Paket",
   "type": "module",
   "exports": {

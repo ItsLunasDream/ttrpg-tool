@@ -138,11 +138,19 @@ function renderNote(note: Note, context: PdfContext): string {
   const relations = note.relations.filter((relation) => byId.has(relation.targetId));
   if (relations.length) {
     parts.push(`<div class="section"><h2>${escapeHtml(context.labels.relations)}</h2><ul>`);
+    const imDokument = new Set((context.enthalten ?? new Map()).values());
     for (const relation of relations) {
       const target = byId.get(relation.targetId)!;
       const type = relation.type.trim() ? `<strong>${escapeHtml(relation.type.trim())}</strong> ` : '';
       const comment = relation.note.trim() ? ` — ${escapeHtml(relation.note.trim())}` : '';
-      parts.push(`<li>${type}${escapeHtml(target.title)}${comment}</li>`);
+      // Die Gegenseite wird zum Sprungziel, wenn sie mit im Dokument steht.
+      // Im Text passiert das schon (verlinkeImDokument); hier fehlte es, und
+      // damit war ausgerechnet die Liste der Beziehungen die einzige Stelle,
+      // an der man nicht weiterkam.
+      const titel = imDokument.has(target)
+        ? `<a href="#${anker(target)}">${escapeHtml(target.title)}</a>`
+        : escapeHtml(target.title);
+      parts.push(`<li>${type}${titel}${comment}</li>`);
     }
     parts.push('</ul></div>');
   }

@@ -1,5 +1,5 @@
 import { Extension } from '@tiptap/core';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view';
 import { hatInhalt, versteckteBloecke, type Stufen } from '../../shared/abschnitte';
 
@@ -150,13 +150,57 @@ function setze(view: EditorView, eingeklappt: Set<number>): void {
   view.dispatch(view.state.tr.setMeta(einklappenPluginKey, eingeklappt));
 }
 
-/** Eine Ueberschrift auf- oder zuklappen. */
+/**
+ * Die Stelle hinter dem Text einer Ueberschrift.
+ *
+ * Gezaehlt wird dieselbe laufende Nummer wie ueberall hier: die der
+ * Ueberschriften im Dokument, nicht ihre Stelle.
+ */
+function endeDerUeberschrift(view: EditorView, nummer: number): number | null {
+  let gesucht = -1;
+  let stelle: number | null = null;
+  view.state.doc.forEach((node, offset) => {
+    if (node.type.name !== 'heading' || stelle !== null) return;
+    gesucht += 1;
+    if (gesucht === nummer) stelle = offset + 1 + node.content.size;
+  });
+  return stelle;
+}
+
+/**
+ * Eine Ueberschrift auf- oder zuklappen.
+ *
+ * Steht der Cursor in dem Abschnitt, der gleich verschwindet, wandert er
+ * vorher ans Ende der Ueberschrift. Ohne das ging Zuklappen von dort aus gar
+ * nicht: die Ansicht klappt einen Abschnitt wieder auf, sobald der Cursor
+ * darin landet (sonst schriebe man in Text, den niemand sieht) — und das griff
+ * hier sofort, so dass der Knopf nichts zu tun schien.
+ *
+ * Auswahl und Zustand gehen in EINER Transaktion hinaus. Zwei nacheinander,
+ * und dazwischen sieht der Aufklapp-Waechter den Cursor noch im versteckten
+ * Abschnitt.
+ */
 export function schalte(view: EditorView, nummer: number): void {
   const vorher = einklappenPluginKey.getState(view.state) ?? new Set<number>();
   const naechste = new Set(vorher);
-  if (naechste.has(nummer)) naechste.delete(nummer);
-  else naechste.add(nummer);
-  setze(view, naechste);
+  const klapptZu = !naechste.has(nummer);
+  if (klapptZu) naechste.add(nummer);
+  else naechste.delete(nummer);
+
+  const tr = view.state.tr.setMeta(einklappenPluginKey, naechste);
+
+  if (klapptZu) {
+    const stufen = stufenVon(view);
+    const versteckt = versteckteBloecke(stufen, new Set([nummer]));
+    const $von = view.state.doc.resolve(view.state.selection.from);
+    const index = $von.depth === 0 ? -1 : $von.index(0);
+    if (versteckt.has(index)) {
+      const ziel = endeDerUeberschrift(view, nummer);
+      if (ziel !== null) tr.setSelection(TextSelection.create(tr.doc, ziel));
+    }
+  }
+
+  view.dispatch(tr);
 }
 
 /** Alles aufklappen. */

@@ -73,9 +73,9 @@ test('was an die Oberflaeche geht, traegt den Schluessel nicht', () => {
   assert.deepEqual(fuerDieOberflaeche.ki, abgelegt.ki);
 });
 
-// --- Uebernahme aus dem Backstory Creator ----------------------------------
+// --- Uebernahme aus dem Story Creator ----------------------------------
 
-test('eine im Backstory Creator eingerichtete KI wird uebernommen', () =>
+test('eine im Story Creator eingerichtete KI wird uebernommen', () =>
   imOrdner(async (ordner) => {
     const datei = join(ordner, 'settings.json');
     await writeFile(

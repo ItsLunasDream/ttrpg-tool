@@ -9,9 +9,14 @@
  * dort ist er nach der Installation beschreibbar und ueberlebt ein Update.
  *
  * Ausgeliefert werden die Bilder als data:-URL ueber die Bruecke. Ein eigenes
- * Protokoll waere der andere Weg und hier zu viel: es sind fuenf kleine
- * Dateien, die einmal beim Start gelesen werden, und `img-src` laesst `data:`
- * ohnehin zu.
+ * Protokoll waere der andere Weg und hier zu viel: es sind eine Handvoll
+ * kleiner Dateien, die einmal beim Start gelesen werden, und `img-src`
+ * laesst `data:` ohnehin zu.
+ *
+ * Gelesen wird jede Bilddatei im Ordner, ohne Liste erlaubter Kennungen —
+ * der Dateiname IST die Kennung. Damit gilt ein Bild auch fuer ein Werkzeug,
+ * das es noch gar nicht gibt: encounter.png steht auf der Kachel, die heute
+ * nur „später" sagt.
  */
 import { readdir, readFile, mkdir, writeFile, access } from 'node:fs/promises';
 import { extname, join, basename } from 'node:path';
@@ -51,11 +56,13 @@ const LIESMICH = [
   '',
   'Leg hier ein Bild je Werkzeug ab. Der Dateiname ist die Kennung:',
   '',
-  '  backstory.png     Backstory Creator',
+  '  backstory.png     Story Creator',
   '  mapmaker.png      Karteneditor',
   '  initiative.png    Initiative Tracker',
   '  dice.png          Würfel',
   '  npc.png           NPC Creator',
+  '  inspiration.png   Inspirationshilfe',
+  '  encounter.png     Begegnungen (noch nicht gebaut, Symbol gilt trotzdem)',
   '',
   'Erlaubt sind .png, .jpg, .webp und .gif, höchstens 2 MB je Datei.',
   'Quadratisch und mindestens 128 Pixel Kantenlänge sieht am besten aus:',

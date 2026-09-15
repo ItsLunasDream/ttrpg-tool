@@ -46,7 +46,7 @@ const en = {
 
   'settings.icons': 'Tool icons',
   'settings.iconsHint':
-    'Drop your own image per tool into this folder — backstory.png, mapmaker.png, initiative.png, dice.png, npc.png. Anything missing keeps the built-in icon.',
+    'Drop your own image per tool into this folder — backstory.png, mapmaker.png, initiative.png, dice.png, npc.png, inspiration.png, encounter.png. Anything missing keeps the built-in icon.',
   'settings.iconsOpen': 'Open folder',
   'settings.iconsReload': 'Reload icons',
 
@@ -79,6 +79,12 @@ const en = {
   'settings.aiReady': 'Ready: {detail}',
   'settings.aiNotReady': 'Not ready: {detail}',
 
+  'settings.intro': 'Introductions',
+  'settings.introHint':
+    'Each tool explains itself the first time you open it. Show those windows again from the start.',
+  'settings.introReset': 'Show introductions again',
+  'settings.introDone': 'They will appear again the next time you open a tool.',
+
   'error.aiNoConnection': 'No connection: is Ollama running?',
   'error.aiTimeout': 'Timed out. Is Ollama running and the model loaded?',
   'error.aiHttp': 'The provider answered with HTTP {status}.',
@@ -92,6 +98,9 @@ const en = {
   'error.aiModelNotInstalled': 'The model {model} is not installed in Ollama.',
   'error.aiNoKey': 'No API key stored.',
 
+  'intro.start': 'Let’s go',
+  'intro.wieder': 'Shown once. You can bring it back in the settings.',
+
   'about.title': 'About TTRPG-Tools',
   'about.author': 'By ItsLunasDream',
   'about.version': 'Version {version}',
@@ -104,7 +113,7 @@ const en = {
   'about.sourceLink': 'Source code on GitHub',
   'about.licenseLink': 'Read the full license',
 
-  'app.backstory.name': 'Backstory',
+  'app.backstory.name': 'Story Creator',
   'app.backstory.description': 'Write down characters, places and how they relate',
   'app.mapmaker.name': 'Maps',
   'app.mapmaker.description': 'Draw and generate maps',
@@ -161,7 +170,7 @@ const de: Partial<Record<MessageKey, string>> = {
 
   'settings.icons': 'Symbole der Werkzeuge',
   'settings.iconsHint':
-    'Leg in diesen Ordner ein eigenes Bild je Werkzeug — backstory.png, mapmaker.png, initiative.png, dice.png, npc.png. Wo keines liegt, bleibt das eingebaute.',
+    'Leg in diesen Ordner ein eigenes Bild je Werkzeug — backstory.png, mapmaker.png, initiative.png, dice.png, npc.png, inspiration.png, encounter.png. Wo keines liegt, bleibt das eingebaute.',
   'settings.iconsOpen': 'Ordner öffnen',
   'settings.iconsReload': 'Symbole neu laden',
 
@@ -194,6 +203,12 @@ const de: Partial<Record<MessageKey, string>> = {
   'settings.aiReady': 'Bereit: {detail}',
   'settings.aiNotReady': 'Nicht bereit: {detail}',
 
+  'settings.intro': 'Einführungen',
+  'settings.introHint':
+    'Jedes Werkzeug erklärt sich beim ersten Öffnen selbst. Diese Fenster lassen sich wieder von vorn zeigen.',
+  'settings.introReset': 'Einführungen wieder zeigen',
+  'settings.introDone': 'Sie erscheinen wieder, sobald du das nächste Werkzeug öffnest.',
+
   'error.aiNoConnection': 'Keine Verbindung: Läuft Ollama?',
   'error.aiTimeout': 'Zeitüberschreitung. Läuft Ollama, und ist das Modell geladen?',
   'error.aiHttp': 'Der Anbieter antwortete mit HTTP {status}.',
@@ -207,6 +222,9 @@ const de: Partial<Record<MessageKey, string>> = {
   'error.aiModelNotInstalled': 'Das Modell {model} ist in Ollama nicht installiert.',
   'error.aiNoKey': 'Kein API-Schlüssel hinterlegt.',
 
+  'intro.start': 'Los geht’s',
+  'intro.wieder': 'Wird einmal gezeigt. In den Einstellungen holst du es zurück.',
+
   'about.title': 'Über TTRPG-Tools',
   'about.author': 'Von ItsLunasDream',
   'about.version': 'Fassung {version}',
@@ -219,7 +237,7 @@ const de: Partial<Record<MessageKey, string>> = {
   'about.sourceLink': 'Quelltext auf GitHub',
   'about.licenseLink': 'Vollständigen Lizenztext lesen',
 
-  'app.backstory.name': 'Backstory',
+  'app.backstory.name': 'Story Creator',
   'app.backstory.description': 'Figuren, Orte und ihre Beziehungen aufschreiben',
   'app.mapmaker.name': 'Karten',
   'app.mapmaker.description': 'Karten zeichnen und erzeugen',

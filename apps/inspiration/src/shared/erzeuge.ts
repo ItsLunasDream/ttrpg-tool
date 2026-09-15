@@ -104,6 +104,16 @@ export interface Zeitpunkt {
 }
 
 export interface Entwurf {
+  /**
+   * Ein, zwei Saetze darueber, in welcher Welt das spielt.
+   *
+   * Leer, wenn gewuerfelt wurde: die Tabellen beschreiben keine Welt, sie
+   * liefern Bausteine, die in viele passen. Die KI dagegen bekommt die
+   * Regler im Wortlaut und kann sagen, was sie daraus gemacht hat — bei
+   * eigenen Angaben („Cyberpunk City", „Freiheit") ist das der Unterschied
+   * zwischen „passt irgendwie" und „genau das".
+   */
+  readonly welt: string;
   readonly aufhaenger: Aufhaenger;
   readonly fraktionen: readonly Fraktion[];
   readonly figuren: readonly EntwurfsFigur[];
@@ -297,6 +307,7 @@ export function erzeugeZeitstrahl(zuschnitt: Zuschnitt, sprache: Sprache, rng: (
 // --- Der ganze Entwurf ------------------------------------------------------
 
 export const LEERER_ENTWURF: Entwurf = {
+  welt: '',
   aufhaenger: { ausloeser: '', betroffene: '', komplikation: '', frist: '' },
   fraktionen: [],
   figuren: [],
@@ -352,7 +363,17 @@ export function erzeugeEntwurf(
     ? vorher!.zeitstrahl
     : erzeugeZeitstrahl(zuschnitt, sprache, rng);
 
-  return { aufhaenger, fraktionen, figuren, orte, verbindungen, zeitstrahl };
+  return {
+    // Gewuerfelt gibt es keine Weltbeschreibung; eine vorhandene bleibt
+    // stehen, statt beim naechsten Wurf verloren zu gehen.
+    welt: vorher?.welt ?? '',
+    aufhaenger,
+    fraktionen,
+    figuren,
+    orte,
+    verbindungen,
+    zeitstrahl
+  };
 }
 
 /**

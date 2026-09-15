@@ -18,13 +18,21 @@ export const texte = {
     'Eigener Text ist erlaubt — er schränkt die Tabellen dann nicht ein.',
     'Your own wording is fine — it simply does not narrow the tables.'
   ],
+  'regler.nurKi': [
+    'Eigene Angaben ({eigene}) kennen die Tabellen nicht — gewürfelt wird ohne sie. Die KI-Knöpfe nehmen sie mit.',
+    'Your own wording ({eigene}) means nothing to the tables — rolling ignores it. The AI buttons take it along.'
+  ],
+  'regler.nurKiOhne': [
+    'Eigene Angaben ({eigene}) kennen die Tabellen nicht — gewürfelt wird ohne sie. Mit eingerichteter KI ließe sich damit etwas anfangen.',
+    'Your own wording ({eigene}) means nothing to the tables — rolling ignores it. With an AI set up, it would be put to use.'
+  ],
 
   'knopf.allesWuerfeln': ['Alles würfeln', 'Roll everything'],
   'knopf.nochmal': ['Neu würfeln', 'Reroll'],
   'knopf.festhalten': ['Festhalten', 'Lock'],
   'knopf.losgeben': ['Freigeben', 'Unlock'],
   'knopf.zeileNeu': ['Diese Zeile neu würfeln', 'Reroll this line'],
-  'knopf.export': ['In den Backstory Creator', 'Send to Backstory Creator'],
+  'knopf.export': ['In den Story Creator', 'Send to Story Creator'],
   'knopf.exportLaeuft': ['Wird angelegt …', 'Creating …'],
   'knopf.kopieren': ['Als Text kopieren', 'Copy as text'],
   'knopf.kopiert': ['Kopiert', 'Copied'],
@@ -36,6 +44,12 @@ export const texte = {
   'moeglichkeiten': [
     '{aufhaenger} Aufhänger, {orte} Orte und {figuren} Figuren stecken in den Tabellen — ganz ohne KI.',
     '{aufhaenger} hooks, {orte} places and {figuren} characters sit in the tables — with no AI at all.'
+  ],
+
+  'welt.titel': ['Die Welt', 'The world'],
+  'welt.hinweis': [
+    'Von der KI, aus deinen Angaben. Beim Würfeln bleibt das leer — die Tabellen liefern Bausteine, keine Welt.',
+    'From the AI, out of your settings. Rolling leaves this empty — the tables deliver building blocks, not a world.'
   ],
 
   'baustein.aufhaenger': ['Aufhänger', 'Hook'],
@@ -86,8 +100,8 @@ export const texte = {
   'knopf.holen': ['Aus der Kampagne', 'From the campaign'],
   'holen.titel': ['Figuren, die es schon gibt', 'Characters that already exist'],
   'holen.hinweis': [
-    'Aus der offenen Kampagne des Backstory Creators — dort landen auch die Figuren des NPC Creators. Wer hier dazukommt, wird verbunden und bekommt beim Übernehmen keine zweite Notiz.',
-    'From the open campaign in the Backstory Creator — that is where NPC Creator characters end up too. Whoever joins here gets connected and will not get a second note on export.'
+    'Aus der offenen Kampagne des Story Creators — dort landen auch die Figuren des NPC Creators. Wer hier dazukommt, wird verbunden und bekommt beim Übernehmen keine zweite Notiz.',
+    'From the open campaign in the Story Creator — that is where NPC Creator characters end up too. Whoever joins here gets connected and will not get a second note on export.'
   ],
   'holen.leer': [
     'In der offenen Kampagne steht noch keine Figur.',
@@ -98,7 +112,7 @@ export const texte = {
   'figur.vorhanden': ['aus der Kampagne', 'from the campaign'],
 
   'export.titel': ['Titel der Übersichtsnotiz', 'Title of the overview note'],
-  'export.titelVorgabe': ['Neuer Entwurf', 'New draft'],
+  'export.titelVorgabe': ['Überblick', 'Overview'],
   'export.hinweis': [
     'Legt je Figur, Ort und Fraktion eine Notiz an, dazu eine Übersicht mit Verweisen. Nichts wird überschrieben.',
     'Creates a note per character, place and faction, plus a linked overview. Nothing is overwritten.'

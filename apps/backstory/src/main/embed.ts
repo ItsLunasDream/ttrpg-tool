@@ -1,7 +1,7 @@
 /**
  * Die Schnittstelle, ueber die eine Huelle diese Anwendung einbettet.
  *
- * Der Backstory Creator laeuft auf zwei Wegen: allein, mit `src/main/index.ts`
+ * Der Story Creator laeuft auf zwei Wegen: allein, mit `src/main/index.ts`
  * als eigenem Hauptprozess, und eingebettet, wo die Huelle den Hauptprozess
  * stellt und diese Datei aufruft. Beide Wege benutzen denselben Code — was
  * hier passiert, passiert dort genauso, nur dass die Huelle das Fenster und
@@ -196,7 +196,7 @@ export interface BackstoryEmbed {
 }
 
 /**
- * Richtet den Backstory Creator im laufenden Hauptprozess ein und liefert,
+ * Richtet den Story Creator im laufenden Hauptprozess ein und liefert,
  * was die Huelle zum Anzeigen braucht.
  *
  * Muss nach `app.whenReady()` aufgerufen werden. `registerAssetScheme()`

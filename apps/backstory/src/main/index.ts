@@ -1,5 +1,5 @@
 /**
- * Hauptprozess des eigenstaendigen Backstory Creators.
+ * Hauptprozess des eigenstaendigen Story Creators.
  *
  * Das Einrichten selbst — Einstellungen, Speicherort, Protokoll, IPC — steht
  * nicht hier, sondern in `embed.ts`, und wird von der Huelle genauso
@@ -39,7 +39,7 @@ async function createWindow(embed: BackstoryEmbed): Promise<void> {
     minWidth: 1024,
     minHeight: 640,
     backgroundColor: '#16141c',
-    title: 'Backstory Creator',
+    title: 'Story Creator',
     webPreferences: {
       preload: embed.preloadPath,
       contextIsolation: true,

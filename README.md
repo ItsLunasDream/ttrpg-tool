@@ -7,10 +7,10 @@ laufen. Alles bleibt lokal auf der eigenen Platte.
   Dauer, Geländeereignisse. Systemneutral, mit Gruppen für Monsterhorden.
 - **Würfel** — Pool aus d4 bis d100 und einem eigenen Würfel, flach oder als
   fallende Körper. Auch mit Abzug (`1d20 − 1d4`).
-- **Backstory Creator** — Figuren, Orte, Beziehungen: Rich-Text-Editor,
+- **Story Creator** — Figuren, Orte, Beziehungen: Rich-Text-Editor,
   Wiki-Links, Steckbrieffelder, gespeichert als Markdown.
 - **NPC Creator** — Randfiguren auf Knopfdruck, aus Tabellen oder per KI,
-  Export als Notiz in den Backstory Creator.
+  Export als Notiz in den Story Creator.
 - **Inspirationshilfe** — Gerüst für eine neue Kampagne: Aufhänger,
   Fraktionen, Figuren, Orte, Verbindungen, Zeitstrahl. Aus Tabellen, auf
   Wunsch mit KI.
@@ -56,7 +56,7 @@ npm start               # Produktionsbuild starten
 npm test                # Tests der Kernlogik, über alle Workspaces
 npm run typecheck
 npm run smoke           # Rauchtest der gebauten Hülle
-npm run smoke:backstory # Rauchtest des Backstory Creators (eigener Lauf)
+npm run smoke:backstory # Rauchtest des Story Creators (eigener Lauf)
 npm run dist:win        # Windows-Installer nach apps/shell/release/
 ```
 
@@ -66,7 +66,7 @@ Weiteres:
   `npm install`, `npm run dist:win` auf einmal.
 - Einzeln entwickeln: `npm run dev:backstory`, `dev:mapmaker`,
   `dev:initiative`, `dev:dice`, `dev:npc`.
-- Befehle ohne Zusatz meinen immer die Sammlung, nicht den Backstory Creator.
+- Befehle ohne Zusatz meinen immer die Sammlung, nicht den Story Creator.
 - Gezielt für einen Workspace: `npm run <skript> -w apps/backstory`.
 
 ### Workspace-Aufbau
@@ -75,7 +75,7 @@ npm-Workspace-Monorepo; die Befehle an der Wurzel delegieren.
 
 ```
 apps/shell/        Die Hülle: Fenster, Startmenü, Schiene, Einstellungen
-apps/backstory/    Backstory Creator
+apps/backstory/    Story Creator
 apps/mapmaker/     TTRPG Map Editor (auch als Tauri-Anwendung baubar)
 apps/initiative/   Initiative Tracker
 apps/dice/         Würfel
@@ -113,6 +113,10 @@ und links Platz für Titelleiste und Schiene lässt.
   (Windows) oder Alt und Pfeiltaste. Der Verlauf hält fünfzig Schritte und
   merkt sich, *wo* man war — er hat mit Strg+Z nichts zu tun.
 - Direkt in einem Werkzeug starten: `TTRPG_TOOLS_START_APP=backstory`.
+- **Einführung beim ersten Mal**: beim allerersten Start ein Willkommen, beim
+  ersten Öffnen jedes Werkzeugs eine kurze Erklärung, was es tut. Danach nie
+  wieder; ein Knopf in den Einstellungen holt sie zurück. Die Texte stehen in
+  `apps/shell/src/shared/einfuehrung.ts`.
 
 ### Eigene Symbole
 
@@ -157,7 +161,7 @@ Werkzeuge erben die Einstellung und erfahren einen Wechsel sofort.
   bleibt auf `connect-src 'self'`.
 - Ohne Anbieter läuft alles weiter: KI ist überall eine Zugabe.
 
-## Backstory Creator
+## Story Creator
 
 Notizen sind Markdown mit YAML-Kopf und in jedem Texteditor oder in Obsidian
 lesbar. Eigene Angaben im Kopf bleiben beim Speichern erhalten.
@@ -262,7 +266,7 @@ Geheimnis, Eigenheit.
 - Namensklang wählbar: feminin, maskulin, neutral.
 - **Mit KI** schlägt das Modell frei vor, nicht aus den Tabellen — sonst wäre
   es ein langsamer und teurer Würfel. Ohne KI gelten die Tabellen.
-- **Export** legt eine Notiz in der offenen Kampagne des Backstory Creators
+- **Export** legt eine Notiz in der offenen Kampagne des Story Creators
   an. Die Notizliste dort aktualisiert sich sofort.
 - Gewürfelt wird in der Arbeitssprache; eine fertige Figur wechselt die
   Sprache nicht mit, sonst überschriebe eine Übersetzung Handarbeit.
@@ -297,12 +301,17 @@ was passiert, wenn die Gruppe nichts tut.
   Die Liste darunter sagt, was zwischen zweien liegt; das Bild sagt, wo die
   Geschichte dicht ist und wer am Rand steht.
 - **„Karte anlegen"** an jedem Ort öffnet den Karteneditor und beginnt dort
-  eine leere Karte unter diesem Namen. Mehr geht bewusst nicht hinüber: eine
-  Karte aus Text zu zeichnen hieße, sein Datenmodell von außen zu bedienen.
+  eine Karte unter diesem Namen — mit dem, was über den Ort bekannt ist, als
+  Notiz-Pins darauf. Gezeichnet wird nichts: eine Karte aus Text zu erzeugen
+  hieße, das Datenmodell des Karteneditors von außen zu bedienen. Steht auf
+  der offenen Karte schon etwas, fragt er vorher nach.
 - **Mit KI** schlägt das Modell einen Baustein frei vor, nicht aus den
   Tabellen — mit dem bisherigen Entwurf als Umgebung. Sie versteht auch
   eigene Regionen wie „Schwebende Inseln", mit denen die Tabellen nichts
   anfangen können. Ohne KI gelten die Tabellen.
+- **Die Welt**: bei den KI-Knöpfen kommen ein, zwei Sätze dazu, in welcher
+  Welt das spielt — eigene Angaben wie „Cyberpunk City" gelten dabei wörtlich.
+  Gewürfelt bleibt das leer, die Tabellen liefern Bausteine, keine Welt.
 - **„Alles von der KI"** entwirft alle sechs Bausteine in einer Antwort und
   aufeinander bezogen: die Fraktion kennt den Aufhänger, die Verbindung
   kennt die Figuren. Was das Modell ausläßt, kommt aus den Tabellen, was zu
@@ -310,7 +319,7 @@ was passiert, wenn die Gruppe nichts tut.
   Bausteine bleiben stehen.
 - **Übernehmen** legt je Figur, Ort und Fraktion eine Notiz in der offenen
   Kampagne an, dazu eine Übersicht mit Wiki-Verweisen — der Graph im
-  Backstory Creator hat sofort etwas zu zeichnen. Entwurf hier, Wahrheit
+  Story Creator hat sofort etwas zu zeichnen. Entwurf hier, Wahrheit
   dort: eine eigene Ablage gibt es nicht.
 
 Konzept und offene Punkte: `docs/inspirationshilfe.md`.
@@ -362,7 +371,7 @@ Nicht in der CI dieses Repositories: der Rust-Anteil (`src-tauri/`,
 
 ## Datenablage
 
-Der Speicherort des Backstory Creators liegt standardmäßig im
+Der Speicherort des Story Creators liegt standardmäßig im
 Nutzerdatenverzeichnis und ist unter Einstellungen → Speicherort änderbar.
 
 Der Speicherort lässt sich auch als ZIP sichern und wieder einlesen. Eine
@@ -370,7 +379,7 @@ eingelesene Kampagne bekommt immer eine neue Kennung — eine vorhandene wird
 nie überschrieben.
 
 ```
-<Speicherort>/                  Daten des Backstory Creators
+<Speicherort>/                  Daten des Story Creators
   campaigns/<campaignId>/
     campaign.json
     notes/<noteId>.md           YAML-Frontmatter + Markdown
@@ -407,7 +416,7 @@ nie überschrieben.
 Zu beachten:
 
 - `smoke` und `smoke:backstory` sind **zwei getrennte Läufe**. Wer nur den
-  ersten anstößt, übersieht Regressionen im Backstory Creator.
+  ersten anstößt, übersieht Regressionen im Story Creator.
 - Der Rauchtest läuft gegen die ungepackte App. Ob im Installationspaket
   etwas fehlt, sieht nur `verify:package`. Beides läuft in der CI, bevor die
   Windows-Anwendung hochgeladen wird.

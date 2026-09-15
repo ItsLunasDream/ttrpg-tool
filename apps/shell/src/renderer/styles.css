@@ -304,7 +304,7 @@ body {
  * Eine Farbe wischt ueber das Symbol: dort ist etwas dazugekommen.
  *
  * Einheitlich fuer alle Werkzeuge — der NPC Creator legt eine Figur im
- * Backstory Creator an, und dessen Symbol wischt. Wer das ausloest, spielt
+ * Story Creator an, und dessen Symbol wischt. Wer das ausloest, spielt
  * fuer das Aussehen keine Rolle; deshalb steht die Animation hier in der
  * Huelle und nicht in der meldenden Anwendung.
  *
@@ -876,4 +876,45 @@ body {
 .app-symbol {
   object-fit: contain;
   display: block;
+}
+
+/* ---------- Einfuehrung ---------- */
+
+.einfuehrung__kopf {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.einfuehrung__symbol {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: #2b3140;
+  border: 1px solid var(--rand);
+}
+
+.dialog__inhalt .einfuehrung__satz {
+  /* Die Absatzregel der Dialoge setzt unten Abstand; hier sitzt der Satz
+     neben dem Symbol und braucht keinen. Der Selektor ist deshalb
+     absichtlich zweiteilig — sonst gewaenne .dialog__inhalt p. */
+  margin: 0;
+}
+
+.einfuehrung__punkte {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dialog__inhalt .einfuehrung__hinweis {
+  margin: 16px 0 0;
+  color: var(--text-leise);
+  font-size: 12px;
 }

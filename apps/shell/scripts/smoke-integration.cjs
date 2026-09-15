@@ -117,13 +117,13 @@ app.whenReady().then(async () => {
   sag('\n== Verlauf innerhalb eines Werkzeugs ==');
   //
   // Zurueck soll nicht nur das Werkzeug treffen, sondern die Stelle darin.
-  // Geprueft wird der Backstory Creator: zwei Notizen oeffnen, zurueck, und
+  // Geprueft wird der Story Creator: zwei Notizen oeffnen, zurueck, und
   // die erste muss wieder dastehen.
   {
     await heim();
     const b = await oeffne('backstory', 5000);
     if (!b) {
-      sag('  --   Verlauf uebersprungen: der Backstory Creator kam nicht hoch');
+      sag('  --   Verlauf uebersprungen: der Story Creator kam nicht hoch');
     } else {
       const bjs = (a) => mitFrist(b.webContents.executeJavaScript(a), 'backstory');
 

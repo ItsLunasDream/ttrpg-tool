@@ -7,7 +7,7 @@
  *
  * Eine eigene Ablage gibt es nicht, und das ist die wichtigste Entscheidung
  * des ganzen Werkzeugs (docs/inspirationshilfe.md): der Entwurf lebt in der
- * Sitzung, die Wahrheit liegt im Backstory Creator. Zwei Ablagen fuer
+ * Sitzung, die Wahrheit liegt im Story Creator. Zwei Ablagen fuer
  * dieselbe Welt haetten frueher oder spaeter zwei verschiedene Welten
  * ergeben.
  */
@@ -36,7 +36,7 @@ export interface ExportErgebnis {
 /**
  * Wie Notizen ins Archiv kommen.
  *
- * Die Huelle reicht das durch, weil nur sie weiss, ob der Backstory Creator
+ * Die Huelle reicht das durch, weil nur sie weiss, ob der Story Creator
  * montiert ist und welche Kampagne offen steht — genauso wie beim NPC
  * Creator.
  */
@@ -53,7 +53,7 @@ export interface KampagnenFigur {
  * Wer schon in der Kampagne steht.
  *
  * Auch das reicht die Huelle durch — dieses Werkzeug kennt den Vault nicht.
- * Gemeint sind ausdruecklich die Figuren des Backstory Creators, und darueber
+ * Gemeint sind ausdruecklich die Figuren des Story Creators, und darueber
  * auch die des NPC Creators: was dort gewuerfelt und uebernommen wurde, liegt
  * anschliessend als Notiz in derselben Kampagne.
  */
@@ -67,7 +67,10 @@ export type Figurenquelle = () => Promise<readonly KampagnenFigur[]>;
  * Karte aus Text zu zeichnen hiesse, sein Datenmodell von aussen zu
  * bedienen, und das ist ein Projekt fuer sich (docs/inspirationshilfe.md).
  */
-export type Kartenanleger = (name: string) => Promise<boolean>;
+export type Kartenanleger = (
+  name: string,
+  notizen: readonly { title: string; text: string }[]
+) => Promise<boolean>;
 
 /**
  * Woher die KI-Anbindung kommt.
@@ -147,7 +150,7 @@ export async function mountInspiration(
   ipcMain.removeHandler(kanal('export'));
   ipcMain.handle(kanal('export'), async (_e, notizen: Notiz[]) => {
     if (!options.anlegen) {
-      return { ok: false, text: 'Der Backstory Creator ist nicht verfügbar.', angelegt: 0 };
+      return { ok: false, text: 'Der Story Creator ist nicht verfügbar.', angelegt: 0 };
     }
     try {
       return await options.anlegen(notizen);
@@ -183,14 +186,17 @@ export async function mountInspiration(
   ipcMain.handle(kanal('karte:da'), () => Boolean(options.karteAnlegen));
 
   ipcMain.removeHandler(kanal('karte'));
-  ipcMain.handle(kanal('karte'), async (_e, name: string): Promise<boolean> => {
+  ipcMain.handle(
+    kanal('karte'),
+    async (_e, name: string, notizen: { title: string; text: string }[] = []): Promise<boolean> => {
     if (!options.karteAnlegen) return false;
     try {
-      return await options.karteAnlegen(name);
+      return await options.karteAnlegen(name, notizen);
     } catch {
       return false;
     }
-  });
+    }
+  );
 
   // --- KI ------------------------------------------------------------------
 

@@ -31,7 +31,7 @@ import {
   type Entwurf
 } from '../shared/erzeuge';
 import type { EntwurfsFigur, Fraktion, Ort, Verbindung } from '../shared/erzeuge';
-import { alsMarkdown, alsNotizen } from '../shared/notizen';
+import { alsKartennotizen, alsMarkdown, alsNotizen } from '../shared/notizen';
 import { ZEITMARKEN } from '../shared/zeitstrahl';
 // `beschriftung` heisst hier schon etwas anderes (der Text eines Paares).
 import { KNOTEN_RADIUS, berechneGeflecht, beschriftung as knotenText } from '../shared/geflecht';
@@ -178,9 +178,28 @@ export function App() {
    * lesen und aendern koennen.
    */
   const geflecht = useMemo(
-    () => (entwurf ? berechneGeflecht(entwurf.figuren, entwurf.verbindungen) : null),
+    // Groesser als die Karte breit ist: das SVG skaliert mit, und in der
+    // breiten Karte (siehe .karte--breit) bleibt so mehr Platz zwischen
+    // Namen und Linien. Mit 520 x 340 war im Raster nichts zu erkennen.
+    () => (entwurf ? berechneGeflecht(entwurf.figuren, entwurf.verbindungen, 900, 520) : null),
     [entwurf]
   );
+
+  /**
+   * Eigene Angaben, die in keiner Tabelle vorkommen.
+   *
+   * „Cyberpunk City" als Region ist voellig in Ordnung — nur kann das
+   * Wuerfeln damit nichts anfangen: die Tabellen kennen Marken, keinen
+   * freien Text. Ohne Hinweis wuerfelt man und wundert sich, warum nichts
+   * davon nach Cyberpunk klingt.
+   */
+  const eigeneAngaben = useMemo(() => {
+    const heraus: string[] = [];
+    if (regionText.trim() && !alsRegionId(regionText)) heraus.push(regionText.trim());
+    if (themaText.trim() && !alsThemaId(themaText)) heraus.push(themaText.trim());
+    if (tonfallText.trim() && !alsTonfallId(tonfallText)) heraus.push(tonfallText.trim());
+    return heraus;
+  }, [regionText, themaText, tonfallText]);
 
   const zahlen = useMemo(() => moeglichkeiten(), []);
   const formatiert = useMemo(() => {
@@ -288,6 +307,14 @@ export function App() {
    * im ganzen Satz auszutauschen.
    */
   const alterName = useRef('');
+
+  /**
+   * Was in einem Regler stand, als man hineinklickte.
+   *
+   * Gebraucht, weil das Feld beim Hineinklicken geleert wird (siehe dort).
+   * Wer nichts tippt und wieder herausklickt, soll seinen Wert wiederfinden.
+   */
+  const zurueckgelegt = useRef<Record<string, string>>({});
 
   /** Beim Verlassen des Namensfeldes die Verbindungen nachziehen. */
   const ziehNameNach = useCallback(
@@ -570,6 +597,31 @@ export function App() {
         value={wert}
         placeholder={t('regler.beliebig')}
         onChange={(ereignis) => setze(ereignis.target.value)}
+        /*
+         * Beim Hineinklicken leeren, beim Verlassen zurueckholen.
+         *
+         * Die Vorschlagsliste eines `input` zeigt nur, was zum bereits
+         * getippten Text passt. Nach einer Auswahl steht dort der volle
+         * Begriff, und ein Klick auf den Pfeil zeigte genau diesen einen —
+         * man musste erst von Hand loeschen, um die anderen zu sehen.
+         *
+         * Wer etwas tippt, bekommt ab dem ersten Zeichen wieder das normale
+         * Filtern; wer nichts tippt, findet seinen Wert beim Verlassen
+         * unveraendert vor.
+         */
+        onFocus={(ereignis) => {
+          zurueckgelegt.current[listenId] = wert;
+          if (wert) setze('');
+          // Der Pfeil zeigt die Liste erst nach einer Aenderung neu an.
+          ereignis.target.dispatchEvent(new Event('input', { bubbles: true }));
+        }}
+        onBlur={() => {
+          const gemerkt = zurueckgelegt.current[listenId];
+          if (gemerkt !== undefined) {
+            if (!wert) setze(gemerkt);
+            delete zurueckgelegt.current[listenId];
+          }
+        }}
       />
       <datalist id={listenId}>
         {Object.values(texte).map((paar) => (
@@ -680,12 +732,28 @@ export function App() {
           </button>
         )}
         <p className="wurf__zahlen">{t('moeglichkeiten', formatiert)}</p>
+        {eigeneAngaben.length > 0 && (
+          <p className="wurf__eigenes">
+            {t(kiDa ? 'regler.nurKi' : 'regler.nurKiOhne', { eigene: eigeneAngaben.join(', ') })}
+          </p>
+        )}
       </div>
 
       {kiDa && <p className="ki-hinweis">{t('ki.hinweis')}</p>}
       {kiFehler && <p className="ki-fehler">{kiFehler}</p>}
 
       {!entwurf && <p className="leer">{t('leer')}</p>}
+
+      {entwurf && entwurf.welt && (
+        <section className="welt">
+          <h2 className="welt__titel">{t('welt.titel')}</h2>
+          <Feld
+            wert={entwurf.welt}
+            aendere={(wert) => ersetze((alt) => ({ ...alt, welt: wert }))}
+          />
+          <p className="welt__hinweis">{t('welt.hinweis')}</p>
+        </section>
+      )}
 
       {entwurf && (
         <main className="bausteine">
@@ -913,7 +981,9 @@ export function App() {
                       className="knopf knopf--schmal"
                       title={t('karte.hinweis')}
                       disabled={!ort.name.trim()}
-                      onClick={() => void api.karte.anlegen(ort.name)}
+                      // Der Ort geht als Pins mit: eine leere Karte mit dem
+                      // richtigen Namen hilft niemandem.
+                      onClick={() => void api.karte.anlegen(ort.name, alsKartennotizen(ort, getLanguage()))}
                     >
                       {t('knopf.karte')}
                     </button>
@@ -923,7 +993,7 @@ export function App() {
             </ul>
           </section>
 
-          <section className="karte">
+          <section className="karte karte--breit">
             {kopf('verbindungen', 'hinweis.verbindungen')}
             {geflecht && geflecht.knoten.length >= 2 ? (
               <svg

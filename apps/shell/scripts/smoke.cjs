@@ -59,7 +59,7 @@ function appDist(id, ...weiter) {
 }
 
 function pruefeDateienDerApps() {
-  // Backstory Creator: eigener Hauptprozess, also Preload und eine Oberflaeche
+  // Story Creator: eigener Hauptprozess, also Preload und eine Oberflaeche
   // unter dist/renderer.
   const bs = appDist('backstory', 'main');
   pruefe(fs.existsSync(path.join(bs, 'preload.js')), `backstory: preload.js liegt unter ${bs}`);
@@ -241,7 +241,7 @@ app.whenReady().then(async () => {
   const bereiteKachel = "document.querySelector('.kachel--bereit')";
   if (await js(`Boolean(${bereiteKachel})`)) {
     await js(`${bereiteKachel}.click()`);
-    // Der Backstory Creator liest beim Start Einstellungen und Speicherort.
+    // Der Story Creator liest beim Start Einstellungen und Speicherort.
     await warte(5000);
 
     const eingebettet = fenster.contentView.children[1];
@@ -302,12 +302,12 @@ app.whenReady().then(async () => {
 
   // ---- Die zweite Anwendung: der Karteneditor ----
   //
-  // Er ist anders gebaut als der Backstory Creator — kein Hauptprozess, kein
+  // Er ist anders gebaut als der Story Creator — kein Hauptprozess, kein
   // Preload, er speichert ueber die File System Access API und den
   // Browserspeicher. Genau deshalb steht er hier: die Huelle soll beide gleich
   // behandeln koennen.
   // Gewechselt wird ueber die Schiene, nicht ueber eine Kachel: an dieser
-  // Stelle liegt der Backstory Creator vorn, und im Startmenue war die Huelle
+  // Stelle liegt der Story Creator vorn, und im Startmenue war die Huelle
   // zuletzt nicht mehr.
   // Bewegung: dass das gemeinsame Paket wirklich geladen ist, sieht man nur
   // an einer aufgeloesten Variablen. Fehlt der Import, sind alle Uebergaenge
@@ -362,7 +362,7 @@ app.whenReady().then(async () => {
       // Die Einfahrt faehrt die Ansicht von rechts an ihren Platz. Kommt sie
       // dort nicht genau an, steht das Werkzeug dauerhaft um ein paar Punkte
       // verschoben — mit einem Streifen Huelle daneben, den niemand erklaeren
-      // kann. Verglichen wird mit der Ansicht des Backstory Creators: beide
+      // kann. Verglichen wird mit der Ansicht des Story Creators: beide
       // bekommen dieselbe Flaeche, und so steht die Sollgroesse nicht ein
       // zweites Mal in diesem Skript. Gewartet wird grosszuegig, die Fahrt
       // dauert 220ms.
@@ -383,7 +383,7 @@ app.whenReady().then(async () => {
       pruefe(await kartenJs('Boolean(document.querySelector("canvas"))'), 'seine Zeichenflaeche steht');
 
       // Getrennte Sitzungen: was er in den Browserspeicher legt, darf beim
-      // Backstory Creator nicht auftauchen.
+      // Story Creator nicht auftauchen.
       await kartenJs("localStorage.setItem('probe.trennung', 'karten'); true");
       const bs = fenster.contentView.children[1];
       const fremd = await bs.webContents.executeJavaScript(
@@ -471,14 +471,14 @@ app.whenReady().then(async () => {
         await bs.webContents.executeJavaScript(
           "document.body.innerText.includes('Keine Kampagne vorhanden.')"
         ),
-        'der Backstory Creator hat die vom Karteneditor gesetzte Sprache uebernommen'
+        'der Story Creator hat die vom Karteneditor gesetzte Sprache uebernommen'
       );
       pruefe(
         (await js("document.querySelector('.titelleiste__knopf').textContent")) === 'Einstellungen',
         'die Huelle selbst hat ebenfalls auf Deutsch umgeschaltet'
       );
 
-      // Und zurueck, diesmal ausgeloest im Backstory Creator.
+      // Und zurueck, diesmal ausgeloest im Story Creator.
       await js("[...document.querySelectorAll('.schiene__eintrag')][0].click()");
       await warte(1000);
       await bs.webContents.executeJavaScript(`(() => {
@@ -498,7 +498,7 @@ app.whenReady().then(async () => {
 
       pruefe(
         (await js("document.querySelector('.titelleiste__knopf').textContent")) === 'Settings',
-        'eine Aenderung im Backstory Creator erreicht auch die Huelle'
+        'eine Aenderung im Story Creator erreicht auch die Huelle'
       );
       pruefe(
         await kartenJs(

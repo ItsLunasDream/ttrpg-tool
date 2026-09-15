@@ -50,7 +50,7 @@ app.whenReady().then(async () => {
   pruefe(await js("Boolean(document.querySelector('.schiene'))"), 'die Schiene ist da');
   pruefe(
     (await js("document.querySelector('.titelleiste__pfad')?.textContent ?? ''")).includes(
-      'Backstory'
+      'Story Creator'
     ),
     'die Titelleiste nennt das Werkzeug'
   );

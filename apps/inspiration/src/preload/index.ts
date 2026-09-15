@@ -47,7 +47,8 @@ const api = {
    */
   karte: {
     da: () => ipcRenderer.invoke(kanal('karte:da')) as Promise<boolean>,
-    anlegen: (name: string) => ipcRenderer.invoke(kanal('karte'), name) as Promise<boolean>
+    anlegen: (name: string, notizen: readonly { title: string; text: string }[] = []) =>
+      ipcRenderer.invoke(kanal('karte'), name, notizen) as Promise<boolean>
   },
 
   /**

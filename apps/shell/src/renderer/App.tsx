@@ -31,6 +31,8 @@ import { AppSymbol, SuiteIcon } from './icons';
 import { KI_VOREINSTELLUNGEN, type KiEinstellungen } from '@suite/ki/einstellungen';
 import { Einstellungen, type KiZustandAnsicht } from './Einstellungen';
 import { Ueber } from './Ueber';
+import { Einfuehrung } from './Einfuehrung';
+import { WILLKOMMEN, einfuehrungFuer, stehtAus } from '../shared/einfuehrung';
 
 declare global {
   interface Window {
@@ -125,7 +127,21 @@ export function App() {
     phase: 'waechst' | 'wartet';
   } | null>(null);
   /** Welcher Dialog offen ist, oder `null`. Es ist immer hoechstens einer. */
-  const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | null>(null);
+  const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | 'einfuehrung' | null>(null);
+  /**
+   * Welche Einfuehrung gerade gezeigt wird, und welche schon gesehen sind.
+   *
+   * `gesehen` ist `null`, solange die Einstellungen noch nicht gelesen sind.
+   * Das ist nicht dasselbe wie „nichts gesehen": waere es eine leere Liste,
+   * blitzte das Willkommen bei jedem Start kurz auf, auch beim hundertsten.
+   *
+   * Dazu ein Ref, weil `waehle` die Liste braucht und nicht bei jeder
+   * Aenderung neu gebaut werden soll.
+   */
+  const [einfuehrungId, setEinfuehrungId] = useState<string | null>(null);
+  const [gesehen, setGesehen] = useState<readonly string[] | null>(null);
+  const gesehenRef = useRef<readonly string[] | null>(null);
+  gesehenRef.current = gesehen;
 
   /**
    * Oeffnet oder schliesst einen Dialog und sagt es dem Hauptprozess.
@@ -134,9 +150,69 @@ export function App() {
    * liegt unter den Anwendungen. Ohne diese Meldung waere ein geoeffneter
    * Dialog hinter der laufenden Anwendung nicht zu sehen.
    */
-  const zeigeDialog = useCallback((welcher: 'einstellungen' | 'ueber' | null) => {
+  const zeigeDialog = useCallback((welcher: 'einstellungen' | 'ueber' | 'einfuehrung' | null) => {
     setDialog(welcher);
     void window.shell.app.dialog(welcher !== null);
+  }, []);
+
+  /*
+   * Die Einfuehrungen.
+   *
+   * `dialogRef` gibt es, weil `zeigeEinfuehrung` aus einer Antwort des
+   * Hauptprozesses heraus aufgerufen wird und dort der Zustand von vorhin
+   * stuende.
+   */
+  const dialogRef = useRef<'einstellungen' | 'ueber' | 'einfuehrung' | null>(null);
+  dialogRef.current = dialog;
+
+  /**
+   * Zeigt die Einfuehrung eines Werkzeugs, wenn sie noch aussteht.
+   *
+   * Liegt schon ein Dialog vorn, passiert nichts. Die Einfuehrung bleibt dann
+   * ungesehen und kommt beim naechsten Oeffnen von selbst wieder — das ist
+   * besser, als zwei Fenster uebereinanderzulegen und eines davon ungelesen
+   * als erledigt zu verbuchen. Dasselbe gilt, solange die Einstellungen noch
+   * nicht gelesen sind: dann ist gar nicht bekannt, was schon gesehen wurde.
+   */
+  const zeigeEinfuehrung = useCallback(
+    (id: string) => {
+      if (dialogRef.current !== null) return;
+      const bisher = gesehenRef.current;
+      if (bisher === null) return;
+      if (!stehtAus(id, bisher)) return;
+      if (!einfuehrungFuer(id)) return;
+      setEinfuehrungId(id);
+      zeigeDialog('einfuehrung');
+    },
+    [zeigeDialog]
+  );
+
+  /**
+   * Schliesst die Einfuehrung und merkt sie als gesehen.
+   *
+   * Gespeichert wird sofort und nicht erst beim Beenden: sonst kaeme nach
+   * einem Absturz alles noch einmal.
+   */
+  const schliesseEinfuehrung = useCallback(() => {
+    const id = einfuehrungId;
+    setEinfuehrungId(null);
+    zeigeDialog(null);
+    if (id === null) return;
+    const neu = [...new Set([...(gesehenRef.current ?? []), id])];
+    setGesehen(neu);
+    void window.shell.einstellungen
+      .schreiben({ einfuehrungGesehen: neu })
+      .then((gespeichert) => setGesehen(gespeichert.einfuehrungGesehen))
+      // Laesst sich nicht speichern, bleibt die Einfuehrung fuer diese
+      // Sitzung trotzdem weg. Sie beim naechsten Start wiederzusehen ist
+      // laestig, aber kein Grund fuer eine Fehlermeldung.
+      .catch((fehler: unknown) => console.error('[shell] Einfuehrung nicht gemerkt:', fehler));
+  }, [einfuehrungId, zeigeDialog]);
+
+  /** Setzt alle Einfuehrungen zurueck. Der Knopf dafuer steht in den Einstellungen. */
+  const setzeEinfuehrungenZurueck = useCallback(async () => {
+    const gespeichert = await window.shell.einstellungen.schreiben({ einfuehrungGesehen: [] });
+    setGesehen(gespeichert.einfuehrungGesehen);
   }, []);
 
   useEffect(() => {
@@ -148,6 +224,15 @@ export function App() {
     void window.shell.einstellungen.lesen().then((e) => {
       setSprache(e.language);
       setKi(e.ki);
+      setGesehen(e.einfuehrungGesehen);
+      // Das Willkommen beim allerersten Start. Es steht hier und nicht in
+      // einem eigenen Effekt, weil es genau die Antwort braucht, die gerade
+      // angekommen ist.
+      if (stehtAus(WILLKOMMEN, e.einfuehrungGesehen)) {
+        setEinfuehrungId(WILLKOMMEN);
+        setDialog('einfuehrung');
+        void window.shell.app.dialog(true);
+      }
     });
     void window.shell.symbole.lesen().then(setSymbole, () => setSymbole({}));
     // Auch der Fensterrahmen des Systems kann maximieren. Ohne diese Meldung
@@ -227,7 +312,7 @@ export function App() {
   }, []);
 
   /**
-   * Ein Werkzeug meldet, wo es steht — im Backstory Creator die offene Notiz.
+   * Ein Werkzeug meldet, wo es steht — im Story Creator die offene Notiz.
    *
    * Nur, wenn es auch das sichtbare ist: eine Anwendung, die im Hintergrund
    * liegt, kann beim Laden noch etwas melden, und das gehoert nicht in den
@@ -330,6 +415,9 @@ export function App() {
       .then((ergebnis) => {
         setUebergang(null);
         setBuehne(ergebnis);
+        // Erst wenn das Werkzeug wirklich da ist. Eine Einfuehrung vor einer
+        // Fehlermeldung waere die falsche Reihenfolge.
+        if (ergebnis.zustand === 'offen') zeigeEinfuehrung(id);
       })
       // Der Hauptprozess faengt Montagefehler selbst ab und meldet sie als
       // Zustand. Bleibt trotzdem eine Ablehnung uebrig, ist etwas an der
@@ -343,7 +431,7 @@ export function App() {
           detail: fehler instanceof Error ? fehler.message : String(fehler)
         });
       });
-  }, [wenigerBewegung]);
+  }, [wenigerBewegung, zeigeEinfuehrung]);
 
   waehleRef.current = waehle;
   aktivRef.current = aktiv;
@@ -486,12 +574,22 @@ export function App() {
           setzeSchluessel={setzeSchluessel}
           symbolordnerOeffnen={() => window.shell.symbole.ordnerOeffnen()}
           symboleNeuLaden={ladeSymboleNeu}
+          einfuehrungenZuruecksetzen={setzeEinfuehrungenZurueck}
           onClose={() => zeigeDialog(null)}
           t={t}
         />
       )}
       {dialog === 'ueber' && (
         <Ueber version={version} onClose={() => zeigeDialog(null)} t={t} />
+      )}
+      {dialog === 'einfuehrung' && einfuehrungId !== null && (
+        <Einfuehrung
+          inhalt={einfuehrungFuer(einfuehrungId)!}
+          sprache={sprache}
+          bild={symbole[einfuehrungId]}
+          onClose={schliesseEinfuehrung}
+          t={t}
+        />
       )}
     </div>
   );

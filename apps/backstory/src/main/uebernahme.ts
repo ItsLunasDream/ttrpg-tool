@@ -4,7 +4,7 @@
  *
  * Anlass ist der Umzug in die Huelle: dort bekommt jede Anwendung ihren
  * eigenen Datenordner, und der ist ein anderer als der des eigenstaendigen
- * Programms. Ohne diesen Weg steht eine Person, die den Backstory Creator
+ * Programms. Ohne diesen Weg steht eine Person, die den Story Creator
  * bisher einzeln benutzt hat, beim ersten Start vor einer leeren Sammlung —
  * ihre Kampagnen liegen noch da, nur woanders, und nichts auf dem Schirm sagt
  * ihr das.

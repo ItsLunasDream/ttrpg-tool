@@ -263,7 +263,8 @@ function meldeKiWechsel(): void {
  * damit der naechste Wechsel von Hand nicht noch einmal eine leere Karte
  * beginnt.
  */
-let wartendeKarte: string | null = null;
+let wartendeKarte: { name: string; notizen: readonly { title: string; text: string }[] } | null =
+  null;
 
 /**
  * Holt den Karteneditor nach vorn und beginnt dort eine leere Karte.
@@ -273,17 +274,20 @@ let wartendeKarte: string | null = null;
  * Animation. Ohne das saehe man die Ansicht wechseln, waehrend die Schiene
  * weiter das alte Werkzeug markiert.
  */
-async function oeffneKarteImEditor(name: string): Promise<boolean> {
+async function oeffneKarteImEditor(
+  name: string,
+  notizen: readonly { title: string; text: string }[] = []
+): Promise<boolean> {
   const sauber = name.trim();
   if (!sauber || !huelle) return false;
-  wartendeKarte = sauber;
+  wartendeKarte = { name: sauber, notizen };
   huelle.webContents.send('app:oeffne', 'mapmaker');
 
   // Steht er schon vorn, kommt kein Wechsel mehr — dann jetzt zustellen.
   if (aktiveApp === 'mapmaker') {
     const montiert = offen.get('mapmaker');
     if (montiert?.neueKarte && montiert.istGeladen()) {
-      montiert.neueKarte(sauber);
+      montiert.neueKarte(sauber, notizen);
       wartendeKarte = null;
     }
   }
@@ -771,7 +775,7 @@ function registriereKanaele(): void {
     // Wartet ein Kartenname auf genau dieses Werkzeug, wird er jetzt
     // zugestellt — erst hier ist es geladen und kann darauf antworten.
     if (wartendeKarte && montiert.neueKarte) {
-      montiert.neueKarte(wartendeKarte);
+      montiert.neueKarte(wartendeKarte.name, wartendeKarte.notizen);
       wartendeKarte = null;
     }
     return { zustand: 'offen' };
@@ -852,7 +856,7 @@ app.whenReady().then(async () => {
   einstellungsDatei = join(app.getPath('userData'), 'einstellungen.json');
   const gelesen = await readSettings(einstellungsDatei);
 
-  // Wer die KI frueher im Backstory Creator eingerichtet hat, soll sie nicht
+  // Wer die KI frueher im Story Creator eingerichtet hat, soll sie nicht
   // neu eintippen muessen — ein API-Schluessel ist nichts, was man eben
   // nachschlaegt. Passiert genau einmal: danach steht hier etwas, und die
   // Uebernahme greift nicht mehr.
@@ -860,7 +864,7 @@ app.whenReady().then(async () => {
     gelesen,
     join(app.getPath('userData'), 'backstory', 'settings.json')
   );
-  if (uebernommen) console.log('[shell] KI-Einstellung aus dem Backstory Creator uebernommen');
+  if (uebernommen) console.log('[shell] KI-Einstellung aus dem Story Creator uebernommen');
 
   // Einmal anlegen, wenn es sie noch nicht gibt. Zwei Gruende: wer nachsehen
   // will, was sich einstellen laesst, findet die Datei, statt raten zu

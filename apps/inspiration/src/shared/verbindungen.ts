@@ -1,7 +1,7 @@
 /**
  * Verbindungen zwischen zwei Figuren.
  *
- * Gerichtet, wie die Beziehungen im Backstory Creator: A sieht B als
+ * Gerichtet, wie die Beziehungen im Story Creator: A sieht B als
  * Mentorin, B sieht A als Bedrohung. Genau darin liegt der Reiz — eine
  * Beziehung, die beide gleich sehen, ist eine Angabe; eine, die jeder anders
  * sieht, ist eine Szene.

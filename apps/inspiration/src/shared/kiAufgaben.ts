@@ -75,6 +75,11 @@ const REGELN: Record<'de' | 'en', string> = {
     '- Keine Werte, keine Stufen, keine Regelbegriffe, keine Spielernamen.',
     '- Nichts über die Heldengruppe selbst entscheiden. Sie ist noch nicht dabei.',
     '- Was du lieferst, muss zu dem passen, was schon dasteht.',
+    '- Die Vorgaben unten gelten wörtlich und für jeden einzelnen Wert. Steht',
+    '  dort „Cyberpunk City", gibt es keine Burgen, keine Zunftmeister und',
+    '  keine Kutschen — sondern das, was in so einer Stadt vorkommt. Nimm auch',
+    '  eigene, ungewöhnliche Angaben ernst, statt sie in etwas Vertrautes zu',
+    '  übersetzen.',
     '- Antworte nur mit JSON, ohne Erklärung drumherum.'
   ].join('\n'),
   en: [
@@ -90,6 +95,10 @@ const REGELN: Record<'de' | 'en', string> = {
     '- No stats, no levels, no rules terms, no player names.',
     '- Decide nothing about the player party. It is not there yet.',
     '- What you deliver has to fit what is already there.',
+    '- The settings below are literal and apply to every single value. If they',
+    '  say "cyberpunk city", there are no castles, no guild masters and no',
+    '  carriages — there is what such a city holds. Take unusual settings',
+    '  seriously instead of translating them into something familiar.',
     '- Answer with JSON only, no explanation around it.'
   ].join('\n')
 };
@@ -106,7 +115,7 @@ export const FELDER: Record<KiAufgabe, readonly string[]> = {
   ort: ['name', 'art', 'merkmal', 'zustand', 'karte'],
   verbindung: ['muster', 'hin', 'zurueck'],
   zeitstrahl: ['schritte'],
-  entwurf: ['aufhaenger', 'fraktionen', 'figuren', 'orte', 'verbindungen', 'zeitstrahl']
+  entwurf: ['welt', 'aufhaenger', 'fraktionen', 'figuren', 'orte', 'verbindungen', 'zeitstrahl']
 };
 
 /** Was in dem jeweiligen Feld stehen soll — geht als Erklaerung mit. */
@@ -191,6 +200,7 @@ const ERKLAERUNG: Record<KiAufgabe, Record<'de' | 'en', readonly string[]>> = {
   },
   entwurf: {
     de: [
+      '"welt": ein bis zwei Sätze, in welcher Welt das spielt — nimm die Vorgaben beim Wort',
       '"aufhaenger": { "ausloeser", "betroffene", "komplikation", "frist" }',
       '"fraktionen": Liste aus { "name", "art", "ziel", "mittel", "schwaeche" }',
       '"figuren": Liste aus { "name", "rolle", "triebfeder", "hebel", "makel" }',
@@ -202,6 +212,7 @@ const ERKLAERUNG: Record<KiAufgabe, Record<'de' | 'en', readonly string[]>> = {
       '"zeitstrahl": Liste von Sätzen, je einer pro Zeitpunkt, mit steigender Wucht'
     ],
     en: [
+      '"welt": one or two sentences on the world this plays in — take the settings literally',
       '"aufhaenger": { "ausloeser", "betroffene", "komplikation", "frist" }',
       '"fraktionen": list of { "name", "art", "ziel", "mittel", "schwaeche" }',
       '"figuren": list of { "name", "rolle", "triebfeder", "hebel", "makel" }',
@@ -337,6 +348,17 @@ export function anweisung(frage: Frage, sprache: Sprache): string {
 
   teile.push('', ...vorgabezeilen(frage.vorgaben, sprache));
 
+  // Noch einmal direkt an den Vorgaben, nicht nur in der Systemanweisung:
+  // ein Modell, das ein paar hundert Zeilen Umgebung bekommt, haelt sich
+  // sonst an das Vertraute und nicht an die zwei Woerter, auf die es ankommt.
+  if (frage.vorgaben.region.trim() || frage.vorgaben.thema.trim() || frage.vorgaben.tonfall.trim()) {
+    teile.push(
+      de
+        ? 'Diese Angaben sind bindend. Alles, was du lieferst, spielt in dieser Welt.'
+        : 'These settings are binding. Everything you deliver plays in that world.'
+    );
+  }
+
   if (frage.aufgabe === 'verbindung' && frage.namen) {
     teile.push(
       '',
@@ -409,7 +431,7 @@ export function anweisung(frage: Frage, sprache: Sprache): string {
     frage.aufgabe === 'zeitstrahl'
       ? '{"schritte": ["…", "…"]}'
       : frage.aufgabe === 'entwurf'
-        ? '{"aufhaenger": {…}, "fraktionen": [{…}], "figuren": [{…}], "orte": [{…}], "verbindungen": [{…}], "zeitstrahl": ["…"]}'
+        ? '{"welt": "…", "aufhaenger": {…}, "fraktionen": [{…}], "figuren": [{…}], "orte": [{…}], "verbindungen": [{…}], "zeitstrahl": ["…"]}'
         : `{${FELDER[frage.aufgabe].map((feld) => `"${feld}": "…"`).join(', ')}}`,
     '',
     ...ERKLAERUNG[frage.aufgabe][de ? 'de' : 'en'],
@@ -448,6 +470,8 @@ function sauber(wert: unknown): string {
  * kosten, und eine Verbindung auf Figur 9 von 5 darf nicht ins Geflecht.
  */
 export interface RohEntwurf {
+  /** Ein bis zwei Saetze zur Welt. Leer, wenn das Modell keine geliefert hat. */
+  readonly welt: string;
   readonly aufhaenger: Record<string, string> | null;
   readonly fraktionen: readonly Record<string, string>[];
   readonly figuren: readonly Record<string, string>[];
@@ -515,6 +539,7 @@ export function uebernehmbarerEntwurf(gelesen: unknown, anzahlFiguren = 0): RohE
     .filter((eintrag): eintrag is RohEntwurf['verbindungen'][number] => eintrag !== null);
 
   const ergebnis: RohEntwurf = {
+    welt: sauber(roh.welt),
     aufhaenger: stueck(roh.aufhaenger, FELDER.aufhaenger),
     fraktionen: liste(roh.fraktionen)
       .map((eintrag) => stueck(eintrag, FELDER.fraktion))
@@ -530,6 +555,7 @@ export function uebernehmbarerEntwurf(gelesen: unknown, anzahlFiguren = 0): RohE
   };
 
   const leer =
+    !ergebnis.welt &&
     !ergebnis.aufhaenger &&
     ergebnis.fraktionen.length === 0 &&
     ergebnis.figuren.length === 0 &&

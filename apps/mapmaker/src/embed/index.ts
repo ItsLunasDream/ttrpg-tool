@@ -2,7 +2,7 @@
  * Die Schnittstelle, ueber die eine Huelle diese Anwendung einbettet
  * (Konvention 7 der Wurzel).
  *
- * Sie faellt kleiner aus als die des Backstory Creators, und das hat einen
+ * Sie faellt kleiner aus als die des Story Creators, und das hat einen
  * Grund: der Karteneditor ist eine reine Web-Anwendung. Er hat keinen
  * eigenen Hauptprozess — was er speichert, legt er ueber die File System
  * Access API und den Browserspeicher ab. Ein Preload gibt es trotzdem, aber
@@ -24,6 +24,12 @@
 import path from 'node:path';
 import { ipcMain, type WebContents } from 'electron';
 import type { Language } from '../i18n/strings';
+
+/** Ein Pin, der beim Anlegen einer Karte gleich gesetzt wird. */
+export interface KartenNotiz {
+  readonly title: string;
+  readonly text: string;
+}
 
 export interface MapmakerEmbedOptions {
   /**
@@ -68,7 +74,7 @@ export interface MapmakerEmbed {
   readonly csp: string;
   /**
    * Preload nur fuer die Sprachkopplung — siehe preload.ts. Anders als beim
-   * Backstory Creator nicht `null`: diese eine Bruecke gibt es jetzt.
+   * Story Creator nicht `null`: diese eine Bruecke gibt es jetzt.
    */
   readonly preloadPath: string;
   /**
@@ -87,13 +93,17 @@ export interface MapmakerEmbed {
    */
   setLanguage(webContents: WebContents, language: Language): Promise<void>;
   /**
-   * Beginnt hier eine leere Karte unter diesem Namen.
+   * Beginnt hier eine Karte unter diesem Namen, mit Notizen darauf.
    *
-   * Fuer den Knopf „Karte anlegen" in der Inspirationshilfe. Der Karteneditor
-   * fragt selbst nach, wenn auf der offenen Karte schon etwas steht — von
-   * aussen wird nichts weggeworfen.
+   * Fuer den Knopf „Karte anlegen" in der Inspirationshilfe. Die Notizen sind
+   * Pins mit Text — was ueber den Ort bekannt ist, steht damit auf der Karte
+   * und nicht nur im anderen Werkzeug. Gezeichnet wird nichts; dafuer ist
+   * dieser Editor da.
+   *
+   * Der Karteneditor fragt selbst nach, wenn auf der offenen Karte schon
+   * etwas steht — von aussen wird nichts weggeworfen.
    */
-  neueKarte(webContents: WebContents, name: string): void;
+  neueKarte(webContents: WebContents, name: string, notizen?: KartenNotiz[]): void;
 }
 
 /**
@@ -143,8 +153,8 @@ export function mountMapmaker(options: MapmakerEmbedOptions): MapmakerEmbed {
     // getrennt gebuendelte Preload waere sonst weg.
     preloadPath: path.join(options.distDir, '..', 'dist-embed', 'preload.js'),
     flush: () => Promise.resolve(),
-    neueKarte: (webContents, name) => {
-      if (!webContents.isDestroyed()) webContents.send(`${PREFIX}neue-karte`, name);
+    neueKarte: (webContents, name, notizen = []) => {
+      if (!webContents.isDestroyed()) webContents.send(`${PREFIX}neue-karte`, name, notizen);
     },
     setLanguage: (webContents, language) => {
       if (!webContents.isDestroyed()) {

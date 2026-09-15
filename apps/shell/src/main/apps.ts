@@ -7,7 +7,7 @@
  * merkt nicht, dass sie in einer Huelle laeuft.
  *
  * Wie verschieden die Anwendungen darunter gebaut sind, sieht man an den zwei
- * bisherigen: der Backstory Creator bringt einen ganzen Hauptprozess mit,
+ * bisherigen: der Story Creator bringt einen ganzen Hauptprozess mit,
  * Speicherort und knapp vierzig IPC-Kanaele; der Karteneditor ist eine reine
  * Web-Anwendung ohne Preload, die ueber die File System Access API speichert.
  * Fuer die Huelle sind beide dasselbe — eine Ansicht, die sie laedt, zeigt und
@@ -46,7 +46,7 @@ export interface MontierteApp {
    * Beginnt eine leere Karte unter diesem Namen. Nur der Karteneditor kann
    * das; alle anderen lassen es weg.
    */
-  neueKarte?(name: string): void;
+  neueKarte?(name: string, notizen?: readonly { title: string; text: string }[]): void;
   /**
    * Bringt die Anwendung an eine Stelle zurueck, die der Verlauf kennt.
    * Werkzeuge ohne eigene Stellen lassen das weg.
@@ -118,7 +118,7 @@ export interface MontageHaken {
    *
    * Nicht die Anwendung, in der man gerade steht, meldet etwas ueber sich —
    * sie meldet, dass anderswo etwas dazugekommen ist. Der NPC Creator legt
-   * eine Figur im Backstory Creator an und meldet „backstory"; die Huelle
+   * eine Figur im Story Creator an und meldet „backstory"; die Huelle
    * laesst daraufhin eine Farbe ueber dessen Symbol wischen.
    *
    * Die Animation gehoert bewusst in die Huelle und nicht in die Anwendung:
@@ -132,7 +132,10 @@ export interface MontageHaken {
    * Inspirationshilfe kennt den Karteneditor nicht, und er kennt sie nicht.
    * Die Huelle holt ihn nach vorn und stellt den Namen zu, sobald er steht.
    */
-  readonly oeffneKarte?: (name: string) => Promise<boolean>;
+  readonly oeffneKarte?: (
+    name: string,
+    notizen: readonly { title: string; text: string }[]
+  ) => Promise<boolean>;
   /**
    * Die KI-Anbindung der Sammlung.
    *
@@ -142,7 +145,7 @@ export interface MontageHaken {
    */
   readonly kiQuelle?: KiQuelle;
   /**
-   * Die Anwendung meldet, wo sie gerade steht — im Backstory Creator die
+   * Die Anwendung meldet, wo sie gerade steht — im Story Creator die
    * offene Notiz. Der Verlauf der Huelle merkt sich das, damit zurueck nicht
    * nur das Werkzeug trifft, sondern die Stelle darin.
    */
@@ -153,7 +156,7 @@ export interface MontageHaken {
  * Meldet die eigenen Protokolle aller Anwendungen an.
  *
  * Muss vor `app.whenReady()` laufen — danach duerfen keine Schemata mehr
- * angemeldet werden, und der Backstory Creator koennte seine Bilder nicht
+ * angemeldet werden, und der Story Creator koennte seine Bilder nicht
  * ausliefern. Deshalb steht das getrennt vom Montieren, das erst danach geht.
  */
 export function registerSchemes(): void {
@@ -193,7 +196,7 @@ export function appDistDir(id: string, ...weiter: string[]): string {
  *
  * Electron leitet den Datenordner aus dem Namen der Anwendung ab, und der ist
  * eigenstaendig ein anderer als hier: die Huelle heisst „TTRPG-Tools", das
- * gepackte Einzelprogramm „Backstory Creator", und aus dem Workspace
+ * gepackte Einzelprogramm „Story Creator", und aus dem Workspace
  * gestartet gilt der Name aus seiner package.json. Alle drei liegen
  * nebeneinander im selben uebergeordneten Verzeichnis.
  *
@@ -204,7 +207,7 @@ export function appDistDir(id: string, ...weiter: string[]): string {
 function fruehereSpeicherorte(id: string): string[] {
   const namen: Record<string, string[]> = {
     // Gepackt und aus dem Workspace — beide Schreibweisen kommen vor.
-    backstory: ['Backstory Creator', 'backstory-creator']
+    backstory: ['Story Creator', 'backstory-creator']
   };
   const daneben = app.getPath('appData');
   return (namen[id] ?? []).map((name) => join(daneben, name, 'vault'));
@@ -360,14 +363,14 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
       if (!backstoryEmbed) {
         return {
           ok: false,
-          text: 'Öffne den Backstory Creator einmal, dann weiß die Sammlung, wohin.'
+          text: 'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.'
         };
       }
       const kampagnen = await backstoryEmbed.vault.listCampaigns();
       if (kampagnen.length === 0) {
         return { ok: false, text: 'Es gibt noch keine Kampagne, in die die Figur passt.' };
       }
-      // Die Kampagne, an der gerade gearbeitet wird. Der Backstory Creator
+      // Die Kampagne, an der gerade gearbeitet wird. Der Story Creator
       // merkt sie sich in seinen Einstellungen; abgefragt wird der aktuelle
       // Stand und nicht der Schnappschuss vom Montagezeitpunkt, sonst landete
       // die Figur nach einem Kampagnenwechsel in der falschen Sammlung.
@@ -380,7 +383,7 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
       const notiz = await backstoryEmbed.vault.createNote(kampagne.id, 'character', titel);
       await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
 
-      // Dem Backstory Creator sagen, dass etwas dazugekommen ist. Ohne das
+      // Dem Story Creator sagen, dass etwas dazugekommen ist. Ohne das
       // liegt die Notiz zwar auf der Platte, seine offene Liste zeigt sie
       // aber nicht — und es sieht aus, als waere der Export ins Leere
       // gelaufen.
@@ -478,7 +481,7 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
       if (!backstoryEmbed) {
         return {
           ok: false,
-          text: 'Öffne den Backstory Creator einmal, dann weiß die Sammlung, wohin.',
+          text: 'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.',
           angelegt: 0
         };
       }
@@ -507,7 +510,7 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
         return { ok: false, text: `${grund} (${angelegt} angelegt)`, angelegt };
       }
 
-      // Dem Backstory Creator sagen, dass etwas dazugekommen ist. Ohne das
+      // Dem Story Creator sagen, dass etwas dazugekommen ist. Ohne das
       // liegen die Notizen zwar auf der Platte, seine offene Liste zeigt sie
       // aber nicht.
       if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
@@ -552,7 +555,7 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
   const eingebettet = await mountInitiative({
     userDataDir: datenordner(id),
     // Der Tracker buendelt seinen Hauptprozessteil nach dist/main, die
-    // Oberflaeche nach dist/renderer — wie der Backstory Creator.
+    // Oberflaeche nach dist/renderer — wie der Story Creator.
     distDir: appDistDir(id, 'main'),
     partition: sitzung(id),
     devServerUrl: process.env.INITIATIVE_DEV_SERVER_URL,
@@ -593,16 +596,16 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
 }
 
 /**
- * Der Vault des Backstory Creators, sobald er montiert ist.
+ * Der Vault des Story Creators, sobald er montiert ist.
  *
  * Der NPC Creator legt seine Figuren dort ab, kennt den Vault aber nicht und
  * soll ihn auch nicht kennen: die Huelle reicht den Zugriff durch. Ist der
- * Backstory Creator nie geoeffnet worden, steht hier null — und der Export
+ * Story Creator nie geoeffnet worden, steht hier null — und der Export
  * sagt das ehrlich, statt stumm ins Leere zu schreiben.
  */
 let backstoryEmbed: BackstoryEmbed | null = null;
 /**
- * Die Ansicht des Backstory Creators, solange er montiert ist.
+ * Die Ansicht des Story Creators, solange er montiert ist.
  *
  * Gebraucht, um ihm zu sagen, dass hinter seinem Ruecken eine Notiz
  * dazugekommen ist. Der Embed allein reicht dafuer nicht: `send` braucht die
@@ -618,7 +621,7 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
     devServerUrl: process.env.BACKSTORY_DEV_SERVER_URL,
     language: haken.language,
     onLanguageChange: haken.onLanguageChange,
-    // Wer den Backstory Creator bisher einzeln benutzt hat, soll seine
+    // Wer den Story Creator bisher einzeln benutzt hat, soll seine
     // Kampagnen hier wiederfinden und nicht vor einer leeren Sammlung stehen.
     uebernahmeKandidaten: fruehereSpeicherorte(id),
     // In der Huelle wird die KI einmal fuer alle eingerichtet. Der eigene
@@ -671,7 +674,7 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
 async function montiereMapmaker(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = mountMapmaker({
     // Der Karteneditor hat keinen Hauptprozess; sein Vite-Build liegt direkt
-    // in dist/, nicht in dist/renderer/ wie beim Backstory Creator.
+    // in dist/, nicht in dist/renderer/ wie beim Story Creator.
     distDir: appDistDir(id),
     devServerUrl: process.env.MAPMAKER_DEV_SERVER_URL,
     language: haken.language,
@@ -701,7 +704,7 @@ async function montiereMapmaker(id: string, haken: MontageHaken): Promise<Montie
       await lade(sicht, eingebettet);
       // Der Karteneditor liest seine Sprache beim Start aus seinem eigenen
       // Browserspeicher, bevor die Huelle ihm etwas sagen kann — anders als
-      // beim Backstory Creator gibt es hier keine gemeinsam gelesene
+      // beim Story Creator gibt es hier keine gemeinsam gelesene
       // Einstellungsdatei. Dieser Aufruf gleicht das nach jedem Laden an.
       await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
       geladen = true;
@@ -713,6 +716,7 @@ async function montiereMapmaker(id: string, haken: MontageHaken): Promise<Montie
     // Inspirationshilfe, ueber die Huelle. Mehr geht bewusst nicht: eine
     // Karte aus Text zu zeichnen hiesse, sein Datenmodell von aussen zu
     // bedienen (siehe docs/inspirationshilfe.md).
-    neueKarte: (name: string) => eingebettet.neueKarte(sicht.webContents as WebContents, name)
+    neueKarte: (name: string, notizen = []) =>
+      eingebettet.neueKarte(sicht.webContents as WebContents, name, [...notizen])
   };
 }

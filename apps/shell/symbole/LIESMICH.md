@@ -10,11 +10,17 @@ Der Name ist die Kennung des Werkzeugs:
 
 | Datei             | Werkzeug           |
 | ----------------- | ------------------ |
-| `backstory.png`   | Backstory Creator  |
+| `backstory.png`   | Story Creator      |
 | `mapmaker.png`    | Karteneditor       |
 | `initiative.png`  | Initiative Tracker |
 | `dice.png`        | Würfel             |
 | `npc.png`         | NPC Creator        |
+| `inspiration.png` | Inspirationshilfe  |
+| `encounter.png`   | Begegnungen        |
+
+Gelesen wird jede Bilddatei im Ordner, ohne feste Liste — der Dateiname ist
+die Kennung. Deshalb gilt ein Bild auch für ein Werkzeug, das es noch nicht
+gibt: `encounter.png` steht auf der Kachel, die heute nur „später" sagt.
 
 Erlaubt sind `.png`, `.jpg`, `.webp` und `.gif`, höchstens 2 MB je Datei.
 Kein SVG: eine SVG-Datei kann Skripte enthalten, und das ist eine Tür, die

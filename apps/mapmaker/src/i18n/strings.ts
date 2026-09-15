@@ -215,6 +215,13 @@ export const strings = {
   'file.saveFailed': ['Speichern fehlgeschlagen: {error}', 'Saving failed: {error}'],
   'file.openFailed': ['Öffnen fehlgeschlagen: {error}', 'Opening failed: {error}'],
   'file.loaded': ['„{name}" geladen.', '“{name}” loaded.'],
+  // Eine Karte, die von aussen angestossen wurde (Inspirationshilfe). Ohne
+  // Rueckmeldung sieht man nur eine neue, scheinbar leere Flaeche — die Pins
+  // liegen verteilt und sind beim ersten Blick nicht unbedingt im Bild.
+  'file.fromTool': [
+    '„{name}" angelegt, mit {count} Notizen.',
+    '“{name}” created, with {count} notes.'
+  ],
   'file.loadedWithWarnings': [
     'Geladen mit Hinweisen: {warnings}',
     'Loaded with notes: {warnings}',
