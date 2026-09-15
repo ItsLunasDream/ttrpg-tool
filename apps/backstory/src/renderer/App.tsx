@@ -283,6 +283,17 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
    * ihren Stand vom Oeffnen, und beim Zurueckwechseln wird die Ansicht
    * bewusst nicht neu geladen, weil das den Zustand wegwuerfe.
    */
+  /**
+   * Der Verlauf der Huelle: melden, welche Notiz offen ist, und einem Sprung
+   * folgen.
+   *
+   * Laeuft der Backstory Creator eigenstaendig, hoert niemand zu und nichts
+   * davon tut etwas — die Bruecke ist dieselbe.
+   */
+  useEffect(() => {
+    api.verlauf.melde(draft?.id ?? null);
+  }, [draft?.id]);
+
   useEffect(() => {
     if (!activeCampaignId) return;
     return api.onFremdeAenderung(() => {
@@ -699,6 +710,16 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     },
     [activeCampaign, guard, bereitFuerPlattenaktion, report, t]
   );
+
+  useEffect(() => {
+    return api.verlauf.beiSprung((ort) => {
+      if (!ort) return;
+      // Eine Notiz, die es nicht mehr gibt, ist kein Fehler: sie kann
+      // geloescht worden sein, seit der Schritt in den Verlauf kam.
+      if (!index.byId.has(ort)) return;
+      openNote(ort);
+    });
+  }, [index, openNote]);
 
   /** Aus einem offenen [[Link]] heraus: nur anlegen, wenn es den Namen noch nicht gibt. */
   /**

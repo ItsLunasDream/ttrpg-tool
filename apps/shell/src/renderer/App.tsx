@@ -80,6 +80,8 @@ export function App() {
    * haengt an vielem, der Verlauf nur an ihm.
    */
   const waehleRef = useRef<((id: string | null, von?: DOMRect, ausVerlauf?: boolean) => void) | null>(null);
+  /** Welches Werkzeug sichtbar ist, auch fuer Lauscher, die nur einmal entstehen. */
+  const aktivRef = useRef<string | null>(null);
   /**
    * Was auf der Buehne los ist.
    *
@@ -187,10 +189,41 @@ export function App() {
       if (naechster === verlauf.current) return;
 
       verlauf.current = naechster;
-      waehleRef.current?.(aktuelleStelle(naechster)?.app ?? null, undefined, true);
+      const ziel = aktuelleStelle(naechster);
+
+      // Dasselbe Werkzeug, andere Stelle: dann bleibt die Ansicht stehen und
+      // nur die Anwendung springt. Ein Wechsel waere hier falsch — er
+      // zeichnete die Ansicht neu, ohne dass sich etwas geaendert haette.
+      if (ziel && ziel.app !== null && ziel.app === aktivRef.current) {
+        void window.shell.verlauf.springe(ziel.app, ziel.ort ?? null);
+        return;
+      }
+
+      waehleRef.current?.(ziel?.app ?? null, undefined, true);
+      // Das Werkzeug kommt erst hoch, dann der Sprung: vorher haette es
+      // nichts, wohin es springen koennte.
+      if (ziel?.app && ziel.ort) {
+        const app = ziel.app;
+        const ort = ziel.ort;
+        window.setTimeout(() => void window.shell.verlauf.springe(app, ort), UEBERGANG_MS);
+      }
     },
     []
   );
+
+  /**
+   * Ein Werkzeug meldet, wo es steht — im Backstory Creator die offene Notiz.
+   *
+   * Nur, wenn es auch das sichtbare ist: eine Anwendung, die im Hintergrund
+   * liegt, kann beim Laden noch etwas melden, und das gehoert nicht in den
+   * Verlauf.
+   */
+  useEffect(() => {
+    return window.shell.verlauf.beiOrt((id, ort) => {
+      if (id !== aktivRef.current) return;
+      verlauf.current = besuche(verlauf.current, { app: id, ort: ort ?? undefined });
+    });
+  }, []);
 
   useEffect(() => {
     const abmelden = window.shell.verlauf.beiBefehl(geheZu);
@@ -298,6 +331,7 @@ export function App() {
   }, [wenigerBewegung]);
 
   waehleRef.current = waehle;
+  aktivRef.current = aktiv;
 
   const ladeSymboleNeu = useCallback(async () => {
     setSymbole(await window.shell.symbole.lesen());

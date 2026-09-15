@@ -15,6 +15,17 @@ const api = {
    * gerade eine eingebettete Anwendung den Fokus hat.
    */
   verlauf: {
+    /** Bringt ein Werkzeug an eine Stelle zurueck, die der Verlauf kennt. */
+    springe: (id: string, ort: string | null): Promise<boolean> =>
+      ipcRenderer.invoke('verlauf:springe', id, ort),
+    /** Ein Werkzeug meldet, wo es gerade steht. */
+    beiOrt: (fn: (id: string, ort: string | null) => void): (() => void) => {
+      const hoerer = (_e: unknown, id: string, ort: string | null) => fn(id, ort);
+      ipcRenderer.on('verlauf:ort', hoerer);
+      return () => {
+        ipcRenderer.off('verlauf:ort', hoerer);
+      };
+    },
     beiBefehl: (fn: (richtung: 'zurueck' | 'vorwaerts') => void): (() => void) => {
       const hoerer = (_e: unknown, richtung: 'zurueck' | 'vorwaerts') => fn(richtung);
       ipcRenderer.on('verlauf:befehl', hoerer);

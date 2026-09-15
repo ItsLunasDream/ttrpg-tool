@@ -240,6 +240,11 @@ function verbergeAlle(): void {
  * hier keine "Ursprungs"-Anwendung, die schon Bescheid wuesste — eingestellt
  * wird die KI immer in der Huelle.
  */
+/** Die Anwendung meldet, wo sie steht. Die Oberflaeche fuehrt den Verlauf. */
+function meldeOrt(appId: string, ort: string | null): void {
+  huelle?.webContents.send('verlauf:ort', appId, ort);
+}
+
 /** Zurueck oder vorwaerts an die Oberflaeche der Huelle. */
 function meldeVerlauf(richtung: 'zurueck' | 'vorwaerts'): void {
   huelle?.webContents.send('verlauf:befehl', richtung);
@@ -257,6 +262,7 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
     // getan hat. Die Huelle laesst dann eine Farbe ueber deren Symbol
     // wischen — einheitlich fuer alle Werkzeuge, gleich wer es ausloest.
     onEreignis: (appId) => huelle?.webContents.send('app:ereignis', appId),
+    onOrt: (ort) => meldeOrt(herkunft, ort),
     // Die KI wird einmal in der Huelle eingerichtet und hier durchgereicht.
     // Bei jedem Aufruf frisch gelesen: wer sie umstellt, soll das im
     // naechsten Klick merken und nicht erst nach einem Neustart.
@@ -650,6 +656,20 @@ function registriereKanaele(): void {
    * hinter ihr etwas liegt, sonst schriebe sie ihren Text unter eine
    * laufende Anwendung.
    */
+  /**
+   * Bringt ein Werkzeug an eine Stelle zurueck, die der Verlauf kennt.
+   *
+   * Nur, wenn es schon montiert ist: ein Sprung in eine Anwendung, die noch
+   * gar nicht laeuft, kaeme vor ihrem ersten Zeichnen an und ginge ins
+   * Leere. Die Oberflaeche zeigt sie erst, dann kommt der Sprung.
+   */
+  handle('verlauf:springe', async (_event, id: string, ort: string | null): Promise<boolean> => {
+    const montiert = offen.get(id);
+    if (!montiert?.springeZuOrt) return false;
+    montiert.springeZuOrt(ort);
+    return true;
+  });
+
   handle('app:zeigen', async (_event, id: string, fruehestensMs = 0): Promise<ZeigenErgebnis> => {
     if (!fenster) return { zustand: 'nicht-einbettbar' };
     const begonnen = Date.now();

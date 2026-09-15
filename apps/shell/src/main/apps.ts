@@ -42,6 +42,11 @@ export interface MontierteApp {
   readonly id: string;
   readonly sicht: WebContentsView;
   /**
+   * Bringt die Anwendung an eine Stelle zurueck, die der Verlauf kennt.
+   * Werkzeuge ohne eigene Stellen lassen das weg.
+   */
+  springeZuOrt?(ort: string | null): void;
+  /**
    * Laedt die Oberflaeche der Anwendung in ihre Ansicht — und noch einmal,
    * wenn es beim ersten Mal nicht ging.
    *
@@ -122,6 +127,12 @@ export interface MontageHaken {
    * Schnappschuss: wer sie umstellt, soll das im naechsten Klick merken.
    */
   readonly kiQuelle?: KiQuelle;
+  /**
+   * Die Anwendung meldet, wo sie gerade steht — im Backstory Creator die
+   * offene Notiz. Der Verlauf der Huelle merkt sich das, damit zurueck nicht
+   * nur das Werkzeug trifft, sondern die Stelle darin.
+   */
+  readonly onOrt?: (ort: string | null) => void;
 }
 
 /**
@@ -493,6 +504,8 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
   // Rechtsklick auf ein angestrichenes Wort soll auch hier Vorschlaege
   // bringen, nicht nur in der eigenstaendigen Anwendung.
   eingebettet.richteRechtschreibungEin(sicht.webContents);
+  // Welche Notiz offen ist, gehoert in den Verlauf der Huelle.
+  if (haken.onOrt) eingebettet.beobachteVerlauf(sicht.webContents, haken.onOrt);
   // Damit der NPC Creator ihm sagen kann, dass eine Figur dazugekommen ist.
   backstorySicht = sicht;
 
@@ -500,6 +513,7 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
   return {
     id,
     sicht,
+    springeZuOrt: (ort) => eingebettet.springeZuOrt(sicht.webContents as WebContents, ort),
     nachladen: async () => {
       await lade(sicht, eingebettet);
       geladen = true;
