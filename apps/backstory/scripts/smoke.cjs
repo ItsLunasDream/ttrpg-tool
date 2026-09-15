@@ -275,6 +275,12 @@ app.whenReady().then(async () => {
 
     // 5. Text mit Wiki-Link in Torans Notiz tippen
     await selectNote(window, 'Toran');
+
+    // Frisch geladen gibt es nichts zurueckzuholen: beide Pfeile ausgegraut.
+    const pfeile = `[...document.querySelectorAll('.toolbar button')].slice(-2).map((knopf) => knopf.disabled)`;
+    check(await run(window, `return JSON.stringify(${pfeile}) === '[true,true]';`),
+      'Undo und Redo sind bei einer frisch geladenen Notiz nicht ausgegraut');
+
     await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
     await sleep(200);
     window.webContents.insertText('Er schuldet [[Mira Falkenhand]] noch Gold.');
@@ -282,6 +288,9 @@ app.whenReady().then(async () => {
 
     check(await run(window, `return document.querySelectorAll('.ProseMirror .wikilink').length === 1;`),
       'Wiki-Link wurde im Editor nicht hervorgehoben');
+    // Jetzt steht etwas im Verlauf: Undo geht, Redo noch nicht.
+    check(await run(window, `return JSON.stringify(${pfeile}) === '[false,true]';`),
+      'Nach dem Tippen stimmt der Zustand der Pfeile nicht');
     check(await run(window, `return document.querySelectorAll('.ProseMirror .wikilink--unresolved').length === 0;`),
       'Bestehende Notiz wurde faelschlich als offener Link markiert');
     check(await run(window, `return /\\d+ Wörter/.test(document.querySelector('.note-editor__words').textContent);`),

@@ -123,10 +123,28 @@ export function Toolbar({ editor, onInsertImage, onEditLink }: Props) {
       </button>
 
       <span className="toolbar__spacer" />
-      <button type="button" title={t('toolbar.undo')} onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().undo().run(); }}>
+      {/* Ausgegraut, wenn es nichts zurueckzuholen gibt. Ein Pfeil, der
+          gleich aussieht und nichts tut, sagt nichts ueber den Zustand. */}
+      <button
+        type="button"
+        title={t('toolbar.undo')}
+        disabled={!editor.can().chain().focus().undo().run()}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          editor.chain().focus().undo().run();
+        }}
+      >
         ↶
       </button>
-      <button type="button" title={t('toolbar.redo')} onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().redo().run(); }}>
+      <button
+        type="button"
+        title={t('toolbar.redo')}
+        disabled={!editor.can().chain().focus().redo().run()}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          editor.chain().focus().redo().run();
+        }}
+      >
         ↷
       </button>
     </div>
