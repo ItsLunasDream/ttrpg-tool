@@ -9,10 +9,10 @@
  * Eintraegen, und in einer Oberflaeche ohne Netzzugriff ohne jeden Nutzen.
  */
 
-export type KiAnbieterId = 'none' | 'ollama' | 'claude';
+export type KiAnbieterId = 'none' | 'ollama' | 'claude' | 'offen';
 
 export function istAnbieterId(wert: unknown): wert is KiAnbieterId {
-  return wert === 'none' || wert === 'ollama' || wert === 'claude';
+  return wert === 'none' || wert === 'ollama' || wert === 'claude' || wert === 'offen';
 }
 
 /** Voreinstellung. Bewusst nicht kleiner gewaehlt, die Wahl gehoert der Nutzerin. */
@@ -29,11 +29,22 @@ export interface KiEinstellungen {
   readonly ollamaAdresse: string;
   readonly ollamaModell: string;
   readonly claudeModell: string;
+  /**
+   * Basis-Adresse eines Dienstes mit der Schnittstelle von OpenAI. Leer,
+   * solange dieser Anbieter nicht benutzt wird.
+   */
+  readonly offenAdresse: string;
+  readonly offenModell: string;
 }
 
 export const KI_VOREINSTELLUNGEN: KiEinstellungen = {
   anbieter: 'none',
   ollamaAdresse: 'http://127.0.0.1:11434',
   ollamaModell: 'llama3.1',
-  claudeModell: CLAUDE_VOREINSTELLUNG
+  claudeModell: CLAUDE_VOREINSTELLUNG,
+  // Keine Vorgabe: die Adresse haengt am Dienst, und ein geratener Wert
+  // fuehrte nur zu einer Fehlermeldung, die nach einem Programmfehler
+  // aussieht.
+  offenAdresse: '',
+  offenModell: ''
 };

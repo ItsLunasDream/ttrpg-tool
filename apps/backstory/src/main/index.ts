@@ -66,6 +66,8 @@ async function createWindow(embed: BackstoryEmbed): Promise<void> {
     });
   });
 
+  embed.richteRechtschreibungEin(window.webContents);
+
   // Externe Links gehoeren in den Systembrowser, nicht in ein App-Fenster.
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http:') || url.startsWith('https:')) void shell.openExternal(url);
@@ -100,6 +102,19 @@ async function createWindow(embed: BackstoryEmbed): Promise<void> {
     if (!String(error).includes('ERR_ABORTED')) throw error;
   }
 }
+
+/*
+ * Auffangnetz, wie in der Huelle: ein unbehandelter Fehler beendete sonst
+ * den Prozess, und mit ihm das Fenster samt Meldung. Repariert wird hier
+ * nichts — es wird sichtbar gemacht, und die Anwendung bleibt stehen.
+ */
+process.on('uncaughtException', (fehler) => {
+  console.error('[backstory] Unbehandelter Fehler im Hauptprozess:', fehler);
+});
+
+process.on('unhandledRejection', (grund) => {
+  console.error('[backstory] Unbehandelte Ablehnung im Hauptprozess:', grund);
+});
 
 void app.whenReady().then(async () => {
   // Die zweite Instanz beendet sich gleich wieder, sie soll den Speicherort

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { parseFrontmatter, stringifyFrontmatter } from './frontmatter';
 import { hasLinkReservedChars, rewriteWikiLinks } from '../shared/wikilinks';
-import { DEFAULT_NOTE_TYPES, isKnownNoteType, toKey } from '../shared/noteTypes';
+import { DEFAULT_NOTE_TYPES, isKnownNoteType, toKey, vorlageNotiztypen } from '../shared/noteTypes';
 import { defaultPrompts } from '../shared/writingPrompts';
 import type { PromptCategory } from '../shared/writingPrompts';
 import { SCHEMA_VERSION } from '../shared/types';
@@ -21,6 +21,8 @@ import type {
   UnreadableNote
 } from '../shared/types';
 import { DEFAULT_LANGUAGE, isLanguage } from '../shared/i18n';
+import { begrenzeZoom, ZOOM_NORMAL } from '../shared/zoom';
+import { leseArchiv, schreibeArchiv, type EingelesenesArchiv } from './einlesen';
 import type { Language } from '../shared/i18n';
 import type { MessageKey, MessageParams } from '../shared/i18n';
 
@@ -403,7 +405,12 @@ export class Vault {
 
   private readonly pending = new Map<string, Promise<void>>();
 
-  async createCampaign(name: string): Promise<Campaign> {
+  /**
+   * Die Notiztypen kommen in der Sprache, in der gerade gearbeitet wird. Ab
+   * hier gehoeren sie der Kampagne: ein spaeterer Sprachwechsel zieht sie
+   * nicht mit, er wuerde sonst eigene Beschriftungen ueberschreiben.
+   */
+  async createCampaign(name: string, language: Language = DEFAULT_LANGUAGE): Promise<Campaign> {
     const trimmed = name.trim();
     if (!trimmed) throw new VaultError('error.campaignName');
 
@@ -412,12 +419,57 @@ export class Vault {
       schemaVersion: SCHEMA_VERSION,
       name: trimmed,
       createdAt: new Date().toISOString(),
-      noteTypes: structuredClone(DEFAULT_NOTE_TYPES),
+      noteTypes: structuredClone(vorlageNotiztypen(language)),
       graphPositions: {}
     };
     const dir = this.campaignDir(campaign.id);
     await fs.mkdir(path.join(dir, NOTES_DIR), { recursive: true });
     await fs.mkdir(path.join(dir, ASSETS_DIR), { recursive: true });
+    await writeJson(path.join(dir, CAMPAIGN_FILE), campaign);
+    return campaign;
+  }
+
+  /**
+   * Liest eine gesicherte Kampagne aus einem ZIP ein.
+   *
+   * Sie bekommt IMMER eine neue Kennung, auch wenn die aus dem Archiv noch
+   * frei waere. Eine vorhandene Kampagne wird dadurch nie ueberschrieben —
+   * das waere der Fehler, bei dem jemand Arbeit verliert und es erst Wochen
+   * spaeter merkt.
+   */
+  async importCampaign(archivDatei: string): Promise<Campaign> {
+    let inhalt: Buffer;
+    try {
+      inhalt = await fs.readFile(archivDatei);
+    } catch {
+      throw new VaultError('error.importUnreadable');
+    }
+
+    let gelesen: EingelesenesArchiv | null;
+    try {
+      gelesen = leseArchiv(new Uint8Array(inhalt));
+    } catch {
+      throw new VaultError('error.importUnreadable');
+    }
+    if (!gelesen) throw new VaultError('error.importNoCampaign');
+
+    const roh = gelesen.kampagne;
+    const campaign: Campaign = {
+      id: randomUUID(),
+      schemaVersion: SCHEMA_VERSION,
+      name: String(roh.name).trim() || 'Kampagne',
+      createdAt: typeof roh.createdAt === 'string' ? roh.createdAt : new Date().toISOString(),
+      noteTypes: normalizeNoteTypes(roh.noteTypes as NoteTypeDef[]),
+      graphPositions:
+        roh.graphPositions && typeof roh.graphPositions === 'object'
+          ? (roh.graphPositions as Campaign['graphPositions'])
+          : {}
+    };
+
+    const dir = this.campaignDir(campaign.id);
+    await fs.mkdir(path.join(dir, NOTES_DIR), { recursive: true });
+    await fs.mkdir(path.join(dir, ASSETS_DIR), { recursive: true });
+    await schreibeArchiv(dir, gelesen.dateien);
     await writeJson(path.join(dir, CAMPAIGN_FILE), campaign);
     return campaign;
   }
@@ -1099,6 +1151,8 @@ export function defaultSettings(vaultRoot: string): AppSettings {
     ollamaModel: 'llama3.1',
     claudeModel: 'claude-opus-5',
     claudeApiKeyEncrypted: '',
+    aiSendLinkedNotes: true,
+    editorZoom: ZOOM_NORMAL,
     lastCampaignId: null
   };
 }
@@ -1114,7 +1168,8 @@ export async function readSettings(file: string, fallbackRoot: string): Promise<
       vaultRoot: typeof parsed.vaultRoot === 'string' && parsed.vaultRoot ? parsed.vaultRoot : defaults.vaultRoot,
       autosaveDelayMs: clampDelay(parsed.autosaveDelayMs ?? defaults.autosaveDelayMs),
       historyMaxVersions: clampVersions(parsed.historyMaxVersions ?? defaults.historyMaxVersions),
-      language: isLanguage(parsed.language) ? parsed.language : defaults.language
+      language: isLanguage(parsed.language) ? parsed.language : defaults.language,
+      editorZoom: begrenzeZoom(parsed.editorZoom ?? defaults.editorZoom)
     };
   } catch {
     return defaults;
@@ -1126,7 +1181,8 @@ export async function writeSettings(file: string, settings: AppSettings): Promis
     ...settings,
     schemaVersion: SCHEMA_VERSION,
     autosaveDelayMs: clampDelay(settings.autosaveDelayMs),
-    historyMaxVersions: clampVersions(settings.historyMaxVersions)
+    historyMaxVersions: clampVersions(settings.historyMaxVersions),
+    editorZoom: begrenzeZoom(settings.editorZoom)
   };
   await writeJson(file, normalized);
   return normalized;

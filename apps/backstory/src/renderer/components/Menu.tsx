@@ -7,6 +7,8 @@ export interface MenuEntry {
   disabled?: boolean;
   /** Trennlinie oberhalb dieses Eintrags. */
   separated?: boolean;
+  /** Der Eintrag, der gerade gilt — etwa die offene Kampagne. */
+  active?: boolean;
 }
 
 interface Props {
@@ -49,11 +51,13 @@ export function Menu({ label, entries, disabled = false }: Props) {
 
       {open ? (
         <ul className="menu__list">
-          {entries.map((entry) => (
-            <li key={entry.label} className={entry.separated ? 'menu__separated' : undefined}>
+          {/* Nach Stelle geschluesselt, nicht nach Beschriftung: zwei
+              Kampagnen duerfen denselben Namen tragen. */}
+          {entries.map((entry, position) => (
+            <li key={position} className={entry.separated ? 'menu__separated' : undefined}>
               <button
                 type="button"
-                className={entry.danger ? 'danger' : undefined}
+                className={[entry.danger ? 'danger' : '', entry.active ? 'is-active' : ''].join(' ').trim() || undefined}
                 disabled={entry.disabled}
                 onClick={() => {
                   setOpen(false);

@@ -16,12 +16,13 @@
 import path from 'node:path';
 import { dialog, ipcMain } from 'electron';
 import type { BaseWindow } from 'electron';
-import type { WebContents } from 'electron';
+import type { IpcMainEvent, WebContents } from 'electron';
 import { Vault, readSettings, writeSettings } from './vault';
 import { registerIpc } from './ipc';
 import { handleAssetProtocol, registerAssetScheme } from './assetProtocol';
 import { findeUebernahme } from './uebernahme';
 import { channel } from '../shared/channels';
+import { richteRechtschreibungEin, setzePruefsprache } from './rechtschreibung';
 import type { KiQuelle } from './ai';
 import type { AppSettings } from '../shared/types';
 
@@ -176,6 +177,22 @@ export interface BackstoryEmbed {
    * anderes ein Neuzeichnen ausloest.
    */
   meldeKiWechsel(webContents: WebContents): void;
+
+  /**
+   * Haengt die Rechtschreibpruefung an eine Ansicht: Sprache setzen und das
+   * angestrichene Wort an die Oberflaeche weiterreichen. Beide Wege — die
+   * eigenstaendige Anwendung und die Huelle — rufen das nach dem Anlegen
+   * ihrer Ansicht.
+   */
+  richteRechtschreibungEin(webContents: WebContents): void;
+
+  /**
+   * Meldet der Huelle, welche Notiz gerade offen ist, und nimmt einen
+   * Sprung aus deren Verlauf entgegen. Die eigenstaendige Anwendung ruft das
+   * nicht — dort gibt es keinen Verlauf ueber Werkzeuge hinweg.
+   */
+  beobachteVerlauf(webContents: WebContents, beiOrt: (ort: string | null) => void): () => void;
+  springeZuOrt(webContents: WebContents, ort: string | null): void;
 }
 
 /**
@@ -239,10 +256,27 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
     meldeKiWechsel: (webContents) => {
       if (!webContents.isDestroyed()) webContents.send(channel('app:ki-gewechselt'));
     },
+    richteRechtschreibungEin: (webContents) => {
+      richteRechtschreibungEin(webContents, kontext.settings.language);
+    },
+    beobachteVerlauf: (webContents, beiOrt) => {
+      const hoerer = (ereignis: IpcMainEvent, ort: string | null) => {
+        // Nur die eigene Ansicht: in der Huelle laufen mehrere Anwendungen
+        // im selben Hauptprozess, und der Kanal ist global.
+        if (ereignis.sender === webContents) beiOrt(ort);
+      };
+      ipcMain.on(channel('app:verlauf-melde'), hoerer);
+      return () => ipcMain.off(channel('app:verlauf-melde'), hoerer);
+    },
+    springeZuOrt: (webContents, ort) => {
+      if (!webContents.isDestroyed()) webContents.send(channel('app:verlauf-springe'), ort);
+    },
     setLanguage: async (webContents, language) => {
       if (kontext.settings.language === language) return;
       kontext.settings = await writeSettings(settingsFile, { ...kontext.settings, language });
       if (!webContents.isDestroyed()) {
+        // Die Pruefung muss mitwandern, sonst streicht sie den halben Text an.
+        setzePruefsprache(webContents.session, language);
         webContents.send(channel('app:sprache'), language);
       }
     }

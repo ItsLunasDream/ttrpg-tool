@@ -35,12 +35,23 @@ import {
 } from '../../../initiative/src/main/embed';
 import { mountDice } from '../../../dice/src/main/embed';
 import { mountNpc } from '../../../npc/src/main/embed';
+import { mountInspiration } from '../../../inspiration/src/main/embed';
 import type { KiQuelle } from './ki';
 import type { Language } from '../shared/i18n';
 
 export interface MontierteApp {
   readonly id: string;
   readonly sicht: WebContentsView;
+  /**
+   * Beginnt eine leere Karte unter diesem Namen. Nur der Karteneditor kann
+   * das; alle anderen lassen es weg.
+   */
+  neueKarte?(name: string): void;
+  /**
+   * Bringt die Anwendung an eine Stelle zurueck, die der Verlauf kennt.
+   * Werkzeuge ohne eigene Stellen lassen das weg.
+   */
+  springeZuOrt?(ort: string | null): void;
   /**
    * Laedt die Oberflaeche der Anwendung in ihre Ansicht — und noch einmal,
    * wenn es beim ersten Mal nicht ging.
@@ -115,6 +126,14 @@ export interface MontageHaken {
    */
   readonly onEreignis?: (appId: string) => void;
   /**
+   * Beginnt im Karteneditor eine leere Karte unter diesem Namen.
+   *
+   * Steht hier und nicht als Draht zwischen den beiden Anwendungen: die
+   * Inspirationshilfe kennt den Karteneditor nicht, und er kennt sie nicht.
+   * Die Huelle holt ihn nach vorn und stellt den Namen zu, sobald er steht.
+   */
+  readonly oeffneKarte?: (name: string) => Promise<boolean>;
+  /**
    * Die KI-Anbindung der Sammlung.
    *
    * Eingerichtet wird sie einmal in der Huelle; die Werkzeuge bekommen sie
@@ -122,6 +141,12 @@ export interface MontageHaken {
    * Schnappschuss: wer sie umstellt, soll das im naechsten Klick merken.
    */
   readonly kiQuelle?: KiQuelle;
+  /**
+   * Die Anwendung meldet, wo sie gerade steht — im Backstory Creator die
+   * offene Notiz. Der Verlauf der Huelle merkt sich das, damit zurueck nicht
+   * nur das Werkzeug trifft, sondern die Stelle darin.
+   */
+  readonly onOrt?: (ort: string | null) => void;
 }
 
 /**
@@ -272,6 +297,7 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'initiative') return montiereInitiative(id, haken);
   if (id === 'dice') return montiereDice(id, haken);
   if (id === 'npc') return montiereNpc(id, haken);
+  if (id === 'inspiration') return montiereInspiration(id, haken);
   return null;
 }
 
@@ -398,6 +424,130 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
   };
 }
 
+/**
+ * Die Inspirationshilfe.
+ *
+ * Wie der NPC Creator bekommt sie eine Funktion zum Anlegen und sieht den
+ * Vault nie. Der Unterschied: hier kommen mehrere Notizen auf einmal, mit
+ * Wiki-Verweisen untereinander. Sie muessen deshalb alle in dieselbe
+ * Kampagne, und die wird einmal zu Beginn bestimmt — nicht je Notiz, sonst
+ * koennte ein Kampagnenwechsel mitten im Anlegen das Geflecht zerreissen.
+ */
+async function montiereInspiration(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountInspiration({
+    distDir: appDistDir(id, 'main'),
+    devServerUrl: process.env.INSPIRATION_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    // Die KI der Sammlung, wie im NPC Creator. Ein eigener Zugang je Werkzeug
+    // waere eine zweite Stelle, an der derselbe Schluessel liegt.
+    kiQuelle: haken.kiQuelle,
+    /**
+     * Wer in der offenen Kampagne schon steht.
+     *
+     * Damit kommen auch die Figuren des NPC Creators herein: der legt sie als
+     * Notiz in derselben Kampagne ab. Ein eigener Draht zwischen den beiden
+     * Werkzeugen waere der falsche Weg — sie sollen einzeln lauffaehig
+     * bleiben, und die Kampagne ist ohnehin die Stelle, an der die Wahrheit
+     * liegt.
+     */
+    // Der Weg zum Karteneditor. Nicht direkt: die Huelle holt ihn nach vorn.
+    karteAnlegen: haken.oeffneKarte,
+    figuren: async () => {
+      if (!backstoryEmbed) return [];
+      const kampagnen = await backstoryEmbed.vault.listCampaigns();
+      if (kampagnen.length === 0) return [];
+      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
+      const notizen = await backstoryEmbed.vault.listNotes(kampagne.id);
+      return notizen
+        .filter((notiz) => notiz.type === 'character')
+        .map((notiz) => ({
+          titel: notiz.title,
+          // Die erste Zeile mit Inhalt, ohne Auszeichnung — sie steht in der
+          // Auswahlliste und soll die Figur wiedererkennbar machen, nicht die
+          // ganze Notiz zeigen.
+          kurz: (notiz.body ?? '')
+            .split('\n')
+            .map((zeile) => zeile.replace(/[*_#>`[\]]/g, '').trim())
+            .find((zeile) => zeile.length > 0)
+            ?.slice(0, 90) ?? ''
+        }));
+    },
+    anlegen: async (notizen) => {
+      if (!backstoryEmbed) {
+        return {
+          ok: false,
+          text: 'Öffne den Backstory Creator einmal, dann weiß die Sammlung, wohin.',
+          angelegt: 0
+        };
+      }
+      if (notizen.length === 0) {
+        return { ok: false, text: 'Es gibt nichts zu übernehmen.', angelegt: 0 };
+      }
+      const kampagnen = await backstoryEmbed.vault.listCampaigns();
+      if (kampagnen.length === 0) {
+        return { ok: false, text: 'Es gibt noch keine Kampagne, in die das passt.', angelegt: 0 };
+      }
+      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
+
+      let angelegt = 0;
+      try {
+        for (const notiz of notizen) {
+          const neu = await backstoryEmbed.vault.createNote(kampagne.id, notiz.typ, notiz.titel);
+          await backstoryEmbed.vault.saveNote(kampagne.id, { ...neu, body: notiz.markdown });
+          angelegt += 1;
+        }
+      } catch (fehler) {
+        // Was schon liegt, bleibt liegen: die Haelfte eines Geflechts ist
+        // immer noch mehr wert als nichts, und geloescht wird hier nichts,
+        // was der Nutzer nicht selbst geloescht hat.
+        const grund = fehler instanceof Error ? fehler.message : String(fehler);
+        return { ok: false, text: `${grund} (${angelegt} angelegt)`, angelegt };
+      }
+
+      // Dem Backstory Creator sagen, dass etwas dazugekommen ist. Ohne das
+      // liegen die Notizen zwar auf der Platte, seine offene Liste zeigt sie
+      // aber nicht.
+      if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
+        backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
+      }
+      haken.onEreignis?.('backstory');
+      return { ok: true, text: kampagne.name, angelegt };
+    }
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
+  };
+}
+
 async function montiereInitiative(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountInitiative({
     userDataDir: datenordner(id),
@@ -490,6 +640,11 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
   });
 
   sichereAb(sicht, eingebettet.devServerUrl);
+  // Rechtsklick auf ein angestrichenes Wort soll auch hier Vorschlaege
+  // bringen, nicht nur in der eigenstaendigen Anwendung.
+  eingebettet.richteRechtschreibungEin(sicht.webContents);
+  // Welche Notiz offen ist, gehoert in den Verlauf der Huelle.
+  if (haken.onOrt) eingebettet.beobachteVerlauf(sicht.webContents, haken.onOrt);
   // Damit der NPC Creator ihm sagen kann, dass eine Figur dazugekommen ist.
   backstorySicht = sicht;
 
@@ -497,6 +652,7 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
   return {
     id,
     sicht,
+    springeZuOrt: (ort) => eingebettet.springeZuOrt(sicht.webContents as WebContents, ort),
     nachladen: async () => {
       await lade(sicht, eingebettet);
       geladen = true;
@@ -552,6 +708,11 @@ async function montiereMapmaker(id: string, haken: MontageHaken): Promise<Montie
     },
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
-    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    // Eine leere Karte unter einem gegebenen Namen — angestossen aus der
+    // Inspirationshilfe, ueber die Huelle. Mehr geht bewusst nicht: eine
+    // Karte aus Text zu zeichnen hiesse, sein Datenmodell von aussen zu
+    // bedienen (siehe docs/inspirationshilfe.md).
+    neueKarte: (name: string) => eingebettet.neueKarte(sicht.webContents as WebContents, name)
   };
 }

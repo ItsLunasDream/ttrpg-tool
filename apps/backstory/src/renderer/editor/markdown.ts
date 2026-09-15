@@ -1,6 +1,7 @@
 import { Marked, marked } from 'marked';
 import TurndownService from 'turndown';
 import { maskWikiLinks, wikiLinkText } from '../../shared/wikilinks';
+import { breiteAusAttributen, istAnteil } from '../../shared/bildbreite';
 
 const turndown = new TurndownService({
   headingStyle: 'atx',
@@ -173,16 +174,33 @@ turndown.addRule('bareLink', {
 });
 
 /**
+ * Unterstrichener Text bleibt als HTML stehen. Markdown kennt dafuer keine
+ * Schreibweise; `__text__` waere die naheliegende, gehoert dort aber dem
+ * Fettdruck. Ohne diese Regel faellt die Auszeichnung beim Speichern weg.
+ */
+turndown.addRule('underline', {
+  filter: ['u'],
+  replacement: (content) => `<u>${content}</u>`
+});
+
+/**
  * Bilder mit gesetzter Breite bleiben als HTML stehen. Markdown kann keine
  * Groesse ausdruecken, inline-HTML ist aber gueltiges Markdown und wird auch
  * von Obsidian dargestellt.
  */
 turndown.addRule('imageWithWidth', {
-  filter: (node) => node.nodeName === 'IMG' && Boolean((node as HTMLImageElement).getAttribute('width')),
+  filter: (node) =>
+    node.nodeName === 'IMG' &&
+    breiteAusAttributen(
+      (node as HTMLImageElement).getAttribute('width'),
+      (node as HTMLImageElement).getAttribute('style')
+    ) !== null,
   replacement: (_content, node) => {
     const image = node as HTMLImageElement;
     const alt = image.getAttribute('alt') ?? '';
-    return `<img src="${image.getAttribute('src') ?? ''}" alt="${alt}" width="${image.getAttribute('width')}">`;
+    const breite = breiteAusAttributen(image.getAttribute('width'), image.getAttribute('style'));
+    const masse = istAnteil(breite ?? '') ? `style="width: ${breite}"` : `width="${breite}"`;
+    return `<img src="${image.getAttribute('src') ?? ''}" alt="${alt}" ${masse}>`;
   }
 });
 
@@ -347,7 +365,8 @@ export function htmlToMarkdown(html: string, toRelative?: (url: string) => strin
  * Wiki-Links werden auf ihren Anzeigetext reduziert.
  */
 export function stripMarkdown(markdown: string): string {
-  return wikiLinkText(markdown)
+  return loeseMaskierung(
+    schuetzeMaskierte(wikiLinkText(markdown))
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`([^`]*)`/g, '$1')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
@@ -359,9 +378,43 @@ export function stripMarkdown(markdown: string): string {
     .split('\n')
     .map(stripTableRow)
     .join('\n')
-    // Zuletzt, damit die Trenner der Tabelle vorher noch von maskierten
-    // Strichen im Text zu unterscheiden waren.
-    .replace(/\\\|/g, '|');
+      // Zuletzt, damit die Trenner der Tabelle vorher noch von maskierten
+      // Strichen im Text zu unterscheiden waren.
+      .replace(/\\\|/g, '|')
+  );
+}
+
+/**
+ * Platzhalter fuer ein maskiertes Sonderzeichen, aus dem Bereich fuer private
+ * Verwendung. In gewoehnlichem Text kommt er nicht vor.
+ */
+const MASKE_AUF = '\uE010';
+const MASKE_ZU = '\uE011';
+
+/**
+ * Bringt maskierte Sonderzeichen in Sicherheit, bevor die Syntax entfernt wird.
+ *
+ * Beim Speichern maskiert der Markdown-Schreiber alles, was sonst eine
+ * Bedeutung haette: aus einem Stern im Satz wird `\*`. Liess man die
+ * Maskierung stehen, blieb der Backslash in der Kurzinfo sichtbar; loeste man
+ * sie vorher auf, fiel der Stern gleich darauf den Regeln fuer Auszeichnung
+ * zum Opfer. Beides war zu sehen.
+ *
+ * Der Strich bleibt bewusst maskiert: er trennt weiter unten die
+ * Tabellenspalten, und ein Strich im Text waere davon sonst nicht mehr zu
+ * unterscheiden.
+ */
+function schuetzeMaskierte(text: string): string {
+  return text.replace(
+    /\\([!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{}~])/g,
+    (_ganz, zeichen: string) => `${MASKE_AUF}${zeichen.codePointAt(0)}${MASKE_ZU}`
+  );
+}
+
+function loeseMaskierung(text: string): string {
+  return text.replace(/\uE010(\d+)\uE011/g, (_ganz, code: string) =>
+    String.fromCodePoint(Number(code))
+  );
 }
 
 const TABLE_ROW = /^\s*\|(.*)\|\s*$/;

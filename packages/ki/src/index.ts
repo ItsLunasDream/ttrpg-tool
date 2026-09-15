@@ -14,12 +14,14 @@
 import { ClaudeAnbieter } from './claude';
 import { CLAUDE_VOREINSTELLUNG, type KiEinstellungen } from './einstellungen';
 import { OllamaAnbieter } from './ollama';
+import { OffenerAnbieter } from './offen';
 import type { KiAnbieter } from './anbieter';
 
 export { KiFehler } from './anbieter';
 export type { KiAnbieter, KiAnfrage, KiNachricht, KiSchluessel, KiWerte, KiZustand } from './anbieter';
 export { OllamaAnbieter } from './ollama';
 export { ClaudeAnbieter } from './claude';
+export { OffenerAnbieter, baueUrl, leseStrom } from './offen';
 export {
   CLAUDE_VOREINSTELLUNG,
   istAnbieterId,
@@ -45,6 +47,12 @@ export function baueAnbieter(
       return new ClaudeAnbieter({
         schluessel,
         modell: einstellungen.claudeModell || CLAUDE_VOREINSTELLUNG
+      });
+    case 'offen':
+      return new OffenerAnbieter({
+        adresse: einstellungen.offenAdresse,
+        modell: einstellungen.offenModell,
+        schluessel
       });
     default:
       return null;

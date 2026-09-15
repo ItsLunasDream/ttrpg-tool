@@ -11,6 +11,7 @@ interface Props {
   ungespeichertAnzahl: number;
   onSelect: (campaignId: string) => void;
   onCreate: () => void;
+  onImport: () => void;
   onRename: () => void;
   onDelete: () => void;
   onExport: () => void;
@@ -38,16 +39,22 @@ export function CampaignBar(props: Props) {
     <header className="campaign-bar">
       <span className="campaign-bar__brand">Backstory Creator</span>
 
-      <select value={activeCampaignId ?? ''} onChange={(event) => props.onSelect(event.target.value)}>
-        <option value="" disabled>
-          {t('bar.chooseCampaign')}
-        </option>
-        {campaigns.map((campaign) => (
-          <option value={campaign.id} key={campaign.id}>
-            {campaign.name}
-          </option>
-        ))}
-      </select>
+      {/* Ein eigenes Menue statt einer Auswahlliste des Systems: nur so
+          steht das Anlegen dort, wo man es sucht — unten in der offenen
+          Liste, neben den vorhandenen Kampagnen. */}
+      <div className="campaign-bar__picker">
+        <Menu
+          label={campaigns.find((campaign) => campaign.id === activeCampaignId)?.name ?? t('bar.chooseCampaign')}
+          entries={[
+            ...campaigns.map((campaign) => ({
+              label: campaign.name,
+              active: campaign.id === activeCampaignId,
+              onSelect: () => props.onSelect(campaign.id)
+            })),
+            { label: t('bar.newCampaign'), onSelect: props.onCreate, separated: campaigns.length > 0 }
+          ]}
+        />
+      </div>
 
       <Menu
         label={t('bar.campaign')}
@@ -57,6 +64,9 @@ export function CampaignBar(props: Props) {
           { label: t('bar.noteTypes'), onSelect: props.onEditNoteTypes, disabled: noCampaign, separated: true },
           { label: t('cleanup.open'), onSelect: props.onCleanup, disabled: noCampaign },
           { label: t('bar.exportZip'), onSelect: props.onExport, disabled: noCampaign, separated: true },
+          // Der Weg zurueck steht neben dem hin. Eine Sicherung, die man nur
+          // von Hand zurueckspielen kann, ist keine.
+          { label: t('bar.importZip'), onSelect: props.onImport },
           { label: t('export.markdownCampaign'), onSelect: props.onExportMarkdown, disabled: noCampaign },
           { label: t('export.pdfCampaign'), onSelect: props.onExportPdf, disabled: noCampaign },
           {

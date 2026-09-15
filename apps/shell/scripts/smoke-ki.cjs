@@ -123,6 +123,66 @@ app.whenReady().then(async () => {
     'und raeumt die Einstellung des anderen Anbieters nicht weg'
   );
 
+  // --- Der offene Anbieter ---------------------------------------------------
+  //
+  // Er deckt alle Dienste ab, die wie OpenAI antworten. Geprueft wird, dass
+  // seine Felder erscheinen, auf der Platte landen und die Einstellungen der
+  // anderen Anbieter nicht wegraeumen.
+  await js(`(() => {
+    const wahl = [...document.querySelectorAll('.feld__wahl')].find(s => s.value === 'claude');
+    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    setzer.call(wahl, 'offen');
+    wahl.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  await warte(500);
+
+  const offeneFelder = await js(`[...document.querySelectorAll('.feld__name')].map(e => e.textContent).join(' | ')`);
+  pruefe(/Adresse des Dienstes|Service address/.test(offeneFelder), `Adressfeld: ${offeneFelder}`);
+  // Der Schluessel ist ein Passwortfeld — das laesst sich ohne Ruecksicht auf
+  // die Sprache pruefen.
+  pruefe(
+    (await js(`document.querySelectorAll('.feld__eingabe[type=password]').length`)) === 1,
+    'auch der offene Anbieter braucht ein Schluesselfeld'
+  );
+
+  // Eins nach dem anderen: die Felder haengen am Zustand, der ueber den
+  // Hauptprozess zurueckkommt. Beide in derselben Runde zu setzen, ueberschreibt
+  // das erste wieder mit dem alten Wert.
+  const tippe = (stelle, wert) =>
+    js(`(() => {
+      const feld = [...document.querySelectorAll('.feld__eingabe')][${stelle}];
+      const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      setzer.call(feld, ${JSON.stringify(wert)});
+      feld.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    })()`);
+
+  await tippe(0, 'https://api.beispiel.de/v1');
+  await warte(700);
+  await tippe(1, 'gross-1');
+  // Die Einstellungen werden beim Tippen geschrieben. Wer zu frueh liest,
+  // erwischt eine halb geschriebene Datei — das kostete beim Schreiben
+  // dieses Tests einen Durchlauf.
+  await warte(1500);
+
+  const gespeichert = aufDerPlatte().ki;
+  pruefe(gespeichert.anbieter === 'offen', 'der offene Anbieter landet auf der Platte');
+  pruefe(gespeichert.offenAdresse === 'https://api.beispiel.de/v1', `die Adresse fehlt: ${gespeichert.offenAdresse}`);
+  pruefe(gespeichert.offenModell === 'gross-1', `das Modell fehlt: ${gespeichert.offenModell}`);
+  pruefe(gespeichert.ollamaModell === 'uebernommenes-modell', 'die Ollama-Einstellung steht noch');
+
+  // Zurueck auf Claude, damit die folgenden Pruefungen den Stand von vorher
+  // vorfinden.
+  await js(`(() => {
+    const wahl = [...document.querySelectorAll('.feld__wahl')].find(s => s.value === 'offen');
+    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    setzer.call(wahl, 'claude');
+    wahl.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  await warte(500);
+
   // --- Die Sprache raeumt die KI nicht weg ---------------------------------
   /*
    * Der Fallstrick an der Sache: die Oberflaeche schickt nur Teilstuecke.

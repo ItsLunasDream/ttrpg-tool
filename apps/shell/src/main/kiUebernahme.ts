@@ -54,7 +54,11 @@ export async function findeKiUebernahme(
       anbieter,
       ollamaAdresse: text(roh.ollamaBaseUrl, aktuell.ki.ollamaAdresse),
       ollamaModell: text(roh.ollamaModel, aktuell.ki.ollamaModell),
-      claudeModell: text(roh.claudeModel, aktuell.ki.claudeModell)
+      claudeModell: text(roh.claudeModel, aktuell.ki.claudeModell),
+      // Den offenen Anbieter gab es im Backstory Creator nie, es ist also
+      // nichts zu uebernehmen.
+      offenAdresse: aktuell.ki.offenAdresse,
+      offenModell: aktuell.ki.offenModell
     },
     claudeSchluessel: schluessel
   };

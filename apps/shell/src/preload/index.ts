@@ -9,6 +9,31 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { ShellSettings } from '../main/settings';
 
 const api = {
+  /**
+   * Zurueck und vorwaerts. Der Befehl kommt aus dem Hauptprozess: die
+   * Daumentasten der Maus erreichen die Oberflaeche der Huelle nicht, wenn
+   * gerade eine eingebettete Anwendung den Fokus hat.
+   */
+  verlauf: {
+    /** Bringt ein Werkzeug an eine Stelle zurueck, die der Verlauf kennt. */
+    springe: (id: string, ort: string | null): Promise<boolean> =>
+      ipcRenderer.invoke('verlauf:springe', id, ort),
+    /** Ein Werkzeug meldet, wo es gerade steht. */
+    beiOrt: (fn: (id: string, ort: string | null) => void): (() => void) => {
+      const hoerer = (_e: unknown, id: string, ort: string | null) => fn(id, ort);
+      ipcRenderer.on('verlauf:ort', hoerer);
+      return () => {
+        ipcRenderer.off('verlauf:ort', hoerer);
+      };
+    },
+    beiBefehl: (fn: (richtung: 'zurueck' | 'vorwaerts') => void): (() => void) => {
+      const hoerer = (_e: unknown, richtung: 'zurueck' | 'vorwaerts') => fn(richtung);
+      ipcRenderer.on('verlauf:befehl', hoerer);
+      return () => {
+        ipcRenderer.off('verlauf:befehl', hoerer);
+      };
+    }
+  },
   fenster: {
     minimieren: () => ipcRenderer.invoke('fenster:minimieren') as Promise<void>,
     maximierenUmschalten: () => ipcRenderer.invoke('fenster:maximieren-umschalten') as Promise<boolean>,
@@ -91,6 +116,21 @@ const api = {
       ipcRenderer.on('app:ereignis', hoerer);
       return () => {
         ipcRenderer.off('app:ereignis', hoerer);
+      };
+    },
+    /**
+     * Der Hauptprozess bittet darum, ein Werkzeug zu zeigen.
+     *
+     * Bisher wechselte die Anwendung nur auf Klick oder ueber den Verlauf.
+     * Fuer „Karte anlegen" in der Inspirationshilfe muss der Wechsel aber von
+     * innen kommen: das Werkzeug reicht einen Ortsnamen an die Huelle, und
+     * die holt den Karteneditor nach vorn.
+     */
+    beiOeffnen: (fn: (id: string) => void): (() => void) => {
+      const hoerer = (_e: unknown, id: string) => fn(id);
+      ipcRenderer.on('app:oeffne', hoerer);
+      return () => {
+        ipcRenderer.off('app:oeffne', hoerer);
       };
     },
     /** Oeffnet eine http(s)-Adresse im Browser des Systems. */

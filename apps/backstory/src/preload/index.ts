@@ -108,6 +108,44 @@ const api = {
       ipcRenderer.off(channel('app:ki-gewechselt'), listener);
     };
   },
+  /**
+   * Rechtsklick auf ein falsch geschriebenes Wort. Das Ereignis kommt aus
+   * dem Hauptprozess, weil nur dort steht, was Chromium angestrichen hat.
+   * Liefert eine Funktion zum Abmelden zurueck.
+   */
+  onRechtschreibung: (
+    callback: (treffer: { x: number; y: number; wort: string; vorschlaege: string[] }) => void
+  ): (() => void) => {
+    const listener = (_e: unknown, treffer: { x: number; y: number; wort: string; vorschlaege: string[] }) =>
+      callback(treffer);
+    ipcRenderer.on(channel('app:rechtschreibung'), listener);
+    return () => {
+      ipcRenderer.off(channel('app:rechtschreibung'), listener);
+    };
+  },
+  /**
+   * Der Verlauf der Huelle.
+   *
+   * `melde` sagt, welche Notiz gerade offen ist; `beiSprung` bringt einen
+   * Schritt zurueck oder vorwaerts hierher. Laeuft die Anwendung
+   * eigenstaendig, hoert niemand zu und nichts davon tut etwas.
+   */
+  verlauf: {
+    melde: (ort: string | null) => ipcRenderer.send(channel('app:verlauf-melde'), ort),
+    beiSprung: (callback: (ort: string | null) => void): (() => void) => {
+      const listener = (_e: unknown, ort: string | null) => callback(ort);
+      ipcRenderer.on(channel('app:verlauf-springe'), listener);
+      return () => {
+        ipcRenderer.off(channel('app:verlauf-springe'), listener);
+      };
+    }
+  },
+  /** Das Woerterbuch der Sitzung. Jede Antwort ist die vollstaendige Liste. */
+  woerterbuch: {
+    liste: () => invoke<string[]>('spell:list'),
+    hinzufuegen: (wort: string) => invoke<string[]>('spell:add', wort),
+    entfernen: (wort: string) => invoke<string[]>('spell:remove', wort)
+  },
   ai: {
     status: () =>
       invoke<{
@@ -180,17 +218,32 @@ const api = {
     deleteMany: (campaignId: string, names: string[]) =>
       invoke<number>('asset:deleteMany', campaignId, names)
   },
+  /** Liest eine gesicherte Kampagne ein. Null, wenn der Dialog abgebrochen wurde. */
+  importCampaignZip: () => invoke<Campaign | null>('campaign:import'),
   exportCampaignZip: (campaignId: string, campaignName: string) =>
     invoke<string | null>('export:campaignZip', campaignId, campaignName),
   exportPdf: {
-    campaign: (campaignId: string, name: string) =>
-      invoke<{ path: string; count: number } | null>('export:campaignPdf', campaignId, name),
+    campaign: (
+      campaignId: string,
+      name: string,
+      noteIds: string[] | null,
+      inhaltsverzeichnis: boolean,
+      mitGraph: boolean
+    ) =>
+      invoke<{ path: string; count: number } | null>(
+        'export:campaignPdf',
+        campaignId,
+        name,
+        noteIds,
+        inhaltsverzeichnis,
+        mitGraph
+      ),
     note: (campaignId: string, noteId: string, title: string) =>
       invoke<{ path: string; count: number } | null>('export:notePdf', campaignId, noteId, title)
   },
   exportMarkdown: {
-    campaign: (campaignId: string) =>
-      invoke<{ path: string; count: number } | null>('export:campaignMarkdown', campaignId),
+    campaign: (campaignId: string, noteIds: string[] | null) =>
+      invoke<{ path: string; count: number } | null>('export:campaignMarkdown', campaignId, noteIds),
     note: (campaignId: string, noteId: string) =>
       invoke<{ path: string; count: number } | null>('export:noteMarkdown', campaignId, noteId)
   },

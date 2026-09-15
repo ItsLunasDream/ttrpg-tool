@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, call } from './api';
 import { buildIndex, filterNotes, searchNotes, type SearchFilters } from './noteIndex';
 import { hasLinkReservedChars, normalizeName } from '../shared/wikilinks';
+import { verlinkteNotizen } from '../shared/kiKontext';
 import { effektiverStand, zieheUmbenennungNach, type Entwurf } from './entwuerfe';
-import { DEFAULT_NOTE_TYPES } from '../shared/noteTypes';
+import { vorlageNotiztypen } from '../shared/noteTypes';
 import type {
   AppSettings,
   Campaign,
@@ -29,6 +30,7 @@ import type { Language } from '../shared/i18n';
 import { NoteTypesDialog } from './components/NoteTypesDialog';
 import { HistoryDialog } from './components/HistoryDialog';
 import { PromptsDialog } from './components/PromptsDialog';
+import { ExportDialog, type ExportFormat } from './components/ExportDialog';
 import { GraphView } from './components/GraphView';
 import { CleanupDialog } from './components/CleanupDialog';
 import { HelpDialog } from './components/HelpDialog';
@@ -49,6 +51,7 @@ type Dialog =
   | { kind: 'noteTypes' }
   | { kind: 'history'; note: Note }
   | { kind: 'prompts' }
+  | { kind: 'export'; format: ExportFormat }
   | { kind: 'cleanup' }
   | { kind: 'help' }
   | { kind: 'about' };
@@ -124,7 +127,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   autosaveAnRef.current = autosaveAn;
 
   const activeCampaign = campaigns.find((campaign) => campaign.id === activeCampaignId) ?? null;
-  const noteTypes: NoteTypeDef[] = activeCampaign?.noteTypes ?? DEFAULT_NOTE_TYPES;
+  // Ohne offene Kampagne gilt die Vorlage in der eingestellten Sprache.
+  const noteTypes: NoteTypeDef[] =
+    activeCampaign?.noteTypes ?? vorlageNotiztypen(settings?.language ?? DEFAULT_LANGUAGE);
   /**
    * Der Stand, den die Person vor sich hat: die Notizen von der Platte, wo
    * vorhanden durch ihren Entwurf ersetzt.
@@ -278,12 +283,24 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
    * ihren Stand vom Oeffnen, und beim Zurueckwechseln wird die Ansicht
    * bewusst nicht neu geladen, weil das den Zustand wegwuerfe.
    */
+  /**
+   * Der Verlauf der Huelle: melden, welche Notiz offen ist, und einem Sprung
+   * folgen.
+   *
+   * Laeuft der Backstory Creator eigenstaendig, hoert niemand zu und nichts
+   * davon tut etwas — die Bruecke ist dieselbe.
+   */
+  useEffect(() => {
+    api.verlauf.melde(draft?.id ?? null);
+  }, [draft?.id]);
+
   useEffect(() => {
     if (!activeCampaignId) return;
     return api.onFremdeAenderung(() => {
       void guard(() => reloadNotes(activeCampaignId));
     });
   }, [activeCampaignId, guard, reloadNotes]);
+
 
   useEffect(() => {
     if (!activeCampaignId) {
@@ -639,7 +656,82 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     [activeCampaignId, guard, sichereVorWechsel, reloadNotes]
   );
 
+  /**
+   * Die drei Wege, eine ganze Kampagne auszugeben.
+   *
+   * Sie haengen an zwei Stellen: im Menue "Kampagne" und am Export-Knopf des
+   * Editors. Einmal gebaut und zweimal gereicht — zwei Fassungen liefen
+   * frueher oder spaeter auseinander.
+   *
+   * Exportiert wird der Stand auf der Platte. Ungespeichertes fehlte darin,
+   * deshalb fragt bereitFuerPlattenaktion vorher.
+   */
+  const exportiereKampagneZip = useCallback(() => {
+    if (!activeCampaign) return;
+    void guard(async () => {
+      if (!(await bereitFuerPlattenaktion())) return;
+      const target = await call(api.exportCampaignZip(activeCampaign.id, activeCampaign.name));
+      if (target) report(t('msg.exported', { path: target }));
+    });
+  }, [activeCampaign, guard, bereitFuerPlattenaktion, report, t]);
+
+  /**
+   * Der Export der ganzen Kampagne fragt erst, was hinein soll. Bei zwanzig
+   * Notizen war "alle" richtig, bei zweihundert selten.
+   */
+  const exportiereKampagneMarkdown = useCallback(() => {
+    if (activeCampaign) setDialog({ kind: 'export', format: 'markdown' });
+  }, [activeCampaign]);
+
+  const exportiereKampagnePdf = useCallback(() => {
+    if (activeCampaign) setDialog({ kind: 'export', format: 'pdf' });
+  }, [activeCampaign]);
+
+  const fuehreExportAus = useCallback(
+    (format: ExportFormat, noteIds: string[] | null, inhaltsverzeichnis: boolean, mitGraph: boolean) => {
+      if (!activeCampaign) return;
+      setDialog({ kind: 'none' });
+      void guard(async () => {
+        if (!(await bereitFuerPlattenaktion())) return;
+        const result =
+          format === 'markdown'
+            ? await call(api.exportMarkdown.campaign(activeCampaign.id, noteIds))
+            : await call(
+                api.exportPdf.campaign(
+                  activeCampaign.id,
+                  activeCampaign.name,
+                  noteIds,
+                  inhaltsverzeichnis,
+                  mitGraph
+                )
+              );
+        if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
+      });
+    },
+    [activeCampaign, guard, bereitFuerPlattenaktion, report, t]
+  );
+
+  useEffect(() => {
+    return api.verlauf.beiSprung((ort) => {
+      if (!ort) return;
+      // Eine Notiz, die es nicht mehr gibt, ist kein Fehler: sie kann
+      // geloescht worden sein, seit der Schritt in den Verlauf kam.
+      if (!index.byId.has(ort)) return;
+      openNote(ort);
+    });
+  }, [index, openNote]);
+
   /** Aus einem offenen [[Link]] heraus: nur anlegen, wenn es den Namen noch nicht gibt. */
+  /**
+   * Wie viele Notizen mit an den Assistenten gingen. Gerechnet mit derselben
+   * Funktion, die der Hauptprozess zum Verschicken benutzt — sonst stuende
+   * neben dem Kaestchen eine Zahl, die nicht stimmt.
+   */
+  const aiLinkedCount = useMemo(
+    () => (draft ? verlinkteNotizen(draft, index.notes).length : 0),
+    [draft, index]
+  );
+
   const createNoteFromLink = useCallback(
     (title: string) => {
       if (index.byName.has(normalizeName(title))) {
@@ -729,32 +821,22 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         onCreate={() => setDialog({ kind: 'newCampaign' })}
         onRename={() => activeCampaign && setDialog({ kind: 'renameCampaign', campaign: activeCampaign })}
         onDelete={() => activeCampaign && setDialog({ kind: 'deleteCampaign', campaign: activeCampaign })}
-        onExport={() =>
-          activeCampaign &&
+        onExport={exportiereKampagneZip}
+        onImport={() =>
           void guard(async () => {
-            // Exportiert wird der Stand auf der Platte. Ungespeichertes
-            // fehlte darin — deshalb vorher fragen.
+            // Auch hier gilt: erst sichern, was offen ist. Das Einlesen
+            // wechselt die Kampagne, und ein Entwurf bliebe sonst haengen.
             if (!(await bereitFuerPlattenaktion())) return;
-            const target = await call(api.exportCampaignZip(activeCampaign.id, activeCampaign.name));
-            if (target) report(t('msg.exported', { path: target }));
+            const eingelesen = await call(api.importCampaignZip());
+            if (!eingelesen) return;
+            const liste = await call(api.campaigns.list());
+            setCampaigns(liste);
+            setActiveCampaignId(eingelesen.id);
+            report(t('msg.imported', { name: eingelesen.name }));
           })
         }
-        onExportMarkdown={() =>
-          activeCampaign &&
-          void guard(async () => {
-            if (!(await bereitFuerPlattenaktion())) return;
-            const result = await call(api.exportMarkdown.campaign(activeCampaign.id));
-            if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
-          })
-        }
-        onExportPdf={() =>
-          activeCampaign &&
-          void guard(async () => {
-            if (!(await bereitFuerPlattenaktion())) return;
-            const result = await call(api.exportPdf.campaign(activeCampaign.id, activeCampaign.name));
-            if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
-          })
-        }
+        onExportMarkdown={exportiereKampagneMarkdown}
+        onExportPdf={exportiereKampagnePdf}
         onToggleGraph={() => setShowGraph((previous) => !previous)}
         graphOpen={showGraph}
         onCleanup={() =>
@@ -825,6 +907,11 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 onDelete={() => setDialog({ kind: 'deleteNote', note: draft })}
                 onOpenHistory={() => void openHistory(draft)}
                 aiStatus={aiStatus}
+                aiSendLinked={settings.aiSendLinkedNotes}
+                onToggleAiSendLinked={(value) => updateSettings({ aiSendLinkedNotes: value })}
+                aiLinkedCount={aiLinkedCount}
+                editorZoom={settings.editorZoom}
+                onEditorZoom={(prozent) => updateSettings({ editorZoom: prozent })}
                 onOpenPrompts={() => {
                   setDialog({ kind: 'prompts' });
                   if (!prompts) void guard(async () => setPrompts(await call(api.prompts.get())));
@@ -847,6 +934,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                     if (result) report(t('export.done', { path: result.path }));
                   })
                 }
+                onExportCampaignZip={exportiereKampagneZip}
+                onExportCampaignMarkdown={exportiereKampagneMarkdown}
+                onExportCampaignPdf={exportiereKampagnePdf}
                 onOpenNote={openNote}
                 onCreateNote={createNoteFromLink}
                 onHoverNote={(note, rect) => setHover(note && rect ? { note, rect } : null)}
@@ -949,10 +1039,22 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         />
       ) : null}
 
+      {dialog.kind === 'export' && activeCampaign ? (
+        <ExportDialog
+          format={dialog.format}
+          index={index}
+          onExport={(noteIds, inhalt, graph) => fuehreExportAus(dialog.format, noteIds, inhalt, graph)}
+          onClose={() => setDialog({ kind: 'none' })}
+        />
+      ) : null}
+
       {dialog.kind === 'prompts' ? (
         <PromptsDialog
           categories={prompts}
           aiStatus={aiStatus}
+          aiSendLinked={settings.aiSendLinkedNotes}
+          onToggleAiSendLinked={(value) => updateSettings({ aiSendLinkedNotes: value })}
+          aiLinkedCount={aiLinkedCount}
           onClose={() => setDialog({ kind: 'none' })}
           onEditFile={() => void guard(() => call(api.prompts.reveal()))}
           onInsert={(text) => {

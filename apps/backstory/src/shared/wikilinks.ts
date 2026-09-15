@@ -50,6 +50,22 @@ export function findWikiLinks(text: string): WikiLinkMatch[] {
   return matches;
 }
 
+/**
+ * Steht die Stelle mitten in einem fertigen `[[Link]]`?
+ *
+ * Gebraucht wird das beim Tippen: wer den Cursor in einen bestehenden Verweis
+ * setzt, sieht links von sich ein `[[` ohne `]]` und sieht damit aus wie
+ * jemand, der gerade einen neuen Verweis anfaengt. Ohne diese Pruefung
+ * schlaegt die Vorschlagsliste einen halben Titel vor, legt ihn als neue
+ * Notiz an und haengt ein zweites `]]` an einen Verweis, der schon eines hat.
+ *
+ * Die Raender zaehlen nicht dazu: direkt vor dem `[[` und direkt hinter dem
+ * `]]` steht man ausserhalb und darf dort einen neuen Verweis beginnen.
+ */
+export function insideWikiLink(text: string, offset: number): boolean {
+  return findWikiLinks(text).some((link) => offset > link.from && offset < link.to);
+}
+
 /** Vergleichsform fuer Titel und Aliase: Gross-/Kleinschreibung und Randabstand egal. */
 export function normalizeName(name: string): string {
   return name.trim().toLocaleLowerCase('de-DE');

@@ -12,8 +12,9 @@ import type { PromptCategory } from '../shared/writingPrompts';
 import { askProvider, createProvider, decryptSecret, encryptSecret, AiError } from './ai';
 import type { KiQuelle } from './ai';
 import { findNoteType } from '../shared/noteTypes';
-import { findWikiLinks, normalizeName } from '../shared/wikilinks';
 import { channel } from '../shared/channels';
+import { verlinkteNotizen } from '../shared/kiKontext';
+import { zeichneGraph } from './graphBild';
 import type {
   AiMessage,
   AiTask,
@@ -184,7 +185,9 @@ export function registerIpc(context: IpcContext): void {
   });
 
   handle<[], Campaign[]>('campaign:list', () => vault.listCampaigns());
-  handle<[string], Campaign>('campaign:create', (name) => vault.createCampaign(name));
+  handle<[string], Campaign>('campaign:create', (name) =>
+    vault.createCampaign(name, context.settings.language)
+  );
   handle<[string, string], Campaign>('campaign:rename', (id, name) => vault.renameCampaign(id, name));
   handle<[string], void>('campaign:delete', (id) => vault.deleteCampaign(id));
   handle<[string], Campaign>('campaign:get', (id) => vault.getCampaign(id));
@@ -303,7 +306,12 @@ export function registerIpc(context: IpcContext): void {
             task,
             language: context.settings.language,
             note: describeNote(note, campaign.noteTypes),
-            context: describeLinkedNotes(note, notes, campaign.noteTypes),
+            // Abschaltbar: weniger Text an ein kostenpflichtiges Modell,
+            // und manchmal soll die Rueckmeldung nur die offene Notiz
+            // betreffen.
+            context: context.settings.aiSendLinkedNotes
+              ? describeLinkedNotes(note, notes, campaign.noteTypes)
+              : '',
             // Der Verlauf wird begrenzt, sonst waechst jede Rueckfrage die
             // Anfrage weiter auf und kostet mehr, ohne besser zu werden.
             history: history.slice(-8),
@@ -320,6 +328,30 @@ export function registerIpc(context: IpcContext): void {
         throw error;
       }
     }
+  );
+
+  /**
+   * Das Woerterbuch der Sitzung. Eigennamen aus der Kampagne stehen in keinem
+   * Woerterbuch der Welt, und angestrichen bleiben sie sonst fuer immer.
+   *
+   * Ueber den Absender und nicht ueber die Standardsitzung: in der Huelle
+   * laeuft jede Anwendung in ihrer eigenen (`persist:<id>`), und das
+   * Woerterbuch haengt an ihr.
+   */
+  handleWithEvent<[string], string[]>('spell:add', async (event, wort) => {
+    const sitzung = event.sender.session;
+    sitzung.addWordToSpellCheckerDictionary(wort);
+    return sitzung.listWordsInSpellCheckerDictionary();
+  });
+
+  handleWithEvent<[string], string[]>('spell:remove', async (event, wort) => {
+    const sitzung = event.sender.session;
+    sitzung.removeWordFromSpellCheckerDictionary(wort);
+    return sitzung.listWordsInSpellCheckerDictionary();
+  });
+
+  handleWithEvent<[], string[]>('spell:list', async (event) =>
+    event.sender.session.listWordsInSpellCheckerDictionary()
   );
 
   handle<[string], OrphanedAsset[]>('asset:orphans', (campaignId) => vault.listOrphanedAssets(campaignId));
@@ -395,7 +427,13 @@ export function registerIpc(context: IpcContext): void {
   }
 
   /** Notizen als PDF ausgeben, ueber ein unsichtbares Druckfenster. */
-  async function exportPdf(campaignId: string, noteIds: string[] | null, suggestedName: string) {
+  async function exportPdf(
+    campaignId: string,
+    noteIds: string[] | null,
+    suggestedName: string,
+    inhaltsverzeichnis = false,
+    mitGraph = false
+  ) {
     const window = BrowserWindow.getFocusedWindow();
     const options = {
       defaultPath: `${slug(suggestedName)}.pdf`,
@@ -431,7 +469,13 @@ export function registerIpc(context: IpcContext): void {
           } catch {
             return '';
           }
-        }
+        },
+        inhaltsverzeichnis,
+        inhaltTitel: translate(language, 'export.toc'),
+        // Das Netz der GANZEN Kampagne, nicht nur der ausgewaehlten Notizen:
+        // ein halbes Netz zeigt Verbindungen ins Nichts.
+        graphBild: mitGraph ? zeichneGraph(allNotes, campaign.noteTypes, campaign.graphPositions) : '',
+        graphTitel: translate(language, 'export.graph')
       },
       chosen.filePath
     );
@@ -439,15 +483,18 @@ export function registerIpc(context: IpcContext): void {
     return { path: chosen.filePath, count: selected.length };
   }
 
-  handle<[string, string], { path: string; count: number } | null>('export:campaignPdf', (campaignId, name) =>
-    exportPdf(campaignId, null, name)
+  handle<[string, string, string[] | null, boolean, boolean], { path: string; count: number } | null>(
+    'export:campaignPdf',
+    (campaignId, name, noteIds, inhaltsverzeichnis, mitGraph) =>
+      exportPdf(campaignId, noteIds, name, inhaltsverzeichnis, mitGraph)
   );
   handle<[string, string, string], { path: string; count: number } | null>('export:notePdf', (campaignId, noteId, title) =>
     exportPdf(campaignId, [noteId], title)
   );
 
-  handle<[string], { path: string; count: number } | null>('export:campaignMarkdown', (campaignId) =>
-    exportMarkdown(campaignId, null)
+  handle<[string, string[] | null], { path: string; count: number } | null>(
+    'export:campaignMarkdown',
+    (campaignId, noteIds) => exportMarkdown(campaignId, noteIds)
   );
   handle<[string, string], { path: string; count: number } | null>('export:noteMarkdown', (campaignId, noteId) =>
     exportMarkdown(campaignId, [noteId])
@@ -463,6 +510,22 @@ export function registerIpc(context: IpcContext): void {
     const sourceDir = path.join(vault.vaultRoot, 'campaigns', campaignId);
     await zipDirectory(sourceDir, result.filePath);
     return result.filePath;
+  });
+
+  /**
+   * Der Weg zurueck. Die eingelesene Kampagne bekommt immer eine neue
+   * Kennung; eine vorhandene wird nie ueberschrieben.
+   */
+  handle<[], Campaign | null>('campaign:import', async () => {
+    const window = BrowserWindow.getFocusedWindow();
+    const options = {
+      properties: ['openFile' as const],
+      filters: [{ name: 'ZIP-Archiv', extensions: ['zip'] }]
+    };
+    const result = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options);
+    if (result.canceled || result.filePaths.length === 0) return null;
+
+    return vault.importCampaign(result.filePaths[0]);
   });
 }
 
@@ -492,23 +555,7 @@ function describeNote(note: Note, types: NoteTypeDef[], maxBodyChars = 8000): st
  * Anfrage mit der Kampagne und wird teuer, ohne besser zu werden.
  */
 function describeLinkedNotes(note: Note, notes: Note[], types: NoteTypeDef[], perNoteChars = 1200): string {
-  const byName = new Map<string, Note>();
-  for (const entry of notes) {
-    for (const name of [entry.title, ...entry.aliases]) byName.set(normalizeName(name), entry);
-  }
-
-  const linked = new Map<string, Note>();
-  for (const link of findWikiLinks(note.body)) {
-    const target = byName.get(normalizeName(link.target));
-    if (target && target.id !== note.id) linked.set(target.id, target);
-  }
-  for (const relation of note.relations) {
-    const target = notes.find((entry) => entry.id === relation.targetId);
-    if (target) linked.set(target.id, target);
-  }
-
-  return [...linked.values()]
-    .slice(0, 12)
+  return verlinkteNotizen(note, notes)
     .map((entry) => describeNote(entry, types, perNoteChars))
     .join('\n\n---\n\n');
 }

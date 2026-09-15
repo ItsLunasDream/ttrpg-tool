@@ -1,0 +1,139 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const T = require('../dist/tests/entry.cjs');
+
+function wuerfelgeber(saat = 1) {
+  let zustand = saat >>> 0;
+  return () => {
+    zustand += 0x6d2b79f5;
+    let x = zustand;
+    x = Math.imul(x ^ (x >>> 15), x | 1);
+    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const ENTWURF = T.erzeugeEntwurf(
+  { ...T.STANDARD_ZUSCHNITT, umfang: 'bogen' },
+  'de',
+  wuerfelgeber(42)
+);
+
+test('der ganze Entwurf als Text enthaelt jeden Baustein', () => {
+  const markdown = T.alsMarkdown(ENTWURF, 'de');
+  assert.match(markdown, /## Aufhänger/);
+  assert.match(markdown, /## Fraktionen/);
+  assert.match(markdown, /## Figuren/);
+  assert.match(markdown, /## Orte/);
+  assert.match(markdown, /## Wenn niemand eingreift/);
+  for (const ort of ENTWURF.orte) assert.ok(markdown.includes(ort.name));
+  for (const figur of ENTWURF.figuren) assert.ok(markdown.includes(figur.name));
+});
+
+test('auf Englisch stehen auch die Ueberschriften englisch da', () => {
+  // Sonst kaeme aus einer englischen Oberflaeche eine halb deutsche Notiz.
+  const markdown = T.alsMarkdown(T.erzeugeEntwurf(T.STANDARD_ZUSCHNITT, 'en', wuerfelgeber(3)), 'en');
+  assert.match(markdown, /## Hook/);
+  assert.match(markdown, /\*\*Goal:\*\*/);
+  assert.ok(!markdown.includes('Aufhänger'));
+});
+
+test('je Figur, Ort und Fraktion entsteht eine Notiz, plus die Uebersicht', () => {
+  const notizen = T.alsNotizen(ENTWURF, 'de', 'Der lange Winter');
+  assert.equal(
+    notizen.length,
+    1 + ENTWURF.fraktionen.length + ENTWURF.figuren.length + ENTWURF.orte.length
+  );
+  assert.equal(notizen[0].typ, 'note');
+  assert.equal(notizen[0].titel, 'Der lange Winter');
+  const typen = notizen.map((notiz) => notiz.typ);
+  assert.ok(typen.includes('character'));
+  assert.ok(typen.includes('location'));
+  assert.ok(typen.includes('faction'));
+});
+
+test('die Uebersicht verweist auf jede andere Notiz', () => {
+  // Damit der Graph im Backstory Creator sofort etwas zu zeichnen hat. Ohne
+  // Verweise laegen dort zwanzig Notizen ohne jede Verbindung.
+  const notizen = T.alsNotizen(ENTWURF, 'de', 'Der lange Winter');
+  const uebersicht = notizen[0].markdown;
+  for (const notiz of notizen.slice(1)) {
+    assert.ok(uebersicht.includes(`[[${notiz.titel}]]`), `Verweis auf ${notiz.titel} fehlt`);
+  }
+});
+
+test('eine Figur verweist auf ihre Gegenueber, nicht auf sich selbst', () => {
+  const notizen = T.alsNotizen(ENTWURF, 'de', 'Titel');
+  ENTWURF.figuren.forEach((figur, stelle) => {
+    const notiz = notizen.find((eintrag) => eintrag.titel === figur.name);
+    assert.ok(notiz, `${figur.name} fehlt`);
+    assert.ok(!notiz.markdown.includes(`[[${figur.name}]]`), `${figur.name} verweist auf sich selbst`);
+    for (const verbindung of ENTWURF.verbindungen) {
+      if (verbindung.a !== stelle && verbindung.b !== stelle) continue;
+      const andere = ENTWURF.figuren[verbindung.a === stelle ? verbindung.b : verbindung.a].name;
+      assert.ok(notiz.markdown.includes(`[[${andere}]]`), `${figur.name} → ${andere}`);
+    }
+  });
+});
+
+test('jede Figur bekommt ihre Verbindungen beidseitig zu sehen', () => {
+  // Gerichtet heisst: beide Seiten sehen es anders, und beide sollen ihren
+  // Satz in ihrer eigenen Notiz haben.
+  ENTWURF.verbindungen.forEach((verbindung) => {
+    const beiA = T.verbindungenVon(verbindung.a, ENTWURF).join(' ');
+    const beiB = T.verbindungenVon(verbindung.b, ENTWURF).join(' ');
+    // Beide Seiten, in derselben Reihenfolge: erst wie A auf B sieht, dann
+    // umgekehrt. Nur eine Haelfte waere eine Behauptung ohne Gegenstueck.
+    for (const seite of [beiA, beiB]) {
+      assert.ok(seite.includes(verbindung.muster), verbindung.muster);
+      // Ohne Verweisklammern vergleichen: in der Notiz ist einer der beiden
+      // Namen verlinkt, im Entwurf steht er nackt.
+      const nackt = seite.split('[[').join('').split(']]').join('');
+      const hin = nackt.indexOf(verbindung.hin);
+      const zurueck = nackt.indexOf(verbindung.zurueck);
+      assert.ok(hin >= 0, verbindung.hin);
+      assert.ok(zurueck > hin, verbindung.zurueck);
+    }
+  });
+});
+
+test('ein leerer Entwurf ergibt eine Notiz und keinen Absturz', () => {
+  const notizen = T.alsNotizen(T.LEERER_ENTWURF, 'de', 'Leer');
+  assert.equal(notizen.length, 1);
+  assert.equal(T.alsMarkdown(T.LEERER_ENTWURF, 'de').includes('## Fraktionen'), false);
+});
+
+test('ohne Frist steht keine leere Fristzeile da', () => {
+  const ohne = {
+    ...T.LEERER_ENTWURF,
+    aufhaenger: { ausloeser: 'A.', betroffene: 'B.', komplikation: 'C.', frist: '' }
+  };
+  assert.ok(!T.alsMarkdown(ohne, 'de').includes('Frist'));
+  const mit = { ...ohne, aufhaenger: { ...ohne.aufhaenger, frist: 'Drei Tage.' } };
+  assert.ok(T.alsMarkdown(mit, 'de').includes('**Frist:** Drei Tage.'));
+});
+
+test('der Kanalname traegt das Praefix', () => {
+  assert.equal(T.kanal('export'), 'inspiration:export');
+  assert.equal(T.PRAEFIX, 'inspiration');
+});
+
+test('fuer eine vorhandene Figur wird keine zweite Notiz angelegt', () => {
+  // Sonst haette man nach dem zweiten Entwurf jede Figur doppelt — und der
+  // Wiki-Verweis wuesste nicht mehr, welche gemeint ist.
+  const mitFremder = {
+    ...ENTWURF,
+    figuren: [
+      ...ENTWURF.figuren,
+      { name: 'Elara von Salzfurt', rolle: 'Auftraggebend', triebfeder: '', hebel: '', makel: '', vorhanden: true }
+    ]
+  };
+  const notizen = T.alsNotizen(mitFremder, 'de', 'Titel');
+  assert.equal(notizen.some((notiz) => notiz.titel === 'Elara von Salzfurt'), false);
+  // In der Uebersicht steht sie trotzdem — der Verweis trifft ihre eigene,
+  // schon vorhandene Notiz, und genau dafuer holt man sie herueber.
+  assert.ok(notizen[0].markdown.includes('[[Elara von Salzfurt]]'));
+});

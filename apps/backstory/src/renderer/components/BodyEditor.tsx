@@ -9,12 +9,17 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
+import { ContextMenu } from './ContextMenu';
 import { SizedImage } from '../editor/sizedImage';
+import { Unterstrichen } from '../editor/unterstrichen';
+import { createEinklappExtension, einklappenPluginKey, klappeAllesAuf } from '../editor/einklappen';
 import { createWikiLinkExtension, type SuggestionState } from '../editor/wikiLinkExtension';
 import { createSearchHighlightExtension, replaceMatches, selectMatch } from '../editor/searchHighlight';
 import { htmlToMarkdown, markdownToHtml, pastedMarkdownToHtml } from '../editor/markdown';
 import { assetPath, assetUrl, isImageFile } from '../editor/assets';
+import { api, call } from '../api';
 import { normalizeName } from '../../shared/wikilinks';
+import { begrenzeZoom, naechsteZoomstufe, ZOOM_NORMAL } from '../../shared/zoom';
 import type { NoteIndex } from '../noteIndex';
 import type { Note } from '../../shared/types';
 import { findNoteType } from '../../shared/noteTypes';
@@ -49,9 +54,30 @@ interface Props {
   onOpenNote: (noteId: string) => void;
   onCreateNote: (title: string) => void;
   onHoverNote: (note: Note | null, rect: DOMRect | null) => void;
+  /** Vergroesserung des Notiztextes in Prozent. */
+  zoom: number;
+  onZoom: (prozent: number) => void;
 }
 
 const MAX_SUGGESTIONS = 8;
+
+
+/**
+ * Was eine Vorschlagsliste ausmacht: die Stelle und die getippte Anfrage.
+ *
+ * Die Ansicht meldet ihren Zustand bei JEDER Neuzeichnung, nicht nur beim
+ * Tippen — und eine Neuzeichnung loest schon das Setzen der Auswahl aus.
+ * Ohne diesen Schluessel sprang die Auswahl deshalb sofort wieder auf den
+ * ersten Eintrag, und Escape schloss die Liste nur fuer einen Wimpernschlag.
+ */
+function vorschlagsSchluessel(state: SuggestionState | null): string | null {
+  return state ? `${state.from}:${state.query}` : null;
+}
+
+function gleicherVorschlag(a: SuggestionState | null, b: SuggestionState | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.from === b.from && a.to === b.to && a.query === b.query && a.left === b.left && a.top === b.top;
+}
 
 export function BodyEditor({
   noteId,
@@ -67,11 +93,25 @@ export function BodyEditor({
   onImportImage,
   onPickImage,
   onReport,
-  onOpenExternal
+  onOpenExternal,
+  zoom,
+  onZoom
 }: Props) {
   const t = useT();
+  const flaeche = useRef<HTMLDivElement>(null);
+  /** Rechtsklick auf ein angestrichenes Wort: Stelle, Wort, Vorschlaege. */
+  const [schreibmenue, setSchreibmenue] = useState<{
+    x: number;
+    y: number;
+    wort: string;
+    vorschlaege: string[];
+  } | null>(null);
   const [suggestion, setSuggestion] = useState<SuggestionState | null>(null);
   const [highlight, setHighlight] = useState(0);
+  /** Der zuletzt gemeldete Vorschlag. Nur ein echter Wechsel setzt die Auswahl zurueck. */
+  const letzterVorschlag = useRef<string | null>(null);
+  /** Mit Escape weggeklickt. Kommt erst wieder, wenn sich die Anfrage aendert. */
+  const abgelehnt = useRef<string | null>(null);
   const [matchCount, setMatchCount] = useState(0);
   const [activeMatch, setActiveMatch] = useState(-1);
   // Eigene Suche im Dokument, unabhaengig von der Suche in der Seitenleiste.
@@ -99,6 +139,12 @@ export function BodyEditor({
   // Die ProseMirror-Handler entstehen einmal und brauchen deshalb Referenzen
   // auf die jeweils aktuellen Werte.
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
+  /**
+   * Die Uebersetzung fuer die Erweiterung, die nur einmal gebaut wird. Ohne
+   * Referenz truege der Pfeil die Beschriftung der Sprache von damals.
+   */
+  const tRef = useRef(t);
+  tRef.current = t;
   const importRef = useRef({ campaignId, onImportImage });
   importRef.current = { campaignId, onImportImage };
 
@@ -176,6 +222,11 @@ export function BodyEditor({
     []
   );
 
+  const einklappen = useMemo(
+    () => createEinklappExtension({ titel: (zu) => (zu ? tRef.current('editor.expand') : tRef.current('editor.collapse')) }),
+    []
+  );
+
   const wikiLink = useMemo(
     () =>
       createWikiLinkExtension({
@@ -189,8 +240,18 @@ export function BodyEditor({
           handlersRef.current.onHoverNote(note, rect);
         },
         onSuggestion: (state) => {
-          setSuggestion(state);
-          setHighlight(0);
+          const schluessel = vorschlagsSchluessel(state);
+          if (schluessel !== null && schluessel === abgelehnt.current) {
+            setSuggestion(null);
+            return;
+          }
+
+          abgelehnt.current = null;
+          if (schluessel !== letzterVorschlag.current) {
+            letzterVorschlag.current = schluessel;
+            setHighlight(0);
+          }
+          setSuggestion((vorher) => (gleicherVorschlag(vorher, state) ? vorher : state));
         }
       }),
     []
@@ -221,6 +282,8 @@ export function BodyEditor({
       // naechsten Speichern eine gewoehnliche Liste.
       TaskList,
       TaskItem.configure({ nested: true }),
+      Unterstrichen,
+      einklappen,
       wikiLink,
       searchHighlight,
       SizedImage.configure({ inline: false, allowBase64: false })
@@ -388,6 +451,88 @@ export function BodyEditor({
     [editor, suggestion]
   );
 
+  /**
+   * Strg und Mausrad, Strg+Plus, Strg+Minus, Strg+0 — wie im Browser.
+   *
+   * Der Lauscher haengt am Fenster und nicht am Editorfeld, weil der Fokus
+   * beim Draehen am Rad auch auf der Werkzeugleiste stehen kann. Er greift
+   * nur, solange eine Notiz offen ist; diese Komponente gibt es dann auch
+   * nur dann.
+   */
+  /**
+   * Rechtsklick auf ein falsch geschriebenes Wort.
+   *
+   * Was angestrichen ist, weiss nur Chromium, und das Ereignis dazu kommt im
+   * Hauptprozess an. Von dort kommen Wort und Vorschlaege hierher, und das
+   * Menue baut die Oberflaeche selbst — damit es aussieht wie die uebrigen.
+   */
+  useEffect(() => {
+    return api.onRechtschreibung((treffer) => setSchreibmenue(treffer));
+  }, []);
+
+  /**
+   * Ersetzt das angestrichene Wort an der Stelle, an der geklickt wurde.
+   *
+   * Ueber die Zeigerstelle und nicht ueber die Auswahl: das eigene Menue
+   * setzt keine, und ohne Auswahl traefe eine Ersetzung ins Leere.
+   */
+  const ersetzeWort = useCallback(
+    (treffer: { x: number; y: number; wort: string }, ersatz: string) => {
+      if (!editor) return;
+      const stelle = editor.view.posAtCoords({ left: treffer.x, top: treffer.y });
+      if (!stelle) return;
+
+      const $pos = editor.state.doc.resolve(stelle.pos);
+      const text = $pos.parent.textBetween(0, $pos.parent.content.size, '\n', '\n');
+      const versatz = $pos.parentOffset;
+      const start = text.lastIndexOf(treffer.wort, versatz);
+      if (start === -1 || start + treffer.wort.length < versatz) return;
+
+      const von = $pos.pos - versatz + start;
+      editor.chain().focus().insertContentAt({ from: von, to: von + treffer.wort.length }, ersatz).run();
+    },
+    [editor]
+  );
+
+  /**
+   * Strg und Mausrad. Von Hand angemeldet und nicht ueber onWheel, weil React
+   * Rad-Lauscher passiv anmeldet: preventDefault bliebe wirkungslos, und der
+   * Browser zoomte zusaetzlich die ganze Seite.
+   */
+  useEffect(() => {
+    const element = flaeche.current;
+    if (!element) return;
+
+    function onWheel(event: WheelEvent) {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      onZoom(naechsteZoomstufe(zoom, event.deltaY < 0 ? 1 : -1));
+    }
+
+    element.addEventListener('wheel', onWheel, { passive: false });
+    return () => element.removeEventListener('wheel', onWheel);
+  }, [zoom, onZoom]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (!event.ctrlKey && !event.metaKey) return;
+
+      if (event.key === '+' || event.key === '=') {
+        event.preventDefault();
+        onZoom(naechsteZoomstufe(zoom, 1));
+      } else if (event.key === '-' || event.key === '_') {
+        event.preventDefault();
+        onZoom(naechsteZoomstufe(zoom, -1));
+      } else if (event.key === '0') {
+        event.preventDefault();
+        onZoom(ZOOM_NORMAL);
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [zoom, onZoom]);
+
   useEffect(() => {
     if (!suggestion || optionCount === 0) return;
 
@@ -410,6 +555,7 @@ export function BodyEditor({
         }
       } else if (event.key === 'Escape') {
         event.preventDefault();
+        abgelehnt.current = vorschlagsSchluessel(suggestion);
         setSuggestion(null);
       }
     }
@@ -508,6 +654,12 @@ export function BodyEditor({
 
       <Toolbar
         editor={editor}
+        zoom={zoom}
+        onZoom={onZoom}
+        // Nur, wenn ueberhaupt etwas zu ist. Ein toter Knopf sagt nichts
+        // ueber den Zustand.
+        eingeklappt={editor ? (einklappenPluginKey.getState(editor.state)?.size ?? 0) : 0}
+        onAllesAufklappen={() => editor && klappeAllesAuf(editor.view)}
         onEditLink={() => setLinkDraft(editor?.getAttributes('link').href ?? '')}
         onInsertImage={() =>
           void onPickImage().then((relativePath) => {
@@ -523,6 +675,10 @@ export function BodyEditor({
       */}
       <div
         className="body-editor__surface"
+        ref={flaeche}
+        // `zoom` statt einer Schriftgroesse: so wachsen auch Bilder,
+        // Tabellen und Abstaende mit, nicht nur der Text.
+        style={{ zoom: begrenzeZoom(zoom) / 100 }}
         onDragOver={(event) => {
           if ([...event.dataTransfer.items].some((item) => item.kind === 'file')) event.preventDefault();
         }}
@@ -537,6 +693,29 @@ export function BodyEditor({
       >
         <EditorContent editor={editor} />
       </div>
+
+      {schreibmenue ? (
+        <ContextMenu
+          x={schreibmenue.x}
+          y={schreibmenue.y}
+          onClose={() => setSchreibmenue(null)}
+          items={[
+            ...schreibmenue.vorschlaege.slice(0, 6).map((vorschlag) => ({
+              label: vorschlag,
+              onSelect: () => ersetzeWort(schreibmenue, vorschlag)
+            })),
+            {
+              label: t('spell.add', { word: schreibmenue.wort }),
+              onSelect: () => {
+                void call(api.woerterbuch.hinzufuegen(schreibmenue.wort)).then(
+                  () => onReport(t('spell.added', { word: schreibmenue.wort })),
+                  () => undefined
+                );
+              }
+            }
+          ]}
+        />
+      ) : null}
 
       {suggestion && optionCount > 0 ? (
         <ul className="suggestions" style={{ left: suggestion.left, top: suggestion.top + 4 }}>

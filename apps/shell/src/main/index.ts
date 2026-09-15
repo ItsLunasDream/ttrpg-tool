@@ -240,8 +240,54 @@ function verbergeAlle(): void {
  * hier keine "Ursprungs"-Anwendung, die schon Bescheid wuesste — eingestellt
  * wird die KI immer in der Huelle.
  */
+/** Die Anwendung meldet, wo sie steht. Die Oberflaeche fuehrt den Verlauf. */
+function meldeOrt(appId: string, ort: string | null): void {
+  huelle?.webContents.send('verlauf:ort', appId, ort);
+}
+
+/** Zurueck oder vorwaerts an die Oberflaeche der Huelle. */
+function meldeVerlauf(richtung: 'zurueck' | 'vorwaerts'): void {
+  huelle?.webContents.send('verlauf:befehl', richtung);
+}
+
 function meldeKiWechsel(): void {
   for (const montiert of offen.values()) montiert.meldeKiWechsel?.();
+}
+
+/**
+ * Ein Kartenname, der auf den Karteneditor wartet.
+ *
+ * Die Inspirationshilfe stoesst „Karte anlegen" an; der Karteneditor muss
+ * dafuer erst montiert, geladen und sichtbar sein. Bis dahin liegt der Name
+ * hier. Zugestellt wird er am Ende von `app:zeigen` — und danach vergessen,
+ * damit der naechste Wechsel von Hand nicht noch einmal eine leere Karte
+ * beginnt.
+ */
+let wartendeKarte: string | null = null;
+
+/**
+ * Holt den Karteneditor nach vorn und beginnt dort eine leere Karte.
+ *
+ * Der Wechsel laeuft ueber die Oberflaeche der Huelle und nicht am
+ * Hauptprozess vorbei: nur sie kennt ihren Verlauf, ihre Schiene und die
+ * Animation. Ohne das saehe man die Ansicht wechseln, waehrend die Schiene
+ * weiter das alte Werkzeug markiert.
+ */
+async function oeffneKarteImEditor(name: string): Promise<boolean> {
+  const sauber = name.trim();
+  if (!sauber || !huelle) return false;
+  wartendeKarte = sauber;
+  huelle.webContents.send('app:oeffne', 'mapmaker');
+
+  // Steht er schon vorn, kommt kein Wechsel mehr — dann jetzt zustellen.
+  if (aktiveApp === 'mapmaker') {
+    const montiert = offen.get('mapmaker');
+    if (montiert?.neueKarte && montiert.istGeladen()) {
+      montiert.neueKarte(sauber);
+      wartendeKarte = null;
+    }
+  }
+  return true;
 }
 
 function montageHaken(herkunft: string, sprache: Language): MontageHaken {
@@ -252,13 +298,15 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
     // getan hat. Die Huelle laesst dann eine Farbe ueber deren Symbol
     // wischen — einheitlich fuer alle Werkzeuge, gleich wer es ausloest.
     onEreignis: (appId) => huelle?.webContents.send('app:ereignis', appId),
+    onOrt: (ort) => meldeOrt(herkunft, ort),
     // Die KI wird einmal in der Huelle eingerichtet und hier durchgereicht.
     // Bei jedem Aufruf frisch gelesen: wer sie umstellt, soll das im
     // naechsten Klick merken und nicht erst nach einem Neustart.
     kiQuelle: () => ({
       einstellungen: gemerkteEinstellungen.ki,
       schluessel: entschluessle(gemerkteEinstellungen.claudeSchluessel)
-    })
+    }),
+    oeffneKarte: oeffneKarteImEditor
   };
 }
 
@@ -330,6 +378,23 @@ async function erzeugeFenster(): Promise<void> {
       sandbox: true
     }
   });
+  /*
+   * Die Daumentasten der Maus.
+   *
+   * Unter Windows meldet das Fenster sie als `app-command`, unabhaengig
+   * davon, welche Ansicht gerade den Fokus hat — genau das wird hier
+   * gebraucht, denn meistens liegt eine eingebettete Anwendung vorn.
+   *
+   * Unter Linux und macOS gibt es dieses Ereignis nicht. Dort greift bisher
+   * nur Alt und Pfeiltaste, solange die Huelle den Fokus hat; die Tasten in
+   * den eingebetteten Anwendungen muessen dort einzeln weitergereicht
+   * werden. Ausgeliefert wird Windows.
+   */
+  fenster.on('app-command', (_ereignis: unknown, befehl: string) => {
+    if (befehl === 'browser-backward') meldeVerlauf('zurueck');
+    else if (befehl === 'browser-forward') meldeVerlauf('vorwaerts');
+  });
+
   fenster.contentView.addChildView(huelle);
   legeHuelleAus();
 
@@ -628,6 +693,20 @@ function registriereKanaele(): void {
    * hinter ihr etwas liegt, sonst schriebe sie ihren Text unter eine
    * laufende Anwendung.
    */
+  /**
+   * Bringt ein Werkzeug an eine Stelle zurueck, die der Verlauf kennt.
+   *
+   * Nur, wenn es schon montiert ist: ein Sprung in eine Anwendung, die noch
+   * gar nicht laeuft, kaeme vor ihrem ersten Zeichnen an und ginge ins
+   * Leere. Die Oberflaeche zeigt sie erst, dann kommt der Sprung.
+   */
+  handle('verlauf:springe', async (_event, id: string, ort: string | null): Promise<boolean> => {
+    const montiert = offen.get(id);
+    if (!montiert?.springeZuOrt) return false;
+    montiert.springeZuOrt(ort);
+    return true;
+  });
+
   handle('app:zeigen', async (_event, id: string, fruehestensMs = 0): Promise<ZeigenErgebnis> => {
     if (!fenster) return { zustand: 'nicht-einbettbar' };
     const begonnen = Date.now();
@@ -688,6 +767,13 @@ function registriereKanaele(): void {
     // `holeNachVorn` legt vorher neu aus: das Fenster kann seit dem letzten
     // Mal eine andere Groesse haben.
     holeNachVorn(montiert, true);
+
+    // Wartet ein Kartenname auf genau dieses Werkzeug, wird er jetzt
+    // zugestellt — erst hier ist es geladen und kann darauf antworten.
+    if (wartendeKarte && montiert.neueKarte) {
+      montiert.neueKarte(wartendeKarte);
+      wartendeKarte = null;
+    }
     return { zustand: 'offen' };
   });
 
@@ -740,6 +826,26 @@ function registriereKanaele(): void {
     }
   });
 }
+
+/*
+ * Ein Auffangnetz im Hauptprozess.
+ *
+ * Ein Fehler, den niemand faengt, beendet den Prozess — und mit ihm die
+ * ganze Sammlung, samt allem, was in den anderen Werkzeugen offen ist. Das
+ * ist der Bericht "beim Anlegen einer Notiz stuerzt alles ab": was genau
+ * schiefging, stand nirgends, weil das Fenster mit der Meldung verschwand.
+ *
+ * Hier wird nichts repariert. Der Fehler landet in der Konsole und in der
+ * Protokolldatei des Systems, und die Anwendung bleibt stehen, damit die
+ * Person speichern kann, was sie offen hat.
+ */
+process.on('uncaughtException', (fehler) => {
+  console.error('[shell] Unbehandelter Fehler im Hauptprozess:', fehler);
+});
+
+process.on('unhandledRejection', (grund) => {
+  console.error('[shell] Unbehandelte Ablehnung im Hauptprozess:', grund);
+});
 
 app.whenReady().then(async () => {
   startMarke('Electron bereit');

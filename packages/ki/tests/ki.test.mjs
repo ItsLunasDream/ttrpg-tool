@@ -10,7 +10,10 @@ const {
   KiFehler,
   KI_VOREINSTELLUNGEN,
   OllamaAnbieter,
-  ClaudeAnbieter
+  ClaudeAnbieter,
+  OffenerAnbieter,
+  baueUrl,
+  leseStrom
 } = require('../dist/tests/entry.cjs');
 
 test('ohne eingerichtete KI entsteht kein Anbieter', () => {
@@ -138,4 +141,64 @@ test('die Bereitschaftspruefung gibt auf, statt zu haengen', async () => {
   } finally {
     globalThis.fetch = original;
   }
+});
+
+test('die Adresse des offenen Anbieters vertraegt alle drei Schreibweisen', () => {
+  // Wer sie eintraegt, schreibt mal mit /v1, mal ohne, mal mit Schraegstrich.
+  // Verlangte man genau eine Form, laege der Fehler beim Tippen und die
+  // Meldung hiesse "nicht erreichbar".
+  assert.equal(baueUrl('https://api.beispiel.de', '/models'), 'https://api.beispiel.de/v1/models');
+  assert.equal(baueUrl('https://api.beispiel.de/v1', '/models'), 'https://api.beispiel.de/v1/models');
+  assert.equal(baueUrl('https://api.beispiel.de/v1/', '/models'), 'https://api.beispiel.de/v1/models');
+  assert.equal(baueUrl('  https://api.beispiel.de  ', '/models'), 'https://api.beispiel.de/v1/models');
+  // Eine andere Fassung bleibt stehen, sie ist nicht unser Ratespiel.
+  assert.equal(baueUrl('https://api.beispiel.de/v2', '/models'), 'https://api.beispiel.de/v2/models');
+});
+
+test('der Datenstrom des offenen Anbieters wird zusammengesetzt', async () => {
+  // Eine Zeile kann ueber zwei Pakete verteilt ankommen — dieselbe Falle wie
+  // bei Ollama, und sie ist nur mit einem geteilten Paket zu sehen.
+  const pakete = [
+    'data: {"choices":[{"delta":{"content":"Hallo "}}]}\n',
+    'data: {"choices":[{"delta":{"con',
+    'tent":"Welt"}}]}\n\ndata: [DONE]\n'
+  ].map((text) => new TextEncoder().encode(text));
+
+  const teile = [];
+  const text = await leseStrom((async function* () {
+    for (const paket of pakete) yield paket;
+  })(), (stueck) => teile.push(stueck));
+
+  assert.equal(text, 'Hallo Welt');
+  assert.deepEqual(teile, ['Hallo ', 'Welt']);
+});
+
+test('ein Fehler im Datenstrom wird zum uebersetzbaren Fehler', async () => {
+  const strom = (async function* () {
+    yield new TextEncoder().encode('data: {"error":{"message":"kaputt"}}\n');
+  })();
+
+  await assert.rejects(() => leseStrom(strom, () => {}), (fehler) => {
+    assert.equal(fehler.name, 'KiFehler');
+    assert.equal(fehler.schluessel, 'error.aiOther');
+    return true;
+  });
+});
+
+test('der offene Anbieter kommt nur mit Adresse und Modell zustande', () => {
+  const basis = { ...KI_VOREINSTELLUNGEN, anbieter: 'offen', offenAdresse: 'https://x.y', offenModell: 'gross-1' };
+  const anbieter = baueAnbieter(basis, 'geheim');
+  assert.equal(anbieter?.id, 'offen');
+  assert.match(anbieter.beschreibe(), /x\.y/);
+  assert.match(anbieter.beschreibe(), /gross-1/);
+});
+
+test('ohne Schluessel meldet der offene Anbieter das, statt zu fragen', async () => {
+  const anbieter = baueAnbieter(
+    { ...KI_VOREINSTELLUNGEN, anbieter: 'offen', offenAdresse: 'https://x.y', offenModell: 'gross-1' },
+    ''
+  );
+  const zustand = await anbieter.pruefe();
+  assert.equal(zustand.bereit, false);
+  assert.equal(zustand.schluessel, 'error.aiNoKey');
 });

@@ -70,10 +70,61 @@ async function fillDialog(window, value, confirmLabel) {
 }
 
 /** Oeffnet das Kampagnen-Menue und waehlt einen Eintrag. */
+/** Eine Kampagne ueber das Auswahlmenue oeffnen. */
+async function waehleKampagne(window, name) {
+  await run(
+    window,
+    `const opener = document.querySelector('.campaign-bar__picker > .menu > button');
+     if (!opener) throw new Error('Kampagnenauswahl fehlt');
+     if (opener.getAttribute('aria-expanded') !== 'true') opener.click();
+     return true;`
+  );
+  await sleep(300);
+  await run(
+    window,
+    `const eintrag = [...document.querySelectorAll('.campaign-bar__picker .menu__list button')]
+       .find((b) => b.textContent === ${JSON.stringify(name)});
+     if (!eintrag) throw new Error('Kampagne nicht in der Auswahl: ' + ${JSON.stringify(name)});
+     eintrag.click();
+     return true;`
+  );
+  await sleep(1200);
+}
+
+/**
+ * Kampagnenexport: Menueeintrag, dann im Dialog auf Exportieren.
+ *
+ * Der Dialog fragt seit kurzem, welche Notizen mitkommen. Voreingestellt
+ * sind alle, der Test uebernimmt das.
+ */
+async function kampagnenExport(window, label, optionen = {}) {
+  await menuAction(window, label);
+  await sleep(500);
+  if (optionen.mitGraph) {
+    await run(
+      window,
+      `const kaestchen = [...document.querySelectorAll('.modal .field--inline input')];
+       const netz = kaestchen[kaestchen.length - 1];
+       if (!netz) throw new Error('Die Option fuers Beziehungsnetz fehlt');
+       if (!netz.checked) netz.click();
+       return true;`
+    );
+    await sleep(300);
+  }
+  await run(
+    window,
+    `const knopf = [...document.querySelectorAll('.modal button')].find((b) => b.textContent === 'Exportieren');
+     if (!knopf) throw new Error('Der Export-Dialog kam nicht');
+     knopf.click();
+     return true;`
+  );
+  await sleep(500);
+}
+
 async function menuAction(window, label) {
   await run(
     window,
-    `const opener = [...document.querySelectorAll('.menu > button')][0];
+    `const opener = [...document.querySelectorAll('.campaign-bar > .menu > button')][0];
      if (!opener) throw new Error('Kampagnen-Menü fehlt');
      if (opener.getAttribute('aria-expanded') !== 'true') opener.click();
      return true;`
@@ -130,6 +181,14 @@ async function setField(window, label, value) {
      return true;`
   );
   await sleep(250);
+}
+
+/** Einen Tastendruck ans Fenster schicken, so wie save() es fuer Strg+S tut. */
+async function taste(window, key) {
+  await run(
+    window,
+    `window.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, bubbles: true })); return true;`
+  );
 }
 
 async function save(window) {
@@ -189,7 +248,7 @@ app.whenReady().then(async () => {
     await clickButton(window, 'Erste Kampagne anlegen');
     await sleep(300);
     await fillDialog(window, 'Sturmküste', 'Anlegen');
-    check(await run(window, `return document.querySelector('.campaign-bar select').selectedOptions[0].textContent === 'Sturmküste';`),
+    check(await run(window, `return document.querySelector('.campaign-bar__picker > .menu > button').textContent.includes('Sturmküste');`),
       'Kampagne wurde nicht ausgewaehlt');
 
     // 2. Zwei Charaktere anlegen
@@ -267,6 +326,12 @@ app.whenReady().then(async () => {
 
     // 5. Text mit Wiki-Link in Torans Notiz tippen
     await selectNote(window, 'Toran');
+
+    // Frisch geladen gibt es nichts zurueckzuholen: beide Pfeile ausgegraut.
+    const pfeile = `[...document.querySelectorAll('.toolbar button')].slice(-2).map((knopf) => knopf.disabled)`;
+    check(await run(window, `return JSON.stringify(${pfeile}) === '[true,true]';`),
+      'Undo und Redo sind bei einer frisch geladenen Notiz nicht ausgegraut');
+
     await run(window, `document.querySelector('.ProseMirror').focus(); return true;`);
     await sleep(200);
     window.webContents.insertText('Er schuldet [[Mira Falkenhand]] noch Gold.');
@@ -274,10 +339,298 @@ app.whenReady().then(async () => {
 
     check(await run(window, `return document.querySelectorAll('.ProseMirror .wikilink').length === 1;`),
       'Wiki-Link wurde im Editor nicht hervorgehoben');
+    // Jetzt steht etwas im Verlauf: Undo geht, Redo noch nicht.
+    check(await run(window, `return JSON.stringify(${pfeile}) === '[false,true]';`),
+      'Nach dem Tippen stimmt der Zustand der Pfeile nicht');
     check(await run(window, `return document.querySelectorAll('.ProseMirror .wikilink--unresolved').length === 0;`),
       'Bestehende Notiz wurde faelschlich als offener Link markiert');
     check(await run(window, `return /\\d+ Wörter/.test(document.querySelector('.note-editor__words').textContent);`),
       'Wortzaehler fehlt');
+
+    // 5b. Der Cursor mitten im fertigen Verweis darf keine Vorschlagsliste
+    // oeffnen. Nach links sieht es dort aus wie ein frisch begonnener Link
+    // (`[[Mira` ohne `]]`) — frueher schlug die Liste deshalb den halben
+    // Titel vor, legte ihn als neue Notiz an und haengte ein zweites `]]` an.
+    const vorherText = await run(window, `return document.querySelector('.ProseMirror').textContent;`);
+    await run(
+      window,
+      `const knoten = [...document.querySelectorAll('.ProseMirror .wikilink')][0].firstChild;
+       const bereich = document.createRange();
+       bereich.setStart(knoten, 4);
+       bereich.collapse(true);
+       const auswahl = window.getSelection();
+       auswahl.removeAllRanges();
+       auswahl.addRange(bereich);
+       document.querySelector('.ProseMirror').focus();
+       return true;`
+    );
+    await sleep(400);
+    check(await run(window, `return document.querySelector('.suggestions') === null;`),
+      'Vorschlagsliste oeffnet mitten in einem fertigen Verweis');
+    check(await run(window, `return document.querySelector('.ProseMirror').textContent;`) === vorherText,
+      'Der Text hat sich beim Klick in den Verweis veraendert');
+
+    // 5c. Die Vorschlagsliste muss sich mit den Pfeiltasten bedienen lassen.
+    // Der Probetext wird hinterher wieder entfernt, damit die folgenden
+    // Pruefungen denselben Notiztext vorfinden wie vorher.
+    const PROBE = ' Und [[Mi';
+    await run(
+      window,
+      `const feld = document.querySelector('.ProseMirror');
+       feld.focus();
+       const auswahl = window.getSelection();
+       auswahl.selectAllChildren(feld);
+       auswahl.collapseToEnd();
+       return true;`
+    );
+    await sleep(200);
+    window.webContents.insertText(PROBE);
+    await sleep(600);
+    check(await run(window, `return document.querySelectorAll('.suggestions button').length >= 2;`),
+      'Die Vorschlagsliste zeigt weniger als zwei Eintraege');
+    const ersterEintrag = await run(window, `return document.querySelector('.suggestions button.is-active')?.textContent ?? null;`);
+    await taste(window, 'ArrowDown');
+    await sleep(300);
+    const zweiterEintrag = await run(window, `return document.querySelector('.suggestions button.is-active')?.textContent ?? null;`);
+    check(zweiterEintrag !== null && zweiterEintrag !== ersterEintrag,
+      `Pfeil runter bleibt beim ersten Eintrag (${ersterEintrag})`);
+    await taste(window, 'Escape');
+    await sleep(300);
+    check(await run(window, `return document.querySelector('.suggestions') === null;`), 'Escape schliesst die Liste nicht');
+
+    for (let i = 0; i < PROBE.length; i += 1) {
+      window.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Backspace' });
+      window.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Backspace' });
+    }
+    await sleep(600);
+    check(await run(window, `return !document.querySelector('.ProseMirror').textContent.includes('Und [[');`),
+      'Der Probetext der Pfeiltasten-Pruefung blieb stehen');
+
+    // 5d. Markierter Text und "[[" ergeben einen Verweis, statt ersetzt zu
+    // werden. Geprueft wird an einem eigenen Satz, nicht am bestehenden
+    // Verweis: dort waere das Ergebnis Unsinn.
+    await run(
+      window,
+      `const feld = document.querySelector('.ProseMirror');
+       feld.focus();
+       const auswahl = window.getSelection();
+       auswahl.selectAllChildren(feld);
+       auswahl.collapseToEnd();
+       return true;`
+    );
+    await sleep(200);
+    window.webContents.insertText(' Der Hafen.');
+    await sleep(400);
+    const markiert = await run(
+      window,
+      `const feld = document.querySelector('.ProseMirror');
+       const knoten = (function suche(k) {
+         if (k.nodeType === 3 && k.textContent.includes('Hafen')) return k;
+         for (const kind of k.childNodes) { const treffer = suche(kind); if (treffer) return treffer; }
+         return null;
+       })(feld);
+       const versatz = knoten.textContent.lastIndexOf('Hafen');
+       const bereich = document.createRange();
+       bereich.setStart(knoten, versatz);
+       bereich.setEnd(knoten, versatz + 5);
+       const auswahl = window.getSelection();
+       auswahl.removeAllRanges();
+       auswahl.addRange(bereich);
+       feld.focus();
+       return auswahl.toString();`
+    );
+    check(markiert === 'Hafen', `Die Probe hat nicht "Hafen" markiert, sondern "${markiert}"`);
+    await sleep(200);
+    window.webContents.insertText('[[');
+    await sleep(600);
+    check(await run(window, `return document.querySelector('.ProseMirror').textContent.includes('[[Hafen]]');`),
+      'Markierter Text wurde beim Tippen von "[[" nicht umschlossen');
+
+    // 5e. Der Export-Knopf des Editors traegt beide Ebenen: die offene Notiz
+    // und die ganze Kampagne.
+    await run(
+      window,
+      `const knopf = [...document.querySelectorAll('.note-editor .menu > button')][0];
+       if (!knopf) throw new Error('Export-Knopf fehlt');
+       if (knopf.getAttribute('aria-expanded') !== 'true') knopf.click();
+       return true;`
+    );
+    await sleep(300);
+    const exportEintraege = await run(
+      window,
+      `return [...document.querySelectorAll('.note-editor .menu__list button')].map((b) => b.textContent);`
+    );
+    check(
+      ['Notiz als Markdown', 'Notiz als PDF', 'Kampagne als Markdown', 'Kampagne als PDF', 'Als ZIP sichern'].every(
+        (eintrag) => exportEintraege.includes(eintrag)
+      ),
+      `Im Export-Knopf fehlen Eintraege: ${JSON.stringify(exportEintraege)}`
+    );
+    await run(window, `document.querySelector('.note-editor .menu > button').click(); return true;`);
+    await sleep(300);
+
+    // 5f. Unterstrichen: Knopf und Strg+U. In der Datei steht <u>, weil
+    // Markdown dafuer keine Schreibweise kennt.
+    await run(
+      window,
+      `const feld = document.querySelector('.ProseMirror');
+       feld.focus();
+       const auswahl = window.getSelection();
+       auswahl.selectAllChildren(feld);
+       auswahl.collapseToEnd();
+       return true;`
+    );
+    await sleep(200);
+    window.webContents.insertText(' Unterstrichen');
+    await sleep(400);
+    await run(
+      window,
+      `const feld = document.querySelector('.ProseMirror');
+       const knoten = (function suche(k) {
+         if (k.nodeType === 3 && k.textContent.includes('Unterstrichen')) return k;
+         for (const kind of k.childNodes) { const treffer = suche(kind); if (treffer) return treffer; }
+         return null;
+       })(feld);
+       const versatz = knoten.textContent.lastIndexOf('Unterstrichen');
+       const bereich = document.createRange();
+       bereich.setStart(knoten, versatz);
+       bereich.setEnd(knoten, versatz + 13);
+       const auswahl = window.getSelection();
+       auswahl.removeAllRanges();
+       auswahl.addRange(bereich);
+       feld.focus();
+       return true;`
+    );
+    await sleep(200);
+    await pressToolbar(window, 'U');
+    await sleep(500);
+    check(await run(window, `return document.querySelectorAll('.ProseMirror u').length === 1;`),
+      'Der Knopf hat nichts unterstrichen');
+    await save(window);
+    {
+      const campaignsDir = path.join(userData, 'vault', 'campaigns');
+      const campaignId = fs.readdirSync(campaignsDir)[0];
+      const notesDir = path.join(campaignsDir, campaignId, 'notes');
+      const dateien = fs.readdirSync(notesDir).map((datei) => fs.readFileSync(path.join(notesDir, datei), 'utf8'));
+      check(dateien.some((roh) => roh.includes('<u>Unterstrichen</u>')),
+        'Unterstrichen steht nicht als <u> in der Datei');
+    }
+
+    // 5g. Zoom: Strg und Mausrad, Anzeige oben rechts, Klick setzt zurueck.
+    const zoomAnzeige = `document.querySelector('.toolbar__zoom')?.textContent ?? null`;
+    check(await run(window, `return ${zoomAnzeige} === '100%';`), 'Die Zoom-Anzeige steht nicht auf 100%');
+    await run(
+      window,
+      `const flaeche = document.querySelector('.body-editor__surface');
+       flaeche.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, ctrlKey: true, bubbles: true, cancelable: true }));
+       return true;`
+    );
+    await sleep(600);
+    check(await run(window, `return ${zoomAnzeige} === '110%';`),
+      `Strg und Mausrad vergroessern nicht (${await run(window, `return ${zoomAnzeige};`)})`);
+    check(
+      await run(window, `return document.querySelector('.body-editor__surface').style.zoom === '1.1';`),
+      'Die Vergroesserung kommt an der Editorflaeche nicht an'
+    );
+    await run(window, `document.querySelector('.toolbar__zoom').dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); return true;`);
+    await sleep(600);
+    check(await run(window, `return ${zoomAnzeige} === '100%';`), 'Klick auf die Anzeige setzt nicht zurueck');
+
+    // 5h. Ueberschriften einklappen. Der Zustand ist Ansicht: in der Datei
+    // darf davon nichts stehen.
+    await run(
+      window,
+      `const feld = document.querySelector('.ProseMirror');
+       feld.focus();
+       const auswahl = window.getSelection();
+       auswahl.selectAllChildren(feld);
+       auswahl.collapseToEnd();
+       return true;`
+    );
+    await sleep(200);
+    // Ueber die Werkzeugleiste und die Eingabetaste: insertText schreibt nur
+    // Text, es macht daraus keine Absaetze und keine Ueberschriften.
+    const enter = () => {
+      window.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Return' });
+      window.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Return' });
+    };
+    enter();
+    await sleep(200);
+    window.webContents.insertText('Erster Teil');
+    await sleep(300);
+    await pressToolbar(window, 'H1');
+    await sleep(400);
+    enter();
+    await sleep(200);
+    window.webContents.insertText('Ein Satz darunter.');
+    await sleep(600);
+
+    const klapppfeile = await run(window, `return document.querySelectorAll('.einklapp-pfeil').length;`);
+    check(klapppfeile >= 1, `Kein Pfeil neben der Ueberschrift (${klapppfeile})`);
+
+    // Den Cursor aus dem Abschnitt herausnehmen: steht er darin, klappt er
+    // gleich wieder auf — genau das soll er, damit niemand in unsichtbaren
+    // Text schreibt.
+    await run(
+      window,
+      `const erster = document.querySelector('.ProseMirror > p');
+       const bereich = document.createRange();
+       bereich.setStart(erster.firstChild ?? erster, 0);
+       bereich.collapse(true);
+       const auswahl = window.getSelection();
+       auswahl.removeAllRanges();
+       auswahl.addRange(bereich);
+       return true;`
+    );
+    await sleep(400);
+
+    const vorherSichtbar = await run(
+      window,
+      `return [...document.querySelectorAll('.ProseMirror > *')].filter((e) => !e.classList.contains('ist-eingeklappt')).length;`
+    );
+    await run(window, `document.querySelectorAll('.einklapp-pfeil')[0].dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); return true;`);
+    await sleep(600);
+    const nachherSichtbar = await run(
+      window,
+      `return [...document.querySelectorAll('.ProseMirror > *')].filter((e) => !e.classList.contains('ist-eingeklappt')).length;`
+    );
+    check(nachherSichtbar < vorherSichtbar, `Der Klick hat nichts eingeklappt (${vorherSichtbar} -> ${nachherSichtbar})`);
+    check(
+      await run(window, `return document.querySelector('.ProseMirror').textContent.includes('Erster Teil');`),
+      'Die Ueberschrift selbst ist mitverschwunden'
+    );
+    check(
+      !(await run(window, `return [...document.querySelectorAll('.ProseMirror > *')].some((e) => !e.classList.contains('ist-eingeklappt') && e.textContent === 'Ein Satz darunter.');`)),
+      'Der Text unter der Ueberschrift ist noch sichtbar'
+    );
+
+    // Alles aufklappen bringt sie zurueck.
+    await pressToolbar(window, '⇕');
+    await sleep(600);
+    check(
+      (await run(window, `return [...document.querySelectorAll('.ProseMirror > *')].filter((e) => !e.classList.contains('ist-eingeklappt')).length;`)) === vorherSichtbar,
+      'Alles aufklappen bringt die Abschnitte nicht zurueck'
+    );
+
+    await save(window);
+    {
+      const campaignsDir = path.join(userData, 'vault', 'campaigns');
+      const campaignId = fs.readdirSync(campaignsDir)[0];
+      const notesDir = path.join(campaignsDir, campaignId, 'notes');
+      const roh = fs
+        .readdirSync(notesDir)
+        .filter((datei) => datei.endsWith('.md'))
+        .map((datei) => fs.readFileSync(path.join(notesDir, datei), 'utf8'))
+        .join('\n');
+      check(!roh.includes('eingeklappt') && !roh.includes('collapsed'),
+        'Der eingeklappte Zustand ist in der Notizdatei gelandet');
+      // Die Auszeichnung von vorhin laeuft im Text weiter, das ist normal.
+      // Geprueft wird die Ueberschrift, nicht ihre Auszeichnung.
+      check(
+        /^#+ .*Erster Teil/m.test(roh),
+        `Die Ueberschrift fehlt in der Datei: ${JSON.stringify(roh.slice(-260))}`
+      );
+    }
 
     // 6. Kurzinfo-Karte muss den Textanfang zeigen
     await run(
@@ -545,6 +898,45 @@ app.whenReady().then(async () => {
          });`
       );
       check(JSON.parse(attrs).width === '200', `Bildbreite wurde nicht gesetzt: ${attrs}`);
+
+      // Eigene Breite als Anteil: sie steht als Stilangabe am Bild, weil das
+      // Attribut width in HTML5 nur ganze Zahlen nimmt.
+      await run(
+        window,
+        `const feld = document.querySelector('.toolbar__width');
+         if (!feld) throw new Error('Feld fuer die eigene Breite fehlt');
+         const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+         setzer.call(feld, '50%');
+         feld.dispatchEvent(new Event('input', { bubbles: true }));
+         feld.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+         return true;`
+      );
+      await sleep(600);
+      check(
+        await run(window, `return document.querySelector('.ProseMirror img').style.width === '50%';`),
+        'Eigene Breite als Anteil wurde nicht uebernommen'
+      );
+
+      // Unsinn laesst die Breite stehen, statt sie kaputtzuschreiben.
+      await run(
+        window,
+        `const feld = document.querySelector('.toolbar__width');
+         const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+         setzer.call(feld, 'breit');
+         feld.dispatchEvent(new Event('input', { bubbles: true }));
+         feld.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+         return true;`
+      );
+      await sleep(600);
+      check(
+        await run(window, `return document.querySelector('.ProseMirror img').style.width === '50%';`),
+        'Eine unsinnige Eingabe hat die Bildbreite veraendert'
+      );
+
+      // Zurueck auf Bildpunkte, damit die folgenden Pruefungen den Stand von
+      // vorher vorfinden.
+      await pressToolbar(window, '200');
+      await sleep(600);
     }
 
     await save(window);
@@ -692,7 +1084,7 @@ app.whenReady().then(async () => {
       stubDialogs(unsavedDir);
       nachgefragt.length = 0;
       speicherAntwort = 0; // Speichern und fortfahren
-      await menuAction(window, 'Kampagne als Markdown');
+      await kampagnenExport(window, 'Kampagne als Markdown');
       await sleep(3000);
 
       // Frueher schrieb der Export ungefragt. Ohne Autosave darf er das nicht
@@ -753,7 +1145,7 @@ app.whenReady().then(async () => {
 
       // Die Notiz wurde in Abschnitt 14 umbenannt
       await selectNote(window, 'Mira Sturmhand');
-      await menuAction(window, 'Kampagne als Markdown');
+      await kampagnenExport(window, 'Kampagne als Markdown');
       await sleep(2500);
 
       const campaignDir = fs.readdirSync(exportDir).map((name) => path.join(exportDir, name)).find((entry) => fs.statSync(entry).isDirectory());
@@ -775,7 +1167,7 @@ app.whenReady().then(async () => {
         check(assets.length >= 1, 'keine Bilder im Export');
       }
 
-      await menuAction(window, 'Kampagne als PDF');
+      await kampagnenExport(window, 'Kampagne als PDF', { mitGraph: true });
       await sleep(4000);
 
       const pdf = fs.readdirSync(exportDir).find((name) => name.endsWith('.pdf'));
@@ -784,6 +1176,67 @@ app.whenReady().then(async () => {
         const bytes = fs.readFileSync(path.join(exportDir, pdf));
         check(bytes.subarray(0, 4).toString() === '%PDF', 'Datei ist kein PDF');
         check(bytes.length > 1000, `PDF ist verdächtig klein: ${bytes.length} Bytes`);
+      }
+
+      // Das Beziehungsnetz ist eine Seite mehr. Gezaehlt wird gegen einen
+      // zweiten Lauf ohne die Option — eine feste Seitenzahl bewiese nichts,
+      // weil eine Notiz auch von sich aus umbrechen kann.
+      {
+        const ohneDir = path.join(userData, 'export-ohne-netz');
+        stubDialogs(ohneDir);
+        await kampagnenExport(window, 'Kampagne als PDF');
+        await sleep(4000);
+
+        const seiten = (ordner) => {
+          const datei = fs.readdirSync(ordner).find((name) => name.endsWith('.pdf'));
+          const roh = fs.readFileSync(path.join(ordner, datei)).toString('latin1');
+          return Number(/\/Count (\d+)/.exec(roh)?.[1] ?? 0);
+        };
+        const mitNetz = seiten(exportDir);
+        const ohneNetz = seiten(ohneDir);
+        check(
+          mitNetz === ohneNetz + 1,
+          `Mit Netz ${mitNetz} Seiten, ohne ${ohneNetz} — erwartet war genau eine mehr`
+        );
+      }
+
+      // Der Dialog nimmt eine Auswahl entgegen: nur eine Notiz exportieren.
+      const einzelDir = path.join(userData, 'export-auswahl');
+      stubDialogs(einzelDir);
+      await menuAction(window, 'Kampagne als Markdown');
+      await sleep(600);
+      const gewaehlt = await run(
+        window,
+        `const eintraege = [...document.querySelectorAll('.export-liste input')];
+         if (eintraege.length < 2) throw new Error('Die Auswahlliste ist zu kurz');
+         // Alle abwaehlen, dann genau die erste wieder an.
+         [...document.querySelectorAll('.modal button')].find((b) => b.textContent === 'Keine').click();
+         return eintraege.length;`
+      );
+      await sleep(300);
+      await run(window, `document.querySelectorAll('.export-liste input')[0].click(); return true;`);
+      await sleep(300);
+      check(
+        await run(window, `return document.querySelector('.modal__hint').textContent.startsWith('1 von');`),
+        'Der Dialog zaehlt die Auswahl nicht mit'
+      );
+      await run(
+        window,
+        `[...document.querySelectorAll('.modal button')].find((b) => b.textContent === 'Exportieren').click();
+         return true;`
+      );
+      await sleep(2500);
+
+      {
+        const kampagne = fs
+          .readdirSync(einzelDir)
+          .map((name) => path.join(einzelDir, name))
+          .find((eintrag) => fs.statSync(eintrag).isDirectory());
+        const dateien = fs.readdirSync(kampagne).filter((name) => name.endsWith('.md'));
+        check(
+          dateien.length === 1,
+          `Trotz Auswahl wurden ${dateien.length} von ${gewaehlt} Notizen exportiert`
+        );
       }
     }
 
@@ -1129,6 +1582,9 @@ app.whenReady().then(async () => {
        return id;`
     );
     await sleep(1200);
+    // Ziehen ist kein Klick: der Graph muss noch offen sein.
+    check(await run(window, `return Boolean(document.querySelector('.graph__canvas'));`),
+      'Das Ziehen eines Knotens hat die Notiz geoeffnet');
     const kampagnenDatei = path.join(userData, 'vault', 'campaigns', campaignId, 'campaign.json');
     {
       const kampagne = JSON.parse(fs.readFileSync(kampagnenDatei, 'utf8'));
@@ -1251,8 +1707,17 @@ app.whenReady().then(async () => {
       );
     }
 
-    // Klick auf einen Knoten oeffnet die Notiz
-    await run(window, `document.querySelector('.graph__node').dispatchEvent(new MouseEvent('click', { bubbles: true })); return true;`);
+    // Druecken und Loslassen ohne Bewegung oeffnet die Notiz
+    await run(
+      window,
+      `const svg = document.querySelector('.graph__canvas');
+       const knoten = document.querySelector('.graph__node');
+       const rect = svg.getBoundingClientRect();
+       const bei = { clientX: rect.left + 100, clientY: rect.top + 100, bubbles: true };
+       knoten.dispatchEvent(new MouseEvent('mousedown', bei));
+       svg.dispatchEvent(new MouseEvent('mouseup', bei));
+       return true;`
+    );
     await sleep(900);
     check(await run(window, `return document.querySelector('.graph__canvas') === null
        && Boolean(document.querySelector('.note-editor'));`), 'Klick auf einen Knoten öffnet keine Notiz');
@@ -1336,14 +1801,7 @@ app.whenReady().then(async () => {
     );
 
     // Zurück zur ursprünglichen Kampagne
-    await run(
-      window,
-      `const select = document.querySelector('.campaign-bar select');
-       const option = [...select.options].find((o) => o.textContent === 'Sturmküste');
-       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, option.value);
-       select.dispatchEvent(new Event('change', { bubbles: true }));
-       return true;`
-    );
+    await waehleKampagne(window, 'Sturmküste');
     await sleep(1200);
 
     // 20. Aufräumen: benutzte Bilder bleiben, unbenutzte werden angeboten

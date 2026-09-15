@@ -11,7 +11,7 @@
  * eine Einstellung umstellt und sie nach dem Neustart nicht wiederfindet,
  * soll das gleich erfahren und nicht erst dann.
  */
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { istAnbieterId, KI_VOREINSTELLUNGEN, type KiEinstellungen } from '@suite/ki/einstellungen';
 import { DEFAULT_LANGUAGE, isLanguage, type Language } from '../shared/i18n';
@@ -66,7 +66,9 @@ function sanitizeKi(roh: unknown): KiEinstellungen {
     anbieter: istAnbieterId(wert.anbieter) ? wert.anbieter : 'none',
     ollamaAdresse: text('ollamaAdresse', KI_VOREINSTELLUNGEN.ollamaAdresse),
     ollamaModell: text('ollamaModell', KI_VOREINSTELLUNGEN.ollamaModell),
-    claudeModell: text('claudeModell', KI_VOREINSTELLUNGEN.claudeModell)
+    claudeModell: text('claudeModell', KI_VOREINSTELLUNGEN.claudeModell),
+    offenAdresse: text('offenAdresse', KI_VOREINSTELLUNGEN.offenAdresse),
+    offenModell: text('offenModell', KI_VOREINSTELLUNGEN.offenModell)
   };
 }
 
@@ -78,10 +80,30 @@ export async function readSettings(datei: string): Promise<ShellSettings> {
   }
 }
 
+/**
+ * Schreibvorgaenge laufen nacheinander, nie nebeneinander.
+ *
+ * Wer in den Einstellungen tippt, loest je Zeichen einen Schreibvorgang aus.
+ * Zwei davon gleichzeitig hinterliessen eine halb beschriebene Datei — beim
+ * naechsten Start gilt dann die Voreinstellung, und niemand kaeme auf die
+ * Idee, dort zu suchen. Ein Rauchtest hat genau das getroffen.
+ */
+let schreibKette: Promise<unknown> = Promise.resolve();
+
 export async function writeSettings(datei: string, einstellungen: ShellSettings): Promise<void> {
   const sauber = sanitizeSettings(einstellungen);
-  await mkdir(dirname(datei), { recursive: true });
-  await writeFile(datei, JSON.stringify(sauber, null, 2), 'utf8');
+
+  schreibKette = schreibKette.then(async () => {
+    await mkdir(dirname(datei), { recursive: true });
+    // Erst daneben schreiben, dann umbenennen: ein Umbenennen ist im
+    // Dateisystem ein Schritt. Bricht der Strom mitten im Schreiben ab,
+    // steht die alte Datei noch da statt einer halben neuen.
+    const daneben = `${datei}.neu`;
+    await writeFile(daneben, JSON.stringify(sauber, null, 2), 'utf8');
+    await rename(daneben, datei);
+  }, () => undefined);
+
+  await schreibKette;
 }
 
 /**

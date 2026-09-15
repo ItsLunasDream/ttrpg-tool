@@ -202,8 +202,11 @@ export function FileMenu() {
     setTimeout(() => setStatus((s) => (s === message ? null : s)), 4000);
   };
 
-  const onNew = (template?: LayerTemplate) => {
-    if (Object.keys(doc.objects).length > 0 && !window.confirm(t('file.confirmNew'))) return;
+  const onNew = (template?: LayerTemplate): boolean => {
+    // Gibt zurueck, ob wirklich eine neue Karte entstanden ist. Gebraucht
+    // wird das vom Anstoss von aussen (siehe unten): wer die Rueckfrage
+    // abbricht, soll auch nicht die alte Karte umbenannt bekommen.
+    if (Object.keys(doc.objects).length > 0 && !window.confirm(t('file.confirmNew'))) return false;
     const frisch = createDocument();
     // Auf einer frischen Karte ersetzt die Vorlage die Standardebenen: sie
     // stehen zu lassen hieße, genau die Aufräumarbeit zu hinterlassen, die die
@@ -213,7 +216,35 @@ export function FileMenu() {
     forgetSaveTarget();
     setSaveTarget(null);
     setVersions([]);
+    return true;
   };
+
+  /**
+   * Eine neue Karte, angestossen von aussen.
+   *
+   * Die Inspirationshilfe erzeugt Orte und schickt einen Namen herueber (ueber
+   * die Huelle, nicht direkt — die Anwendungen kennen einander nicht). Mehr
+   * kommt ueber diese Bruecke nicht: eine Karte aus Text zu zeichnen hiesse,
+   * dieses Datenmodell von aussen zu bedienen.
+   *
+   * Die Rueckfrage von `onNew` gilt auch hier. Von aussen wird nichts
+   * weggeworfen, was hier jemand gezeichnet hat.
+   */
+  useEffect(() => {
+    const bruecke = (window as unknown as {
+      ttrpgToolsKarte?: { onNeu(callback: (name: string) => void): () => void };
+    }).ttrpgToolsKarte;
+    if (!bruecke) return;
+    return bruecke.onNeu((name) => {
+      const sauber = name.trim();
+      if (!sauber) return;
+      if (!onNew()) return;
+      useEditor.getState().exec(new RenameMap(sauber));
+    });
+    // Ohne Abhaengigkeiten waere `onNew` bei jedem Rendern ein anderes, und
+    // die Anmeldung liefe staendig neu. `doc` steckt darin, weil die
+    // Rueckfrage davon abhaengt.
+  }, [doc]);
 
   /**
    * Stellt eine frühere Fassung der offenen Datei her.

@@ -69,7 +69,11 @@ export function createProvider(
       anbieter: settings.aiProvider,
       ollamaAdresse: settings.ollamaBaseUrl,
       ollamaModell: settings.ollamaModel,
-      claudeModell: settings.claudeModel
+      claudeModell: settings.claudeModel,
+      // Der eigenstaendige Backstory Creator bietet den offenen Anbieter
+      // nicht an: eingerichtet wird die KI in der Huelle, und dort steht er.
+      offenAdresse: '',
+      offenModell: ''
     },
     apiKey
   );

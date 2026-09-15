@@ -128,12 +128,32 @@ function NpcIcon({ size = 26 }: IconProps): ReactElement {
   );
 }
 
+/**
+ * Inspirationshilfe: ein Funke ueber drei verbundenen Punkten.
+ *
+ * Die Punkte sind das Geflecht — Figuren, Fraktionen, Orte und was zwischen
+ * ihnen liegt. Der Funke allein waere vom NPC Creator kaum zu unterscheiden,
+ * die Punkte allein saehen aus wie ein Graph.
+ */
+function InspirationIcon({ size = 26 }: IconProps): ReactElement {
+  return (
+    <Rahmen size={size}>
+      <path d="M24 6v6M14 10l3 4M34 10l-3 4" />
+      <circle cx="24" cy="22" r="4" />
+      <circle cx="12" cy="38" r="4" />
+      <circle cx="36" cy="38" r="4" />
+      <path d="M21 25 14 34M27 25l7 9M16 38h16" />
+    </Rahmen>
+  );
+}
+
 const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
   backstory: BackstoryIcon,
   mapmaker: MapmakerIcon,
   initiative: InitiativeIcon,
   dice: DiceIcon,
   npc: NpcIcon,
+  inspiration: InspirationIcon,
   encounter: EncounterIcon
 };
 

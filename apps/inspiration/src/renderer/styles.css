@@ -1,0 +1,608 @@
+/*
+ * Aussehen der Inspirationshilfe.
+ *
+ * Dieselbe Palette wie im NPC Creator — die Werkzeuge stehen in einer
+ * Huelle nebeneinander und sollen nicht aussehen, als kaemen sie von
+ * verschiedenen Leuten.
+ *
+ * Die Bausteine liegen als Karten in einem Raster. Bei schmalem Fenster
+ * werden es weniger Spalten; eine feste Dreispaltigkeit waere in der Huelle
+ * neben der Schiene zu eng.
+ */
+
+:root {
+  --grund: #14161c;
+  --grund-hoch: #1b1e26;
+  --grund-tisch: #10121a;
+  --rand: #2a2e39;
+  --text: #e6e8ee;
+  --text-leise: #939aab;
+  --betont: #7aa2f7;
+  --fest: #e0af68;
+  --radius: 10px;
+
+  --motion-ok: #4a9d5f;
+  --motion-fehler: #d1635c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--grund);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+}
+
+.app {
+  height: 100%;
+  overflow-y: auto;
+  padding: 18px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.app__kopf {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app__titel {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.01em;
+}
+
+.app__unterzeile {
+  margin: 0;
+  color: var(--text-leise);
+  font-size: 13px;
+}
+
+/* ---------- Die vier Regler ---------- */
+
+.regler-leiste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.regler {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+  flex: 1 1 160px;
+}
+
+.regler__name {
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.regler__feld {
+  background: var(--grund-tisch);
+  border: 1px solid var(--rand);
+  border-radius: 7px;
+  color: var(--text);
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
+}
+
+.regler__feld:focus-visible {
+  outline: 2px solid var(--betont);
+  outline-offset: 1px;
+}
+
+/* ---------- Der Wurf ---------- */
+
+.wurf {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.wurf__zahlen {
+  margin: 0;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.knopf {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 7px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--motion-schnell, 120ms) ease, border-color var(--motion-schnell, 120ms) ease;
+}
+
+.knopf:hover {
+  border-color: var(--betont);
+}
+
+.knopf:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.knopf--gross {
+  background: var(--betont);
+  border-color: var(--betont);
+  color: #10121a;
+  font-weight: 600;
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+.knopf--aktiv {
+  border-color: var(--fest);
+  color: var(--fest);
+}
+
+.leer {
+  color: var(--text-leise);
+  margin: 24px 0;
+}
+
+/* ---------- Die Bausteine ---------- */
+
+.bausteine {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.karte {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.karte__kopf {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.karte__titel {
+  margin: 0;
+  font-size: 15px;
+}
+
+.karte__hinweis {
+  margin: 0;
+  grid-column: 1 / -1;
+  order: 3;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.karte__knoepfe {
+  display: flex;
+  gap: 6px;
+}
+
+.zeilen {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.zeile {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: start;
+  line-height: 1.45;
+}
+
+.zeile--frist {
+  color: var(--fest);
+}
+
+.zeile__knopf {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-leise);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 3px 5px;
+}
+
+.zeile__knopf:hover {
+  border-color: var(--rand);
+  color: var(--text);
+}
+
+.block {
+  border-top: 1px solid var(--rand);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  line-height: 1.45;
+}
+
+.block:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.block p {
+  margin: 0;
+}
+
+.block__kopf {
+  display: grid;
+  /* Titel, dann Marke und Knoepfe — die Marke faellt weg, wenn die Figur
+     nicht aus der Kampagne stammt, und das Raster bleibt trotzdem stehen. */
+  grid-template-columns: 1fr auto auto auto;
+  gap: 8px;
+  align-items: start;
+}
+
+/*
+ * Titel und Felder sind Eingaben, sehen aber wie Text aus: kein Rahmen, kein
+ * Hintergrund, bis man hineinklickt. Alles im Entwurf laesst sich von Hand
+ * ueberschreiben — ein Wurf ist ein Vorschlag, kein Ergebnis —, und ein
+ * Entwurf, der wie ein Formular aussieht, liest sich am Tisch nicht.
+ */
+.block__titel,
+.feld__wert {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: inherit;
+  font: inherit;
+  width: 100%;
+  padding: 2px 4px;
+  margin: 0 0 0 -4px;
+  resize: none;
+}
+
+.block__titel:hover,
+.feld__wert:hover {
+  border-color: var(--rand);
+}
+
+.block__titel:focus,
+.feld__wert:focus {
+  background: var(--grund-tisch);
+  border-color: var(--betont);
+  outline: none;
+}
+
+.block__titel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--betont);
+}
+
+.feld {
+  display: block;
+}
+
+.feld__name {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-leise);
+}
+
+.feld__wert {
+  /*
+   * Waechst mit dem Inhalt mit, statt innen zu scrollen. Von Chromium ab
+   * Version 123 unterstuetzt, Electron 33 bringt 130 mit; wo es fehlt,
+   * bleibt es bei der einen Zeile aus `rows`.
+   */
+  field-sizing: content;
+  line-height: 1.45;
+  overflow: hidden;
+}
+
+.feld--art .feld__wert {
+  color: var(--text-leise);
+  font-style: italic;
+}
+
+.feld--zurueck .feld__wert {
+  color: var(--text-leise);
+}
+
+.block__rolle {
+  color: var(--text-leise);
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.block__art {
+  color: var(--text-leise);
+  font-style: italic;
+}
+
+.zeitstrahl {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.zeitstrahl li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 2px solid var(--rand);
+  padding-left: 10px;
+  line-height: 1.45;
+}
+
+.zeitstrahl__marke {
+  color: var(--fest);
+  font-size: 12px;
+}
+
+/* ---------- Uebernehmen ---------- */
+
+.fuss {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.fuss__titel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 240px;
+}
+
+.fuss__knoepfe {
+  display: flex;
+  gap: 8px;
+}
+
+.fuss__hinweis {
+  margin: 0;
+  flex-basis: 100%;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.fuss__meldung {
+  margin: 0;
+  flex-basis: 100%;
+  color: var(--motion-ok);
+  font-size: 13px;
+}
+
+.fuss__meldung--fehler {
+  color: var(--motion-fehler);
+}
+
+/* ---------- KI ---------- */
+
+/*
+ * Die KI-Knoepfe stehen neben den Wuerfelknoepfen, nicht an ihrer Stelle:
+ * die Tabellen sind der Normalweg, das Modell die Zugabe. Ist keine KI
+ * eingerichtet, sind sie gar nicht da — ausgegraut waeren sie eine
+ * Einladung, hier nach einer Einstellung zu suchen, die in der Huelle liegt.
+ */
+.knopf--ki {
+  border-color: var(--betont);
+  color: var(--betont);
+}
+
+.zeile__knopf--laeuft {
+  color: var(--betont);
+  border-color: var(--rand);
+}
+
+.ki-hinweis {
+  margin: 0;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.ki-fehler {
+  margin: 0;
+  color: var(--motion-fehler);
+  font-size: 13px;
+}
+
+/* ---------- Vorhandene Figuren holen ---------- */
+
+.knopf--breit {
+  width: 100%;
+}
+
+.holen {
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--grund-tisch);
+}
+
+.holen__hinweis,
+.holen__leer {
+  margin: 0;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.holen__liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.holen__eintrag {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  padding: 5px 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.holen__eintrag:hover:not(:disabled) {
+  border-color: var(--betont);
+}
+
+.holen__eintrag:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.holen__name {
+  color: var(--betont);
+}
+
+.holen__kurz {
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+/* Die Marke an einer Figur, die es in der Kampagne schon gibt. */
+.block__marke {
+  align-self: center;
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  color: var(--text-leise);
+  font-size: 11px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
+/* ---------- Das Geflecht ---------- */
+
+/*
+ * Ein Bild ueber der Liste, nicht an ihrer Stelle: das Bild zeigt, wo die
+ * Geschichte dicht ist, die Saetze darunter will man lesen und aendern.
+ */
+.geflecht {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.geflecht__leer {
+  margin: 0;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.geflecht__kante line {
+  stroke: var(--rand);
+  stroke-width: 1.5;
+}
+
+.geflecht__kante text {
+  fill: var(--text-leise);
+  font-size: 9px;
+}
+
+.geflecht marker path {
+  fill: var(--rand);
+}
+
+.geflecht__kante:hover line {
+  stroke: var(--betont);
+}
+
+.geflecht__kante:hover text {
+  fill: var(--text);
+}
+
+.geflecht__knoten circle {
+  fill: var(--betont);
+}
+
+/* Figuren aus der Kampagne bleiben hohl — sie gehoeren nicht diesem Entwurf. */
+.geflecht__knoten--vorhanden circle {
+  fill: var(--grund-hoch);
+  stroke: var(--betont);
+  stroke-width: 2;
+}
+
+.geflecht__knoten text {
+  fill: var(--text);
+  font-size: 11px;
+}
+
+/*
+ * Der Knopf zum Karteneditor sitzt unter dem Ort und faellt nicht auf: er
+ * ist eine Abzweigung, kein Ziel. Die Karte selbst zeichnet dieses Werkzeug
+ * nicht — es beginnt drueben eine leere unter demselben Namen.
+ */
+.knopf--schmal {
+  align-self: flex-start;
+  font-size: 12px;
+  padding: 4px 9px;
+  margin-top: 4px;
+}
+
+/*
+ * Der grosse KI-Knopf steht neben dem Wuerfelknopf, nicht vor ihm: die
+ * Tabellen sind der Normalweg, das Modell die Zugabe. Darum ist er auch
+ * nicht gefuellt, sondern nur umrandet.
+ */
+.knopf--kigross {
+  background: none;
+  border-color: var(--betont);
+  color: var(--betont);
+}

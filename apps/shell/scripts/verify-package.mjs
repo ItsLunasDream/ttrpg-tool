@@ -148,7 +148,15 @@ async function pruefeEingebetteteDateien() {
     ['initiative', 'dist', path.join('main', 'preload.js')],
     ['initiative', 'dist', path.join('renderer', 'index.html')],
     ['dice', 'dist', path.join('main', 'preload.js')],
-    ['dice', 'dist', path.join('renderer', 'index.html')]
+    ['dice', 'dist', path.join('renderer', 'index.html')],
+    // NPC Creator und Inspirationshilfe fehlten hier lange, obwohl sie
+    // laengst mitgepackt werden: die Liste ist beim Anlegen der Werkzeuge
+    // nicht mitgewachsen. Aufgefallen ist es erst, als die Inspirationshilfe
+    // dazukam und die Frage aufwarf, was das Paket eigentlich prueft.
+    ['npc', 'dist', path.join('main', 'preload.js')],
+    ['npc', 'dist', path.join('renderer', 'index.html')],
+    ['inspiration', 'dist', path.join('main', 'preload.js')],
+    ['inspiration', 'dist', path.join('renderer', 'index.html')]
   ];
 
   const fehlend = [];

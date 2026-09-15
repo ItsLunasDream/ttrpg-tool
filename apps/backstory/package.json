@@ -1,6 +1,6 @@
 {
   "name": "backstory-creator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Desktop-Tool zum Schreiben von D&D-Charakter-Backstorys",
   "repository": {
@@ -16,7 +16,7 @@
     "start": "npm run build && electron .",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "node scripts/build-tests.mjs && node --test tests/*.test.mjs",
-    "smoke": "npm run build && xvfb-run -a electron scripts/smoke.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-autosave.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-schliessen.cjs verwerfen --no-sandbox && xvfb-run -a electron scripts/smoke-schliessen.cjs speichern --no-sandbox",
+    "smoke": "npm run build && xvfb-run -a electron scripts/smoke.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-autosave.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-schliessen.cjs verwerfen --no-sandbox && xvfb-run -a electron scripts/smoke-schliessen.cjs speichern --no-sandbox && xvfb-run -a electron scripts/smoke-rechtschreibung.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-einlesen.cjs --no-sandbox",
     "roundtrip": "npm run build && xvfb-run -a electron scripts/roundtrip.cjs --no-sandbox",
     "icon": "node scripts/make-icon.mjs",
     "dist:win": "npm run build && electron-builder --win --publish never",
@@ -111,6 +111,7 @@
     }
   },
   "dependencies": {
+    "fflate": "^0.8.2",
     "@tiptap/extension-task-item": "^2.27.3",
     "@tiptap/extension-task-list": "^2.27.3",
     "@suite/i18n": "*",
