@@ -100,6 +100,7 @@ export function Einstellungen({
           <option value="none">{t('settings.aiNone')}</option>
           <option value="ollama">{t('settings.aiOllama')}</option>
           <option value="claude">{t('settings.aiClaude')}</option>
+          <option value="offen">{t('settings.aiOpen')}</option>
         </select>
       </label>
       <p className="feld__hinweis">{t('settings.aiHint')}</p>
@@ -125,17 +126,44 @@ export function Einstellungen({
         </>
       ) : null}
 
-      {ki.anbieter === 'claude' ? (
+      {ki.anbieter === 'offen' ? (
         <>
           <label className="feld">
-            <span className="feld__name">{t('settings.claudeModel')}</span>
+            <span className="feld__name">{t('settings.openUrl')}</span>
             <input
               className="feld__eingabe"
-              value={ki.claudeModell}
-              onChange={(event) => melde(setzeKi({ claudeModell: event.target.value }))}
+              value={ki.offenAdresse}
+              placeholder="https://api.groq.com/openai/v1"
+              onChange={(event) => melde(setzeKi({ offenAdresse: event.target.value }))}
             />
           </label>
+          <label className="feld">
+            <span className="feld__name">{t('settings.openModel')}</span>
+            <input
+              className="feld__eingabe"
+              value={ki.offenModell}
+              onChange={(event) => melde(setzeKi({ offenModell: event.target.value }))}
+            />
+          </label>
+          <p className="feld__hinweis">{t('settings.openHint')}</p>
+        </>
+      ) : null}
 
+      {ki.anbieter === 'claude' ? (
+        <label className="feld">
+          <span className="feld__name">{t('settings.claudeModel')}</span>
+          <input
+            className="feld__eingabe"
+            value={ki.claudeModell}
+            onChange={(event) => melde(setzeKi({ claudeModell: event.target.value }))}
+          />
+        </label>
+      ) : null}
+
+      {/* Den Schluessel brauchen beide bezahlten Wege. Zweimal derselbe
+          Block waere zweimal dieselbe Pflege. */}
+      {ki.anbieter === 'claude' || ki.anbieter === 'offen' ? (
+        <>
           <label className="feld">
             <span className="feld__name">{t('settings.apiKey')}</span>
             <input

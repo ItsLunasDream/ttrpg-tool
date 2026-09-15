@@ -5,20 +5,31 @@ eines Abschnitts ist keine Priorisierung.
 
 ## Offene Wünsche
 
-### Zoom mit dem Mausrad im Editor, GUI-Größe separat in den Einstellungen
+### Inspirationshilfe: ein sechstes Werkzeug
 
-Zwei getrennte Wünsche:
+Hilft beim Erfinden einer Kampagne: Region, Thema, Figuren, Orte, und wie
+das zusammenhängt. Das Konzept steht in [docs/inspirationshilfe.md](docs/inspirationshilfe.md)
+— mit der wichtigsten Entscheidung darin: Entwurf im neuen Werkzeug, Wahrheit
+im Backstory Creator. Eine zweite Ablage für dieselbe Welt gibt es nicht.
 
-- Im Textfeld des Editors soll das Mausrad, gehalten mit einer Modifikatortaste
-  (z. B. Strg, analog zu Browsern), die Schriftgröße des bearbeiteten Textes
-  ändern. Das gilt NUR innerhalb des Editorfelds, nicht für die restliche
-  Oberfläche (Seitenleiste, Kopfzeile, Dialoge).
-- Unabhängig davon soll es in den Einstellungen eine eigene Option geben, mit
-  der sich die Größe der gesamten Oberfläche (GUI) ändern lässt, nicht nur die
-  des Editortextes.
+Erst besprechen, dann bauen.
 
-Beides sollte dauerhaft gespeichert werden (wie die übrigen Einstellungen),
-nicht nur für die laufende Sitzung gelten.
+
+### GUI-Größe in den Einstellungen
+
+Die Größe der gesamten Oberfläche soll einstellbar sein, nicht nur die des
+Notiztextes — Seitenleisten, Kopfzeilen, Dialoge, und das in allen
+Werkzeugen. Als Barrierefreiheits-Option gedacht.
+
+Der Zoom im Editorfeld ist seit Fassung 0.2.0 da (Strg und Mausrad, Strg+0,
+Anzeige oben rechts). Diese Hälfte bleibt offen.
+
+Der teure Teil ist nicht das Bauen, sondern das Prüfen: bei jeder Stufe muss
+nachgesehen werden, dass nichts abgeschnitten wird, nichts überlappt und
+kein Dialog aus dem Fenster läuft. Dazu kommt, dass Titelleiste und Schiene
+der Hülle feste Maße haben (`CHROME` in `apps/shell/src/shared/apps.ts`), aus
+denen der Hauptprozess die Fläche der eingebetteten Anwendung rechnet — die
+müssen mitwandern.
 
 ### Graph: laufende Simulation beim Ziehen
 
