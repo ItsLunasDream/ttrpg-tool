@@ -63,6 +63,13 @@ const PROBEN = [
     // wiederkommen, wie er hineingegangen ist.
     text: '<img src="assets/bild.png" alt="" style="width: 50%">'
   },
+  {
+    name: 'Unterstrichener Text',
+    // Markdown kennt kein Unterstrichen, deshalb steht es als inline-HTML in
+    // der Datei. Kennte das Schema des Editors das Element nicht, fiele es
+    // beim Laden weg und waere nach dem naechsten Speichern verloren.
+    text: 'Ein <u>unterstrichenes</u> Wort.'
+  },
   { name: 'Fussnote', text: 'Sie ging fort.[^1]\n\n[^1]: Wohin, sagt niemand.' },
   { name: 'Ueberschriften', text: '# Eins\n\n## Zwei\n\n### Drei' },
   { name: 'Tiefe Ueberschrift', text: '#### Vier\n\nText.' },

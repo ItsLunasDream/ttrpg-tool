@@ -20,6 +20,7 @@ interface Action {
 const ACTIONS: Action[] = [
   { label: 'B', title: (t) => t('toolbar.bold'), isActive: (e) => e.isActive('bold'), run: (e) => e.chain().focus().toggleBold().run() },
   { label: 'I', title: (t) => t('toolbar.italic'), isActive: (e) => e.isActive('italic'), run: (e) => e.chain().focus().toggleItalic().run() },
+  { label: 'U', title: (t) => t('toolbar.underline'), isActive: (e) => e.isActive('underline'), run: (e) => e.chain().focus().toggleUnterstrichen().run() },
   { label: 'S', title: (t) => t('toolbar.strike'), isActive: (e) => e.isActive('strike'), run: (e) => e.chain().focus().toggleStrike().run() },
   { label: 'H1', title: (t) => t('toolbar.heading', { level: 1 }), isActive: (e) => e.isActive('heading', { level: 1 }), run: (e) => e.chain().focus().toggleHeading({ level: 1 }).run() },
   { label: 'H2', title: (t) => t('toolbar.heading', { level: 2 }), isActive: (e) => e.isActive('heading', { level: 2 }), run: (e) => e.chain().focus().toggleHeading({ level: 2 }).run() },

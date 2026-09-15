@@ -10,6 +10,7 @@ import TableHeader from '@tiptap/extension-table-header';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { SizedImage } from '../editor/sizedImage';
+import { Unterstrichen } from '../editor/unterstrichen';
 import { createWikiLinkExtension, type SuggestionState } from '../editor/wikiLinkExtension';
 import { createSearchHighlightExtension, replaceMatches, selectMatch } from '../editor/searchHighlight';
 import { htmlToMarkdown, markdownToHtml, pastedMarkdownToHtml } from '../editor/markdown';
@@ -253,6 +254,7 @@ export function BodyEditor({
       // naechsten Speichern eine gewoehnliche Liste.
       TaskList,
       TaskItem.configure({ nested: true }),
+      Unterstrichen,
       wikiLink,
       searchHighlight,
       SizedImage.configure({ inline: false, allowBase64: false })

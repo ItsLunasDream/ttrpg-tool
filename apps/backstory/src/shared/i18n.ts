@@ -235,6 +235,7 @@ const de = {
 
   'toolbar.bold': 'Fett (Strg+B)',
   'toolbar.italic': 'Kursiv (Strg+I)',
+  'toolbar.underline': 'Unterstrichen (Strg+U)',
   'toolbar.strike': 'Durchgestrichen',
   'toolbar.heading': 'Überschrift {level}',
   'toolbar.bulletList': 'Aufzählung',
@@ -627,6 +628,7 @@ const en: Partial<Record<MessageKey, string>> = {
 
   'toolbar.bold': 'Bold (Ctrl+B)',
   'toolbar.italic': 'Italic (Ctrl+I)',
+  'toolbar.underline': 'Underline (Ctrl+U)',
   'toolbar.strike': 'Strikethrough',
   'toolbar.heading': 'Heading {level}',
   'toolbar.bulletList': 'Bullet list',

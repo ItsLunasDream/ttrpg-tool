@@ -174,6 +174,16 @@ turndown.addRule('bareLink', {
 });
 
 /**
+ * Unterstrichener Text bleibt als HTML stehen. Markdown kennt dafuer keine
+ * Schreibweise; `__text__` waere die naheliegende, gehoert dort aber dem
+ * Fettdruck. Ohne diese Regel faellt die Auszeichnung beim Speichern weg.
+ */
+turndown.addRule('underline', {
+  filter: ['u'],
+  replacement: (content) => `<u>${content}</u>`
+});
+
+/**
  * Bilder mit gesetzter Breite bleiben als HTML stehen. Markdown kann keine
  * Groesse ausdruecken, inline-HTML ist aber gueltiges Markdown und wird auch
  * von Obsidian dargestellt.

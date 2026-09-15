@@ -439,6 +439,53 @@ app.whenReady().then(async () => {
     await run(window, `document.querySelector('.note-editor .menu > button').click(); return true;`);
     await sleep(300);
 
+    // 5f. Unterstrichen: Knopf und Strg+U. In der Datei steht <u>, weil
+    // Markdown dafuer keine Schreibweise kennt.
+    await run(
+      window,
+      `const feld = document.querySelector('.ProseMirror');
+       feld.focus();
+       const auswahl = window.getSelection();
+       auswahl.selectAllChildren(feld);
+       auswahl.collapseToEnd();
+       return true;`
+    );
+    await sleep(200);
+    window.webContents.insertText(' Unterstrichen');
+    await sleep(400);
+    await run(
+      window,
+      `const feld = document.querySelector('.ProseMirror');
+       const knoten = (function suche(k) {
+         if (k.nodeType === 3 && k.textContent.includes('Unterstrichen')) return k;
+         for (const kind of k.childNodes) { const treffer = suche(kind); if (treffer) return treffer; }
+         return null;
+       })(feld);
+       const versatz = knoten.textContent.lastIndexOf('Unterstrichen');
+       const bereich = document.createRange();
+       bereich.setStart(knoten, versatz);
+       bereich.setEnd(knoten, versatz + 13);
+       const auswahl = window.getSelection();
+       auswahl.removeAllRanges();
+       auswahl.addRange(bereich);
+       feld.focus();
+       return true;`
+    );
+    await sleep(200);
+    await pressToolbar(window, 'U');
+    await sleep(500);
+    check(await run(window, `return document.querySelectorAll('.ProseMirror u').length === 1;`),
+      'Der Knopf hat nichts unterstrichen');
+    await save(window);
+    {
+      const campaignsDir = path.join(userData, 'vault', 'campaigns');
+      const campaignId = fs.readdirSync(campaignsDir)[0];
+      const notesDir = path.join(campaignsDir, campaignId, 'notes');
+      const dateien = fs.readdirSync(notesDir).map((datei) => fs.readFileSync(path.join(notesDir, datei), 'utf8'));
+      check(dateien.some((roh) => roh.includes('<u>Unterstrichen</u>')),
+        'Unterstrichen steht nicht als <u> in der Datei');
+    }
+
     // 6. Kurzinfo-Karte muss den Textanfang zeigen
     await run(
       window,
