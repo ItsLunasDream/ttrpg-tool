@@ -207,6 +207,44 @@ app.whenReady().then(async () => {
   pruefe(geflecht.includes('Zita Neuhafen'), 'eine umbenannte Figur heisst auch im Geflecht neu');
   pruefe(!geflecht.includes(alterName), `und der alte Name ist weg (${alterName})`);
 
+  // --- Das Geflecht gross ansehen ------------------------------------------
+  /*
+   * Klein steht es in der Karte, gross auf Klick. Beides gehoert hierher:
+   * gross war es eine Weile fest in der Karte und draengte alles andere an
+   * den Rand — die Rueckmeldung dazu war „viel zu gross".
+   */
+  pruefe(
+    await js("Boolean(document.querySelector('.geflecht__knopf'))"),
+    'das kleine Geflecht ist ein Knopf'
+  );
+  pruefe(
+    !(await js("Boolean(document.querySelector('.geflecht-schirm'))")),
+    'und das Vollbild ist zu, solange niemand darauf drueckt'
+  );
+  await js("document.querySelector('.geflecht__knopf').click(); true");
+  await warte(300);
+  pruefe(
+    await js("Boolean(document.querySelector('.geflecht-schirm .geflecht'))"),
+    'ein Klick oeffnet das Vollbild'
+  );
+  // Gross wird neu gerechnet und nicht gedehnt: die Zeichenflaeche ist eine
+  // andere als die kleine.
+  const flaechen = await js(
+    "[...document.querySelectorAll('.geflecht')].map(e => e.getAttribute('viewBox'))"
+  );
+  pruefe(
+    new Set(flaechen).size === flaechen.length,
+    `klein und gross sind verschieden gerechnet (${flaechen.join(' | ')})`
+  );
+  await js(
+    "document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true"
+  );
+  await warte(300);
+  pruefe(
+    !(await js("Boolean(document.querySelector('.geflecht-schirm'))")),
+    'Escape schliesst es wieder'
+  );
+
   // --- Uebernehmen ---------------------------------------------------------
   const namen = await js(`[...[...document.querySelectorAll('.karte')][2].querySelectorAll('.block__titel')]
     .map(e => e.value.trim())`);

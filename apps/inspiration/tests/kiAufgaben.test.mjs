@@ -145,3 +145,99 @@ test('englisch gefragt heisst englisch geantwortet', () => {
   assert.match(text, /in English/);
   assert.ok(!text.includes('auf Deutsch'));
 });
+
+/*
+ * Ein Themenwechsel muss ein neuer Anfang sein.
+ *
+ * Der Fehler: beim grossen Knopf lag der bisherige Entwurf als „Das steht
+ * schon" vorn in der Anfrage. Wer von Piraten auf Cyberpunk umstellte, bekam
+ * weiter Piraten — die Vorgaben standen zwar auch da, aber gegen einen
+ * ausformulierten Entwurf kommen drei Stichworte nicht an.
+ */
+test('der grosse Knopf zeigt dem Modell nichts vom alten Entwurf', () => {
+  const alt = {
+    welt: 'Eine Inselwelt voller Piratenbuchten.',
+    aufhaenger: {
+      ausloeser: 'Die Kapitänsflagge wurde gestohlen',
+      betroffene: 'die Freibeuter der Bucht',
+      komplikation: 'der Dieb segelt unter falscher Flagge',
+      frist: 'bis zur Springflut'
+    },
+    fraktionen: [{ name: 'Die Salzbrüder', art: 'Bund', ziel: 'Die Bucht halten', mittel: '', schwaeche: '' }],
+    figuren: [{ name: 'Mira Salzhand', rolle: 'Steuerfrau', triebfeder: '', hebel: '', makel: '' }],
+    orte: [{ name: 'Die Haifischbucht', art: 'Hafen', merkmal: '', zustand: '', karte: '' }],
+    verbindungen: [],
+    zeitstrahl: []
+  };
+  const frage = {
+    aufgabe: 'entwurf',
+    vorgaben: { umfang: 'abend', region: 'Cyberpunk City', thema: 'Freiheit', tonfall: 'episch' },
+    entwurf: alt,
+    festgehalten: []
+  };
+
+  const text = T.anweisung(frage, 'de');
+  assert.ok(!text.includes('Piratenbuchten'), 'die alte Welt steht noch in der Anfrage');
+  assert.ok(!text.includes('Mira Salzhand'), 'die alte Figur steht noch in der Anfrage');
+  assert.ok(!text.includes('Haifischbucht'), 'der alte Ort steht noch in der Anfrage');
+  assert.ok(!text.includes('Kapitänsflagge'), 'der alte Aufhänger steht noch in der Anfrage');
+  // Das Neue muss ankommen.
+  assert.ok(text.includes('Cyberpunk City'), 'die neue Region fehlt');
+});
+
+test('was festgehalten ist, sieht das Modell weiterhin', () => {
+  const alt = {
+    welt: 'Eine Inselwelt voller Piratenbuchten.',
+    aufhaenger: { ausloeser: 'Die Kapitänsflagge wurde gestohlen', betroffene: '', komplikation: '', frist: '' },
+    fraktionen: [],
+    figuren: [{ name: 'Mira Salzhand', rolle: 'Steuerfrau', triebfeder: '', hebel: '', makel: '' }],
+    orte: [],
+    verbindungen: [],
+    zeitstrahl: []
+  };
+  const text = T.anweisung(
+    {
+      aufgabe: 'entwurf',
+      vorgaben: { umfang: 'abend', region: 'Cyberpunk City', thema: '', tonfall: '' },
+      entwurf: alt,
+      festgehalten: ['figuren']
+    },
+    'de'
+  );
+  assert.ok(text.includes('Mira Salzhand'), 'die festgehaltene Figur fehlt');
+  assert.ok(!text.includes('Kapitänsflagge'), 'der nicht festgehaltene Aufhänger steht noch da');
+});
+
+test('bei einem einzelnen Baustein bleibt der Entwurf die Umgebung', () => {
+  // Gegenstueck: hier IST der bisherige Entwurf der Sinn der Sache. Ein
+  // Vorschlag, der nicht in die begonnene Welt passt, ist nutzlos.
+  const alt = {
+    welt: '',
+    aufhaenger: { ausloeser: 'Die Kapitänsflagge wurde gestohlen', betroffene: '', komplikation: '', frist: '' },
+    fraktionen: [],
+    figuren: [{ name: 'Mira Salzhand', rolle: 'Steuerfrau', triebfeder: '', hebel: '', makel: '' }],
+    orte: [],
+    verbindungen: [],
+    zeitstrahl: []
+  };
+  const text = T.anweisung(
+    { aufgabe: 'ort', vorgaben: { umfang: 'abend', region: '', thema: '', tonfall: '' }, entwurf: alt },
+    'de'
+  );
+  assert.ok(text.includes('Mira Salzhand'), 'die Umgebung fehlt beim einzelnen Baustein');
+});
+
+test('nurFestgehaltenes liefert nichts, wenn nichts festgehalten ist', () => {
+  const alt = {
+    welt: 'x',
+    aufhaenger: { ausloeser: 'a', betroffene: '', komplikation: '', frist: '' },
+    fraktionen: [],
+    figuren: [],
+    orte: [],
+    verbindungen: [],
+    zeitstrahl: []
+  };
+  assert.equal(T.nurFestgehaltenes(alt, []), null);
+  assert.equal(T.nurFestgehaltenes(null, ['figuren']), null);
+  assert.equal(T.nurFestgehaltenes(alt, ['aufhaenger'])?.aufhaenger.ausloeser, 'a');
+});

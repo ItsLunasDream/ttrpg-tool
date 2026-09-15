@@ -303,7 +303,8 @@ was passiert, wenn die Gruppe nichts tut.
   ins Geflecht eingehängt und bekommen beim Übernehmen keine zweite Notiz.
 - **Das Geflecht als Bild**: Figuren als Punkte, Verbindungen als Pfeile.
   Die Liste darunter sagt, was zwischen zweien liegt; das Bild sagt, wo die
-  Geschichte dicht ist und wer am Rand steht.
+  Geschichte dicht ist und wer am Rand steht. Ein Klick öffnet dasselbe
+  Geflecht über den ganzen Schirm — neu gerechnet, nicht gedehnt.
 - **„Karte anlegen"** an jedem Ort öffnet den Karteneditor und beginnt dort
   eine Karte unter diesem Namen — mit dem, was über den Ort bekannt ist, als
   Notiz-Pins darauf. Gezeichnet wird nichts: eine Karte aus Text zu erzeugen

@@ -34,7 +34,8 @@ import type { EntwurfsFigur, Fraktion, Ort, Verbindung } from '../shared/erzeuge
 import { alsKartennotizen, alsMarkdown, alsNotizen } from '../shared/notizen';
 import { ZEITMARKEN } from '../shared/zeitstrahl';
 // `beschriftung` heisst hier schon etwas anderes (der Text eines Paares).
-import { KNOTEN_RADIUS, berechneGeflecht, beschriftung as knotenText } from '../shared/geflecht';
+import { berechneGeflecht } from '../shared/geflecht';
+import { GeflechtBild, GeflechtVollbild } from './Geflecht';
 import type { KiAufgabe, RohEntwurf } from '../shared/kiAufgaben';
 import { baueEntwurf } from '../shared/uebernahme';
 import {
@@ -178,11 +179,27 @@ export function App() {
    * lesen und aendern koennen.
    */
   const geflecht = useMemo(
-    // Groesser als die Karte breit ist: das SVG skaliert mit, und in der
-    // breiten Karte (siehe .karte--breit) bleibt so mehr Platz zwischen
-    // Namen und Linien. Mit 520 x 340 war im Raster nichts zu erkennen.
-    () => (entwurf ? berechneGeflecht(entwurf.figuren, entwurf.verbindungen, 900, 520) : null),
+    () => (entwurf ? berechneGeflecht(entwurf.figuren, entwurf.verbindungen) : null),
     [entwurf]
+  );
+
+  /**
+   * Dieselbe Zeichnung gross, fuer das Vollbild.
+   *
+   * Neu gerechnet und nicht skaliert: die Anordnung haengt an der Flaeche.
+   * Ein gedehntes Bild haette dieselben gedraengten Abstaende, nur groesser —
+   * und genau die sind der Grund, warum man es gross ansehen will.
+   *
+   * Gerechnet wird erst, wenn das Vollbild offen ist. Bei jedem Wurf auf
+   * Vorrat zu rechnen waere Arbeit fuer etwas, das meistens niemand oeffnet.
+   */
+  const [geflechtGross, setGeflechtGross] = useState(false);
+  const grossesGeflecht = useMemo(
+    () =>
+      geflechtGross && entwurf
+        ? berechneGeflecht(entwurf.figuren, entwurf.verbindungen, 1280, 760)
+        : null,
+    [geflechtGross, entwurf]
   );
 
   /**
@@ -993,59 +1010,26 @@ export function App() {
             </ul>
           </section>
 
-          <section className="karte karte--breit">
+          <section className="karte">
             {kopf('verbindungen', 'hinweis.verbindungen')}
             {geflecht && geflecht.knoten.length >= 2 ? (
-              <svg
-                className="geflecht"
-                viewBox={`0 0 ${geflecht.breite} ${geflecht.hoehe}`}
-                role="img"
-                aria-label={t('geflecht.alt')}
+              /*
+               * Ein Knopf und kein Bild mit `onClick`: so kommt man auch mit
+               * der Tastatur hin, und Vorlesewerkzeuge sagen, dass hier etwas
+               * aufgeht.
+               */
+              <button
+                type="button"
+                className="geflecht__knopf"
+                onClick={() => setGeflechtGross(true)}
+                title={t('geflecht.gross')}
+                aria-label={t('geflecht.gross')}
               >
-                <defs>
-                  {/* Die Pfeilspitze sitzt am Ende jeder Linie: die Richtung
-                      ist bei diesen Beziehungen der ganze Witz. */}
-                  <marker
-                    id="geflecht-pfeil"
-                    viewBox="0 0 8 8"
-                    refX="7"
-                    refY="4"
-                    markerWidth="7"
-                    markerHeight="7"
-                    orient="auto-start-reverse"
-                  >
-                    <path d="M0,0 L8,4 L0,8 z" />
-                  </marker>
-                </defs>
-                {geflecht.kanten.map((kante, stelle) => (
-                  <g className="geflecht__kante" key={`${kante.von}-${kante.nach}-${stelle}`}>
-                    <line
-                      x1={kante.x1}
-                      y1={kante.y1}
-                      x2={kante.x2}
-                      y2={kante.y2}
-                      markerEnd="url(#geflecht-pfeil)"
-                    />
-                    <text x={kante.mx} y={kante.my - 4} textAnchor="middle">
-                      {kante.muster}
-                    </text>
-                  </g>
-                ))}
-                {geflecht.knoten.map((knoten) => {
-                  const wo = knotenText(knoten, geflecht);
-                  return (
-                    <g
-                      className={knoten.vorhanden ? 'geflecht__knoten geflecht__knoten--vorhanden' : 'geflecht__knoten'}
-                      key={knoten.stelle}
-                    >
-                      <circle cx={knoten.x} cy={knoten.y} r={KNOTEN_RADIUS} />
-                      <text x={wo.x} y={wo.y} textAnchor={wo.anker}>
-                        {knoten.name}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
+                <GeflechtBild netz={geflecht} markeId="geflecht-pfeil" alt={t('geflecht.alt')} />
+                <span className="geflecht__lupe" aria-hidden="true">
+                  ⤢
+                </span>
+              </button>
             ) : (
               <p className="geflecht__leer">{t('geflecht.leer')}</p>
             )}
@@ -1148,6 +1132,15 @@ export function App() {
             </p>
           )}
         </footer>
+      )}
+
+      {grossesGeflecht && (
+        <GeflechtVollbild
+          netz={grossesGeflecht}
+          alt={t('geflecht.alt')}
+          schliessenText={t('geflecht.zu')}
+          onClose={() => setGeflechtGross(false)}
+        />
       )}
     </div>
   );

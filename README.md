@@ -301,7 +301,8 @@ happens if the party does nothing.
   the web right away and get no second note when taken over.
 - **The web as a picture**: characters as dots, connections as arrows. The
   list below says what lies between two of them; the picture says where the
-  story is dense and who stands at the edge.
+  story is dense and who stands at the edge. Click it and the same web opens
+  full screen, redrawn for the larger area rather than stretched.
 - **"Start a map"** on any place opens the Map Editor and begins a map under
   that name — with what is known about the place as note pins on it. Nothing
   is drawn: generating a map from text would mean driving the Map Editor's

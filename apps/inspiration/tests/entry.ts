@@ -58,6 +58,7 @@ export {
   MAX_ZEICHEN,
   systemAnweisung,
   anweisung,
+  nurFestgehaltenes,
   uebernehmbar,
   uebernehmbarerEntwurf
 } from '../src/shared/kiAufgaben';

@@ -200,10 +200,34 @@ test('die Weltbeschreibung kommt mit und steht im Entwurf', () => {
   assert.match(entwurf.welt, /Neon/);
 });
 
-test('ohne neue Weltbeschreibung bleibt die alte stehen', () => {
+/*
+ * Die Regel hat sich geaendert, mit Absicht.
+ *
+ * Frueher blieb die alte Weltbeschreibung immer stehen, wenn das Modell
+ * keine neue lieferte. Nach einem Themenwechsel stand dann ein Satz ueber
+ * Piratenbuchten ueber einem frisch gewuerfelten Cyberpunk-Entwurf — und
+ * genau das sah danach aus, als kaemen die Vorgaben nicht an. Jetzt haelt
+ * sie nur, wenn ueberhaupt etwas festgehalten ist: dann ist es kein neuer
+ * Anfang, sondern ein Weiterbauen.
+ */
+test('ohne neue Weltbeschreibung faellt die alte weg — es ist ein neuer Anfang', () => {
   const vorher = { ...T.LEERER_ENTWURF, welt: 'Alte Welt.' };
   const ohne = { ...volleAntwort(), welt: '' };
   const entwurf = T.baueEntwurf(T.uebernehmbarerEntwurf(ohne), vorher, ZU, 'de', wuerfelgeber(12));
+  assert.equal(entwurf.welt, '');
+});
+
+test('ist etwas festgehalten, bleibt die alte Weltbeschreibung stehen', () => {
+  const vorher = { ...T.LEERER_ENTWURF, welt: 'Alte Welt.' };
+  const ohne = { ...volleAntwort(), welt: '' };
+  const entwurf = T.baueEntwurf(
+    T.uebernehmbarerEntwurf(ohne),
+    vorher,
+    ZU,
+    'de',
+    wuerfelgeber(12),
+    ['figuren']
+  );
   assert.equal(entwurf.welt, 'Alte Welt.');
 });
 
