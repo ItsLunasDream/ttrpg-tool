@@ -89,6 +89,49 @@ Creator führt: A sieht B als Mentorin, B sieht A als Bedrohung.
 (Verwandtschaft, Schuld, Lehre, Rivalität, gemeinsames Geheimnis), die mit
 den Namen der beiden Figuren gefüllt werden.
 
+## Und der Karteneditor?
+
+Die Frage kam vom Nutzer: ob der Karteneditor mit hineingehört. Ehrliche
+Antwort: **teilweise, und nicht als Erstes.**
+
+**Was naheliegt und wenig kostet**
+
+Die Inspirationshilfe erzeugt Orte. Ein Ort ohne Karte ist eine Notiz, ein
+Ort mit Karte ist ein Schauplatz. Der einfache Weg:
+
+- Zu jedem erzeugten Ort ein Knopf **„Karte anlegen"**, der den Karteneditor
+  öffnet und dort eine leere Karte unter diesem Namen beginnt.
+- Umgekehrt: eine vorhandene Karte als Ort übernehmen, damit sie im
+  Beziehungsnetz auftaucht.
+
+Das ist derselbe Handgriff, den der NPC Creator schon macht, nur in Richtung
+Karteneditor statt Backstory Creator.
+
+**Was verlockend klingt und schwierig ist**
+
+„Die Inspirationshilfe zeichnet gleich die Karte" — eine Battlemap oder
+Weltkarte aus Text erzeugen. Davon würde ich abraten:
+
+- Der Karteneditor arbeitet mit Ebenen, Wänden, Lichtern und Props. Etwas
+  Brauchbares zu erzeugen hieße, sein Datenmodell von außen zu bedienen; das
+  ist ein Projekt für sich, kein Knopf.
+- Was dabei herauskäme, müsste man ohnehin von Hand nacharbeiten. Eine leere
+  Karte mit dem richtigen Namen ist ehrlicher.
+- Der Karteneditor bringt eine eigene Historie und eigene Konventionen mit
+  (`apps/mapmaker/CLAUDE.md`). Je weniger von außen hineingreift, desto
+  besser lässt er sich weiterpflegen.
+
+**Ein dritter Weg, falls es doch mehr sein soll**
+
+Nicht die Karte zeichnen, sondern **beschreiben, was darauf gehört**: „drei
+Eingänge, einer verschüttet", „ein Turm im Nordosten", „Wasser auf zwei
+Seiten". Das liest sich am Tisch, taugt als Vorlage zum Zeichnen und braucht
+keinen Eingriff in fremdes Datenmodell.
+
+**Vorschlag:** Stufe 1 bis 4 ohne Karteneditor bauen. Den Knopf „Karte
+anlegen" in Stufe 5, zusammen mit dem Zeichnen des Geflechts. Das Beschreiben
+der Karte gehört zu den Orten und kostet nichts extra.
+
 ## Weitere Vorschläge
 
 - **„Was, wenn"** — eine bestehende Figur nehmen und fragen, was sie
@@ -124,4 +167,5 @@ Falls gebaut wird, in dieser Reihenfolge — jede Stufe für sich benutzbar:
 3. KI: Bausteine frei vorschlagen lassen, wie im NPC Creator neben den
    Tabellen und nicht an ihrer Stelle.
 4. Übernehmen in den Backstory Creator, mit Wiki-Verweisen.
-5. Das Geflecht als Bild, Zeitstrahl.
+5. Das Geflecht als Bild, Zeitstrahl, und der Knopf „Karte anlegen" zum
+   Karteneditor.
