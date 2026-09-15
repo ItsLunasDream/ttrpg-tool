@@ -27,6 +27,16 @@ const HEIGHT = 780;
 const LABEL_LIMIT = 20;
 
 /**
+ * Wie weit der Zeiger wandern darf, bevor aus dem Klick ein Ziehen wird —
+ * in Einheiten der Zeichenflaeche, nicht in Bildpunkten.
+ *
+ * Ohne diese Schwelle war jeder Klick auch ein winziges Ziehen: der Knoten
+ * bekam eine neue Stelle in der Kampagne, und beim Loslassen ging die Notiz
+ * auf, obwohl niemand sie oeffnen wollte.
+ */
+const ZIEH_SCHWELLE = 4;
+
+/**
  * Abstand der beiden Linien, wenn zwischen zwei Knoten in beide Richtungen
  * eine Verbindung besteht. Bewusst klein: beim Herauszoomen sollen sie wieder
  * wie eine Linie wirken.
@@ -52,18 +62,36 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
    * aufeinander, hat React zwischen Bewegung und Loslassen noch nicht neu
    * gezeichnet, und der Zustand waere im Handler noch der alte.
    */
-  const dragRef = useRef<{ id: string; at: GraphPosition | null } | null>(null);
+  const dragRef = useRef<{ id: string; at: GraphPosition | null; von: GraphPosition | null } | null>(null);
 
-  const dropNode = useCallback(() => {
-    const drop = dragRef.current;
-    dragRef.current = null;
-    setPanning(null);
-    if (!drop?.at) return;
 
-    const next = { ...savedRef.current, [drop.id]: drop.at };
-    savedRef.current = next;
-    onSavePositions(next);
-  }, [onSavePositions]);
+  /**
+   * Loslassen. `oeffnen` gilt nur beim Loslassen ueber der Flaeche.
+   *
+   * Hier und nicht in einem onClick am Knoten: nach einem Ziehen kommt der
+   * Klick trotzdem, und er oeffnete die Notiz — wer einen Knoten nur
+   * zurechtruecken wollte, landete darin. Am Loslassen steht dagegen fest,
+   * ob gezogen wurde: `at` ist gesetzt, sobald die Schwelle ueberschritten
+   * war.
+   */
+  const dropNode = useCallback(
+    (oeffnen: boolean) => {
+      const drop = dragRef.current;
+      dragRef.current = null;
+      setPanning(null);
+      if (!drop) return;
+
+      if (!drop.at) {
+        if (oeffnen) onOpenNote(drop.id);
+        return;
+      }
+
+      const next = { ...savedRef.current, [drop.id]: drop.at };
+      savedRef.current = next;
+      onSavePositions(next);
+    },
+    [onSavePositions, onOpenNote]
+  );
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
   const [view, setView] = useState({ x: 0, y: 0, width: WIDTH, height: HEIGHT });
   const [panning, setPanning] = useState<{ x: number; y: number } | null>(null);
@@ -302,8 +330,17 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
           if (drag) {
             const point = toSvgPoint(event);
             if (point) {
-              dragRef.current = { id: drag.id, at: point };
-              setDragged((previous) => ({ ...previous, [drag.id]: point }));
+              // Erst ab einer Schwelle wird daraus ein Ziehen. Sonst
+              // verschiebt schon das Zittern der Hand beim Klicken den
+              // Knoten und schreibt eine neue Stelle in die Kampagne.
+              const weit =
+                drag.at !== null ||
+                drag.von === null ||
+                Math.hypot(point.x - drag.von.x, point.y - drag.von.y) >= ZIEH_SCHWELLE;
+              if (weit) {
+                dragRef.current = { id: drag.id, at: point, von: drag.von };
+                setDragged((previous) => ({ ...previous, [drag.id]: point }));
+              }
             }
             return;
           }
@@ -318,12 +355,13 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
           }));
         }}
         // Erst beim Loslassen speichern, nicht bei jeder Mausbewegung.
-        onMouseUp={dropNode}
+        onMouseUp={() => dropNode(true)}
         onMouseLeave={() => {
           // Verlaesst die Maus die Flaeche mitten im Ziehen, gilt der Knoten
           // trotzdem als abgelegt: sonst waere die Verschiebung beim naechsten
-          // Oeffnen wieder weg.
-          dropNode();
+          // Oeffnen wieder weg. Geoeffnet wird dabei nichts — die Maus ist
+          // ja gerade weggewandert.
+          dropNode(false);
           setHovered(null);
         }}
       >
@@ -400,9 +438,8 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
               onMouseLeave={() => setHovered(null)}
               onMouseDown={(event) => {
                 event.preventDefault();
-                dragRef.current = { id: node.id, at: null };
+                dragRef.current = { id: node.id, at: null, von: toSvgPoint(event) };
               }}
-              onClick={() => onOpenNote(node.id)}
             >
               <title>{`${note.title} · ${findNoteType(index.types, note.type).label}`}</title>
               <circle r={radius} fill={typeColor(note.type)} />

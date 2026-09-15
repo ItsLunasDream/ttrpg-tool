@@ -1375,6 +1375,9 @@ app.whenReady().then(async () => {
        return id;`
     );
     await sleep(1200);
+    // Ziehen ist kein Klick: der Graph muss noch offen sein.
+    check(await run(window, `return Boolean(document.querySelector('.graph__canvas'));`),
+      'Das Ziehen eines Knotens hat die Notiz geoeffnet');
     const kampagnenDatei = path.join(userData, 'vault', 'campaigns', campaignId, 'campaign.json');
     {
       const kampagne = JSON.parse(fs.readFileSync(kampagnenDatei, 'utf8'));
@@ -1497,8 +1500,17 @@ app.whenReady().then(async () => {
       );
     }
 
-    // Klick auf einen Knoten oeffnet die Notiz
-    await run(window, `document.querySelector('.graph__node').dispatchEvent(new MouseEvent('click', { bubbles: true })); return true;`);
+    // Druecken und Loslassen ohne Bewegung oeffnet die Notiz
+    await run(
+      window,
+      `const svg = document.querySelector('.graph__canvas');
+       const knoten = document.querySelector('.graph__node');
+       const rect = svg.getBoundingClientRect();
+       const bei = { clientX: rect.left + 100, clientY: rect.top + 100, bubbles: true };
+       knoten.dispatchEvent(new MouseEvent('mousedown', bei));
+       svg.dispatchEvent(new MouseEvent('mouseup', bei));
+       return true;`
+    );
     await sleep(900);
     check(await run(window, `return document.querySelector('.graph__canvas') === null
        && Boolean(document.querySelector('.note-editor'));`), 'Klick auf einen Knoten öffnet keine Notiz');
