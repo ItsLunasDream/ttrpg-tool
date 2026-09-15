@@ -22,6 +22,7 @@ import { registerIpc } from './ipc';
 import { handleAssetProtocol, registerAssetScheme } from './assetProtocol';
 import { findeUebernahme } from './uebernahme';
 import { channel } from '../shared/channels';
+import { richteRechtschreibungEin, setzePruefsprache } from './rechtschreibung';
 import type { KiQuelle } from './ai';
 import type { AppSettings } from '../shared/types';
 
@@ -176,6 +177,14 @@ export interface BackstoryEmbed {
    * anderes ein Neuzeichnen ausloest.
    */
   meldeKiWechsel(webContents: WebContents): void;
+
+  /**
+   * Haengt die Rechtschreibpruefung an eine Ansicht: Sprache setzen und das
+   * angestrichene Wort an die Oberflaeche weiterreichen. Beide Wege — die
+   * eigenstaendige Anwendung und die Huelle — rufen das nach dem Anlegen
+   * ihrer Ansicht.
+   */
+  richteRechtschreibungEin(webContents: WebContents): void;
 }
 
 /**
@@ -239,10 +248,15 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
     meldeKiWechsel: (webContents) => {
       if (!webContents.isDestroyed()) webContents.send(channel('app:ki-gewechselt'));
     },
+    richteRechtschreibungEin: (webContents) => {
+      richteRechtschreibungEin(webContents, kontext.settings.language);
+    },
     setLanguage: async (webContents, language) => {
       if (kontext.settings.language === language) return;
       kontext.settings = await writeSettings(settingsFile, { ...kontext.settings, language });
       if (!webContents.isDestroyed()) {
+        // Die Pruefung muss mitwandern, sonst streicht sie den halben Text an.
+        setzePruefsprache(webContents.session, language);
         webContents.send(channel('app:sprache'), language);
       }
     }

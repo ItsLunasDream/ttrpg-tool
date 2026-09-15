@@ -288,6 +288,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     });
   }, [activeCampaignId, guard, reloadNotes]);
 
+
   useEffect(() => {
     if (!activeCampaignId) {
       setNotes([]);

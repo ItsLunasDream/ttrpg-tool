@@ -329,6 +329,30 @@ export function registerIpc(context: IpcContext): void {
     }
   );
 
+  /**
+   * Das Woerterbuch der Sitzung. Eigennamen aus der Kampagne stehen in keinem
+   * Woerterbuch der Welt, und angestrichen bleiben sie sonst fuer immer.
+   *
+   * Ueber den Absender und nicht ueber die Standardsitzung: in der Huelle
+   * laeuft jede Anwendung in ihrer eigenen (`persist:<id>`), und das
+   * Woerterbuch haengt an ihr.
+   */
+  handleWithEvent<[string], string[]>('spell:add', async (event, wort) => {
+    const sitzung = event.sender.session;
+    sitzung.addWordToSpellCheckerDictionary(wort);
+    return sitzung.listWordsInSpellCheckerDictionary();
+  });
+
+  handleWithEvent<[string], string[]>('spell:remove', async (event, wort) => {
+    const sitzung = event.sender.session;
+    sitzung.removeWordFromSpellCheckerDictionary(wort);
+    return sitzung.listWordsInSpellCheckerDictionary();
+  });
+
+  handleWithEvent<[], string[]>('spell:list', async (event) =>
+    event.sender.session.listWordsInSpellCheckerDictionary()
+  );
+
   handle<[string], OrphanedAsset[]>('asset:orphans', (campaignId) => vault.listOrphanedAssets(campaignId));
   handle<[string, string[]], number>('asset:deleteMany', (campaignId, names) =>
     vault.deleteAssets(campaignId, names)

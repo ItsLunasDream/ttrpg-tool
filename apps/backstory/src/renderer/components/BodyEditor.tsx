@@ -9,12 +9,14 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
+import { ContextMenu } from './ContextMenu';
 import { SizedImage } from '../editor/sizedImage';
 import { Unterstrichen } from '../editor/unterstrichen';
 import { createWikiLinkExtension, type SuggestionState } from '../editor/wikiLinkExtension';
 import { createSearchHighlightExtension, replaceMatches, selectMatch } from '../editor/searchHighlight';
 import { htmlToMarkdown, markdownToHtml, pastedMarkdownToHtml } from '../editor/markdown';
 import { assetPath, assetUrl, isImageFile } from '../editor/assets';
+import { api, call } from '../api';
 import { normalizeName } from '../../shared/wikilinks';
 import { begrenzeZoom, naechsteZoomstufe, ZOOM_NORMAL } from '../../shared/zoom';
 import type { NoteIndex } from '../noteIndex';
@@ -96,6 +98,13 @@ export function BodyEditor({
 }: Props) {
   const t = useT();
   const flaeche = useRef<HTMLDivElement>(null);
+  /** Rechtsklick auf ein angestrichenes Wort: Stelle, Wort, Vorschlaege. */
+  const [schreibmenue, setSchreibmenue] = useState<{
+    x: number;
+    y: number;
+    wort: string;
+    vorschlaege: string[];
+  } | null>(null);
   const [suggestion, setSuggestion] = useState<SuggestionState | null>(null);
   const [highlight, setHighlight] = useState(0);
   /** Der zuletzt gemeldete Vorschlag. Nur ein echter Wechsel setzt die Auswahl zurueck. */
@@ -438,6 +447,41 @@ export function BodyEditor({
    * nur dann.
    */
   /**
+   * Rechtsklick auf ein falsch geschriebenes Wort.
+   *
+   * Was angestrichen ist, weiss nur Chromium, und das Ereignis dazu kommt im
+   * Hauptprozess an. Von dort kommen Wort und Vorschlaege hierher, und das
+   * Menue baut die Oberflaeche selbst — damit es aussieht wie die uebrigen.
+   */
+  useEffect(() => {
+    return api.onRechtschreibung((treffer) => setSchreibmenue(treffer));
+  }, []);
+
+  /**
+   * Ersetzt das angestrichene Wort an der Stelle, an der geklickt wurde.
+   *
+   * Ueber die Zeigerstelle und nicht ueber die Auswahl: das eigene Menue
+   * setzt keine, und ohne Auswahl traefe eine Ersetzung ins Leere.
+   */
+  const ersetzeWort = useCallback(
+    (treffer: { x: number; y: number; wort: string }, ersatz: string) => {
+      if (!editor) return;
+      const stelle = editor.view.posAtCoords({ left: treffer.x, top: treffer.y });
+      if (!stelle) return;
+
+      const $pos = editor.state.doc.resolve(stelle.pos);
+      const text = $pos.parent.textBetween(0, $pos.parent.content.size, '\n', '\n');
+      const versatz = $pos.parentOffset;
+      const start = text.lastIndexOf(treffer.wort, versatz);
+      if (start === -1 || start + treffer.wort.length < versatz) return;
+
+      const von = $pos.pos - versatz + start;
+      editor.chain().focus().insertContentAt({ from: von, to: von + treffer.wort.length }, ersatz).run();
+    },
+    [editor]
+  );
+
+  /**
    * Strg und Mausrad. Von Hand angemeldet und nicht ueber onWheel, weil React
    * Rad-Lauscher passiv anmeldet: preventDefault bliebe wirkungslos, und der
    * Browser zoomte zusaetzlich die ganze Seite.
@@ -632,6 +676,29 @@ export function BodyEditor({
       >
         <EditorContent editor={editor} />
       </div>
+
+      {schreibmenue ? (
+        <ContextMenu
+          x={schreibmenue.x}
+          y={schreibmenue.y}
+          onClose={() => setSchreibmenue(null)}
+          items={[
+            ...schreibmenue.vorschlaege.slice(0, 6).map((vorschlag) => ({
+              label: vorschlag,
+              onSelect: () => ersetzeWort(schreibmenue, vorschlag)
+            })),
+            {
+              label: t('spell.add', { word: schreibmenue.wort }),
+              onSelect: () => {
+                void call(api.woerterbuch.hinzufuegen(schreibmenue.wort)).then(
+                  () => onReport(t('spell.added', { word: schreibmenue.wort })),
+                  () => undefined
+                );
+              }
+            }
+          ]}
+        />
+      ) : null}
 
       {suggestion && optionCount > 0 ? (
         <ul className="suggestions" style={{ left: suggestion.left, top: suggestion.top + 4 }}>

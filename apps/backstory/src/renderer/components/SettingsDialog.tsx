@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { AiProviderId, AppSettings } from '../../shared/types';
 import { LANGUAGES } from '../../shared/i18n';
 import { Modal } from './Modal';
 import { useT } from '../i18n';
+import { api, call } from '../api';
 
 interface Props {
   settings: AppSettings;
@@ -33,6 +34,15 @@ export function SettingsDialog({
 }: Props) {
   const t = useT();
   const [apiKey, setApiKey] = useState('');
+  /**
+   * Die eigenen Woerter der Rechtschreibpruefung. Ohne diese Liste bliebe ein
+   * Vertipper fuer immer im Woerterbuch.
+   */
+  const [woerter, setWoerter] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    void call(api.woerterbuch.liste()).then(setWoerter, () => setWoerter([]));
+  }, []);
 
   return (
     <Modal title={t('settings.title')} onClose={onClose}>
@@ -166,6 +176,34 @@ export function SettingsDialog({
       ) : null}
         </>
       )}
+
+      {/* Die eigenen Woerter der Rechtschreibpruefung. Aufgenommen wird per
+          Rechtsklick im Text; hier kommt man wieder heraus. */}
+      <div className="field">
+        <span className="field__label">{t('spell.title')}</span>
+        {woerter === null ? (
+          <p className="modal__hint">{t('app.loading')}</p>
+        ) : woerter.length === 0 ? (
+          <p className="modal__hint">{t('spell.empty')}</p>
+        ) : (
+          <ul className="woerterbuch">
+            {woerter.map((wort) => (
+              <li key={wort}>
+                <span>{wort}</span>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => {
+                    void call(api.woerterbuch.entfernen(wort)).then(setWoerter, () => undefined);
+                  }}
+                >
+                  {t('spell.remove')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <label className="field">
         <span className="field__label">{t('settings.location')}</span>

@@ -553,6 +553,22 @@ mark {
   padding: 3px 7px;
 }
 
+.woerterbuch {
+  list-style: none;
+  margin: 0;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.woerterbuch li {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+
 .toolbar__zoom {
   font-size: 11px;
   min-width: 46px;

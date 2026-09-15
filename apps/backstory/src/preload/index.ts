@@ -108,6 +108,27 @@ const api = {
       ipcRenderer.off(channel('app:ki-gewechselt'), listener);
     };
   },
+  /**
+   * Rechtsklick auf ein falsch geschriebenes Wort. Das Ereignis kommt aus
+   * dem Hauptprozess, weil nur dort steht, was Chromium angestrichen hat.
+   * Liefert eine Funktion zum Abmelden zurueck.
+   */
+  onRechtschreibung: (
+    callback: (treffer: { x: number; y: number; wort: string; vorschlaege: string[] }) => void
+  ): (() => void) => {
+    const listener = (_e: unknown, treffer: { x: number; y: number; wort: string; vorschlaege: string[] }) =>
+      callback(treffer);
+    ipcRenderer.on(channel('app:rechtschreibung'), listener);
+    return () => {
+      ipcRenderer.off(channel('app:rechtschreibung'), listener);
+    };
+  },
+  /** Das Woerterbuch der Sitzung. Jede Antwort ist die vollstaendige Liste. */
+  woerterbuch: {
+    liste: () => invoke<string[]>('spell:list'),
+    hinzufuegen: (wort: string) => invoke<string[]>('spell:add', wort),
+    entfernen: (wort: string) => invoke<string[]>('spell:remove', wort)
+  },
   ai: {
     status: () =>
       invoke<{

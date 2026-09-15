@@ -66,6 +66,8 @@ async function createWindow(embed: BackstoryEmbed): Promise<void> {
     });
   });
 
+  embed.richteRechtschreibungEin(window.webContents);
+
   // Externe Links gehoeren in den Systembrowser, nicht in ein App-Fenster.
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http:') || url.startsWith('https:')) void shell.openExternal(url);

@@ -490,6 +490,9 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
   });
 
   sichereAb(sicht, eingebettet.devServerUrl);
+  // Rechtsklick auf ein angestrichenes Wort soll auch hier Vorschlaege
+  // bringen, nicht nur in der eigenstaendigen Anwendung.
+  eingebettet.richteRechtschreibungEin(sicht.webContents);
   // Damit der NPC Creator ihm sagen kann, dass eine Figur dazugekommen ist.
   backstorySicht = sicht;
 
