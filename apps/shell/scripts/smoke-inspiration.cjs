@@ -334,9 +334,16 @@ app.whenReady().then(async () => {
   await js(
     `[...${orteKarte}.querySelectorAll('button')].find(b => /Karte anlegen|Start a map/.test(b.textContent)).click(); true`
   );
-  await warte(6000);
-
-  const map = sicht('mapmaker');
+  /*
+   * Ab hier wird gewartet, indem nachgesehen wird, nicht indem still Zeit
+   * vergeht: die Meldung drueben steht nur vier Sekunden, und ein festes
+   * `warte` haette sie je nach Rechner verpasst.
+   */
+  let map = null;
+  for (let versuch = 0; versuch < 20 && !map; versuch += 1) {
+    await warte(400);
+    map = sicht('mapmaker');
+  }
   pruefe(Boolean(map), 'der Karteneditor kommt nach vorn');
   if (map) {
     const mjsKarte = (a) => map.webContents.executeJavaScript(a);
@@ -348,22 +355,24 @@ app.whenReady().then(async () => {
      * darauf. Die erste Fassung schickte nur den Namen, und drueben stand man
      * vor einer leeren Flaeche — genau das war die Rueckmeldung.
      *
-     * Gezaehlt wird im VTT-Panel des Karteneditors: die Pins liegen im
-     * Dokument und werden auf eine Leinwand gezeichnet, im DOM sind sie
-     * nicht zu finden.
-     */
-    /*
-     * Und sie ist nicht leer: was ueber den Ort bekannt ist, steht als Pin
-     * darauf. Die erste Fassung schickte nur den Namen, und drueben stand man
-     * vor einer leeren Flaeche — genau das war die Rueckmeldung.
-     *
      * Gemessen wird an der Statuszeile des Karteneditors. Die Pins selbst
      * liegen im Dokument und werden auf eine Leinwand gezeichnet; im DOM sind
      * sie nicht zu finden, und das VTT-Panel ist beim Start zugeklappt.
+     *
+     * Die Meldung steht nur vier Sekunden. Der erste Anlauf schaute stur
+     * sechs Sekunden nach dem Klick nach und fand nichts mehr — das sah aus
+     * wie eine leere Karte und war eine abgelaufene Meldung.
      */
-    const status = await mjsKarte(
-      "[...document.querySelectorAll('*')].map(e => e.textContent ?? '').find(text => /angelegt, mit|created, with/.test(text)) ?? ''"
-    );
+    // Das TIEFSTE Element mit der Meldung, nicht das erste: jeder Vorfahre
+    // enthaelt sie ebenfalls, und die Fehlermeldung zeigte dann die halbe
+    // Oberflaeche statt der Zeile, um die es geht.
+    const suche =
+      "[...document.querySelectorAll('*')].filter(e => /angelegt, mit|created, with/.test(e.textContent ?? '')).at(-1)?.textContent ?? ''";
+    let status = '';
+    for (let versuch = 0; versuch < 8 && !status; versuch += 1) {
+      status = await mjsKarte(suche);
+      if (!status) await warte(400);
+    }
     pruefe(
       /[1-9]\d* (Notizen|notes)/.test(status),
       `auf der neuen Karte liegen Notizen (Statuszeile: ${status.slice(0, 80) || 'nichts'})`
