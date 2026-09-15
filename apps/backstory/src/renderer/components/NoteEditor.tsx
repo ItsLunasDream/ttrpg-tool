@@ -28,6 +28,9 @@ interface Props {
   onReport: (text: string) => void;
   onAddReverseRelation: (targetId: string) => void;
   aiStatus: AiStatus | null;
+  aiSendLinked: boolean;
+  onToggleAiSendLinked: (value: boolean) => void;
+  aiLinkedCount: number;
   onExportMarkdown: () => void;
   onExportPdf: () => void;
   onExportCampaignZip: () => void;
@@ -279,7 +282,12 @@ export function NoteEditor(props: Props) {
           />
 
           {/* Zurueckgesetzt wird das Gespraech im AssistantProvider. */}
-          <AssistantPanel status={props.aiStatus} />
+          <AssistantPanel
+            status={props.aiStatus}
+            sendLinked={props.aiSendLinked}
+            onToggleSendLinked={props.onToggleAiSendLinked}
+            linkedCount={props.aiLinkedCount}
+          />
 
           <BacklinksPanel
             backlinks={backlinks}

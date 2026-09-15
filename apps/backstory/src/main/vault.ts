@@ -1099,6 +1099,7 @@ export function defaultSettings(vaultRoot: string): AppSettings {
     ollamaModel: 'llama3.1',
     claudeModel: 'claude-opus-5',
     claudeApiKeyEncrypted: '',
+    aiSendLinkedNotes: true,
     lastCampaignId: null
   };
 }

@@ -15,6 +15,11 @@ export interface AiStatus {
 
 interface Props {
   status: AiStatus | null;
+  /** Ob die verlinkten Notizen als Kontext mitgehen. */
+  sendLinked: boolean;
+  onToggleSendLinked: (value: boolean) => void;
+  /** Wie viele Notizen das gerade waeren. */
+  linkedCount: number;
   /**
    * `chat` ist die grosse Fassung im Schreibhilfe-Dialog: mit abgesetzten
    * Blasen und mitlaufendem Bildlauf. `panel` ist die schmale Sidebar.
@@ -94,7 +99,7 @@ function Antwort({ text, className }: { text: string; className: string }) {
  * faengt dagegen bewusst neu an, damit ein alter Faden nicht unbemerkt
  * weiterlaeuft.
  */
-export function AssistantThread({ status, variant }: Props) {
+export function AssistantThread({ status, variant, sendLinked, onToggleSendLinked, linkedCount }: Props) {
   const t = useT();
   const { messages, streaming, busy, start, followUp, clear } = useAssistant();
   const [question, setQuestion] = useState('');
@@ -119,6 +124,17 @@ export function AssistantThread({ status, variant }: Props) {
       <p className={`panel__hint${status.ready ? '' : ' assistant__warning'}`}>
         {status.ready ? t('ai.ready', { detail: status.detail }) : t('ai.notReady', { detail: status.detail })}
       </p>
+
+      {/* Was mitgeht, soll dastehen. Sonst weiss niemand, was er da an ein
+          kostenpflichtiges Modell verschickt. */}
+      <label className="assistant__context">
+        <input
+          type="checkbox"
+          checked={sendLinked}
+          onChange={(event) => onToggleSendLinked(event.target.checked)}
+        />
+        <span>{t('ai.sendLinked', { count: linkedCount })}</span>
+      </label>
 
       <div className="assistant__actions">
         {TASKS.map((entry) => (

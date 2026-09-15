@@ -366,6 +366,7 @@ const de = {
   'graph.hintFull':
     'Klick auf einen Knoten öffnet die Notiz. Knoten lassen sich verschieben, die Fläche mit gedrückter Maustaste, das Mausrad zoomt.',
 
+  'ai.sendLinked': 'Verlinkte Notizen mitschicken ({count})',
   'ai.title': 'Assistent',
   'ai.questions': 'Fragen zum Weiterdenken',
   'ai.consistency': 'Konsistenzcheck',
@@ -759,6 +760,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'graph.hintFull':
     'Click a node to open the note. Nodes can be dragged, the canvas pans with the mouse held down, the wheel zooms.',
 
+  'ai.sendLinked': 'Send linked notes ({count})',
   'ai.title': 'Assistant',
   'ai.questions': 'Questions to think further',
   'ai.consistency': 'Consistency check',

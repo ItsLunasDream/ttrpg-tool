@@ -1392,7 +1392,20 @@ mark {
   min-height: 420px;
 }
 
-.assistant--chat .assistant__actions {
+.assistant--chat .assistant__context {
+  align-items: center;
+  display: flex;
+  font-size: 11px;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.assistant__context input {
+  margin: 0;
+  width: auto;
+}
+
+.assistant__actions {
   flex-direction: row;
   flex-wrap: wrap;
 }

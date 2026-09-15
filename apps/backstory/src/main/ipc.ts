@@ -12,8 +12,8 @@ import type { PromptCategory } from '../shared/writingPrompts';
 import { askProvider, createProvider, decryptSecret, encryptSecret, AiError } from './ai';
 import type { KiQuelle } from './ai';
 import { findNoteType } from '../shared/noteTypes';
-import { findWikiLinks, normalizeName } from '../shared/wikilinks';
 import { channel } from '../shared/channels';
+import { verlinkteNotizen } from '../shared/kiKontext';
 import type {
   AiMessage,
   AiTask,
@@ -303,7 +303,12 @@ export function registerIpc(context: IpcContext): void {
             task,
             language: context.settings.language,
             note: describeNote(note, campaign.noteTypes),
-            context: describeLinkedNotes(note, notes, campaign.noteTypes),
+            // Abschaltbar: weniger Text an ein kostenpflichtiges Modell,
+            // und manchmal soll die Rueckmeldung nur die offene Notiz
+            // betreffen.
+            context: context.settings.aiSendLinkedNotes
+              ? describeLinkedNotes(note, notes, campaign.noteTypes)
+              : '',
             // Der Verlauf wird begrenzt, sonst waechst jede Rueckfrage die
             // Anfrage weiter auf und kostet mehr, ohne besser zu werden.
             history: history.slice(-8),
@@ -492,23 +497,7 @@ function describeNote(note: Note, types: NoteTypeDef[], maxBodyChars = 8000): st
  * Anfrage mit der Kampagne und wird teuer, ohne besser zu werden.
  */
 function describeLinkedNotes(note: Note, notes: Note[], types: NoteTypeDef[], perNoteChars = 1200): string {
-  const byName = new Map<string, Note>();
-  for (const entry of notes) {
-    for (const name of [entry.title, ...entry.aliases]) byName.set(normalizeName(name), entry);
-  }
-
-  const linked = new Map<string, Note>();
-  for (const link of findWikiLinks(note.body)) {
-    const target = byName.get(normalizeName(link.target));
-    if (target && target.id !== note.id) linked.set(target.id, target);
-  }
-  for (const relation of note.relations) {
-    const target = notes.find((entry) => entry.id === relation.targetId);
-    if (target) linked.set(target.id, target);
-  }
-
-  return [...linked.values()]
-    .slice(0, 12)
+  return verlinkteNotizen(note, notes)
     .map((entry) => describeNote(entry, types, perNoteChars))
     .join('\n\n---\n\n');
 }

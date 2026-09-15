@@ -5,19 +5,22 @@ export type { AiStatus };
 
 interface Props {
   status: AiStatus | null;
+  sendLinked: boolean;
+  onToggleSendLinked: (value: boolean) => void;
+  linkedCount: number;
 }
 
 /**
  * Der Assistent in der Sidebar. Dasselbe Gespraech steht in gross im
  * Schreibhilfe-Dialog, beide holen es aus demselben Kontext.
  */
-export function AssistantPanel({ status }: Props) {
+export function AssistantPanel(props: Props) {
   const t = useT();
 
   return (
     <section className="panel">
       <h3 className="panel__title">{t('ai.title')}</h3>
-      <AssistantThread status={status} variant="panel" />
+      <AssistantThread {...props} variant="panel" />
     </section>
   );
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, call } from './api';
 import { buildIndex, filterNotes, searchNotes, type SearchFilters } from './noteIndex';
 import { hasLinkReservedChars, normalizeName } from '../shared/wikilinks';
+import { verlinkteNotizen } from '../shared/kiKontext';
 import { effektiverStand, zieheUmbenennungNach, type Entwurf } from './entwuerfe';
 import { DEFAULT_NOTE_TYPES } from '../shared/noteTypes';
 import type {
@@ -677,6 +678,16 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   }, [activeCampaign, guard, bereitFuerPlattenaktion, report, t]);
 
   /** Aus einem offenen [[Link]] heraus: nur anlegen, wenn es den Namen noch nicht gibt. */
+  /**
+   * Wie viele Notizen mit an den Assistenten gingen. Gerechnet mit derselben
+   * Funktion, die der Hauptprozess zum Verschicken benutzt — sonst stuende
+   * neben dem Kaestchen eine Zahl, die nicht stimmt.
+   */
+  const aiLinkedCount = useMemo(
+    () => (draft ? verlinkteNotizen(draft, index.notes).length : 0),
+    [draft, index]
+  );
+
   const createNoteFromLink = useCallback(
     (title: string) => {
       if (index.byName.has(normalizeName(title))) {
@@ -839,6 +850,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 onDelete={() => setDialog({ kind: 'deleteNote', note: draft })}
                 onOpenHistory={() => void openHistory(draft)}
                 aiStatus={aiStatus}
+                aiSendLinked={settings.aiSendLinkedNotes}
+                onToggleAiSendLinked={(value) => updateSettings({ aiSendLinkedNotes: value })}
+                aiLinkedCount={aiLinkedCount}
                 onOpenPrompts={() => {
                   setDialog({ kind: 'prompts' });
                   if (!prompts) void guard(async () => setPrompts(await call(api.prompts.get())));
@@ -970,6 +984,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         <PromptsDialog
           categories={prompts}
           aiStatus={aiStatus}
+          aiSendLinked={settings.aiSendLinkedNotes}
+          onToggleAiSendLinked={(value) => updateSettings({ aiSendLinkedNotes: value })}
+          aiLinkedCount={aiLinkedCount}
           onClose={() => setDialog({ kind: 'none' })}
           onEditFile={() => void guard(() => call(api.prompts.reveal()))}
           onInsert={(text) => {

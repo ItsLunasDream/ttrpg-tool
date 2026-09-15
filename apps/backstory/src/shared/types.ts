@@ -137,6 +137,14 @@ export interface AppSettings {
   claudeModel: string;
   /** Verschluesselter API-Schluessel. Erreicht den Renderer nie. */
   claudeApiKeyEncrypted: string;
+  /**
+   * Ob die verlinkten Notizen als Kontext mitgeschickt werden.
+   *
+   * Aus zwei Gruenden abschaltbar: weniger Text an ein kostenpflichtiges
+   * Modell, und manchmal soll die Rueckmeldung nur die offene Notiz
+   * betreffen. An bleibt die Voreinstellung — so war es vorher.
+   */
+  aiSendLinkedNotes: boolean;
   lastCampaignId: string | null;
 }
 

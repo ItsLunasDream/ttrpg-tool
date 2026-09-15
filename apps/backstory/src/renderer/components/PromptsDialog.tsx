@@ -7,6 +7,9 @@ import { AssistantThread, type AiStatus } from './AssistantThread';
 interface Props {
   categories: PromptCategory[] | null;
   aiStatus: AiStatus | null;
+  aiSendLinked: boolean;
+  onToggleAiSendLinked: (value: boolean) => void;
+  aiLinkedCount: number;
   onInsert: (text: string) => void;
   onEditFile: () => void;
   onClose: () => void;
@@ -27,7 +30,8 @@ function pickRandom(options: string[], count: number): string[] {
  * Startpunkte fuers Schreiben, ohne KI. Oben eine kleine Auswahl per Zufall,
  * darunter die vollstaendige Liste zum Stoebern.
  */
-export function PromptsDialog({ categories, aiStatus, onInsert, onEditFile, onClose }: Props) {
+export function PromptsDialog(props: Props) {
+  const { categories, aiStatus, onInsert, onEditFile, onClose } = props;
   const t = useT();
   const [tab, setTab] = useState<'prompts' | 'ai'>('prompts');
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -82,7 +86,15 @@ export function PromptsDialog({ categories, aiStatus, onInsert, onEditFile, onCl
         ))}
       </div>
 
-      {tab === 'ai' ? <AssistantThread status={aiStatus} variant="chat" /> : null}
+      {tab === 'ai' ? (
+        <AssistantThread
+          status={aiStatus}
+          variant="chat"
+          sendLinked={props.aiSendLinked}
+          onToggleSendLinked={props.onToggleAiSendLinked}
+          linkedCount={props.aiLinkedCount}
+        />
+      ) : null}
 
       {tab === 'prompts' ? (
         categories === null ? (
