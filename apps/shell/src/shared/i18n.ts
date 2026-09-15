@@ -114,6 +114,8 @@ const en = {
   'app.dice.description': 'Roll dice expressions, with advantage and disadvantage',
   'app.npc.name': 'NPC Creator',
   'app.npc.description': 'Roll a character the table can meet right away',
+  'app.inspiration.name': 'Inspiration',
+  'app.inspiration.description': 'Build a campaign scaffold: hooks, factions, places, ties',
   'app.encounter.name': 'Encounters',
   'app.encounter.description': 'Plan and balance fights'
 };
@@ -227,6 +229,8 @@ const de: Partial<Record<MessageKey, string>> = {
   'app.dice.description': 'Würfelausdrücke werfen, mit Vorteil und Nachteil',
   'app.npc.name': 'NPC Creator',
   'app.npc.description': 'Eine Figur würfeln, die der Tisch sofort treffen kann',
+  'app.inspiration.name': 'Inspirationshilfe',
+  'app.inspiration.description': 'Ein Gerüst für die Kampagne: Aufhänger, Fraktionen, Orte, Verbindungen',
   'app.encounter.name': 'Begegnungen',
   'app.encounter.description': 'Kämpfe planen und ausbalancieren'
 };

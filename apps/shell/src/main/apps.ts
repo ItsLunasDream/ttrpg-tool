@@ -35,6 +35,7 @@ import {
 } from '../../../initiative/src/main/embed';
 import { mountDice } from '../../../dice/src/main/embed';
 import { mountNpc } from '../../../npc/src/main/embed';
+import { mountInspiration } from '../../../inspiration/src/main/embed';
 import type { KiQuelle } from './ki';
 import type { Language } from '../shared/i18n';
 
@@ -283,6 +284,7 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'initiative') return montiereInitiative(id, haken);
   if (id === 'dice') return montiereDice(id, haken);
   if (id === 'npc') return montiereNpc(id, haken);
+  if (id === 'inspiration') return montiereInspiration(id, haken);
   return null;
 }
 
@@ -406,6 +408,94 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
     // Die KI wird in der Huelle eingerichtet; dieses Werkzeug muss es
     // erfahren, sonst fragt es den Zustand nur beim Laden ab.
     meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
+  };
+}
+
+/**
+ * Die Inspirationshilfe.
+ *
+ * Wie der NPC Creator bekommt sie eine Funktion zum Anlegen und sieht den
+ * Vault nie. Der Unterschied: hier kommen mehrere Notizen auf einmal, mit
+ * Wiki-Verweisen untereinander. Sie muessen deshalb alle in dieselbe
+ * Kampagne, und die wird einmal zu Beginn bestimmt — nicht je Notiz, sonst
+ * koennte ein Kampagnenwechsel mitten im Anlegen das Geflecht zerreissen.
+ */
+async function montiereInspiration(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountInspiration({
+    distDir: appDistDir(id, 'main'),
+    devServerUrl: process.env.INSPIRATION_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    anlegen: async (notizen) => {
+      if (!backstoryEmbed) {
+        return {
+          ok: false,
+          text: 'Öffne den Backstory Creator einmal, dann weiß die Sammlung, wohin.',
+          angelegt: 0
+        };
+      }
+      if (notizen.length === 0) {
+        return { ok: false, text: 'Es gibt nichts zu übernehmen.', angelegt: 0 };
+      }
+      const kampagnen = await backstoryEmbed.vault.listCampaigns();
+      if (kampagnen.length === 0) {
+        return { ok: false, text: 'Es gibt noch keine Kampagne, in die das passt.', angelegt: 0 };
+      }
+      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
+
+      let angelegt = 0;
+      try {
+        for (const notiz of notizen) {
+          const neu = await backstoryEmbed.vault.createNote(kampagne.id, notiz.typ, notiz.titel);
+          await backstoryEmbed.vault.saveNote(kampagne.id, { ...neu, body: notiz.markdown });
+          angelegt += 1;
+        }
+      } catch (fehler) {
+        // Was schon liegt, bleibt liegen: die Haelfte eines Geflechts ist
+        // immer noch mehr wert als nichts, und geloescht wird hier nichts,
+        // was der Nutzer nicht selbst geloescht hat.
+        const grund = fehler instanceof Error ? fehler.message : String(fehler);
+        return { ok: false, text: `${grund} (${angelegt} angelegt)`, angelegt };
+      }
+
+      // Dem Backstory Creator sagen, dass etwas dazugekommen ist. Ohne das
+      // liegen die Notizen zwar auf der Platte, seine offene Liste zeigt sie
+      // aber nicht.
+      if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
+        backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
+      }
+      haken.onEreignis?.('backstory');
+      return { ok: true, text: kampagne.name, angelegt };
+    }
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
   };
 }
 

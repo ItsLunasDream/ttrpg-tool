@@ -11,6 +11,8 @@ laufen. Alles bleibt lokal auf der eigenen Platte.
   Wiki-Links, Steckbrieffelder, gespeichert als Markdown.
 - **NPC Creator** — Randfiguren auf Knopfdruck, aus Tabellen oder per KI,
   Export als Notiz in den Backstory Creator.
+- **Inspirationshilfe** — Gerüst für eine neue Kampagne: Aufhänger,
+  Fraktionen, Figuren, Orte, Verbindungen, Zeitstrahl. Aus Tabellen, ohne KI.
 - **TTRPG Map Editor** — Battlemaps und Weltkarten zeichnen, Export als
   Universal VTT.
 
@@ -77,6 +79,7 @@ apps/mapmaker/     TTRPG Map Editor (auch als Tauri-Anwendung baubar)
 apps/initiative/   Initiative Tracker
 apps/dice/         Würfel
 apps/npc/          NPC Creator
+apps/inspiration/  Inspirationshilfe
 packages/dice/     Würfelausdrücke lesen und werfen
 packages/i18n/     Sprachwahl und Textersetzung
 packages/motion/   Zeiten, Kurven und Grundanimationen
@@ -265,6 +268,30 @@ Geheimnis, Eigenheit.
 
 Die Erzeugung steht als reine Funktion in `src/shared/erzeuge.ts`, die
 Modellaufgaben in `src/shared/kiAufgaben.ts`.
+
+## Inspirationshilfe
+
+Das leere Blatt am Anfang einer Kampagne. Sechs Bausteine, ein Knopf:
+Aufhänger, Fraktionen, Figuren, Orte, Verbindungen und ein Zeitstrahl —
+was passiert, wenn die Gruppe nichts tut.
+
+- **Ohne KI vollständig.** Die Bausteine werden aus kombinierenden Tabellen
+  gezogen: über eine Million verschiedene Aufhänger, ebenso viele Orte und
+  Figuren. Die Zahl steht in der Oberfläche und ist aus den Tabellen
+  nachgerechnet, nicht behauptet.
+- **Vier Regler**: Umfang (Abend, Bogen, Kampagne), Region, Thema, Tonfall.
+  Region, Thema und Tonfall sind freie Felder mit Vorschlagsliste; bekannte
+  Begriffe verengen die Tabellen, eigene lassen sie offen.
+- **Verbindungen sind gerichtet**: A sieht B als Mentorin, B sieht A als
+  Bedrohung. Jede Figur hängt an mindestens einer anderen.
+- **Schloss je Baustein**, wie im NPC Creator. Der Knopf am Baustein selbst
+  würfelt ihn trotzdem neu.
+- **Übernehmen** legt je Figur, Ort und Fraktion eine Notiz in der offenen
+  Kampagne an, dazu eine Übersicht mit Wiki-Verweisen — der Graph im
+  Backstory Creator hat sofort etwas zu zeichnen. Entwurf hier, Wahrheit
+  dort: eine eigene Ablage gibt es nicht.
+
+Konzept und offene Punkte: `docs/inspirationshilfe.md`.
 
 ## Würfel
 

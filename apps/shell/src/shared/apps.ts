@@ -68,6 +68,7 @@ export const APPS: readonly AppEntry[] = [
   { id: 'initiative', status: 'bereit' },
   { id: 'dice', status: 'bereit' },
   { id: 'npc', status: 'bereit' },
+  { id: 'inspiration', status: 'bereit' },
   { id: 'encounter', status: 'geplant' }
 ];
 

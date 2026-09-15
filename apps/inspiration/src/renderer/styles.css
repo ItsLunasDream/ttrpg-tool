@@ -1,0 +1,364 @@
+/*
+ * Aussehen der Inspirationshilfe.
+ *
+ * Dieselbe Palette wie im NPC Creator — die Werkzeuge stehen in einer
+ * Huelle nebeneinander und sollen nicht aussehen, als kaemen sie von
+ * verschiedenen Leuten.
+ *
+ * Die Bausteine liegen als Karten in einem Raster. Bei schmalem Fenster
+ * werden es weniger Spalten; eine feste Dreispaltigkeit waere in der Huelle
+ * neben der Schiene zu eng.
+ */
+
+:root {
+  --grund: #14161c;
+  --grund-hoch: #1b1e26;
+  --grund-tisch: #10121a;
+  --rand: #2a2e39;
+  --text: #e6e8ee;
+  --text-leise: #939aab;
+  --betont: #7aa2f7;
+  --fest: #e0af68;
+  --radius: 10px;
+
+  --motion-ok: #4a9d5f;
+  --motion-fehler: #d1635c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--grund);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+}
+
+.app {
+  height: 100%;
+  overflow-y: auto;
+  padding: 18px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.app__kopf {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app__titel {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.01em;
+}
+
+.app__unterzeile {
+  margin: 0;
+  color: var(--text-leise);
+  font-size: 13px;
+}
+
+/* ---------- Die vier Regler ---------- */
+
+.regler-leiste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.regler {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+  flex: 1 1 160px;
+}
+
+.regler__name {
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.regler__feld {
+  background: var(--grund-tisch);
+  border: 1px solid var(--rand);
+  border-radius: 7px;
+  color: var(--text);
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
+}
+
+.regler__feld:focus-visible {
+  outline: 2px solid var(--betont);
+  outline-offset: 1px;
+}
+
+/* ---------- Der Wurf ---------- */
+
+.wurf {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.wurf__zahlen {
+  margin: 0;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.knopf {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 7px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--motion-schnell, 120ms) ease, border-color var(--motion-schnell, 120ms) ease;
+}
+
+.knopf:hover {
+  border-color: var(--betont);
+}
+
+.knopf:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.knopf--gross {
+  background: var(--betont);
+  border-color: var(--betont);
+  color: #10121a;
+  font-weight: 600;
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+.knopf--aktiv {
+  border-color: var(--fest);
+  color: var(--fest);
+}
+
+.leer {
+  color: var(--text-leise);
+  margin: 24px 0;
+}
+
+/* ---------- Die Bausteine ---------- */
+
+.bausteine {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.karte {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.karte__kopf {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.karte__titel {
+  margin: 0;
+  font-size: 15px;
+}
+
+.karte__hinweis {
+  margin: 0;
+  grid-column: 1 / -1;
+  order: 3;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.karte__knoepfe {
+  display: flex;
+  gap: 6px;
+}
+
+.zeilen {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.zeile {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: start;
+  line-height: 1.45;
+}
+
+.zeile--frist {
+  color: var(--fest);
+}
+
+.zeile__knopf {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-leise);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 3px 5px;
+}
+
+.zeile__knopf:hover {
+  border-color: var(--rand);
+  color: var(--text);
+}
+
+.block {
+  border-top: 1px solid var(--rand);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  line-height: 1.45;
+}
+
+.block:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.block p {
+  margin: 0;
+}
+
+.block__kopf {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.block__titel {
+  margin: 0;
+  font-size: 14px;
+  color: var(--betont);
+}
+
+.block__rolle {
+  color: var(--text-leise);
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.block__art {
+  color: var(--text-leise);
+  font-style: italic;
+}
+
+.block__karte {
+  color: var(--text-leise);
+}
+
+.block__zurueck {
+  color: var(--text-leise);
+}
+
+.zeitstrahl {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.zeitstrahl li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 2px solid var(--rand);
+  padding-left: 10px;
+  line-height: 1.45;
+}
+
+.zeitstrahl__marke {
+  color: var(--fest);
+  font-size: 12px;
+}
+
+/* ---------- Uebernehmen ---------- */
+
+.fuss {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.fuss__titel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 240px;
+}
+
+.fuss__knoepfe {
+  display: flex;
+  gap: 8px;
+}
+
+.fuss__hinweis {
+  margin: 0;
+  flex-basis: 100%;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.fuss__meldung {
+  margin: 0;
+  flex-basis: 100%;
+  color: var(--motion-ok);
+  font-size: 13px;
+}
+
+.fuss__meldung--fehler {
+  color: var(--motion-fehler);
+}
