@@ -30,6 +30,9 @@ interface Props {
   aiStatus: AiStatus | null;
   onExportMarkdown: () => void;
   onExportPdf: () => void;
+  onExportCampaignZip: () => void;
+  onExportCampaignMarkdown: () => void;
+  onExportCampaignPdf: () => void;
   onOpenNote: (noteId: string) => void;
   onCreateNote: (title: string) => void;
   onHoverNote: (note: Note | null, rect: DOMRect | null) => void;
@@ -116,12 +119,18 @@ export function NoteEditor(props: Props) {
         <button type="button" onClick={props.onOpenHistory}>
           {t('history.open')}
         </button>
-        {/* Beide Formate gehoeren zur selben Sache, deshalb unter einem Knopf. */}
+        {/* Alles, was ausgegeben wird, unter einem Knopf: die offene Notiz
+            und die ganze Kampagne. Im Menue "Kampagne" stehen die unteren
+            drei weiterhin — wer sie dort gelernt hat, soll sie nicht suchen
+            muessen. */}
         <Menu
           label={t('export.note')}
           entries={[
             { label: t('export.markdownNote'), onSelect: props.onExportMarkdown },
-            { label: t('export.pdfNote'), onSelect: props.onExportPdf }
+            { label: t('export.pdfNote'), onSelect: props.onExportPdf },
+            { label: t('export.markdownCampaign'), onSelect: props.onExportCampaignMarkdown, separated: true },
+            { label: t('export.pdfCampaign'), onSelect: props.onExportCampaignPdf },
+            { label: t('bar.exportZip'), onSelect: props.onExportCampaignZip }
           ]}
         />
         <button type="button" className="danger" onClick={onDelete}>

@@ -210,9 +210,15 @@ button:focus-visible {
   margin-right: 6px;
 }
 
-.campaign-bar select {
+.campaign-bar__picker > .menu > button {
   max-width: 240px;
-  width: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu__list button.is-active {
+  font-weight: 600;
 }
 
 .campaign-bar__spacer {

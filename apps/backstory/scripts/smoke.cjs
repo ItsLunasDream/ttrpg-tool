@@ -70,10 +70,31 @@ async function fillDialog(window, value, confirmLabel) {
 }
 
 /** Oeffnet das Kampagnen-Menue und waehlt einen Eintrag. */
+/** Eine Kampagne ueber das Auswahlmenue oeffnen. */
+async function waehleKampagne(window, name) {
+  await run(
+    window,
+    `const opener = document.querySelector('.campaign-bar__picker > .menu > button');
+     if (!opener) throw new Error('Kampagnenauswahl fehlt');
+     if (opener.getAttribute('aria-expanded') !== 'true') opener.click();
+     return true;`
+  );
+  await sleep(300);
+  await run(
+    window,
+    `const eintrag = [...document.querySelectorAll('.campaign-bar__picker .menu__list button')]
+       .find((b) => b.textContent === ${JSON.stringify(name)});
+     if (!eintrag) throw new Error('Kampagne nicht in der Auswahl: ' + ${JSON.stringify(name)});
+     eintrag.click();
+     return true;`
+  );
+  await sleep(1200);
+}
+
 async function menuAction(window, label) {
   await run(
     window,
-    `const opener = [...document.querySelectorAll('.menu > button')][0];
+    `const opener = [...document.querySelectorAll('.campaign-bar > .menu > button')][0];
      if (!opener) throw new Error('Kampagnen-Menü fehlt');
      if (opener.getAttribute('aria-expanded') !== 'true') opener.click();
      return true;`
@@ -197,7 +218,7 @@ app.whenReady().then(async () => {
     await clickButton(window, 'Erste Kampagne anlegen');
     await sleep(300);
     await fillDialog(window, 'Sturmküste', 'Anlegen');
-    check(await run(window, `return document.querySelector('.campaign-bar select').selectedOptions[0].textContent === 'Sturmküste';`),
+    check(await run(window, `return document.querySelector('.campaign-bar__picker > .menu > button').textContent.includes('Sturmküste');`),
       'Kampagne wurde nicht ausgewaehlt');
 
     // 2. Zwei Charaktere anlegen
@@ -394,6 +415,29 @@ app.whenReady().then(async () => {
     await sleep(600);
     check(await run(window, `return document.querySelector('.ProseMirror').textContent.includes('[[Hafen]]');`),
       'Markierter Text wurde beim Tippen von "[[" nicht umschlossen');
+
+    // 5e. Der Export-Knopf des Editors traegt beide Ebenen: die offene Notiz
+    // und die ganze Kampagne.
+    await run(
+      window,
+      `const knopf = [...document.querySelectorAll('.note-editor .menu > button')][0];
+       if (!knopf) throw new Error('Export-Knopf fehlt');
+       if (knopf.getAttribute('aria-expanded') !== 'true') knopf.click();
+       return true;`
+    );
+    await sleep(300);
+    const exportEintraege = await run(
+      window,
+      `return [...document.querySelectorAll('.note-editor .menu__list button')].map((b) => b.textContent);`
+    );
+    check(
+      ['Notiz als Markdown', 'Notiz als PDF', 'Kampagne als Markdown', 'Kampagne als PDF', 'Als ZIP sichern'].every(
+        (eintrag) => exportEintraege.includes(eintrag)
+      ),
+      `Im Export-Knopf fehlen Eintraege: ${JSON.stringify(exportEintraege)}`
+    );
+    await run(window, `document.querySelector('.note-editor .menu > button').click(); return true;`);
+    await sleep(300);
 
     // 6. Kurzinfo-Karte muss den Textanfang zeigen
     await run(
@@ -1452,14 +1496,7 @@ app.whenReady().then(async () => {
     );
 
     // Zurück zur ursprünglichen Kampagne
-    await run(
-      window,
-      `const select = document.querySelector('.campaign-bar select');
-       const option = [...select.options].find((o) => o.textContent === 'Sturmküste');
-       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, option.value);
-       select.dispatchEvent(new Event('change', { bubbles: true }));
-       return true;`
-    );
+    await waehleKampagne(window, 'Sturmküste');
     await sleep(1200);
 
     // 20. Aufräumen: benutzte Bilder bleiben, unbenutzte werden angeboten

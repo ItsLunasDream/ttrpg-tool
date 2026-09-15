@@ -639,6 +639,43 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     [activeCampaignId, guard, sichereVorWechsel, reloadNotes]
   );
 
+  /**
+   * Die drei Wege, eine ganze Kampagne auszugeben.
+   *
+   * Sie haengen an zwei Stellen: im Menue "Kampagne" und am Export-Knopf des
+   * Editors. Einmal gebaut und zweimal gereicht — zwei Fassungen liefen
+   * frueher oder spaeter auseinander.
+   *
+   * Exportiert wird der Stand auf der Platte. Ungespeichertes fehlte darin,
+   * deshalb fragt bereitFuerPlattenaktion vorher.
+   */
+  const exportiereKampagneZip = useCallback(() => {
+    if (!activeCampaign) return;
+    void guard(async () => {
+      if (!(await bereitFuerPlattenaktion())) return;
+      const target = await call(api.exportCampaignZip(activeCampaign.id, activeCampaign.name));
+      if (target) report(t('msg.exported', { path: target }));
+    });
+  }, [activeCampaign, guard, bereitFuerPlattenaktion, report, t]);
+
+  const exportiereKampagneMarkdown = useCallback(() => {
+    if (!activeCampaign) return;
+    void guard(async () => {
+      if (!(await bereitFuerPlattenaktion())) return;
+      const result = await call(api.exportMarkdown.campaign(activeCampaign.id));
+      if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
+    });
+  }, [activeCampaign, guard, bereitFuerPlattenaktion, report, t]);
+
+  const exportiereKampagnePdf = useCallback(() => {
+    if (!activeCampaign) return;
+    void guard(async () => {
+      if (!(await bereitFuerPlattenaktion())) return;
+      const result = await call(api.exportPdf.campaign(activeCampaign.id, activeCampaign.name));
+      if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
+    });
+  }, [activeCampaign, guard, bereitFuerPlattenaktion, report, t]);
+
   /** Aus einem offenen [[Link]] heraus: nur anlegen, wenn es den Namen noch nicht gibt. */
   const createNoteFromLink = useCallback(
     (title: string) => {
@@ -729,32 +766,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         onCreate={() => setDialog({ kind: 'newCampaign' })}
         onRename={() => activeCampaign && setDialog({ kind: 'renameCampaign', campaign: activeCampaign })}
         onDelete={() => activeCampaign && setDialog({ kind: 'deleteCampaign', campaign: activeCampaign })}
-        onExport={() =>
-          activeCampaign &&
-          void guard(async () => {
-            // Exportiert wird der Stand auf der Platte. Ungespeichertes
-            // fehlte darin — deshalb vorher fragen.
-            if (!(await bereitFuerPlattenaktion())) return;
-            const target = await call(api.exportCampaignZip(activeCampaign.id, activeCampaign.name));
-            if (target) report(t('msg.exported', { path: target }));
-          })
-        }
-        onExportMarkdown={() =>
-          activeCampaign &&
-          void guard(async () => {
-            if (!(await bereitFuerPlattenaktion())) return;
-            const result = await call(api.exportMarkdown.campaign(activeCampaign.id));
-            if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
-          })
-        }
-        onExportPdf={() =>
-          activeCampaign &&
-          void guard(async () => {
-            if (!(await bereitFuerPlattenaktion())) return;
-            const result = await call(api.exportPdf.campaign(activeCampaign.id, activeCampaign.name));
-            if (result) report(t('export.doneCount', { count: result.count, path: result.path }));
-          })
-        }
+        onExport={exportiereKampagneZip}
+        onExportMarkdown={exportiereKampagneMarkdown}
+        onExportPdf={exportiereKampagnePdf}
         onToggleGraph={() => setShowGraph((previous) => !previous)}
         graphOpen={showGraph}
         onCleanup={() =>
@@ -847,6 +861,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                     if (result) report(t('export.done', { path: result.path }));
                   })
                 }
+                onExportCampaignZip={exportiereKampagneZip}
+                onExportCampaignMarkdown={exportiereKampagneMarkdown}
+                onExportCampaignPdf={exportiereKampagnePdf}
                 onOpenNote={openNote}
                 onCreateNote={createNoteFromLink}
                 onHoverNote={(note, rect) => setHover(note && rect ? { note, rect } : null)}
