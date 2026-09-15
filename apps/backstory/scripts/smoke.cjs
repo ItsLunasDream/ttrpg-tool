@@ -705,6 +705,45 @@ app.whenReady().then(async () => {
          });`
       );
       check(JSON.parse(attrs).width === '200', `Bildbreite wurde nicht gesetzt: ${attrs}`);
+
+      // Eigene Breite als Anteil: sie steht als Stilangabe am Bild, weil das
+      // Attribut width in HTML5 nur ganze Zahlen nimmt.
+      await run(
+        window,
+        `const feld = document.querySelector('.toolbar__width');
+         if (!feld) throw new Error('Feld fuer die eigene Breite fehlt');
+         const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+         setzer.call(feld, '50%');
+         feld.dispatchEvent(new Event('input', { bubbles: true }));
+         feld.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+         return true;`
+      );
+      await sleep(600);
+      check(
+        await run(window, `return document.querySelector('.ProseMirror img').style.width === '50%';`),
+        'Eigene Breite als Anteil wurde nicht uebernommen'
+      );
+
+      // Unsinn laesst die Breite stehen, statt sie kaputtzuschreiben.
+      await run(
+        window,
+        `const feld = document.querySelector('.toolbar__width');
+         const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+         setzer.call(feld, 'breit');
+         feld.dispatchEvent(new Event('input', { bubbles: true }));
+         feld.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+         return true;`
+      );
+      await sleep(600);
+      check(
+        await run(window, `return document.querySelector('.ProseMirror img').style.width === '50%';`),
+        'Eine unsinnige Eingabe hat die Bildbreite veraendert'
+      );
+
+      // Zurueck auf Bildpunkte, damit die folgenden Pruefungen den Stand von
+      // vorher vorfinden.
+      await pressToolbar(window, '200');
+      await sleep(600);
     }
 
     await save(window);

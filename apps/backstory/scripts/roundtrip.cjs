@@ -52,6 +52,17 @@ const PROBEN = [
     // zwischen die Punkte; das Kreuz und die leere Klammer bleiben.
     erwartet: '- [ ] Offen\n\n- [x] Erledigt'
   },
+  {
+    name: 'Bild mit Breite in Bildpunkten',
+    text: '<img src="assets/bild.png" alt="" width="300">'
+  },
+  {
+    name: 'Bild mit Breite als Anteil',
+    // Ein Prozentwert im Attribut width waere ungueltiges HTML, deshalb
+    // steht er als Stilangabe. Beim naechsten Speichern muss er so
+    // wiederkommen, wie er hineingegangen ist.
+    text: '<img src="assets/bild.png" alt="" style="width: 50%">'
+  },
   { name: 'Fussnote', text: 'Sie ging fort.[^1]\n\n[^1]: Wohin, sagt niemand.' },
   { name: 'Ueberschriften', text: '# Eins\n\n## Zwei\n\n### Drei' },
   { name: 'Tiefe Ueberschrift', text: '#### Vier\n\nText.' },

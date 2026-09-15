@@ -553,6 +553,12 @@ mark {
   padding: 3px 7px;
 }
 
+.toolbar__width {
+  font-size: 11px;
+  padding: 2px 5px;
+  width: 64px;
+}
+
 .toolbar button.is-active {
   background: var(--accent-soft);
   border-color: var(--accent);

@@ -305,6 +305,8 @@ const de = {
   'image.alt': 'Bild',
   'image.dropHint': 'Bild hierher ziehen oder einfügen',
   'image.width': 'Bildbreite {size}',
+  'image.widthFree': 'eigene',
+  'image.widthFreeHint': 'Eigene Breite: 300 für Bildpunkte, 50% für einen Anteil der Textbreite',
 
   'history.title': 'Versionsverlauf',
   'history.open': 'Verlauf',
@@ -695,6 +697,8 @@ const en: Partial<Record<MessageKey, string>> = {
   'image.alt': 'Image',
   'image.dropHint': 'Drop or paste an image here',
   'image.width': 'Image width {size}',
+  'image.widthFree': 'custom',
+  'image.widthFreeHint': 'Custom width: 300 for pixels, 50% for a share of the text width',
 
   'history.title': 'Version history',
   'history.open': 'History',

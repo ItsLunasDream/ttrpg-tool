@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import type { Editor } from '@tiptap/react';
 import { useT, type Translate } from '../i18n';
 import { IMAGE_WIDTHS } from '../editor/sizedImage';
+import { leseBreite } from '../../shared/bildbreite';
 
 interface Props {
   editor: Editor | null;
@@ -44,6 +46,55 @@ const TABLE_ACTIONS: Action[] = [
   { label: '⌫▦', title: (t) => t('table.delete'), run: (e) => e.chain().focus().deleteTable().run() }
 ];
 
+/**
+ * Eigene Breite fuer das ausgewaehlte Bild: "300" sind Bildpunkte, "50%" ein
+ * Anteil der Textbreite.
+ *
+ * Das Feld zeigt, was am Bild steht, auch wenn die Breite ueber einen der
+ * Knoepfe daneben gesetzt wurde. Eine Eingabe, aus der nichts wird, laesst
+ * die Breite stehen und faellt beim Verlassen auf den geltenden Wert zurueck
+ * — so schreibt ein Vertipper nichts Kaputtes in die Notiz.
+ */
+function BreitenFeld({ editor }: { editor: Editor }) {
+  const t = useT();
+  const gesetzt = (editor.getAttributes('image').width as string | null) ?? '';
+  const [eingabe, setEingabe] = useState(gesetzt);
+
+  // Bei einem anderen Bild oder nach einem Klick auf 200/400/100% steht dort
+  // sonst noch die Zahl von vorhin.
+  useEffect(() => setEingabe(gesetzt), [gesetzt]);
+
+  function uebernimm() {
+    const breite = leseBreite(eingabe);
+    if (breite === null) {
+      setEingabe(gesetzt);
+      return;
+    }
+    editor.chain().focus().updateAttributes('image', { width: breite }).run();
+  }
+
+  return (
+    <input
+      className="toolbar__width"
+      value={eingabe}
+      placeholder={t('image.widthFree')}
+      title={t('image.widthFreeHint')}
+      onChange={(event) => setEingabe(event.target.value)}
+      onBlur={uebernimm}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          uebernimm();
+        }
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          setEingabe(gesetzt);
+        }
+      }}
+    />
+  );
+}
+
 export function Toolbar({ editor, onInsertImage, onEditLink }: Props) {
   const t = useT();
   if (!editor) return <div className="toolbar" />;
@@ -83,12 +134,14 @@ export function Toolbar({ editor, onInsertImage, onEditLink }: Props) {
 
       {/* Nur wenn ein Bild ausgewaehlt ist: Markdown kennt keine Groesse,
           deshalb steht sie als Attribut am Bild. */}
-      {editor.isActive('image')
-        ? IMAGE_WIDTHS.map((entry) => (
+      {editor.isActive('image') ? (
+        <>
+          {IMAGE_WIDTHS.map((entry) => (
             <button
               key={entry.label}
               type="button"
               title={t('image.width', { size: entry.label })}
+              className={(editor.getAttributes('image').width ?? null) === entry.width ? 'is-active' : undefined}
               onMouseDown={(event) => {
                 event.preventDefault();
                 editor.chain().focus().updateAttributes('image', { width: entry.width }).run();
@@ -96,8 +149,10 @@ export function Toolbar({ editor, onInsertImage, onEditLink }: Props) {
             >
               {entry.label}
             </button>
-          ))
-        : null}
+          ))}
+          <BreitenFeld editor={editor} />
+        </>
+      ) : null}
 
       <button
         type="button"

@@ -3,6 +3,7 @@ export { findeUebernahme } from '../src/main/uebernahme';
 export { zieheUmbenennungNach, effektiverStand } from '../src/renderer/entwuerfe';
 export { findWikiLinks, rewriteWikiLinks, normalizeName, insideWikiLink } from '../src/shared/wikilinks';
 export { leseAntwort, leseStuecke } from '../src/shared/antwortMarkdown';
+export { leseBreite, istAnteil, breiteAlsAttribute, breiteAusAttributen } from '../src/shared/bildbreite';
 export {
   DEFAULT_NOTE_TYPES,
   findNoteType,

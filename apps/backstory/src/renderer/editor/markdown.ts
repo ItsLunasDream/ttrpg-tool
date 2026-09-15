@@ -1,6 +1,7 @@
 import { Marked, marked } from 'marked';
 import TurndownService from 'turndown';
 import { maskWikiLinks, wikiLinkText } from '../../shared/wikilinks';
+import { breiteAusAttributen, istAnteil } from '../../shared/bildbreite';
 
 const turndown = new TurndownService({
   headingStyle: 'atx',
@@ -178,11 +179,18 @@ turndown.addRule('bareLink', {
  * von Obsidian dargestellt.
  */
 turndown.addRule('imageWithWidth', {
-  filter: (node) => node.nodeName === 'IMG' && Boolean((node as HTMLImageElement).getAttribute('width')),
+  filter: (node) =>
+    node.nodeName === 'IMG' &&
+    breiteAusAttributen(
+      (node as HTMLImageElement).getAttribute('width'),
+      (node as HTMLImageElement).getAttribute('style')
+    ) !== null,
   replacement: (_content, node) => {
     const image = node as HTMLImageElement;
     const alt = image.getAttribute('alt') ?? '';
-    return `<img src="${image.getAttribute('src') ?? ''}" alt="${alt}" width="${image.getAttribute('width')}">`;
+    const breite = breiteAusAttributen(image.getAttribute('width'), image.getAttribute('style'));
+    const masse = istAnteil(breite ?? '') ? `style="width: ${breite}"` : `width="${breite}"`;
+    return `<img src="${image.getAttribute('src') ?? ''}" alt="${alt}" ${masse}>`;
   }
 });
 
