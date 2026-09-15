@@ -3,11 +3,15 @@ import type { Editor } from '@tiptap/react';
 import { useT, type Translate } from '../i18n';
 import { IMAGE_WIDTHS } from '../editor/sizedImage';
 import { leseBreite } from '../../shared/bildbreite';
+import { ZOOM_NORMAL } from '../../shared/zoom';
 
 interface Props {
   editor: Editor | null;
   onInsertImage: () => void;
   onEditLink: () => void;
+  /** Vergroesserung des Notiztextes in Prozent. */
+  zoom: number;
+  onZoom: (prozent: number) => void;
 }
 
 interface Action {
@@ -96,7 +100,7 @@ function BreitenFeld({ editor }: { editor: Editor }) {
   );
 }
 
-export function Toolbar({ editor, onInsertImage, onEditLink }: Props) {
+export function Toolbar({ editor, onInsertImage, onEditLink, zoom, onZoom }: Props) {
   const t = useT();
   if (!editor) return <div className="toolbar" />;
 
@@ -179,6 +183,20 @@ export function Toolbar({ editor, onInsertImage, onEditLink }: Props) {
       </button>
 
       <span className="toolbar__spacer" />
+      {/* Der Faktor steht oben rechts und setzt sich per Klick zurueck — so
+          braucht man das Tastenkuerzel nicht zu kennen. */}
+      <button
+        type="button"
+        className="toolbar__zoom"
+        title={t('editor.zoomReset')}
+        disabled={zoom === ZOOM_NORMAL}
+        onMouseDown={(event) => {
+          event.preventDefault();
+          onZoom(ZOOM_NORMAL);
+        }}
+      >
+        {t('editor.zoom', { percent: zoom })}
+      </button>
       {/* Ausgegraut, wenn es nichts zurueckzuholen gibt. Ein Pfeil, der
           gleich aussieht und nichts tut, sagt nichts ueber den Zustand. */}
       <button

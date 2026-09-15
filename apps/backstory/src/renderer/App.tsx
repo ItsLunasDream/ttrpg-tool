@@ -855,6 +855,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 aiSendLinked={settings.aiSendLinkedNotes}
                 onToggleAiSendLinked={(value) => updateSettings({ aiSendLinkedNotes: value })}
                 aiLinkedCount={aiLinkedCount}
+                editorZoom={settings.editorZoom}
+                onEditorZoom={(prozent) => updateSettings({ editorZoom: prozent })}
                 onOpenPrompts={() => {
                   setDialog({ kind: 'prompts' });
                   if (!prompts) void guard(async () => setPrompts(await call(api.prompts.get())));

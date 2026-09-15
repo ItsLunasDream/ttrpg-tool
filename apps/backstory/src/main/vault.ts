@@ -21,6 +21,7 @@ import type {
   UnreadableNote
 } from '../shared/types';
 import { DEFAULT_LANGUAGE, isLanguage } from '../shared/i18n';
+import { begrenzeZoom, ZOOM_NORMAL } from '../shared/zoom';
 import type { Language } from '../shared/i18n';
 import type { MessageKey, MessageParams } from '../shared/i18n';
 
@@ -1105,6 +1106,7 @@ export function defaultSettings(vaultRoot: string): AppSettings {
     claudeModel: 'claude-opus-5',
     claudeApiKeyEncrypted: '',
     aiSendLinkedNotes: true,
+    editorZoom: ZOOM_NORMAL,
     lastCampaignId: null
   };
 }
@@ -1120,7 +1122,8 @@ export async function readSettings(file: string, fallbackRoot: string): Promise<
       vaultRoot: typeof parsed.vaultRoot === 'string' && parsed.vaultRoot ? parsed.vaultRoot : defaults.vaultRoot,
       autosaveDelayMs: clampDelay(parsed.autosaveDelayMs ?? defaults.autosaveDelayMs),
       historyMaxVersions: clampVersions(parsed.historyMaxVersions ?? defaults.historyMaxVersions),
-      language: isLanguage(parsed.language) ? parsed.language : defaults.language
+      language: isLanguage(parsed.language) ? parsed.language : defaults.language,
+      editorZoom: begrenzeZoom(parsed.editorZoom ?? defaults.editorZoom)
     };
   } catch {
     return defaults;
@@ -1132,7 +1135,8 @@ export async function writeSettings(file: string, settings: AppSettings): Promis
     ...settings,
     schemaVersion: SCHEMA_VERSION,
     autosaveDelayMs: clampDelay(settings.autosaveDelayMs),
-    historyMaxVersions: clampVersions(settings.historyMaxVersions)
+    historyMaxVersions: clampVersions(settings.historyMaxVersions),
+    editorZoom: begrenzeZoom(settings.editorZoom)
   };
   await writeJson(file, normalized);
   return normalized;

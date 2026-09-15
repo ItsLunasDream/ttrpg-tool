@@ -145,6 +145,11 @@ export interface AppSettings {
    * betreffen. An bleibt die Voreinstellung — so war es vorher.
    */
   aiSendLinkedNotes: boolean;
+  /**
+   * Vergroesserung des Notiztextes in Prozent. Gilt fuer alle Notizen und
+   * nur fuer das Editorfeld.
+   */
+  editorZoom: number;
   lastCampaignId: string | null;
 }
 

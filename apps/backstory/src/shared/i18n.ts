@@ -235,6 +235,8 @@ const de = {
 
   'toolbar.bold': 'Fett (Strg+B)',
   'toolbar.italic': 'Kursiv (Strg+I)',
+  'editor.zoom': '{percent}%',
+  'editor.zoomReset': 'Vergrößerung zurücksetzen (Strg+0). Strg und Mausrad, Strg+Plus, Strg+Minus stellen sie ein.',
   'toolbar.underline': 'Unterstrichen (Strg+U)',
   'toolbar.strike': 'Durchgestrichen',
   'toolbar.heading': 'Überschrift {level}',
@@ -629,6 +631,8 @@ const en: Partial<Record<MessageKey, string>> = {
 
   'toolbar.bold': 'Bold (Ctrl+B)',
   'toolbar.italic': 'Italic (Ctrl+I)',
+  'editor.zoom': '{percent}%',
+  'editor.zoomReset': 'Reset zoom (Ctrl+0). Ctrl and the mouse wheel, Ctrl+Plus, Ctrl+Minus adjust it.',
   'toolbar.underline': 'Underline (Ctrl+U)',
   'toolbar.strike': 'Strikethrough',
   'toolbar.heading': 'Heading {level}',

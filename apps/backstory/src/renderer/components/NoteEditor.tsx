@@ -31,6 +31,8 @@ interface Props {
   aiSendLinked: boolean;
   onToggleAiSendLinked: (value: boolean) => void;
   aiLinkedCount: number;
+  editorZoom: number;
+  onEditorZoom: (prozent: number) => void;
   onExportMarkdown: () => void;
   onExportPdf: () => void;
   onExportCampaignZip: () => void;
@@ -166,6 +168,8 @@ export function NoteEditor(props: Props) {
       <div className="note-editor__columns" key={note.id}>
         <div className="note-editor__main">
           <BodyEditor
+            zoom={props.editorZoom}
+            onZoom={props.onEditorZoom}
             noteId={note.id}
             markdown={note.body}
             index={index}

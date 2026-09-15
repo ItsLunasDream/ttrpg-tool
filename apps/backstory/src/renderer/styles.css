@@ -553,6 +553,12 @@ mark {
   padding: 3px 7px;
 }
 
+.toolbar__zoom {
+  font-size: 11px;
+  min-width: 46px;
+  padding: 3px 6px;
+}
+
 .toolbar__width {
   font-size: 11px;
   padding: 2px 5px;

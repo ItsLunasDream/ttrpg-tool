@@ -5,6 +5,7 @@ export { findWikiLinks, rewriteWikiLinks, normalizeName, insideWikiLink } from '
 export { leseAntwort, leseStuecke } from '../src/shared/antwortMarkdown';
 export { leseBreite, istAnteil, breiteAlsAttribute, breiteAusAttributen } from '../src/shared/bildbreite';
 export { verlinkteNotizen, KONTEXT_HOECHSTENS } from '../src/shared/kiKontext';
+export { begrenzeZoom, naechsteZoomstufe, ZOOM_MIN, ZOOM_MAX, ZOOM_NORMAL, ZOOM_STUFEN } from '../src/shared/zoom';
 export {
   DEFAULT_NOTE_TYPES,
   NOTIZTYP_VORLAGEN,

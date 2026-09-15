@@ -263,7 +263,9 @@ const ALLOWED_SAME = new Set([
   // „Export" auch.
   'export.note',
   // „Version" auch.
-  'about.version'
+  'about.version',
+  // Eine Zahl mit Prozentzeichen sieht in beiden Sprachen gleich aus.
+  'editor.zoom'
 ]);
 
 test('jeder deutsche Schluessel hat eine englische Entsprechung', () => {

@@ -486,6 +486,26 @@ app.whenReady().then(async () => {
         'Unterstrichen steht nicht als <u> in der Datei');
     }
 
+    // 5g. Zoom: Strg und Mausrad, Anzeige oben rechts, Klick setzt zurueck.
+    const zoomAnzeige = `document.querySelector('.toolbar__zoom')?.textContent ?? null`;
+    check(await run(window, `return ${zoomAnzeige} === '100%';`), 'Die Zoom-Anzeige steht nicht auf 100%');
+    await run(
+      window,
+      `const flaeche = document.querySelector('.body-editor__surface');
+       flaeche.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, ctrlKey: true, bubbles: true, cancelable: true }));
+       return true;`
+    );
+    await sleep(600);
+    check(await run(window, `return ${zoomAnzeige} === '110%';`),
+      `Strg und Mausrad vergroessern nicht (${await run(window, `return ${zoomAnzeige};`)})`);
+    check(
+      await run(window, `return document.querySelector('.body-editor__surface').style.zoom === '1.1';`),
+      'Die Vergroesserung kommt an der Editorflaeche nicht an'
+    );
+    await run(window, `document.querySelector('.toolbar__zoom').dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); return true;`);
+    await sleep(600);
+    check(await run(window, `return ${zoomAnzeige} === '100%';`), 'Klick auf die Anzeige setzt nicht zurueck');
+
     // 6. Kurzinfo-Karte muss den Textanfang zeigen
     await run(
       window,
