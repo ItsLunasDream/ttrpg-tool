@@ -23,6 +23,17 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'inspiration-smoke-'));
 app.setPath('userData', path.join(tmp, 'userData'));
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
 
+/*
+ * Ein abgelehntes executeJavaScript bliebe sonst unbemerkt: der Lauf haengt,
+ * bis ihn jemand abwuergt, und ein haengender Test sagt nichts. Genau das ist
+ * beim Umbau der Oberflaeche passiert — ein alter Selektor traf nichts, und
+ * der Lauf stand eine Viertelstunde still, ohne eine Zeile auszugeben.
+ */
+process.on('unhandledRejection', (grund) => {
+  console.log(`  FEHL unerwarteter Fehler: ${grund && grund.message ? grund.message : grund}`);
+  app.exit(1);
+});
+
 const warte = (ms) => new Promise((r) => setTimeout(r, ms));
 const fehler = [];
 const pruefe = (b, t) => {
@@ -99,7 +110,9 @@ app.whenReady().then(async () => {
    * Festhalten wuerfelt man den guten Aufhaenger weg, waehrend man die
    * Fraktionen sucht.
    */
-  const ersterSatz = () => js("document.querySelector('.karte .zeile span').textContent");
+  // Die Werte stehen in Eingabefeldern, nicht in <span>: alles im Entwurf
+  // laesst sich von Hand ueberschreiben.
+  const ersterSatz = () => js("document.querySelector('.karte .zeile .feld__wert').value");
   const vorher = await ersterSatz();
   await js(`(() => { const k=[...document.querySelectorAll('.karte')][0]
     .querySelector('.karte__knoepfe button'); k.click(); return true; })()`);
@@ -127,12 +140,12 @@ app.whenReady().then(async () => {
   pruefe(geaendert, 'sein eigener Knopf wuerfelt ihn trotz Schloss neu');
 
   // --- Eine einzelne Zeile -------------------------------------------------
-  const zweiter = await js("[...document.querySelectorAll('.karte .zeile span')][1].textContent");
+  const zweiter = await js("[...document.querySelectorAll('.karte .zeile .feld__wert')][1].value");
   let zeileNeu = false;
   for (let versuch = 0; versuch < 12 && !zeileNeu; versuch += 1) {
     await js("[...document.querySelectorAll('.karte .zeile__knopf')][1].click(); true");
     await warte(120);
-    const jetzt = await js("[...document.querySelectorAll('.karte .zeile span')][1].textContent");
+    const jetzt = await js("[...document.querySelectorAll('.karte .zeile .feld__wert')][1].value");
     if (jetzt !== zweiter) zeileNeu = true;
   }
   pruefe(zeileNeu, 'eine einzelne Zeile laesst sich neu wuerfeln');
@@ -151,9 +164,52 @@ app.whenReady().then(async () => {
   const figuren = await js("[...document.querySelectorAll('.karte')][2].querySelectorAll('.block').length");
   pruefe(figuren === 7, `eine Kampagne bringt sieben Figuren (${figuren})`);
 
+  // --- Von Hand bearbeiten -------------------------------------------------
+  /*
+   * Ein Wurf ist ein Vorschlag, kein Ergebnis. Zwei Dinge muessen dabei
+   * stimmen, und beide sieht man erst an der laufenden Anwendung: der eigene
+   * Satz muss beim naechsten Wuerfeln stehen bleiben (der Baustein haelt sich
+   * selbst fest), und eine umbenannte Figur muss auch in den Verbindungen
+   * neu heissen.
+   */
+  const setzeFeld = (sel, wert) =>
+    js(`(() => { const e=${sel};
+      const art = e.tagName === 'TEXTAREA' ? HTMLTextAreaElement : HTMLInputElement;
+      const setz=Object.getOwnPropertyDescriptor(art.prototype,'value').set;
+      setz.call(e, ${JSON.stringify(wert)});
+      e.dispatchEvent(new Event('input',{bubbles:true})); return true; })()`);
+
+  await setzeFeld("document.querySelector('.karte .zeile .feld__wert')", 'Die Glocke hat geläutet.');
+  await warte(250);
+  pruefe((await ersterSatz()) === 'Die Glocke hat geläutet.', 'ein Satz laesst sich von Hand ersetzen');
+  await js(`${wuerfeln}.click(); true`);
+  await warte(250);
+  pruefe(
+    (await ersterSatz()) === 'Die Glocke hat geläutet.',
+    'und bleibt beim naechsten Wuerfeln stehen — der Baustein haelt sich selbst fest'
+  );
+
+  const figurenKarte = "[...document.querySelectorAll('.karte')][2]";
+  const alterName = await js(`${figurenKarte}.querySelector('.block__titel').value`);
+  /*
+   * Mit echtem focus() und blur(), nicht mit einem gebauten 'blur'-Ereignis:
+   * React hoert auf focusin/focusout, und ein selbst erzeugtes 'blur' kommt
+   * dort nie an. Beim ersten Anlauf schlug dieser Test genau daran fehl —
+   * die Anwendung war in Ordnung, der Test nicht.
+   */
+  await js(`${figurenKarte}.querySelector('.block__titel').focus(); true`);
+  await setzeFeld(`${figurenKarte}.querySelector('.block__titel')`, 'Zita Neuhafen');
+  await js(`${figurenKarte}.querySelector('.block__titel').blur(); true`);
+  await warte(300);
+  const geflecht = await js(
+    "[...[...document.querySelectorAll('.karte')][4].querySelectorAll('.feld__wert')].map(e=>e.value).join(' ')"
+  );
+  pruefe(geflecht.includes('Zita Neuhafen'), 'eine umbenannte Figur heisst auch im Geflecht neu');
+  pruefe(!geflecht.includes(alterName), `und der alte Name ist weg (${alterName})`);
+
   // --- Uebernehmen ---------------------------------------------------------
   const namen = await js(`[...[...document.querySelectorAll('.karte')][2].querySelectorAll('.block__titel')]
-    .map(e => e.childNodes[0].textContent.trim())`);
+    .map(e => e.value.trim())`);
   await js(`(() => { const e=document.querySelector('.fuss__titel input');
     const setz=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;
     setz.call(e, 'Der lange Winter');
@@ -195,6 +251,72 @@ app.whenReady().then(async () => {
   );
   const mitVerbindung = texte.filter((t) => /\*\*[^*]+:\*\* .*\[\[/.test(t)).length;
   pruefe(mitVerbindung >= 7, `die Figurennotizen tragen ihre Verbindungen (${mitVerbindung})`);
+
+  // --- Vorhandene Figuren holen -------------------------------------------
+  /*
+   * Nach dem Uebernehmen stehen die Figuren in der Kampagne. Genau von dort
+   * holt dieser Knopf sie zurueck — und darueber auch die des NPC Creators,
+   * der seine Figuren in dieselbe Kampagne legt. Geprueft wird hier der ganze
+   * Weg: Vault, Hauptprozess, Bruecke, Liste, Anbindung ans Geflecht.
+   */
+  await js(
+    "[...document.querySelectorAll('button')].find(b => /Aus der Kampagne|From the campaign/.test(b.textContent)).click(); true"
+  );
+  await warte(1200);
+  const angeboten = await js("document.querySelectorAll('.holen__eintrag').length");
+  pruefe(angeboten >= 7, `die Kampagnenfiguren stehen zur Auswahl (${angeboten})`);
+  const schonDabei = await js("[...document.querySelectorAll('.holen__eintrag')].filter(b => b.disabled).length");
+  pruefe(
+    schonDabei === angeboten,
+    `wer schon im Entwurf steht, ist ausgegraut (${schonDabei} von ${angeboten})`
+  );
+
+  /*
+   * Jetzt eine Figur des Entwurfs umbenennen: ihre Notiz in der Kampagne
+   * behaelt den alten Namen und ist damit frei zum Holen. (Beim ersten
+   * Anlauf stand hier die Annahme, es sei ohnehin eine frei — nach dem
+   * Uebernehmen sind aber genau die Figuren des Entwurfs in der Kampagne,
+   * also keine.)
+   */
+  const umbenannt = await js(`${figurenKarte}.querySelector('.block__titel').value`);
+  await js(`${figurenKarte}.querySelector('.block__titel').focus(); true`);
+  await setzeFeld(`${figurenKarte}.querySelector('.block__titel')`, 'Jemand ganz anderes');
+  await js(`${figurenKarte}.querySelector('.block__titel').blur(); true`);
+  await warte(300);
+  // Liste einmal zu und wieder auf, damit sie neu geholt wird.
+  const holenKnopf =
+    "[...document.querySelectorAll('button')].find(b => /Aus der Kampagne|From the campaign|Schließen|Close/.test(b.textContent))";
+  await js(`${holenKnopf}.click(); true`);
+  await warte(300);
+  await js(`${holenKnopf}.click(); true`);
+  await warte(1000);
+
+  const freier = await js(
+    "[...document.querySelectorAll('.holen__eintrag')].find(b => !b.disabled)?.querySelector('.holen__name')?.textContent ?? ''"
+  );
+  pruefe(freier === umbenannt, `die umbenannte Figur ist wieder zu haben (${freier || 'keine'})`);
+  const vorherFiguren = await js(`${figurenKarte}.querySelectorAll('.block').length`);
+  const vorherVerbindungen = await js(
+    "[...document.querySelectorAll('.karte')][4].querySelectorAll('.block').length"
+  );
+  await js("[...document.querySelectorAll('.holen__eintrag')].find(b => !b.disabled).click(); true");
+  await warte(400);
+  pruefe(
+    (await js(`${figurenKarte}.querySelectorAll('.block').length`)) === vorherFiguren + 1,
+    'die geholte Figur steht im Entwurf'
+  );
+  pruefe(
+    (await js("[...document.querySelectorAll('.karte')][4].querySelectorAll('.block').length")) ===
+      vorherVerbindungen + 1,
+    'und haengt gleich an einer Verbindung'
+  );
+  // In beiden Sprachen: welche die Huelle gerade eingestellt hat, entscheidet
+  // sie, nicht dieser Test.
+  const marke = await js(`${figurenKarte}.querySelector('.block__marke')?.textContent ?? ''`);
+  pruefe(
+    /aus der Kampagne|from the campaign/.test(marke),
+    `sie ist als vorhanden gekennzeichnet (${marke || 'ohne Marke'})`
+  );
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' | ') || 'keine'})`);
 

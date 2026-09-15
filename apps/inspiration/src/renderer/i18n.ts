@@ -68,6 +68,20 @@ export const texte = {
   'feld.haken': ['Haken', 'Snag'],
   'feld.karte': ['Auf der Karte', 'On the map'],
 
+  'knopf.holen': ['Aus der Kampagne', 'From the campaign'],
+  'holen.titel': ['Figuren, die es schon gibt', 'Characters that already exist'],
+  'holen.hinweis': [
+    'Aus der offenen Kampagne des Backstory Creators — dort landen auch die Figuren des NPC Creators. Wer hier dazukommt, wird verbunden und bekommt beim Übernehmen keine zweite Notiz.',
+    'From the open campaign in the Backstory Creator — that is where NPC Creator characters end up too. Whoever joins here gets connected and will not get a second note on export.'
+  ],
+  'holen.leer': [
+    'In der offenen Kampagne steht noch keine Figur.',
+    'There is no character in the open campaign yet.'
+  ],
+  'holen.dabei': ['schon dabei', 'already here'],
+  'holen.schliessen': ['Schließen', 'Close'],
+  'figur.vorhanden': ['aus der Kampagne', 'from the campaign'],
+
   'export.titel': ['Titel der Übersichtsnotiz', 'Title of the overview note'],
   'export.titelVorgabe': ['Neuer Entwurf', 'New draft'],
   'export.hinweis': [
@@ -76,7 +90,57 @@ export const texte = {
   ],
   'export.fertig': ['{anzahl} Notizen angelegt: {ziel}', '{anzahl} notes created: {ziel}'],
   'export.leer': ['Erst würfeln, dann übernehmen.', 'Roll something first, then send it over.'],
-  'export.fehler': ['Das hat nicht geklappt: {grund}', 'That did not work: {grund}']
+  'export.fehler': ['Das hat nicht geklappt: {grund}', 'That did not work: {grund}'],
+
+  'ki.vorschlagen': ['Von der KI', 'Ask the AI'],
+  'ki.laeuft': ['Die KI denkt …', 'The AI is thinking …'],
+  'ki.zeile': ['Von der KI vorschlagen lassen', 'Let the AI suggest this'],
+  'ki.hinweis': [
+    'Die KI schlägt frei vor, nicht aus den Tabellen — und sie versteht auch eigene Regionen wie „Schwebende Inseln". Eingerichtet wird sie in den Einstellungen des Rahmens.',
+    'The AI suggests freely, not from the tables — and it understands regions of your own, such as “floating islands”. It is set up in the shell settings.'
+  ],
+
+  'error.aiNoProvider': [
+    'Es ist keine KI eingerichtet.',
+    'No AI is set up.'
+  ],
+  'error.aiKeinJson': [
+    'Die KI hat geantwortet, aber nicht so, dass sich etwas übernehmen ließe. Versuch es noch einmal.',
+    'The AI answered, but not in a way anything could be taken from. Try again.'
+  ],
+  'error.aiNoConnection': ['Keine Verbindung: Läuft Ollama?', 'No connection: is Ollama running?'],
+  'error.aiTimeout': [
+    'Zeitüberschreitung. Läuft Ollama, und ist das Modell geladen?',
+    'Timed out. Is Ollama running and the model loaded?'
+  ],
+  'error.aiHttp': ['Der Anbieter meldet einen Fehler.', 'The provider reported an error.'],
+  'error.aiEmpty': ['Die KI hat nichts geliefert.', 'The AI returned nothing.'],
+  'error.aiAuth': [
+    'Der API-Schlüssel wird nicht akzeptiert.',
+    'The API key is not accepted.'
+  ],
+  'error.aiRateLimit': [
+    'Zu viele Anfragen. Versuch es gleich noch einmal.',
+    'Too many requests. Try again in a moment.'
+  ],
+  'error.aiModelMissing': [
+    'Dieses Modell gibt es nicht oder du hast keinen Zugriff darauf.',
+    'That model does not exist or you have no access to it.'
+  ],
+  'error.aiRefused': [
+    'Die Anfrage wurde abgelehnt. Formuliere die Vorgaben anders.',
+    'The request was declined. Phrase the constraints differently.'
+  ],
+  'error.aiNoModels': [
+    'In Ollama ist kein Modell installiert.',
+    'No model is installed in Ollama.'
+  ],
+  'error.aiModelNotInstalled': [
+    'Das eingestellte Modell ist in Ollama nicht installiert.',
+    'The selected model is not installed in Ollama.'
+  ],
+  'error.aiNoKey': ['Kein API-Schlüssel hinterlegt.', 'No API key stored.'],
+  'error.aiOther': ['Die KI meldet einen Fehler.', 'The AI reported an error.']
 } as const;
 
 export type TextKey = keyof typeof texte;

@@ -267,15 +267,80 @@ body {
 
 .block__kopf {
   display: grid;
-  grid-template-columns: 1fr auto;
+  /* Titel, dann Marke und Knoepfe — die Marke faellt weg, wenn die Figur
+     nicht aus der Kampagne stammt, und das Raster bleibt trotzdem stehen. */
+  grid-template-columns: 1fr auto auto auto;
   gap: 8px;
   align-items: start;
 }
 
+/*
+ * Titel und Felder sind Eingaben, sehen aber wie Text aus: kein Rahmen, kein
+ * Hintergrund, bis man hineinklickt. Alles im Entwurf laesst sich von Hand
+ * ueberschreiben — ein Wurf ist ein Vorschlag, kein Ergebnis —, und ein
+ * Entwurf, der wie ein Formular aussieht, liest sich am Tisch nicht.
+ */
+.block__titel,
+.feld__wert {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: inherit;
+  font: inherit;
+  width: 100%;
+  padding: 2px 4px;
+  margin: 0 0 0 -4px;
+  resize: none;
+}
+
+.block__titel:hover,
+.feld__wert:hover {
+  border-color: var(--rand);
+}
+
+.block__titel:focus,
+.feld__wert:focus {
+  background: var(--grund-tisch);
+  border-color: var(--betont);
+  outline: none;
+}
+
 .block__titel {
-  margin: 0;
   font-size: 14px;
+  font-weight: 600;
   color: var(--betont);
+}
+
+.feld {
+  display: block;
+}
+
+.feld__name {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-leise);
+}
+
+.feld__wert {
+  /*
+   * Waechst mit dem Inhalt mit, statt innen zu scrollen. Von Chromium ab
+   * Version 123 unterstuetzt, Electron 33 bringt 130 mit; wo es fehlt,
+   * bleibt es bei der einen Zeile aus `rows`.
+   */
+  field-sizing: content;
+  line-height: 1.45;
+  overflow: hidden;
+}
+
+.feld--art .feld__wert {
+  color: var(--text-leise);
+  font-style: italic;
+}
+
+.feld--zurueck .feld__wert {
+  color: var(--text-leise);
 }
 
 .block__rolle {
@@ -287,14 +352,6 @@ body {
 .block__art {
   color: var(--text-leise);
   font-style: italic;
-}
-
-.block__karte {
-  color: var(--text-leise);
-}
-
-.block__zurueck {
-  color: var(--text-leise);
 }
 
 .zeitstrahl {
@@ -361,4 +418,112 @@ body {
 
 .fuss__meldung--fehler {
   color: var(--motion-fehler);
+}
+
+/* ---------- KI ---------- */
+
+/*
+ * Die KI-Knoepfe stehen neben den Wuerfelknoepfen, nicht an ihrer Stelle:
+ * die Tabellen sind der Normalweg, das Modell die Zugabe. Ist keine KI
+ * eingerichtet, sind sie gar nicht da — ausgegraut waeren sie eine
+ * Einladung, hier nach einer Einstellung zu suchen, die in der Huelle liegt.
+ */
+.knopf--ki {
+  border-color: var(--betont);
+  color: var(--betont);
+}
+
+.zeile__knopf--laeuft {
+  color: var(--betont);
+  border-color: var(--rand);
+}
+
+.ki-hinweis {
+  margin: 0;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.ki-fehler {
+  margin: 0;
+  color: var(--motion-fehler);
+  font-size: 13px;
+}
+
+/* ---------- Vorhandene Figuren holen ---------- */
+
+.knopf--breit {
+  width: 100%;
+}
+
+.holen {
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--grund-tisch);
+}
+
+.holen__hinweis,
+.holen__leer {
+  margin: 0;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.holen__liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.holen__eintrag {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  padding: 5px 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.holen__eintrag:hover:not(:disabled) {
+  border-color: var(--betont);
+}
+
+.holen__eintrag:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.holen__name {
+  color: var(--betont);
+}
+
+.holen__kurz {
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+/* Die Marke an einer Figur, die es in der Kampagne schon gibt. */
+.block__marke {
+  align-self: center;
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  color: var(--text-leise);
+  font-size: 11px;
+  padding: 1px 7px;
+  white-space: nowrap;
 }

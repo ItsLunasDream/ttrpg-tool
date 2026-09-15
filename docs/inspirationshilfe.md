@@ -4,7 +4,15 @@ Ein sechstes Werkzeug für die Sammlung. Es hilft beim Erfinden einer
 Kampagne oder eines Abenteuers: Region, Thema, Figuren, Orte, und wie das
 alles zusammenhängt.
 
-Dies ist ein Konzept, kein Plan zum Abarbeiten. Erst besprechen, dann bauen.
+Dies war ein Konzept, kein Plan zum Abarbeiten. Inzwischen ist es gebaut:
+`apps/inspiration`.
+
+**Stand:** Stufe 1 bis 4 stehen (Gerüst, Einbettung, Regler, alle sechs
+Bausteine, Verbindungen, KI neben den Tabellen, Übernehmen in den Backstory
+Creator), dazu das Bearbeiten von Hand und das Holen vorhandener Figuren aus
+der offenen Kampagne. Offen ist Stufe 5: das Geflecht als Bild und der Knopf
+„Karte anlegen" zum Karteneditor. Was unten über die offenen Fragen steht,
+ist damit teils beantwortet — die Antworten stehen jeweils dabei.
 
 ## Wozu
 
@@ -148,14 +156,18 @@ der Karte gehört zu den Orten und kostet nichts extra.
 
 ## Offene Fragen
 
-1. Wie heißt das Werkzeug? „Inspirationshilfe" ist ein Arbeitstitel.
+1. Wie heißt das Werkzeug? „Inspirationshilfe" ist ein Arbeitstitel — und
+   steht bis auf Weiteres so in der Hülle.
 2. Braucht der Entwurf eine eigene Datei auf der Platte, oder reicht es,
-   wenn er bis zum Übernehmen im Speicher lebt? Für den ersten Bau würde
-   Sitzungszustand genügen.
-3. Wie viel darf die KI auf einmal? Eine ganze Kampagne in einer Anfrage ist
-   teuer und schwer zu lesen; Baustein für Baustein ist langsamer, aber man
-   sieht, was passiert.
-4. Übernimmt man einzeln oder alles zusammen?
+   wenn er bis zum Übernehmen im Speicher lebt? **Gebaut:** nur im Speicher.
+   Wer die Anwendung schließt, verliert einen nicht übernommenen Entwurf —
+   das ist der Preis dafür, dass es keine zweite Ablage gibt.
+3. Wie viel darf die KI auf einmal? **Gebaut:** immer nur ein Baustein, mit
+   dem bisherigen Entwurf als Umgebung.
+4. Übernimmt man einzeln oder alles zusammen? **Gebaut:** alles zusammen,
+   auf einen Knopf. Eine Auswahl je Notiz wäre ein zweiter Dialog vor dem
+   eigentlichen Ziel; wer einzelne Stücke nicht will, löscht die Notiz
+   drüben oder würfelt sie vorher weg.
 
 ## Ein möglicher Zuschnitt
 

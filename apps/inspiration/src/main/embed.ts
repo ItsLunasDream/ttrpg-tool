@@ -14,8 +14,12 @@
 import path from 'node:path';
 import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
+import { baueAnbieter, KiFehler, leseJsonAntwort } from '@suite/ki';
+import type { KiEinstellungen } from '@suite/ki/einstellungen';
 import { kanal } from '../shared/kanaele';
+import { anweisung, systemAnweisung, uebernehmbar, type Frage } from '../shared/kiAufgaben';
 import type { Notiz } from '../shared/notizen';
+import type { Sprache } from '../shared/tabellen';
 
 export interface ExportErgebnis {
   readonly ok: boolean;
@@ -32,6 +36,44 @@ export interface ExportErgebnis {
  */
 export type Anleger = (notizen: readonly Notiz[]) => Promise<ExportErgebnis>;
 
+/** Eine Figur, die es in der offenen Kampagne schon gibt. */
+export interface KampagnenFigur {
+  readonly titel: string;
+  /** Die erste Zeile ihrer Notiz, damit man sie in der Liste wiedererkennt. */
+  readonly kurz: string;
+}
+
+/**
+ * Wer schon in der Kampagne steht.
+ *
+ * Auch das reicht die Huelle durch — dieses Werkzeug kennt den Vault nicht.
+ * Gemeint sind ausdruecklich die Figuren des Backstory Creators, und darueber
+ * auch die des NPC Creators: was dort gewuerfelt und uebernommen wurde, liegt
+ * anschliessend als Notiz in derselben Kampagne.
+ */
+export type Figurenquelle = () => Promise<readonly KampagnenFigur[]>;
+
+/**
+ * Woher die KI-Anbindung kommt.
+ *
+ * Die Huelle richtet sie einmal fuer die ganze Sammlung ein und reicht sie
+ * durch; dieses Werkzeug fuehrt keine eigene. Fehlt sie, gibt es hier keine
+ * KI — und die Knoepfe dafuer sind gar nicht erst da.
+ *
+ * Eine Funktion und kein Schnappschuss: wer sie umstellt, soll das im
+ * naechsten Klick merken.
+ */
+export type KiQuelle = () => { einstellungen: KiEinstellungen; schluessel: string };
+
+/** Was bei einer KI-Anfrage herauskommt. Ein Fehler ist kein Absturz. */
+export interface KiErgebnis {
+  readonly ok: boolean;
+  /** Bei Erfolg die Felder des Bausteins (oder die Schritte), sonst null. */
+  readonly wert: Record<string, string> | readonly string[] | null;
+  /** Bei Misserfolg der Schluessel der Meldung, sonst leer. */
+  readonly grund: string;
+}
+
 export interface InspirationEmbedOptions {
   readonly distDir: string;
   readonly devServerUrl?: string;
@@ -39,6 +81,10 @@ export interface InspirationEmbedOptions {
   readonly onLanguageChange?: (language: string) => void;
   /** Legt die Notizen an. Fehlt sie, meldet der Export das ehrlich. */
   readonly anlegen?: Anleger;
+  /** Die KI der Sammlung. Fehlt sie, gibt es hier keine KI. */
+  readonly kiQuelle?: KiQuelle;
+  /** Die Figuren der offenen Kampagne. Fehlt sie, bleibt die Liste leer. */
+  readonly figuren?: Figurenquelle;
 }
 
 export interface InspirationEmbed {
@@ -48,6 +94,14 @@ export interface InspirationEmbed {
   readonly csp: string;
   flush(): Promise<void>;
   setLanguage(webContents: WebContents, language: string): Promise<void>;
+  /**
+   * Sagt der Oberflaeche, dass sich die KI-Einstellung der Sammlung geaendert
+   * hat.
+   *
+   * Ohne das fragt sie nur einmal beim Laden, ob eine KI da ist: wer sie
+   * danach einschaltet, saehe die Knoepfe erst nach einem Neustart.
+   */
+  meldeKiWechsel(webContents: WebContents): void;
 }
 
 /**
@@ -88,6 +142,71 @@ export async function mountInspiration(
     }
   });
 
+  ipcMain.removeHandler(kanal('figuren'));
+  ipcMain.handle(kanal('figuren'), async (): Promise<readonly KampagnenFigur[]> => {
+    if (!options.figuren) return [];
+    try {
+      return await options.figuren();
+    } catch {
+      // Eine leere Liste ist hier die ehrlichere Antwort als ein Fehler: die
+      // Oberflaeche sagt dann „niemand da", und das stimmt aus ihrer Sicht.
+      return [];
+    }
+  });
+
+  // --- KI ------------------------------------------------------------------
+
+  /**
+   * Baut den Anbieter fuer diese eine Anfrage.
+   *
+   * Jedes Mal neu, weil die Einstellung sich zwischendurch geaendert haben
+   * kann. Das kostet nichts: es ist ein Objekt, keine Verbindung.
+   */
+  const anbieter = () => {
+    if (!options.kiQuelle) return null;
+    const quelle = options.kiQuelle();
+    return baueAnbieter(quelle.einstellungen, quelle.schluessel);
+  };
+
+  /** Ob die KI ueberhaupt da ist. Die Oberflaeche blendet die Knoepfe danach ein. */
+  ipcMain.removeHandler(kanal('ki:da'));
+  ipcMain.handle(kanal('ki:da'), () => anbieter() !== null);
+
+  /**
+   * Einen Baustein vorschlagen lassen.
+   *
+   * Ein Fehler kommt als Ergebnis zurueck und nicht als Ausnahme: die
+   * Oberflaeche soll ihn anzeigen und den Entwurf stehen lassen, nicht in
+   * einen abgebrochenen Aufruf laufen.
+   */
+  ipcMain.removeHandler(kanal('ki:frage'));
+  ipcMain.handle(kanal('ki:frage'), async (_e, frage: Frage, sprache: Sprache): Promise<KiErgebnis> => {
+    const gewaehlt = anbieter();
+    if (!gewaehlt) return { ok: false, wert: null, grund: 'error.aiNoProvider' };
+
+    try {
+      const antwort = await gewaehlt.frage(
+        {
+          system: systemAnweisung(sprache),
+          nachrichten: [{ rolle: 'user', inhalt: anweisung(frage, sprache) }]
+        },
+        // Teiltexte interessieren hier nicht: es kommt ein kurzes JSON, und
+        // ein halb geschriebenes JSON kann die Oberflaeche nicht anzeigen.
+        () => {}
+      );
+
+      const gelesen = leseJsonAntwort(antwort);
+      if (gelesen === null) return { ok: false, wert: null, grund: 'error.aiKeinJson' };
+
+      const wert = uebernehmbar(frage.aufgabe, gelesen);
+      if (wert === null) return { ok: false, wert: null, grund: 'error.aiKeinJson' };
+      return { ok: true, wert, grund: '' };
+    } catch (fehler) {
+      if (fehler instanceof KiFehler) return { ok: false, wert: null, grund: fehler.schluessel };
+      return { ok: false, wert: null, grund: 'error.aiOther' };
+    }
+  });
+
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));
   ipcMain.on(kanal('sprache:gewechselt'), (_event, language: string) => {
     options.onLanguageChange?.(language);
@@ -106,6 +225,9 @@ export async function mountInspiration(
     },
     setLanguage: async (webContents, language) => {
       if (!webContents.isDestroyed()) webContents.send(kanal('sprache:gesetzt'), language);
+    },
+    meldeKiWechsel: (webContents) => {
+      if (!webContents.isDestroyed()) webContents.send(kanal('ki:gewechselt'));
     }
   };
 }

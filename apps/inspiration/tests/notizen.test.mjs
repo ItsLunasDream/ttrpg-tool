@@ -120,3 +120,20 @@ test('der Kanalname traegt das Praefix', () => {
   assert.equal(T.kanal('export'), 'inspiration:export');
   assert.equal(T.PRAEFIX, 'inspiration');
 });
+
+test('fuer eine vorhandene Figur wird keine zweite Notiz angelegt', () => {
+  // Sonst haette man nach dem zweiten Entwurf jede Figur doppelt — und der
+  // Wiki-Verweis wuesste nicht mehr, welche gemeint ist.
+  const mitFremder = {
+    ...ENTWURF,
+    figuren: [
+      ...ENTWURF.figuren,
+      { name: 'Elara von Salzfurt', rolle: 'Auftraggebend', triebfeder: '', hebel: '', makel: '', vorhanden: true }
+    ]
+  };
+  const notizen = T.alsNotizen(mitFremder, 'de', 'Titel');
+  assert.equal(notizen.some((notiz) => notiz.titel === 'Elara von Salzfurt'), false);
+  // In der Uebersicht steht sie trotzdem — der Verweis trifft ihre eigene,
+  // schon vorhandene Notiz, und genau dafuer holt man sie herueber.
+  assert.ok(notizen[0].markdown.includes('[[Elara von Salzfurt]]'));
+});

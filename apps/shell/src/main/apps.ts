@@ -426,6 +426,39 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
     devServerUrl: process.env.INSPIRATION_DEV_SERVER_URL,
     language: haken.language,
     onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    // Die KI der Sammlung, wie im NPC Creator. Ein eigener Zugang je Werkzeug
+    // waere eine zweite Stelle, an der derselbe Schluessel liegt.
+    kiQuelle: haken.kiQuelle,
+    /**
+     * Wer in der offenen Kampagne schon steht.
+     *
+     * Damit kommen auch die Figuren des NPC Creators herein: der legt sie als
+     * Notiz in derselben Kampagne ab. Ein eigener Draht zwischen den beiden
+     * Werkzeugen waere der falsche Weg — sie sollen einzeln lauffaehig
+     * bleiben, und die Kampagne ist ohnehin die Stelle, an der die Wahrheit
+     * liegt.
+     */
+    figuren: async () => {
+      if (!backstoryEmbed) return [];
+      const kampagnen = await backstoryEmbed.vault.listCampaigns();
+      if (kampagnen.length === 0) return [];
+      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
+      const notizen = await backstoryEmbed.vault.listNotes(kampagne.id);
+      return notizen
+        .filter((notiz) => notiz.type === 'character')
+        .map((notiz) => ({
+          titel: notiz.title,
+          // Die erste Zeile mit Inhalt, ohne Auszeichnung — sie steht in der
+          // Auswahlliste und soll die Figur wiedererkennbar machen, nicht die
+          // ganze Notiz zeigen.
+          kurz: (notiz.body ?? '')
+            .split('\n')
+            .map((zeile) => zeile.replace(/[*_#>`[\]]/g, '').trim())
+            .find((zeile) => zeile.length > 0)
+            ?.slice(0, 90) ?? ''
+        }));
+    },
     anlegen: async (notizen) => {
       if (!backstoryEmbed) {
         return {
@@ -495,7 +528,8 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
     },
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
-    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
   };
 }
 

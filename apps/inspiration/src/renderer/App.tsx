@@ -13,20 +13,27 @@
  * Jeder Baustein hat ein Schloss. Ohne das wuerfelt man den guten Aufhaenger
  * weg, waehrend man die Fraktionen sucht.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BAUSTEINE,
   erzeugeAufhaenger,
   erzeugeEntwurf,
+  erzeugeFrist,
   erzeugeFigur,
   erzeugeFraktion,
   erzeugeOrt,
   erzeugeVerbindung,
+  ersetzeFigur,
+  fuegeFigurHinzu,
+  benenneFigurUm,
   moeglichkeiten,
   type Baustein,
   type Entwurf
 } from '../shared/erzeuge';
+import type { EntwurfsFigur, Fraktion, Ort, Verbindung } from '../shared/erzeuge';
 import { alsMarkdown, alsNotizen } from '../shared/notizen';
+import { ZEITMARKEN } from '../shared/zeitstrahl';
+import type { KiAufgabe } from '../shared/kiAufgaben';
 import {
   REGION_TEXTE,
   THEMA_TEXTE,
@@ -51,6 +58,45 @@ function beschriftung(paar: Paar, sprache: Language): string {
   return text(paar, sprache);
 }
 
+interface FeldProps {
+  /** Die Beschriftung. Fehlt sie, steht der Wert fuer sich. */
+  readonly name?: string;
+  readonly wert: string;
+  readonly aendere: (wert: string) => void;
+  readonly klasse?: string;
+  readonly onFocus?: () => void;
+  readonly onBlur?: () => void;
+}
+
+/**
+ * Ein Feld, das man ueberschreiben kann.
+ *
+ * Alles im Entwurf ist von Hand aenderbar — der Wurf ist ein Vorschlag, kein
+ * Ergebnis. Es sieht trotzdem nach Text aus und nicht nach Formular: ohne
+ * Rahmen, ohne Hintergrund, bis man hineinklickt. Ein Entwurf, der wie ein
+ * Antrag aussieht, liest sich am Tisch nicht.
+ *
+ * Ein `textarea` und kein `input`, weil die Saetze laenger sind als eine
+ * Zeile; `field-sizing: content` im Stylesheet laesst es mitwachsen, statt
+ * innen zu scrollen.
+ */
+function Feld({ name, wert, aendere, klasse, onFocus, onBlur }: FeldProps) {
+  return (
+    <label className={klasse ? `feld ${klasse}` : 'feld'}>
+      {name && <span className="feld__name">{name}</span>}
+      <textarea
+        className="feld__wert"
+        value={wert}
+        rows={1}
+        spellCheck
+        onChange={(ereignis) => aendere(ereignis.target.value)}
+        onFocus={onFocus}
+        onBlur={onBlur}
+      />
+    </label>
+  );
+}
+
 export function App() {
   const [entwurf, setEntwurf] = useState<Entwurf | null>(null);
   const [festgehalten, setFestgehalten] = useState<readonly Baustein[]>([]);
@@ -63,8 +109,32 @@ export function App() {
   const [exportText, setExportText] = useState('');
   const [kopiert, setKopiert] = useState(false);
   const [sprache, setSprache] = useState<Language>(getLanguage);
+  /**
+   * Ob eine KI eingerichtet ist.
+   *
+   * Ist sie es nicht, sind die Knoepfe gar nicht da — nicht ausgegraut.
+   * Eingerichtet wird sie in der Huelle; ein grauer Knopf fuer etwas, das
+   * man hier ohnehin nicht einschalten kann, waere eine Einladung zum
+   * Suchen.
+   */
+  const [kiDa, setKiDa] = useState(false);
+  /** Welche Stelle die KI gerade beantwortet, z. B. 'figur-2'. */
+  const [kiLaeuft, setKiLaeuft] = useState<string | null>(null);
+  const [kiFehler, setKiFehler] = useState<string | null>(null);
+  /** Die Figuren der offenen Kampagne, wenn die Liste aufgeklappt ist. */
+  const [kampagnenFiguren, setKampagnenFiguren] = useState<readonly { titel: string; kurz: string }[] | null>(
+    null
+  );
 
   useEffect(() => onLanguageChange(() => setSprache(getLanguage())), []);
+
+  useEffect(() => {
+    const frage = () => void api.ki.da().then(setKiDa, () => setKiDa(false));
+    frage();
+    // Und noch einmal, wenn die Einstellung sich aendert. Ohne das saehe man
+    // die Knoepfe erst nach einem Neustart, wenn man die KI einschaltet.
+    return api.ki.beiWechsel(frage);
+  }, []);
 
   /**
    * Was eingestellt ist, als Marken.
@@ -123,6 +193,272 @@ export function App() {
     setEntwurf((vorher) => (vorher ? aendere(vorher) : vorher));
     setExportStand('ruht');
   }, []);
+
+  /**
+   * Eine Aenderung von Hand.
+   *
+   * Wie `ersetze`, legt aber zusaetzlich das Schloss dieses Bausteins um.
+   * Wer einen Satz selbst geschrieben hat, will ihn beim naechsten „Alles
+   * würfeln" nicht verlieren — im NPC Creator haelt ein bearbeitetes Feld
+   * sich aus demselben Grund selbst fest.
+   */
+  const bearbeite = useCallback(
+    (baustein: Baustein, aendere: (alt: Entwurf) => Entwurf) => {
+      ersetze(aendere);
+      setFestgehalten((alt) => (alt.includes(baustein) ? alt : [...alt, baustein]));
+    },
+    [ersetze]
+  );
+
+  const setzeFraktion = useCallback(
+    (stelle: number, feld: keyof Fraktion, wert: string) =>
+      bearbeite('fraktionen', (alt) => ({
+        ...alt,
+        fraktionen: alt.fraktionen.map((eintrag, i) =>
+          i === stelle ? { ...eintrag, [feld]: wert } : eintrag
+        )
+      })),
+    [bearbeite]
+  );
+
+  const setzeFigur = useCallback(
+    (stelle: number, feld: keyof EntwurfsFigur, wert: string) =>
+      bearbeite('figuren', (alt) => ({
+        ...alt,
+        figuren: alt.figuren.map((eintrag, i) =>
+          i === stelle ? { ...eintrag, [feld]: wert } : eintrag
+        )
+      })),
+    [bearbeite]
+  );
+
+  const setzeOrt = useCallback(
+    (stelle: number, feld: keyof Ort, wert: string) =>
+      bearbeite('orte', (alt) => ({
+        ...alt,
+        orte: alt.orte.map((eintrag, i) => (i === stelle ? { ...eintrag, [feld]: wert } : eintrag))
+      })),
+    [bearbeite]
+  );
+
+  const setzeVerbindung = useCallback(
+    (stelle: number, feld: keyof Verbindung, wert: string) =>
+      bearbeite('verbindungen', (alt) => ({
+        ...alt,
+        verbindungen: alt.verbindungen.map((eintrag, i) =>
+          i === stelle ? { ...eintrag, [feld]: wert } : eintrag
+        )
+      })),
+    [bearbeite]
+  );
+
+  /**
+   * Der Name, mit dem ein Figurenfeld angeklickt wurde.
+   *
+   * Gebraucht, um beim Verlassen genau einmal zu ersetzen. Zeichenweise
+   * waehrend des Tippens zu ersetzen hiesse, beim Zwischenstand „E" jedes E
+   * im ganzen Satz auszutauschen.
+   */
+  const alterName = useRef('');
+
+  /** Beim Verlassen des Namensfeldes die Verbindungen nachziehen. */
+  const ziehNameNach = useCallback(
+    (stelle: number) => {
+      const vorher = alterName.current;
+      alterName.current = '';
+      setEntwurf((alt) =>
+        alt ? benenneFigurUm(alt, stelle, alt.figuren[stelle]?.name ?? '', vorher) : alt
+      );
+    },
+    []
+  );
+
+  /**
+   * Die KI nach einem Baustein fragen.
+   *
+   * Immer nur nach einem: eine ganze Kampagne in einer Anfrage ist teuer und
+   * am Ende sieht man einen Textblock, dem man nicht ansieht, was man davon
+   * behalten will. Was die KI liefert, ersetzt genau eine Stelle — der Rest
+   * des Entwurfs bleibt stehen.
+   *
+   * Der Zuschnitt geht als getippter Text mit, nicht als Marke: „Schwebende
+   * Inseln" findet in keiner Tabelle eine Marke, ein Modell kann damit aber
+   * etwas anfangen.
+   */
+  const frageKi = useCallback(
+    async (schluessel: string, aufgabe: KiAufgabe, stelle = -1) => {
+      if (kiLaeuft) return;
+      setKiLaeuft(schluessel);
+      setKiFehler(null);
+      const jetzt = entwurf;
+      const namen: [string, string] | undefined =
+        aufgabe === 'verbindung' && jetzt
+          ? [
+              jetzt.figuren[jetzt.verbindungen[stelle].a]?.name ?? '?',
+              jetzt.figuren[jetzt.verbindungen[stelle].b]?.name ?? '?'
+            ]
+          : undefined;
+
+      try {
+        const ergebnis = await api.ki.frage(
+          {
+            aufgabe,
+            vorgaben: { umfang, region: regionText, thema: themaText, tonfall: tonfallText },
+            entwurf: jetzt,
+            namen
+          },
+          getLanguage()
+        );
+        if (!ergebnis.ok || !ergebnis.wert) {
+          setKiFehler(t(ergebnis.grund as TextKey));
+          return;
+        }
+        uebernimmKi(aufgabe, stelle, ergebnis.wert);
+      } catch (fehler) {
+        setKiFehler(String(fehler));
+      } finally {
+        setKiLaeuft(null);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [entwurf, kiLaeuft, umfang, regionText, themaText, tonfallText, zuschnitt]
+  );
+
+  /** Was die KI geliefert hat, an die richtige Stelle setzen. */
+  const uebernimmKi = useCallback(
+    (aufgabe: KiAufgabe, stelle: number, wert: Record<string, string> | readonly string[]) => {
+      const feld = (name: string) => (wert as Record<string, string>)[name] ?? '';
+      ersetze((alt) => {
+        switch (aufgabe) {
+          case 'aufhaenger':
+            return {
+              ...alt,
+              aufhaenger: {
+                ausloeser: feld('ausloeser'),
+                betroffene: feld('betroffene'),
+                komplikation: feld('komplikation'),
+                frist: feld('frist')
+              }
+            };
+          case 'fraktion':
+            return {
+              ...alt,
+              fraktionen: alt.fraktionen.map((eintrag, i) =>
+                i === stelle
+                  ? {
+                      name: feld('name'),
+                      art: feld('art'),
+                      ziel: feld('ziel'),
+                      mittel: feld('mittel'),
+                      schwaeche: feld('schwaeche')
+                    }
+                  : eintrag
+              )
+            };
+          case 'figur':
+            return ersetzeFigur(
+              alt,
+              stelle,
+              {
+                name: feld('name'),
+                rolle: feld('rolle'),
+                triebfeder: feld('triebfeder'),
+                hebel: feld('hebel'),
+                makel: feld('makel')
+              },
+              zuschnitt,
+              getLanguage(),
+              wuerfel
+            );
+          case 'ort':
+            return {
+              ...alt,
+              orte: alt.orte.map((eintrag, i) =>
+                i === stelle
+                  ? {
+                      name: feld('name'),
+                      art: feld('art'),
+                      merkmal: feld('merkmal'),
+                      zustand: feld('zustand'),
+                      karte: feld('karte')
+                    }
+                  : eintrag
+              )
+            };
+          case 'verbindung':
+            return {
+              ...alt,
+              verbindungen: alt.verbindungen.map((eintrag, i) =>
+                i === stelle
+                  ? { ...eintrag, muster: feld('muster'), hin: feld('hin'), zurueck: feld('zurueck') }
+                  : eintrag
+              )
+            };
+          case 'zeitstrahl': {
+            // Die Zeitmarken bleiben aus der Tabelle, nur die Ereignisse
+            // kommen vom Modell: so passt die Liste weiter zum Umfang, auch
+            // wenn das Modell zu viele oder zu wenige Schritte schickt.
+            const schritte = wert as readonly string[];
+            const marken = ZEITMARKEN[umfang];
+            return {
+              ...alt,
+              zeitstrahl: schritte
+                .slice(0, marken.length)
+                .map((was, i) => ({ marke: marken[i][getLanguage() === 'de' ? 'de' : 'en'], was }))
+            };
+          }
+          default:
+            return alt;
+        }
+      });
+    },
+    [ersetze, umfang, zuschnitt]
+  );
+
+  /**
+   * Die Liste der vorhandenen Figuren holen — erst auf Knopfdruck.
+   *
+   * Nicht beim Laden: das Werkzeug soll ohne Kampagne genauso laufen, und
+   * eine Liste, die niemand aufgeschlagen hat, muss auch niemand lesen.
+   */
+  const zeigeKampagnenFiguren = useCallback(async () => {
+    if (kampagnenFiguren) {
+      setKampagnenFiguren(null);
+      return;
+    }
+    try {
+      setKampagnenFiguren(await api.figuren());
+    } catch {
+      setKampagnenFiguren([]);
+    }
+  }, [kampagnenFiguren]);
+
+  /** Eine vorhandene Figur dazunehmen — mit Anbindung ans Geflecht. */
+  const holeFigur = useCallback(
+    (titel: string) => {
+      bearbeite('figuren', (alt) =>
+        fuegeFigurHinzu(
+          alt,
+          {
+            name: titel,
+            // Die Rolle wird gewuerfelt, weil sie zu DIESEM Entwurf gehoert
+            // und nicht zur Figur. Was sie sonst ausmacht, steht in ihrer
+            // Notiz; es hier zu wiederholen hiesse, zwei Wahrheiten zu
+            // pflegen.
+            rolle: erzeugeFigur(zuschnitt, getLanguage(), wuerfel).rolle,
+            triebfeder: '',
+            hebel: '',
+            makel: '',
+            vorhanden: true
+          },
+          zuschnitt,
+          getLanguage(),
+          wuerfel
+        )
+      );
+    },
+    [bearbeite, zuschnitt]
+  );
 
   const schalteSchloss = useCallback((baustein: Baustein) => {
     setFestgehalten((alt) =>
@@ -191,7 +527,7 @@ export function App() {
     </label>
   );
 
-  const kopf = (baustein: Baustein, hinweis?: TextKey) => {
+  const kopf = (baustein: Baustein, hinweis?: TextKey, kiAufgabe?: KiAufgabe) => {
     const zu = festgehalten.includes(baustein);
     return (
       <header className="karte__kopf">
@@ -209,10 +545,38 @@ export function App() {
           <button type="button" className="knopf" onClick={() => wuerfleBaustein(baustein)}>
             {t('knopf.nochmal')}
           </button>
+          {kiDa && kiAufgabe && (
+            <button
+              type="button"
+              className="knopf knopf--ki"
+              disabled={kiLaeuft !== null}
+              onClick={() => void frageKi(baustein, kiAufgabe)}
+            >
+              {kiLaeuft === baustein ? t('ki.laeuft') : t('ki.vorschlagen')}
+            </button>
+          )}
         </div>
       </header>
     );
   };
+
+  /**
+   * Der kleine KI-Knopf neben dem Wuerfelknopf.
+   *
+   * Nur da, wenn eine KI eingerichtet ist — sonst gar nicht, nicht ausgegraut.
+   */
+  const kiKnopf = (schluessel: string, aufgabe: KiAufgabe, stelle = -1) =>
+    kiDa ? (
+      <button
+        type="button"
+        className={kiLaeuft === schluessel ? 'zeile__knopf zeile__knopf--laeuft' : 'zeile__knopf'}
+        title={t('ki.zeile')}
+        disabled={kiLaeuft !== null}
+        onClick={() => void frageKi(schluessel, aufgabe, stelle)}
+      >
+        {kiLaeuft === schluessel ? '…' : '✦'}
+      </button>
+    ) : null;
 
   /** Der kleine Knopf an einer einzelnen Zeile. */
   const zeilenKnopf = (beiKlick: () => void) => (
@@ -255,16 +619,27 @@ export function App() {
         <p className="wurf__zahlen">{t('moeglichkeiten', formatiert)}</p>
       </div>
 
+      {kiDa && <p className="ki-hinweis">{t('ki.hinweis')}</p>}
+      {kiFehler && <p className="ki-fehler">{kiFehler}</p>}
+
       {!entwurf && <p className="leer">{t('leer')}</p>}
 
       {entwurf && (
         <main className="bausteine">
           <section className="karte">
-            {kopf('aufhaenger')}
+            {kopf('aufhaenger', undefined, 'aufhaenger')}
             <ul className="zeilen">
               {(['ausloeser', 'betroffene', 'komplikation'] as const).map((feld) => (
                 <li className="zeile" key={feld}>
-                  <span>{entwurf.aufhaenger[feld]}</span>
+                  <Feld
+                    wert={entwurf.aufhaenger[feld]}
+                    aendere={(wert) =>
+                      bearbeite('aufhaenger', (alt) => ({
+                        ...alt,
+                        aufhaenger: { ...alt.aufhaenger, [feld]: wert }
+                      }))
+                    }
+                  />
                   {zeilenKnopf(() =>
                     ersetze((alt) => ({
                       ...alt,
@@ -276,13 +651,31 @@ export function App() {
                   )}
                 </li>
               ))}
-              {entwurf.aufhaenger.frist && (
-                <li className="zeile zeile--frist">
-                  <span>
-                    <strong>{t('feld.frist')}:</strong> {entwurf.aufhaenger.frist}
-                  </span>
-                </li>
-              )}
+              <li className="zeile zeile--frist">
+                <Feld
+                  name={t('feld.frist')}
+                  wert={entwurf.aufhaenger.frist}
+                  aendere={(wert) =>
+                    bearbeite('aufhaenger', (alt) => ({
+                      ...alt,
+                      aufhaenger: { ...alt.aufhaenger, frist: wert }
+                    }))
+                  }
+                />
+                {zeilenKnopf(() =>
+                  ersetze((alt) => ({
+                    ...alt,
+                    aufhaenger: {
+                      ...alt.aufhaenger,
+                      // Gezielt nachgewuerfelt kommt immer eine Frist. Beim
+                      // Wuerfeln des ganzen Aufhaengers faellt sie oft aus,
+                      // und ein Knopf, der meistens nichts tut, sieht kaputt
+                      // aus.
+                      frist: erzeugeFrist(zuschnitt, getLanguage(), wuerfel)
+                    }
+                  }))
+                )}
+              </li>
             </ul>
           </section>
 
@@ -290,9 +683,15 @@ export function App() {
             {kopf('fraktionen', 'hinweis.fraktionen')}
             <ul className="zeilen">
               {entwurf.fraktionen.map((fraktion, stelle) => (
-                <li className="block" key={`${fraktion.name}-${stelle}`}>
+                <li className="block" key={stelle}>
                   <div className="block__kopf">
-                    <h3 className="block__titel">{fraktion.name}</h3>
+                    <input
+                      className="block__titel"
+                      value={fraktion.name}
+                      onChange={(ereignis) =>
+                        setzeFraktion(stelle, 'name', ereignis.target.value)
+                      }
+                    />
                     {zeilenKnopf(() =>
                       ersetze((alt) => ({
                         ...alt,
@@ -301,17 +700,28 @@ export function App() {
                         )
                       }))
                     )}
+                    {kiKnopf(`fraktion-${stelle}`, 'fraktion', stelle)}
                   </div>
-                  <p className="block__art">{fraktion.art}</p>
-                  <p>
-                    <strong>{t('feld.ziel')}:</strong> {fraktion.ziel}
-                  </p>
-                  <p>
-                    <strong>{t('feld.mittel')}:</strong> {fraktion.mittel}
-                  </p>
-                  <p>
-                    <strong>{t('feld.schwaeche')}:</strong> {fraktion.schwaeche}
-                  </p>
+                  <Feld
+                    klasse="feld--art"
+                    wert={fraktion.art}
+                    aendere={(wert) => setzeFraktion(stelle, 'art', wert)}
+                  />
+                  <Feld
+                    name={t('feld.ziel')}
+                    wert={fraktion.ziel}
+                    aendere={(wert) => setzeFraktion(stelle, 'ziel', wert)}
+                  />
+                  <Feld
+                    name={t('feld.mittel')}
+                    wert={fraktion.mittel}
+                    aendere={(wert) => setzeFraktion(stelle, 'mittel', wert)}
+                  />
+                  <Feld
+                    name={t('feld.schwaeche')}
+                    wert={fraktion.schwaeche}
+                    aendere={(wert) => setzeFraktion(stelle, 'schwaeche', wert)}
+                  />
                 </li>
               ))}
             </ul>
@@ -319,31 +729,83 @@ export function App() {
 
           <section className="karte">
             {kopf('figuren')}
+            <button type="button" className="knopf knopf--breit" onClick={() => void zeigeKampagnenFiguren()}>
+              {kampagnenFiguren ? t('holen.schliessen') : t('knopf.holen')}
+            </button>
+            {kampagnenFiguren && (
+              <div className="holen">
+                <p className="holen__hinweis">{t('holen.hinweis')}</p>
+                {kampagnenFiguren.length === 0 && <p className="holen__leer">{t('holen.leer')}</p>}
+                <ul className="holen__liste">
+                  {kampagnenFiguren.map((figur) => {
+                    const dabei = entwurf.figuren.some((eintrag) => eintrag.name === figur.titel);
+                    return (
+                      <li key={figur.titel}>
+                        <button
+                          type="button"
+                          className="holen__eintrag"
+                          disabled={dabei}
+                          onClick={() => holeFigur(figur.titel)}
+                        >
+                          <span className="holen__name">{figur.titel}</span>
+                          <span className="holen__kurz">{dabei ? t('holen.dabei') : figur.kurz}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
             <ul className="zeilen">
               {entwurf.figuren.map((figur, stelle) => (
-                <li className="block" key={`${figur.name}-${stelle}`}>
+                <li className="block" key={stelle}>
                   <div className="block__kopf">
-                    <h3 className="block__titel">
-                      {figur.name} <span className="block__rolle">{figur.rolle}</span>
-                    </h3>
+                    <input
+                      className="block__titel"
+                      value={figur.name}
+                      onChange={(ereignis) => setzeFigur(stelle, 'name', ereignis.target.value)}
+                      // Beim Hineinklicken merken, beim Verlassen nachziehen:
+                      // die Verbindungen tragen den Namen fest im Satz, und
+                      // zeichenweise zu ersetzen wuerde einzelne Buchstaben
+                      // im ganzen Text austauschen.
+                      onFocus={() => (alterName.current = figur.name)}
+                      onBlur={() => ziehNameNach(stelle)}
+                    />
+                    {figur.vorhanden && <span className="block__marke">{t('figur.vorhanden')}</span>}
                     {zeilenKnopf(() =>
-                      ersetze((alt) => ({
-                        ...alt,
-                        figuren: alt.figuren.map((eintrag, i) =>
-                          i === stelle ? erzeugeFigur(zuschnitt, getLanguage(), wuerfel) : eintrag
+                      ersetze((alt) =>
+                        ersetzeFigur(
+                          alt,
+                          stelle,
+                          erzeugeFigur(zuschnitt, getLanguage(), wuerfel),
+                          zuschnitt,
+                          getLanguage(),
+                          wuerfel
                         )
-                      }))
+                      )
                     )}
+                    {kiKnopf(`figur-${stelle}`, 'figur', stelle)}
                   </div>
-                  <p>
-                    <strong>{t('feld.will')}:</strong> {figur.triebfeder}
-                  </p>
-                  <p>
-                    <strong>{t('feld.hat')}:</strong> {figur.hebel}
-                  </p>
-                  <p>
-                    <strong>{t('feld.haken')}:</strong> {figur.makel}
-                  </p>
+                  <Feld
+                    name={t('feld.rolle')}
+                    wert={figur.rolle}
+                    aendere={(wert) => setzeFigur(stelle, 'rolle', wert)}
+                  />
+                  <Feld
+                    name={t('feld.will')}
+                    wert={figur.triebfeder}
+                    aendere={(wert) => setzeFigur(stelle, 'triebfeder', wert)}
+                  />
+                  <Feld
+                    name={t('feld.hat')}
+                    wert={figur.hebel}
+                    aendere={(wert) => setzeFigur(stelle, 'hebel', wert)}
+                  />
+                  <Feld
+                    name={t('feld.haken')}
+                    wert={figur.makel}
+                    aendere={(wert) => setzeFigur(stelle, 'makel', wert)}
+                  />
                 </li>
               ))}
             </ul>
@@ -353,9 +815,13 @@ export function App() {
             {kopf('orte')}
             <ul className="zeilen">
               {entwurf.orte.map((ort, stelle) => (
-                <li className="block" key={`${ort.name}-${stelle}`}>
+                <li className="block" key={stelle}>
                   <div className="block__kopf">
-                    <h3 className="block__titel">{ort.name}</h3>
+                    <input
+                      className="block__titel"
+                      value={ort.name}
+                      onChange={(ereignis) => setzeOrt(stelle, 'name', ereignis.target.value)}
+                    />
                     {zeilenKnopf(() =>
                       ersetze((alt) => ({
                         ...alt,
@@ -364,13 +830,20 @@ export function App() {
                         )
                       }))
                     )}
+                    {kiKnopf(`ort-${stelle}`, 'ort', stelle)}
                   </div>
-                  <p className="block__art">{ort.art}</p>
-                  <p>{ort.merkmal}</p>
-                  <p>{ort.zustand}</p>
-                  <p className="block__karte">
-                    <strong>{t('feld.karte')}:</strong> {ort.karte}
-                  </p>
+                  <Feld
+                    klasse="feld--art"
+                    wert={ort.art}
+                    aendere={(wert) => setzeOrt(stelle, 'art', wert)}
+                  />
+                  <Feld wert={ort.merkmal} aendere={(wert) => setzeOrt(stelle, 'merkmal', wert)} />
+                  <Feld wert={ort.zustand} aendere={(wert) => setzeOrt(stelle, 'zustand', wert)} />
+                  <Feld
+                    name={t('feld.karte')}
+                    wert={ort.karte}
+                    aendere={(wert) => setzeOrt(stelle, 'karte', wert)}
+                  />
                 </li>
               ))}
             </ul>
@@ -380,9 +853,15 @@ export function App() {
             {kopf('verbindungen', 'hinweis.verbindungen')}
             <ul className="zeilen">
               {entwurf.verbindungen.map((verbindung, stelle) => (
-                <li className="block" key={`${verbindung.a}-${verbindung.b}-${stelle}`}>
+                <li className="block" key={stelle}>
                   <div className="block__kopf">
-                    <h3 className="block__titel">{verbindung.muster}</h3>
+                    <input
+                      className="block__titel"
+                      value={verbindung.muster}
+                      onChange={(ereignis) =>
+                        setzeVerbindung(stelle, 'muster', ereignis.target.value)
+                      }
+                    />
                     {zeilenKnopf(() =>
                       ersetze((alt) => ({
                         ...alt,
@@ -400,21 +879,39 @@ export function App() {
                         )
                       }))
                     )}
+                    {kiKnopf(`verbindung-${stelle}`, 'verbindung', stelle)}
                   </div>
-                  <p>{verbindung.hin}</p>
-                  <p className="block__zurueck">{verbindung.zurueck}</p>
+                  <Feld
+                    wert={verbindung.hin}
+                    aendere={(wert) => setzeVerbindung(stelle, 'hin', wert)}
+                  />
+                  <Feld
+                    klasse="feld--zurueck"
+                    wert={verbindung.zurueck}
+                    aendere={(wert) => setzeVerbindung(stelle, 'zurueck', wert)}
+                  />
                 </li>
               ))}
             </ul>
           </section>
 
           <section className="karte">
-            {kopf('zeitstrahl', 'hinweis.zeitstrahl')}
+            {kopf('zeitstrahl', 'hinweis.zeitstrahl', 'zeitstrahl')}
             <ol className="zeitstrahl">
               {entwurf.zeitstrahl.map((punkt, stelle) => (
-                <li key={`${punkt.marke}-${stelle}`}>
+                <li key={stelle}>
                   <span className="zeitstrahl__marke">{punkt.marke}</span>
-                  <span>{punkt.was}</span>
+                  <Feld
+                    wert={punkt.was}
+                    aendere={(wert) =>
+                      bearbeite('zeitstrahl', (alt) => ({
+                        ...alt,
+                        zeitstrahl: alt.zeitstrahl.map((eintrag, i) =>
+                          i === stelle ? { ...eintrag, was: wert } : eintrag
+                        )
+                      }))
+                    }
+                  />
                 </li>
               ))}
             </ol>

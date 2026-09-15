@@ -9,9 +9,13 @@ export {
   erzeugeFraktion,
   erzeugeName,
   erzeugeOrt,
+  erzeugeFrist,
   erzeugeVerbindung,
   erzeugeVerbindungen,
   erzeugeZeitstrahl,
+  ersetzeFigur,
+  fuegeFigurHinzu,
+  benenneFigurUm,
   moeglichkeiten
 } from '../src/shared/erzeuge';
 export {
@@ -47,3 +51,11 @@ export { VERBINDUNGEN, fuelle } from '../src/shared/verbindungen';
 export { SCHRITTE, ZEITMARKEN } from '../src/shared/zeitstrahl';
 export { alsMarkdown, alsNotizen, verbindungenVon, verweis } from '../src/shared/notizen';
 export { kanal, PRAEFIX } from '../src/shared/kanaele';
+export {
+  KI_AUFGABEN,
+  FELDER,
+  MAX_ZEICHEN,
+  systemAnweisung,
+  anweisung,
+  uebernehmbar
+} from '../src/shared/kiAufgaben';

@@ -215,3 +215,93 @@ test('die Zahl der Moeglichkeiten ist gross und stimmt mit den Tabellen ueberein
   assert.ok(zahlen.orte > 1_000_000, zahlen.orte);
   assert.ok(zahlen.figuren > 1_000_000, zahlen.figuren);
 });
+
+test('eine ausgetauschte Figur nimmt ihre Verbindungen mit', () => {
+  // Die Namen stehen in den Verbindungen fest drin. Ohne das Nachziehen
+  // spraeche das Geflecht von jemandem, den es nicht mehr gibt.
+  const entwurf = T.erzeugeEntwurf({ ...ZU, umfang: 'kampagne' }, 'de', wuerfelgeber(31));
+  const alt = entwurf.figuren[2].name;
+  const neue = { ...T.erzeugeFigur(ZU, 'de', wuerfelgeber(32)), name: 'Zita Neuhafen' };
+  const danach = T.ersetzeFigur(entwurf, 2, neue, ZU, 'de', wuerfelgeber(33));
+
+  assert.equal(danach.figuren[2].name, 'Zita Neuhafen');
+  const betroffen = danach.verbindungen.filter((v) => v.a === 2 || v.b === 2);
+  assert.ok(betroffen.length > 0, 'die Figur haengt an mindestens einer Verbindung');
+  for (const verbindung of betroffen) {
+    const text = `${verbindung.hin} ${verbindung.zurueck}`;
+    assert.ok(text.includes('Zita Neuhafen'), text);
+    assert.ok(!text.includes(alt), `der alte Name steht noch da: ${text}`);
+  }
+  // Und die uebrigen bleiben unangetastet — sonst waere das Nachziehen ein
+  // heimlicher Neuwurf des ganzen Geflechts.
+  const unbeteiligt = (v) => v.a !== 2 && v.b !== 2;
+  assert.deepEqual(danach.verbindungen.filter(unbeteiligt), entwurf.verbindungen.filter(unbeteiligt));
+});
+
+test('eine umbenannte Figur heisst auch in ihren Verbindungen neu', () => {
+  // Fuer die Bearbeitung von Hand. Ohne das zeigte der Verweis im Export ins
+  // Leere, und im Geflecht staende ein Name, den es nicht mehr gibt.
+  const entwurf = T.erzeugeEntwurf({ ...ZU, umfang: 'bogen' }, 'de', wuerfelgeber(17));
+  const alt = entwurf.figuren[1].name;
+  const danach = T.benenneFigurUm(entwurf, 1, 'Edda Wolfsfurt', alt);
+
+  assert.equal(danach.figuren[1].name, 'Edda Wolfsfurt');
+  for (const verbindung of danach.verbindungen) {
+    const text = `${verbindung.hin} ${verbindung.zurueck}`;
+    assert.ok(!text.includes(alt), text);
+  }
+  const betroffen = danach.verbindungen.filter((v) => v.a === 1 || v.b === 1);
+  assert.ok(betroffen.some((v) => `${v.hin} ${v.zurueck}`.includes('Edda Wolfsfurt')));
+});
+
+test('ein leerer Name laesst die Verbindungen in Ruhe', () => {
+  // Wer das Feld leert und wieder zumacht, soll nicht die halben Saetze
+  // verlieren. Der alte Name bleibt dann in den Verbindungen stehen und ist
+  // dort von Hand zu aendern — sichtbar und reparierbar, statt still kaputt.
+  const entwurf = T.erzeugeEntwurf(ZU, 'de', wuerfelgeber(18));
+  const alt = entwurf.figuren[0].name;
+  const geleert = T.benenneFigurUm(entwurf, 0, '', alt);
+  assert.equal(geleert.figuren[0].name, '');
+  assert.deepEqual(geleert.verbindungen, entwurf.verbindungen);
+});
+
+test('die Frist gezielt nachgewuerfelt kommt immer', () => {
+  // Beim ganzen Aufhaenger faellt sie oft aus, und das ist gewollt. Wer den
+  // Knopf an dieser Zeile drueckt, will aber eine Uhr.
+  const wuerfel = wuerfelgeber(27);
+  for (let i = 0; i < 100; i += 1) {
+    assert.notEqual(T.erzeugeFrist(ZU, 'de', wuerfel), '', `Versuch ${i}`);
+  }
+});
+
+test('eine dazugeholte Figur wird gleich angebunden', () => {
+  // Der Grund, eine vorhandene Figur zu holen, ist das Verbinden. Ohne
+  // Anbindung staende nur ein Name in der Liste.
+  const entwurf = T.erzeugeEntwurf(ZU, 'de', wuerfelgeber(41));
+  const vorher = entwurf.verbindungen.length;
+  const danach = T.fuegeFigurHinzu(
+    entwurf,
+    { name: 'Elara von Salzfurt', rolle: 'Auftraggebend', triebfeder: '', hebel: '', makel: '', vorhanden: true },
+    ZU,
+    'de',
+    wuerfelgeber(42)
+  );
+  const neue = danach.figuren.length - 1;
+  assert.equal(danach.figuren[neue].name, 'Elara von Salzfurt');
+  assert.equal(danach.verbindungen.length, vorher + 1);
+  const letzte = danach.verbindungen[danach.verbindungen.length - 1];
+  assert.ok(letzte.a === neue || letzte.b === neue);
+  assert.ok(`${letzte.hin} ${letzte.zurueck}`.includes('Elara von Salzfurt'));
+});
+
+test('in einen leeren Entwurf passt auch eine Figur ohne Gegenueber', () => {
+  const leer = T.fuegeFigurHinzu(
+    T.LEERER_ENTWURF,
+    { name: 'Allein', rolle: '', triebfeder: '', hebel: '', makel: '' },
+    ZU,
+    'de',
+    wuerfelgeber(43)
+  );
+  assert.equal(leer.figuren.length, 1);
+  assert.equal(leer.verbindungen.length, 0);
+});

@@ -68,6 +68,15 @@ export interface EntwurfsFigur {
   readonly triebfeder: string;
   readonly hebel: string;
   readonly makel: string;
+  /**
+   * Ob es diese Figur in der Kampagne schon gibt.
+   *
+   * Dann wird beim Uebernehmen KEINE Notiz fuer sie angelegt — die gibt es
+   * ja. Die Verweise auf ihren Namen treffen die vorhandene Notiz, und im
+   * Graph haengt sie danach am neuen Geflecht. Ohne diese Unterscheidung
+   * haette man nach dem zweiten Entwurf jede Figur doppelt.
+   */
+  readonly vorhanden?: boolean;
 }
 
 export interface Ort {
@@ -146,6 +155,19 @@ export function erzeugeAufhaenger(zuschnitt: Zuschnitt, sprache: Sprache, rng: (
     komplikation: ausTabelle(KOMPLIKATIONEN, zuschnitt, sprache, rng),
     frist: rng() < FRIST_CHANCE ? ausTabelle(FRISTEN, zuschnitt, sprache, rng) : ''
   };
+}
+
+/**
+ * Eine Frist, und zwar immer eine.
+ *
+ * Fuer den Knopf an genau dieser Zeile. Beim Wuerfeln des ganzen Aufhaengers
+ * faellt die Frist oft aus, und das ist so gewollt; ein Knopf, der in vier
+ * von zehn Faellen ein leeres Feld hinterlaesst, sieht dagegen aus, als
+ * reagiere er nicht. Derselbe Unterschied wie bei der Eigenheit im NPC
+ * Creator.
+ */
+export function erzeugeFrist(zuschnitt: Zuschnitt, sprache: Sprache, rng: () => number): string {
+  return ausTabelle(FRISTEN, zuschnitt, sprache, rng);
 }
 
 /** Ein Ortsname aus zwei Haelften: Rabenstein, Nebelhafen, Aschbrücke. */
@@ -331,6 +353,104 @@ export function erzeugeEntwurf(
     : erzeugeZeitstrahl(zuschnitt, sprache, rng);
 
   return { aufhaenger, fraktionen, figuren, orte, verbindungen, zeitstrahl };
+}
+
+/**
+ * Eine Figur dazunehmen — und sie gleich anbinden.
+ *
+ * Fuer Figuren, die es schon gibt (aus der offenen Kampagne). Ohne die
+ * Verbindung stuende sie als Name in der Liste und haette mit der Geschichte
+ * nichts zu tun; genau das Verbinden ist aber der Grund, sie zu holen.
+ */
+export function fuegeFigurHinzu(
+  entwurf: Entwurf,
+  figur: EntwurfsFigur,
+  zuschnitt: Zuschnitt,
+  sprache: Sprache,
+  rng: () => number
+): Entwurf {
+  const figuren = [...entwurf.figuren, figur];
+  const neue = figuren.length - 1;
+  if (neue === 0) return { ...entwurf, figuren };
+
+  const andere = Math.floor(rng() * neue);
+  return {
+    ...entwurf,
+    figuren,
+    verbindungen: [
+      ...entwurf.verbindungen,
+      erzeugeVerbindung(andere, neue, figuren, zuschnitt, sprache, rng)
+    ]
+  };
+}
+
+/**
+ * Eine einzelne Figur austauschen — mit ihren Verbindungen.
+ *
+ * Wer eine Figur allein neu wuerfelt, bekommt einen neuen Namen; in den
+ * Verbindungen stuende weiter der alte, denn dort sind die Namen fest
+ * eingesetzt. Am Tisch waere das ein Geflecht mit einer Person, die es nicht
+ * mehr gibt. Darum werden genau die Verbindungen dieser Stelle neu gezogen,
+ * alle anderen bleiben, wie sie sind.
+ */
+export function ersetzeFigur(
+  entwurf: Entwurf,
+  stelle: number,
+  figur: EntwurfsFigur,
+  zuschnitt: Zuschnitt,
+  sprache: Sprache,
+  rng: () => number
+): Entwurf {
+  const figuren = entwurf.figuren.map((eintrag, i) => (i === stelle ? figur : eintrag));
+  return {
+    ...entwurf,
+    figuren,
+    verbindungen: entwurf.verbindungen.map((verbindung) =>
+      verbindung.a === stelle || verbindung.b === stelle
+        ? erzeugeVerbindung(verbindung.a, verbindung.b, figuren, zuschnitt, sprache, rng)
+        : verbindung
+    )
+  };
+}
+
+/**
+ * Eine Figur umbenennen — und die Verbindungen mit.
+ *
+ * Fuer die Bearbeitung von Hand. Die Namen stehen in den Verbindungen fest
+ * eingesetzt, weil dort jede Zeile fuer sich bearbeitbar sein soll; wer eine
+ * Figur umtauft, wuerde sonst ein Geflecht hinterlassen, das von jemandem
+ * spricht, den es nicht mehr gibt.
+ *
+ * `alterName` wird ausdruecklich uebergeben und nicht aus dem Entwurf
+ * genommen. Der Grund ist die Bedienung: das Namensfeld schreibt bei jedem
+ * Tastendruck in den Entwurf, und ein zeichenweises Ersetzen wuerde
+ * zwischendurch einzelne Buchstaben im ganzen Satz austauschen. Die
+ * Oberflaeche merkt sich darum den Namen beim Hineinklicken und ruft dies
+ * hier erst beim Verlassen des Feldes auf — einmal, mit dem vollen alten
+ * Namen.
+ *
+ * Ist einer der beiden Namen leer oder sind sie gleich, bleiben die
+ * Verbindungen unangetastet.
+ */
+export function benenneFigurUm(
+  entwurf: Entwurf,
+  stelle: number,
+  name: string,
+  alterName: string
+): Entwurf {
+  const figuren = entwurf.figuren.map((eintrag, i) => (i === stelle ? { ...eintrag, name } : eintrag));
+  if (!alterName || !name || alterName === name) return { ...entwurf, figuren };
+
+  const tausche = (text: string) => text.split(alterName).join(name);
+  return {
+    ...entwurf,
+    figuren,
+    verbindungen: entwurf.verbindungen.map((verbindung) =>
+      verbindung.a === stelle || verbindung.b === stelle
+        ? { ...verbindung, hin: tausche(verbindung.hin), zurueck: tausche(verbindung.zurueck) }
+        : verbindung
+    )
+  };
 }
 
 /**

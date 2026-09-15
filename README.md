@@ -12,7 +12,8 @@ laufen. Alles bleibt lokal auf der eigenen Platte.
 - **NPC Creator** — Randfiguren auf Knopfdruck, aus Tabellen oder per KI,
   Export als Notiz in den Backstory Creator.
 - **Inspirationshilfe** — Gerüst für eine neue Kampagne: Aufhänger,
-  Fraktionen, Figuren, Orte, Verbindungen, Zeitstrahl. Aus Tabellen, ohne KI.
+  Fraktionen, Figuren, Orte, Verbindungen, Zeitstrahl. Aus Tabellen, auf
+  Wunsch mit KI.
 - **TTRPG Map Editor** — Battlemaps und Weltkarten zeichnen, Export als
   Universal VTT.
 
@@ -286,6 +287,16 @@ was passiert, wenn die Gruppe nichts tut.
   Bedrohung. Jede Figur hängt an mindestens einer anderen.
 - **Schloss je Baustein**, wie im NPC Creator. Der Knopf am Baustein selbst
   würfelt ihn trotzdem neu.
+- **Alles ist von Hand überschreibbar.** Ein Wurf ist ein Vorschlag, kein
+  Ergebnis. Wer einen Satz selbst schreibt, hält den Baustein damit auch
+  fest — das nächste „Alles würfeln" nimmt ihn nicht mit.
+- **Figuren, die es schon gibt**, lassen sich aus der offenen Kampagne holen
+  (und damit auch die des NPC Creators, der dort ablegt). Sie werden gleich
+  ins Geflecht eingehängt und bekommen beim Übernehmen keine zweite Notiz.
+- **Mit KI** schlägt das Modell einen Baustein frei vor, nicht aus den
+  Tabellen — immer nur einen, mit dem bisherigen Entwurf als Umgebung. Sie
+  versteht auch eigene Regionen wie „Schwebende Inseln", mit denen die
+  Tabellen nichts anfangen können. Ohne KI gelten die Tabellen.
 - **Übernehmen** legt je Figur, Ort und Fraktion eine Notiz in der offenen
   Kampagne an, dazu eine Übersicht mit Wiki-Verweisen — der Graph im
   Backstory Creator hat sofort etwas zu zeichnen. Entwurf hier, Wahrheit

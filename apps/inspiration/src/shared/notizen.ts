@@ -186,6 +186,12 @@ export function alsNotizen(entwurf: Entwurf, sprache: Sprache, titel: string): N
   }
 
   entwurf.figuren.forEach((figur, stelle) => {
+    // Figuren aus der Kampagne bekommen keine zweite Notiz. Der Verweis in
+    // der Uebersicht und in den Verbindungen trifft ihre vorhandene — genau
+    // dafuer holt man sie herueber. Was hier ueber sie steht (Rolle,
+    // Triebfeder), gehoert zu diesem Entwurf und nicht zu ihr; es wuerde
+    // ihre gepflegte Notiz eher stoeren als ergaenzen.
+    if (figur.vorhanden) return;
     notizen.push({
       typ: 'character',
       titel: figur.name,
