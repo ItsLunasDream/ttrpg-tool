@@ -783,6 +783,26 @@ function registriereKanaele(): void {
   });
 }
 
+/*
+ * Ein Auffangnetz im Hauptprozess.
+ *
+ * Ein Fehler, den niemand faengt, beendet den Prozess — und mit ihm die
+ * ganze Sammlung, samt allem, was in den anderen Werkzeugen offen ist. Das
+ * ist der Bericht "beim Anlegen einer Notiz stuerzt alles ab": was genau
+ * schiefging, stand nirgends, weil das Fenster mit der Meldung verschwand.
+ *
+ * Hier wird nichts repariert. Der Fehler landet in der Konsole und in der
+ * Protokolldatei des Systems, und die Anwendung bleibt stehen, damit die
+ * Person speichern kann, was sie offen hat.
+ */
+process.on('uncaughtException', (fehler) => {
+  console.error('[shell] Unbehandelter Fehler im Hauptprozess:', fehler);
+});
+
+process.on('unhandledRejection', (grund) => {
+  console.error('[shell] Unbehandelte Ablehnung im Hauptprozess:', grund);
+});
+
 app.whenReady().then(async () => {
   startMarke('Electron bereit');
   einstellungsDatei = join(app.getPath('userData'), 'einstellungen.json');

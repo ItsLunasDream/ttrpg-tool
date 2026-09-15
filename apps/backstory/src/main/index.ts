@@ -103,6 +103,19 @@ async function createWindow(embed: BackstoryEmbed): Promise<void> {
   }
 }
 
+/*
+ * Auffangnetz, wie in der Huelle: ein unbehandelter Fehler beendete sonst
+ * den Prozess, und mit ihm das Fenster samt Meldung. Repariert wird hier
+ * nichts — es wird sichtbar gemacht, und die Anwendung bleibt stehen.
+ */
+process.on('uncaughtException', (fehler) => {
+  console.error('[backstory] Unbehandelter Fehler im Hauptprozess:', fehler);
+});
+
+process.on('unhandledRejection', (grund) => {
+  console.error('[backstory] Unbehandelte Ablehnung im Hauptprozess:', grund);
+});
+
 void app.whenReady().then(async () => {
   // Die zweite Instanz beendet sich gleich wieder, sie soll den Speicherort
   // gar nicht erst anfassen.
