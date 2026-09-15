@@ -105,6 +105,9 @@ und links Platz für Titelleiste und Schiene lässt.
 - Die Sprache ist durchgekoppelt: eine Änderung gilt sofort überall.
 - Beim Öffnen wächst das Symbol des Werkzeugs über den Schirm; dauert das
   Laden länger, kommt danach der Ladekreis.
+- **Zurück und vorwärts** wie im Browser, über die Daumentasten der Maus
+  (Windows) oder Alt und Pfeiltaste. Der Verlauf hält fünfzig Schritte und
+  merkt sich, *wo* man war — er hat mit Strg+Z nichts zu tun.
 - Direkt in einem Werkzeug starten: `TTRPG_TOOLS_START_APP=backstory`.
 
 ### Eigene Symbole
@@ -141,14 +144,14 @@ Ausgeliefert wird die Sammlung. Die einzelnen Anwendungen bleiben baubar
 Eingestellt wird an einer Stelle, in den Einstellungen der Hülle; die
 Werkzeuge erben die Einstellung und erfahren einen Wechsel sofort.
 
-- Anbieter: **Ollama** (lokal, kostenlos) oder die **Claude API**
-  (kostenpflichtig), hinter einem Interface in `packages/ki`.
+- Drei Anbieter, hinter einem Interface in `packages/ki`: **Ollama** (lokal,
+  kostenlos), die **Claude API** und **jeder Dienst mit der Schnittstelle von
+  OpenAI** — Groq, Mistral, Together, OpenRouter, ein lokales LM Studio. Für
+  den letzten werden Adresse, Modell und Schlüssel eingetragen.
 - Der API-Schlüssel wird mit dem Schlüsselbund des Systems verschlüsselt und
   erreicht den Renderer nie. Alle Netzaufrufe laufen im Hauptprozess, die CSP
   bleibt auf `connect-src 'self'`.
 - Ohne Anbieter läuft alles weiter: KI ist überall eine Zugabe.
-- Ein Schlüssel eines anderen Anbieters passt derzeit nicht; ein Anbieter für
-  OpenAI-kompatible Dienste steht im Backlog.
 
 ## Backstory Creator
 
@@ -162,13 +165,19 @@ lesbar. Eigene Angaben im Kopf bleiben beim Speichern erhalten.
 | Verlinkte Notiz öffnen | Strg (Cmd) halten und klicken |
 | Speichern | Strg+S, oder Autosave |
 | Suchen und ersetzen | Strg+F, springen mit F3 / Umschalt+F3 |
+| Text markieren und verlinken | markieren, dann `[[` tippen |
 | Notiz umbenennen, löschen | Rechtsklick in der Notizliste |
+| Rechtschreibung korrigieren | Rechtsklick auf das angestrichene Wort |
+| Abschnitt einklappen | Pfeil links neben der Überschrift |
+| Vergrößern | Strg und Mausrad, Strg+Plus, Strg+Minus, Strg+0 |
+| Unterstreichen | Knopf U, oder Strg+U |
 | Kampagne sichern | Menü „Kampagne" → „Als ZIP sichern" |
+| Sicherung einlesen | Menü „Kampagne" → „Aus ZIP einlesen" |
 | Steckbrief anpassen | Menü „Kampagne" → „Notiztypen" |
 | Bild einfügen | Knopf ▣, oder Bild in den Text ziehen |
 | Assistent fragen | Sidebar im Editor |
 | Vorschläge zum Weiterschreiben | „Schreibhilfe" in der Kopfzeile |
-| Export | „MD" oder „PDF"; ganze Kampagne über Menü „Kampagne" |
+| Export | Knopf „Export" in der Kopfzeile: Notiz oder ganze Kampagne |
 | Alten Stand zurückholen | „Verlauf" in der Kopfzeile |
 | Beziehungsnetz | „Graph" in der Kopfzeile |
 | Tastenkürzel | „Hilfe" in der Kopfzeile |
@@ -190,7 +199,20 @@ Modell in Stichpunkten:
 - **Versionsverlauf** sichert vor dem Überschreiben, höchstens alle fünf
   Minuten. Wiederherstellen ist selbst umkehrbar.
 - **Der Assistent** schreibt nichts in den Text; er fragt, prüft gegen
-  verlinkte Notizen und gibt Stilrückmeldung.
+  verlinkte Notizen und gibt Stilrückmeldung. Ob die verlinkten Notizen
+  mitgeschickt werden, entscheidet ein Kästchen — es nennt auch, wie viele
+  es gerade wären.
+- **Der Zoom** gilt für alle Notizen und nur für das Editorfeld, 20 bis 500
+  Prozent. Er ändert nur die Darstellung: eine Schriftgröße im Markdown wäre
+  ein Formatzeichen, das kein anderes Programm versteht.
+- **Eingeklappte Abschnitte** sind ebenfalls nur Ansicht und stehen nie in
+  der Datei. Landet der Cursor in einem versteckten Block, klappt er wieder
+  auf — sonst schriebe man in Text, den niemand sieht.
+- **Der PDF-Export** kann ein Inhaltsverzeichnis und das Beziehungsnetz
+  mitgeben, und Wiki-Links werden darin zu Sprungzielen, wenn die gemeinte
+  Notiz mit exportiert wurde.
+- **Eigene Wörter** der Rechtschreibprüfung stehen in den Einstellungen und
+  lassen sich dort wieder entfernen.
 
 ```
 apps/backstory/src/shared/     Datenmodell, Wiki-Link-Parsing, Texte
@@ -294,6 +316,10 @@ Nicht in der CI dieses Repositories: der Rust-Anteil (`src-tauri/`,
 Der Speicherort des Backstory Creators liegt standardmäßig im
 Nutzerdatenverzeichnis und ist unter Einstellungen → Speicherort änderbar.
 
+Der Speicherort lässt sich auch als ZIP sichern und wieder einlesen. Eine
+eingelesene Kampagne bekommt immer eine neue Kennung — eine vorhandene wird
+nie überschrieben.
+
 ```
 <Speicherort>/                  Daten des Backstory Creators
   campaigns/<campaignId>/
@@ -325,7 +351,7 @@ Nutzerdatenverzeichnis und ist unter Einstellungen → Speicherort änderbar.
 | `npm test` | Kernlogik aller Workspaces |
 | `npm run typecheck` | Typen aller Workspaces |
 | `npm run smoke` | Gebaute Hülle: Start, Wechsel, KI, Symbole, NPC-Export |
-| `npm run smoke:backstory` | Kampagne, Notizen, Wiki-Link, Umbenennen |
+| `npm run smoke:backstory` | Kampagne, Notizen, Wiki-Link, Umbenennen, Rechtschreibung, Einlesen |
 | `npm run roundtrip` | Speichern verändert das Markdown nicht |
 | `npm run verify:package:suite -- <pfad>` | Gepacktes Paket kommt hoch |
 
