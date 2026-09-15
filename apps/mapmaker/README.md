@@ -1,185 +1,185 @@
 # TTRPG Map Editor
 
-*[This document in English: README.en.md](README.en.md)*
+*[Dieses Dokument auf Deutsch: README.de.md](README.de.md)*
 
-Karteneditor für Pen-&-Paper-Rollenspiele. Battlemaps und Weltkarten zeichnen — und
-als Universal VTT exportieren, **mit** Wänden, Türen und Lichtern statt sie dort
-nachzuzeichnen. Kompatibel mit Foundry VTT, Roll20 und Owlbear Rodeo.
+A map editor for pen-&-paper tabletop RPGs. Draw battlemaps and world maps — and
+export them as Universal VTT, **with** walls, doors and lights instead of retracing
+them there. Compatible with Foundry VTT, Roll20 and Owlbear Rodeo.
 
-Läuft im Browser, alles lokal. Keine Anmeldung, keine Cloud.
+Runs in the browser, entirely locally. No login, no cloud.
 
-> Dieses Projekt ist nicht offiziell mit Foundry Gaming LLC, Roll20 oder Owlbear
-> Rodeo verbunden und wird von keinem der drei unterstützt oder geprüft. Die Namen
-> stehen hier ausschließlich, um zu beschreiben, mit welchen Programmen die
-> exportierten Dateien zusammenarbeiten.
+> This project is not officially affiliated with, endorsed by, or reviewed by
+> Foundry Gaming LLC, Roll20, or Owlbear Rodeo. Their names appear here solely to
+> describe which programs the exported files work with.
 
-**Über dieses Projekt:** Code, Architektur und diese Dokumentation sind zum
-allergrößten Teil mit [Claude Code](https://claude.com/claude-code) entstanden,
-Anthropics KI-Assistenten — als eigenständig arbeitender Entwickler über viele
-Sitzungen hinweg, nicht nur als Autovervollständigung. Wer beitragen möchte: das ist
-ausdrücklich willkommen, unabhängig davon, ob mit oder ohne KI-Unterstützung
-gearbeitet wird.
+**About this project:** the code, architecture, and this documentation were built
+almost entirely with [Claude Code](https://claude.com/claude-code), Anthropic's AI
+assistant — acting as an independently working developer across many sessions, not
+just as autocomplete. Contributions are explicitly welcome, whether you work with
+AI assistance or without it.
 
-## Loslegen
+## Getting started
 
 ```bash
 npm install
 npm run dev
 ```
 
-Dann http://localhost:5173 öffnen.
+Then open http://localhost:5173.
 
-### Ohne Node: die Einzeldatei
+### Without Node: the single file
 
-Es gibt den Editor auch als **eine einzige HTML-Datei**, die man doppelklickt.
-Kein Node, kein npm, kein Server — der Browser reicht:
+The editor is also available as **a single HTML file** you can double-click.
+No Node, no npm, no server — a browser is enough:
 
 ```bash
-npm run build:portable      # ergibt dist-portable/index.html
+npm run build:portable      # produces dist-portable/index.html
 ```
 
-Wer nicht selbst bauen kann, lädt sie fertig herunter: unter *Actions* →
-*Portable Einzeldatei* den letzten Lauf öffnen und das Artefakt
-`TTRPG-Karteneditor` nehmen.
+If you can't build it yourself, download a ready-made copy: under *Actions* →
+*Portable Einzeldatei*, open the latest run and grab the `TTRPG-Karteneditor`
+artifact.
 
-Die Datei enthält alles — JavaScript, CSS, Schriften, Props. Speichern und Laden
-gehen über den normalen Dateidialog des Browsers, der Bild- und der VTT-Export
-ebenfalls. Nichts wird hochgeladen; die Datei arbeitet offline.
+The file contains everything — JavaScript, CSS, fonts, props. Saving and loading
+go through the browser's normal file dialog, as do the image and VTT export.
+Nothing is uploaded; the file works offline.
 
-### Wenn `npm run dev` unter Windows abbricht
+### If `npm run dev` fails on Windows
 
-Sieht der Abbruch so aus —
+If the failure looks like this —
 
 ```
 Error: Cannot find module @rollup/rollup-win32-x64-msvc.
   [cause]: Error: An Application Control policy has blocked this file.
 ```
 
-— dann **ist der Rat in der Meldung falsch.** Sie schlägt vor, `node_modules`
-und `package-lock.json` zu löschen und neu zu installieren. Das hilft hier
-nicht: die Datei ist vorhanden, aber Windows verweigert das Laden. Der
-entscheidende Satz steht erst darunter unter `cause`.
+— then **the advice in the message is wrong.** It suggests deleting `node_modules`
+and `package-lock.json` and reinstalling. That won't help here: the file exists,
+but Windows refuses to load it. The decisive sentence is the one below, under
+`cause`.
 
-Zwei Wege:
+Two ways forward:
 
-1. **Die Einzeldatei oben benutzen.** Sie braucht Rollup gar nicht.
-2. **Rollup durch seine WASM-Fassung ersetzen** — dieselbe Funktion, aber ohne
-   native Datei, an der die Richtlinie hängen bleibt. In die `package.json`:
+1. **Use the single file above.** It doesn't need Rollup at all.
+2. **Replace Rollup with its WASM build** — the same functionality, but without a
+   native file for the policy to block. In `package.json`:
 
    ```json
    "overrides": { "rollup": "npm:@rollup/wasm-node@^4" }
    ```
 
-   danach `npm install`. Geprüft mit Rollup 4.63: Dev-Server und Build laufen
-   damit durch. Der Build wird etwas langsamer — WASM statt nativem Code —, ist
-   aber sonst nicht zu unterscheiden.
+   then `npm install`. Verified with Rollup 4.63: the dev server and the build
+   both run fine this way. The build gets somewhat slower — WASM instead of
+   native code — but is otherwise indistinguishable.
 
-Der Punkt steht bewusst nicht als Voreinstellung in der `package.json`: wo die
-native Datei geladen werden darf, ist sie schneller.
+This isn't the default in `package.json` on purpose: wherever the native file is
+allowed to load, it's faster.
 
-## Was drin ist
+## What's inside
 
-**Karte und Raster**
-Kartengröße in Tile-Einheiten, nachträglich änderbar mit 9-Feld-Anker. Quadratraster
-und Hex in beiden Ausrichtungen. Rastergröße, Deckkraft, Farbe, Linienstärke und
-Versatz einstellbar. Fangen auf Tile, halbes, viertel Tile oder Eckpunkte.
+**Map and grid**
+Map size in tile units, resizable afterwards with a 9-point anchor. Square grid
+and hex in both orientations. Grid size, opacity, colour, line width and offset
+are all adjustable. Snapping to tile, half-tile, quarter-tile, or corner points.
 
-**Layer**
-Frei anlegbarer Stapel statt fester Ebenen. Beliebig viele Objekt-Layer, die gemischt
-Props, Zeichnungen und Text aufnehmen. Gruppen, Sichtbarkeit, Sperre, Deckkraft,
-Blendmodus, Export-Flag, Umsortieren, Zusammenführen. Grid und die VTT-Ebene stehen
-im selben Stapel und sind frei einsortierbar.
+**Layers**
+A freely arranged stack instead of a fixed set of layers. Any number of object
+layers, mixing props, drawings and text. Groups, visibility, lock, opacity, blend
+mode, export flag, reordering, merging. The grid and the VTT layer sit in the same
+stack and can be freely repositioned.
 
 **Props**
-Eingebaute prozedurale Vektor-Props — Steine, Bäume, Pflanzen, Möbel, Dungeon-Inventar.
-Jedes mit mehreren Varianten, frei skalierbar, drehbar und einfärbbar. Eigene
-PNG/WebP-Ordner lassen sich zusätzlich importieren.
+Built-in procedural vector props — rocks, trees, plants, furniture, dungeon
+dressing. Each with several variants, freely scalable, rotatable and tintable.
+Your own PNG/WebP folders can be imported as well.
 
-Größe, Farbe, Deckkraft und Spiegelung lassen sich als **Vorgabe für alle neuen
-Props** einstellen, statt jedes gesetzte Prop einzeln nachzustellen; die Vorschau
-am Zeiger zeigt sie mit. „Aus Auswahl übernehmen" macht ein zurechtgestelltes
-Prop zur Vorlage für die nächsten.
+Size, colour, opacity and mirroring can be set as a **default for all new
+props**, instead of adjusting every placed prop individually; the preview at the
+pointer shows it live. "Apply from selection" turns an already-adjusted prop
+into the template for the next ones.
 
-Die Griffe der Auswahl lassen sich **direkt anfassen**, ohne auf das
-Auswahl-Werkzeug zu wechseln — ein gerade gesetztes Prop ist also sofort drehbar
-und skalierbar. Alt gedrückt halten setzt stattdessen ein Prop, auch auf einem
-schon ausgewählten.
+Selection handles can be **grabbed directly**, without switching to the select
+tool — a prop you've just placed is immediately rotatable and scalable. Holding
+Alt places a prop instead, even on top of one that's already selected.
 
-**Streu-Pinsel**
-Verteilt mehrere Props gleichzeitig mit zufälliger Größe, Drehung und Farbnuance.
-Radius, Dichte, Wertebereiche, Mindestabstand und Randabfall einstellbar, als Preset
-speicherbar. Radieren mit rechter Maustaste. Ein Strich ist ein Undo-Schritt.
+**Scatter brush**
+Spreads several props at once with random size, rotation and colour variation.
+Radius, density, value ranges, minimum spacing and edge falloff are adjustable
+and can be saved as a preset. Erase with the right mouse button. One stroke is
+one undo step.
 
-**Zeichnen und Text**
-Freihand mit Glättung, Linie, Rechteck, Ellipse, Polygon — mit Kontur, Füllung und
-Blendmodus. Text wird direkt auf der Karte getippt, mehrzeilig, mit Schriftart,
-Größe, Ausrichtung, Laufweite und Kontur.
+**Drawing and text**
+Freehand with smoothing, line, rectangle, ellipse, polygon — with stroke, fill
+and blend mode. Text is typed directly on the map, multi-line, with font, size,
+alignment, letter spacing and outline.
 
-**Wände, Türen, Lichter**
-Eigene Ebene für alles, was das VTT bauen soll. Wandzüge mit Fang an Zellecken und
-an vorhandenen Wandpunkten, Türen sitzen auf Wänden und lassen sich öffnen und
-schließen, Lichter mit Reichweite in Tiles, Farbe, Stärke und Schatten. Dazu
-„Wände aus Flächen erzeugen": aus gezeichneten Räumen entstehen normale,
-editierbare Wandzüge.
+**Walls, doors, lights**
+A dedicated layer for everything the VTT should build. Wall runs snap to cell
+corners and existing wall points, doors sit on walls and can be opened and
+closed, lights have a range in tiles, colour, intensity and shadows. Plus
+"generate walls from shapes": drawn rooms become normal, editable wall runs.
 
-**Legende**
-Baut aus dem, was auf der Karte steht, eine Tafel: Farbfeld je Biom, Signatur je
-benutztem Prop. Jeder Eintrag lässt sich einzeln abwählen, und zusätzliche
-Einträge, die auf der Karte nicht vorkommen, lassen sich aufnehmen — sie stehen
-in der Tafel unter einer Trennlinie, damit klar bleibt, was die Karte zeigt und
-was nicht.
+**Legend**
+Builds a panel from what's actually on the map: a colour swatch per biome, a
+signature per prop in use. Every entry can be deselected individually, and
+additional entries that don't appear on the map can be added too — they sit in
+the panel below a divider, so it stays clear what the map shows and what it
+doesn't.
 
 **Export**
-PNG, WebP und JPEG mit wählbarer Auflösung. Universal VTT (`.uvtt`/`.dd2vtt`) für
-Foundry, Roll20 und Owlbear Rodeo — jeder Export wird sofort gegengelesen und die
-gefundenen Zahlen angezeigt. Projekte als `.ttmap` zum Weiterbearbeiten.
-`.dd2vtt`-Dateien lassen sich auch öffnen.
+PNG, WebP and JPEG at a chosen resolution. Universal VTT (`.uvtt`/`.dd2vtt`) for
+Foundry, Roll20 and Owlbear Rodeo — every export is immediately read back and
+the numbers it found are shown. Projects as `.ttmap` for further editing.
+`.dd2vtt` files can also be opened.
 
-## Foundry-Import
+## Importing into Foundry
 
-Foundry kann Universal VTT nicht von Haus aus lesen. Nötig ist das Modul
-[Universal Battlemap Importer](https://foundryvtt.com/packages/dd-import) (`dd-import`),
-kompatibel mit v13 und v14. Danach: `.dd2vtt` wählen, importieren — Wände, Türen und
-Lichter entstehen automatisch.
+Foundry cannot read Universal VTT out of the box. You need the
+[Universal Battlemap Importer](https://foundryvtt.com/packages/dd-import) module
+(`dd-import`), compatible with v13 and v14. Then: pick the `.dd2vtt` file, import
+— walls, doors and lights are created automatically.
 
-Beim Export fürs VTT das Grid abschalten. Foundry zeichnet ein eigenes, sonst liegen
-zwei übereinander.
+Turn the grid off when exporting for a VTT. Foundry draws its own, otherwise
+you'll get two on top of each other.
 
-## Tastenkürzel
+## Keyboard shortcuts
 
-| Taste | Wirkung |
+| Key | Effect |
 |---|---|
-| `V` / `P` / `B` | Auswahl / Prop / Pinsel |
-| `D` / `T` | Zeichnen / Text |
-| `W` / `O` / `L` | Wand / Tür / Licht |
-| `H` | Ansicht schieben |
-| Leertaste halten | Ansicht schieben |
-| Mausrad | Zoomen |
-| `Alt`+Mausrad | Pinselradius |
-| `Strg`+`Z` / `Strg`+`Y` | Rückgängig / Wiederholen |
-| `Strg`+`C` / `V` / `D` | Kopieren / Einfügen / Duplizieren |
-| `Alt`+Ziehen | Klonen beim Ziehen |
-| `Entf` | Löschen |
-| `[` / `]` | Nach hinten / nach vorn |
-| `Strg` beim Ziehen | Fangen aussetzen |
-| Griff anfassen (Prop) | Drehen/skalieren ohne Werkzeugwechsel |
-| `Alt`+Klick (Prop) | Prop setzen statt Auswahl anfassen |
-| `F1` | Hilfe und Steuerung |
+| `V` / `P` / `B` | Select / Prop / Brush |
+| `D` / `T` | Draw / Text |
+| `W` / `O` / `L` | Wall / Door / Light |
+| `H` | Pan the view |
+| Hold spacebar | Pan the view |
+| Mouse wheel | Zoom |
+| `Alt`+wheel | Brush radius |
+| `Ctrl`+`Z` / `Ctrl`+`Y` | Undo / Redo |
+| `Ctrl`+`C` / `V` / `D` | Copy / Paste / Duplicate |
+| `Alt`+drag | Clone while dragging |
+| `Del` | Delete |
+| `[` / `]` | Send backward / bring forward |
+| `Ctrl` while dragging | Suspend snapping |
+| Grab a handle (prop) | Rotate/scale without switching tools |
+| `Alt`+click (prop) | Place a prop instead of grabbing the selection |
+| `F1` | Help and controls |
 
-Die Oberfläche gibt es auf **Deutsch und Englisch** — umschaltbar im Hilfe-Dialog
-(`F1`), die Wahl wird gemerkt.
+The interface is available in **German and English** — switchable in the Help
+dialog (`F1`); the choice is remembered.
 
-## Entwicklung
+## Development
 
 ```bash
-npm test          # Tests
-npm run typecheck # Typprüfung
-npm run build     # Produktionsbuild
+npm test          # tests
+npm run typecheck # type checking
+npm run build     # production build
 ```
 
-Architektur und Projektregeln stehen in [CLAUDE.md](CLAUDE.md), offene Punkte in
-[BACKLOG.md](BACKLOG.md).
+Architecture and project conventions live in [CLAUDE.md](CLAUDE.md), open items
+in [BACKLOG.md](BACKLOG.md) — both in German for now.
 
-## Lizenz
+## License
 
-[MIT](LICENSE) — siehe die Datei `LICENSE` für den vollständigen Text.
+[GNU Affero General Public License v3.0 or later](../../LICENSE) — the same
+license as the rest of TTRPG-Tools. Free software: use it, change it, pass it
+on. If you offer a modified version over a network, its source has to be
+available too.

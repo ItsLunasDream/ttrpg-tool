@@ -1,431 +1,432 @@
 # TTRPG-Tools
 
-Werkzeuge für Pen-&-Paper-Kampagnen, die nebeneinander in einem Fenster
-laufen. Alles bleibt lokal auf der eigenen Platte.
+*[Dieses Dokument auf Deutsch: README.de.md](README.de.md)*
 
-- **Initiative Tracker** — Kampfreihenfolge, Trefferpunkte, Zustände mit
-  Dauer, Geländeereignisse. Systemneutral, mit Gruppen für Monsterhorden.
-- **Würfel** — Pool aus d4 bis d100 und einem eigenen Würfel, flach oder als
-  fallende Körper. Auch mit Abzug (`1d20 − 1d4`).
-- **Story Creator** — Figuren, Orte, Beziehungen: Rich-Text-Editor,
-  Wiki-Links, Steckbrieffelder, gespeichert als Markdown.
-- **NPC Creator** — Randfiguren auf Knopfdruck, aus Tabellen oder per KI,
-  Export als Notiz in den Story Creator.
-- **Inspirationshilfe** — Gerüst für eine neue Kampagne: Aufhänger,
-  Fraktionen, Figuren, Orte, Verbindungen, Zeitstrahl. Aus Tabellen, auf
-  Wunsch mit KI.
-- **TTRPG Map Editor** — Battlemaps und Weltkarten zeichnen, Export als
-  Universal VTT.
+Tools for tabletop RPG campaigns, running side by side in one window. No
+account, no cloud: everything stays on your own disk. The one exception is
+the optional AI connection you set up yourself, and even that only speaks to
+the provider you entered.
 
-Arbeitstitel, Symbole und Werkzeugnamen sind vorläufig.
+- **Initiative Tracker** — turn order, hit points, conditions with a
+  duration, terrain events. System-neutral, with groups for monster hordes.
+- **Dice** — a pool from d4 to d100 plus a custom die, flat or as falling
+  bodies. Subtraction works too (`1d20 − 1d4`).
+- **Story Creator** — characters, places, relationships: rich-text editor,
+  wiki links, profile fields, stored as Markdown.
+- **NPC Creator** — background characters at the push of a button, from
+  tables or from an AI, exported as a note into the Story Creator.
+- **Inspiration** — the scaffold for a new campaign: hook, factions,
+  characters, places, connections, timeline. From tables, with AI if you
+  want it.
+- **TTRPG Map Editor** — draw battlemaps and world maps, export as Universal
+  VTT.
 
-## Fertige Anwendung herunterladen
+Working titles, icons and tool names are provisional.
 
-Ohne Node und npm:
+## Download a finished build
 
-1. Reiter **Actions** öffnen, obersten Lauf **Build** anklicken
-2. Unter **Artifacts** `ttrpg-tools-windows` herunterladen und entpacken
-3. Darin: `TTRPGTools-Setup-<version>.exe` (Installer) und
-   `TTRPGTools-portable-<version>.exe` (läuft ohne Installation)
+No Node, no npm needed:
 
-Hinweise:
+1. Open the **Actions** tab, click the topmost **Build** run
+2. Under **Artifacts**, download `ttrpg-tools-windows` and unpack it
+3. Inside: `TTRPGTools-Setup-<version>.exe` (installer) and
+   `TTRPGTools-portable-<version>.exe` (runs without installing)
 
-- SmartScreen warnt beim ersten Start, weil die Datei nicht signiert ist:
-  „Weitere Informationen" → „Trotzdem ausführen". Eine Signatur bräuchte ein
-  kostenpflichtiges Zertifikat.
-- Artefakte werden einen Tag aufbewahrt. Wer ein dauerhaftes Download-Ziel
-  will, legt ein Release an; der Workflow hängt die Dateien dann dort an.
+Notes:
 
-## Selbst bauen
+- SmartScreen warns on first launch because the file is not signed: "More
+  info" → "Run anyway". A signature would need a paid certificate.
+- Artifacts are kept for one day. For a permanent download, create a
+  release; the workflow attaches the files there.
 
-Nur nötig, wenn du am Code arbeiten willst.
+## Building it yourself
 
-Zwei Regeln, an denen sonst der Build scheitert:
+Only needed if you want to work on the code.
 
-- Alle Befehle im Projektordner ausführen, nicht im Benutzerordner.
-- **Nach jedem `git pull` einmal `npm install`.** Sonst fehlen Verweise auf
-  neue Workspace-Pakete. `scripts/pruefe-installation.mjs` läuft vor `dev`,
-  `start`, `build`, `test`, `typecheck` und den Rauchtests mit und sagt es im
-  Klartext statt `Rollup failed to resolve import`.
+Two rules, without which the build fails:
+
+- Run every command inside the project folder, not in your home folder.
+- **Run `npm install` once after every `git pull`.** Otherwise references to
+  new workspace packages are missing. `scripts/pruefe-installation.mjs` runs
+  before `dev`, `start`, `build`, `test`, `typecheck` and the smoke tests and
+  says so in plain words instead of `Rollup failed to resolve import`.
 
 ```bash
-cd Pfad\zum\Projektordner
+cd path\to\project
 npm install
-npm run dev             # Hülle im Entwicklungsmodus, mit Hot Reload
-npm start               # Produktionsbuild starten
-npm test                # Tests der Kernlogik, über alle Workspaces
+npm run dev             # shell in development mode, with hot reload
+npm start               # start the production build
+npm test                # core logic tests, across all workspaces
 npm run typecheck
-npm run smoke           # Rauchtest der gebauten Hülle
-npm run smoke:backstory # Rauchtest des Story Creators (eigener Lauf)
-npm run dist:win        # Windows-Installer nach apps/shell/release/
+npm run smoke           # smoke test of the built shell
+npm run smoke:backstory # smoke test of the Story Creator (separate run)
+npm run dist:win        # Windows installer into apps/shell/release/
 ```
 
-Weiteres:
+Also:
 
-- `scripts\bauen-win.cmd` nimmt unter Windows `git fetch -p`, `git pull`,
-  `npm install`, `npm run dist:win` auf einmal.
-- Einzeln entwickeln: `npm run dev:backstory`, `dev:mapmaker`,
+- `scripts\bauen-win.cmd` does `git fetch -p`, `git pull`, `npm install` and
+  `npm run dist:win` in one go on Windows.
+- Work on one tool alone: `npm run dev:backstory`, `dev:mapmaker`,
   `dev:initiative`, `dev:dice`, `dev:npc`.
-- Befehle ohne Zusatz meinen immer die Sammlung, nicht den Story Creator.
-- Gezielt für einen Workspace: `npm run <skript> -w apps/backstory`.
+- A command without a suffix always means the suite, not the Story Creator.
+- For a single workspace: `npm run <script> -w apps/backstory`.
 
-### Workspace-Aufbau
+### Workspace layout
 
-npm-Workspace-Monorepo; die Befehle an der Wurzel delegieren.
+An npm workspace monorepo; the commands at the root delegate.
 
 ```
-apps/shell/        Die Hülle: Fenster, Startmenü, Schiene, Einstellungen
+apps/shell/        The shell: window, start menu, rail, settings
 apps/backstory/    Story Creator
-apps/mapmaker/     TTRPG Map Editor (auch als Tauri-Anwendung baubar)
+apps/mapmaker/     TTRPG Map Editor (also buildable as a Tauri app)
 apps/initiative/   Initiative Tracker
-apps/dice/         Würfel
+apps/dice/         Dice
 apps/npc/          NPC Creator
-apps/inspiration/  Inspirationshilfe
-packages/dice/     Würfelausdrücke lesen und werfen
-packages/i18n/     Sprachwahl und Textersetzung
-packages/motion/   Zeiten, Kurven und Grundanimationen
-packages/ki/       Anbindung an Sprachmodelle (Ollama, Claude)
+apps/inspiration/  Inspiration
+packages/dice/     Reading and rolling dice expressions
+packages/i18n/     Language choice and text substitution
+packages/motion/   Timings, curves and base animations
+packages/ki/       Connection to language models (Ollama, Claude)
 ```
 
-`packages/*` sind plattformfrei: kein `node:*`, kein `electron`, keine
-Browser-Globals. Sie werden in beide Prozesse gebündelt.
+`packages/*` are platform-free: no `node:*`, no `electron`, no browser
+globals. They are bundled into both processes.
 
-## Die Hülle
+## The shell
 
-`apps/shell` ist der Haupteinstieg: ein rahmenloses `BaseWindow`, darin die
-Hülle über die volle Fläche und darüber die Ansicht des Werkzeugs, die oben
-und links Platz für Titelleiste und Schiene lässt.
+`apps/shell` is the main entry point: a frameless `BaseWindow` holding the
+shell across the full area, with the tool's view on top of it, leaving room
+for the title bar and the rail.
 
-- Einmal geöffnete Werkzeuge bleiben geladen und werden beim Wechseln nur
-  versteckt. Beim Zurückkommen steht alles noch da; der Preis ist Speicher,
-  rund 130 MB je Werkzeug.
-- Jedes Werkzeug läuft in einer eigenen Electron-Sitzung (`persist:<id>`).
-  Sonst teilten sich alle `localStorage` und IndexedDB, weil `file://` für
-  alle derselbe Ursprung ist.
-- Eingebettet wird über je eine `src/main/embed.ts` im Werkzeug. Denselben
-  Code benutzt auch dessen eigenständiger Hauptprozess.
-- Was es gibt und wie weit es ist, steht nur an einer Stelle:
+- A tool stays loaded once opened and is only hidden when you switch away.
+  Everything is still there when you come back; the price is memory, roughly
+  130 MB per tool.
+- Each tool runs in its own Electron session (`persist:<id>`). Otherwise they
+  would all share `localStorage` and IndexedDB, because `file://` is the same
+  origin for all of them.
+- Embedding goes through one `src/main/embed.ts` per tool. Its own standalone
+  main process uses the same code.
+- What exists and how far along it is lives in exactly one place:
   `apps/shell/src/shared/apps.ts`.
-- Die Sprache ist durchgekoppelt: eine Änderung gilt sofort überall.
-- Beim Öffnen wächst das Symbol des Werkzeugs über den Schirm; dauert das
-  Laden länger, kommt danach der Ladekreis.
-- **Zurück und vorwärts** wie im Browser, über die Daumentasten der Maus
-  (Windows) oder Alt und Pfeiltaste. Der Verlauf hält fünfzig Schritte und
-  merkt sich, *wo* man war — er hat mit Strg+Z nichts zu tun.
-- Direkt in einem Werkzeug starten: `TTRPG_TOOLS_START_APP=backstory`.
-- **Einführung beim ersten Mal**: beim allerersten Start ein Willkommen, beim
-  ersten Öffnen jedes Werkzeugs eine kurze Erklärung, was es tut. Danach nie
-  wieder; ein Knopf in den Einstellungen holt sie zurück. Die Texte stehen in
+- Language is wired through: a change applies everywhere at once.
+- On opening, the tool's icon grows across the screen; if loading takes
+  longer, the spinner follows.
+- **Back and forward** like in a browser, via the mouse's thumb buttons
+  (Windows) or Alt and an arrow key. The history keeps fifty steps and
+  remembers *where* you were — it has nothing to do with Ctrl+Z.
+- Start directly in one tool: `TTRPG_TOOLS_START_APP=backstory`.
+- **An introduction the first time**: a welcome on the very first start, and
+  a short explanation the first time you open each tool. Never again after
+  that; a button in the settings brings them back. The texts live in
   `apps/shell/src/shared/einfuehrung.ts`.
 
-### Eigene Symbole
+### Your own icons
 
-Die mitgelieferten Symbole sind vorläufig und lassen sich ersetzen:
+The bundled icons are provisional and can be replaced:
 
-1. Ordner `symbole` im Datenordner — gilt nur lokal.
-2. `apps/shell/symbole/` im Repository — gilt für alle, wird mit
-   ausgeliefert.
-3. Die eingebauten Vektoren, wenn nichts davon da ist.
+1. A `symbole` folder in the data directory — local only.
+2. `apps/shell/symbole/` in the repository — applies to everyone, ships with
+   the app.
+3. The built-in vectors, if neither is there.
 
-Dateiname ist die Kennung (`backstory.png`, `mapmaker.png`,
-`initiative.png`, `dice.png`, `npc.png`). Erlaubt sind PNG, JPG, WebP und
-GIF bis 2 MB. Kein SVG, weil eine SVG-Datei Skripte enthalten kann. Mehr in
+The file name is the identifier (`backstory.png`, `mapmaker.png`,
+`initiative.png`, `dice.png`, `npc.png`). PNG, JPG, WebP and GIF up to 2 MB
+are allowed. No SVG, because an SVG file can carry scripts. More in
 `apps/shell/symbole/LIESMICH.md`.
 
-### Paket der Sammlung
+### Packaging the suite
 
 ```bash
-npm run dist:suite:win        # Installer und portable exe
+npm run dist:suite:win        # installer and portable exe
 npm run dist:suite:linux      # AppImage
-npm run verify:package:suite -- <pfad-zum-programm>
+npm run verify:package:suite -- <path-to-the-program>
 ```
 
-Die Dateien der eingebetteten Anwendungen liegen über `extraResources` unter
-`resources/apps/<id>/dist`, bewusst neben dem asar-Archiv: was außerhalb
-liegt, lässt sich ansehen, wenn etwas fehlt.
+The embedded applications' files go to `resources/apps/<id>/dist` via
+`extraResources`, deliberately next to the asar archive: what sits outside it
+can be looked at when something is missing.
 
-Ausgeliefert wird die Sammlung. Die einzelnen Anwendungen bleiben baubar
-(`npm run dist:backstory:win`), sind aber kein Auslieferungsgegenstand.
+The suite is what gets shipped. The individual applications stay buildable
+(`npm run dist:backstory:win`) but are not a deliverable.
 
-## KI
+## AI
 
-Eingestellt wird an einer Stelle, in den Einstellungen der Hülle; die
-Werkzeuge erben die Einstellung und erfahren einen Wechsel sofort.
+Configured in one place, in the shell's settings; the tools inherit the
+setting and learn about a change immediately.
 
-- Drei Anbieter, hinter einem Interface in `packages/ki`: **Ollama** (lokal,
-  kostenlos), die **Claude API** und **jeder Dienst mit der Schnittstelle von
-  OpenAI** — Groq, Mistral, Together, OpenRouter, ein lokales LM Studio. Für
-  den letzten werden Adresse, Modell und Schlüssel eingetragen.
-- Der API-Schlüssel wird mit dem Schlüsselbund des Systems verschlüsselt und
-  erreicht den Renderer nie. Alle Netzaufrufe laufen im Hauptprozess, die CSP
-  bleibt auf `connect-src 'self'`.
-- Ohne Anbieter läuft alles weiter: KI ist überall eine Zugabe.
+- Three providers behind one interface in `packages/ki`: **Ollama** (local,
+  free), the **Claude API**, and **any service with OpenAI's interface** —
+  Groq, Mistral, Together, OpenRouter, a local LM Studio. For the last one you
+  enter address, model and key.
+- The API key is encrypted with the system keychain and never reaches the
+  renderer. All network calls run in the main process, the CSP stays at
+  `connect-src 'self'`.
+- Without a provider everything keeps working: AI is an addition everywhere,
+  never a requirement.
 
 ## Story Creator
 
-Notizen sind Markdown mit YAML-Kopf und in jedem Texteditor oder in Obsidian
-lesbar. Eigene Angaben im Kopf bleiben beim Speichern erhalten.
+Notes are Markdown with a YAML header, readable in any text editor or in
+Obsidian. Your own entries in the header survive saving.
 
-| Aktion | So geht's |
+| Action | How |
 | --- | --- |
-| Notiz verlinken | `[[` tippen, aus der Liste wählen |
-| Neue Notiz aus einem Link | `[[` tippen, Namen eingeben, „neu anlegen" |
-| Verlinkte Notiz öffnen | Strg (Cmd) halten und klicken |
-| Speichern | Strg+S, oder Autosave |
-| Suchen und ersetzen | Strg+F, springen mit F3 / Umschalt+F3 |
-| Text markieren und verlinken | markieren, dann `[[` tippen |
-| Notiz umbenennen, löschen | Rechtsklick in der Notizliste |
-| Rechtschreibung korrigieren | Rechtsklick auf das angestrichene Wort |
-| Abschnitt einklappen | Pfeil links neben der Überschrift |
-| Vergrößern | Strg und Mausrad, Strg+Plus, Strg+Minus, Strg+0 |
-| Unterstreichen | Knopf U, oder Strg+U |
-| Kampagne sichern | Menü „Kampagne" → „Als ZIP sichern" |
-| Sicherung einlesen | Menü „Kampagne" → „Aus ZIP einlesen" |
-| Steckbrief anpassen | Menü „Kampagne" → „Notiztypen" |
-| Bild einfügen | Knopf ▣, oder Bild in den Text ziehen |
-| Assistent fragen | Sidebar im Editor |
-| Vorschläge zum Weiterschreiben | „Schreibhilfe" in der Kopfzeile |
-| Export | Knopf „Export" in der Kopfzeile: Notiz oder ganze Kampagne |
-| Alten Stand zurückholen | „Verlauf" in der Kopfzeile |
-| Beziehungsnetz | „Graph" in der Kopfzeile |
-| Tastenkürzel | „Hilfe" in der Kopfzeile |
+| Link a note | type `[[`, pick from the list |
+| New note from a link | type `[[`, enter a name, "create" |
+| Open a linked note | hold Ctrl (Cmd) and click |
+| Save | Ctrl+S, or autosave |
+| Find and replace | Ctrl+F, jump with F3 / Shift+F3 |
+| Turn selected text into a link | select, then type `[[` |
+| Rename or delete a note | right-click in the note list |
+| Fix a spelling mistake | right-click the underlined word |
+| Collapse a section | the arrow left of the heading |
+| Zoom | Ctrl and the wheel, Ctrl+Plus, Ctrl+Minus, Ctrl+0 |
+| Underline | the U button, or Ctrl+U |
+| Back up a campaign | "Campaign" menu → "Save as ZIP" |
+| Read a backup back in | "Campaign" menu → "Load from ZIP" |
+| Adjust the profile fields | "Campaign" menu → "Note types" |
+| Insert an image | the ▣ button, or drag an image into the text |
+| Ask the assistant | sidebar in the editor |
+| Prompts to keep writing | "Writing help" in the header |
+| Export | the "Export" button: one note or the whole campaign |
+| Get an earlier state back | "History" in the header |
+| Relationship map | "Graph" in the header |
+| Keyboard shortcuts | "Help" in the header |
 
-Modell in Stichpunkten:
+The model in short:
 
-- **Kampagne** ist ein Container; eine Notiz gehört zu genau einer und ist
-  nur darin verlinkbar.
-- **Notiztypen** sind schema-getrieben und gehören der Kampagne
-  (`campaign.json`), nicht dem Code. Feldschlüssel bleiben beim Umbenennen
-  der Beschriftung stehen, und ein entferntes Feld löscht keine Werte.
-- **Wiki-Links** stehen als `[[Titel]]` im Klartext und werden beim
-  Umbenennen mitgezogen. Links auf fehlende Notizen sind anders gefärbt und
-  stehen im Panel „Offene Links".
-- **Beziehungen** hängen am Notizpaar und sind gerichtet, nicht Teil der
-  Link-Syntax.
-- **Bilder** werden in `assets/` kopiert, nicht verlinkt, und über das
-  Protokoll `backstory-asset://` angezeigt.
-- **Versionsverlauf** sichert vor dem Überschreiben, höchstens alle fünf
-  Minuten. Wiederherstellen ist selbst umkehrbar.
-- **Der Assistent** schreibt nichts in den Text; er fragt, prüft gegen
-  verlinkte Notizen und gibt Stilrückmeldung. Ob die verlinkten Notizen
-  mitgeschickt werden, entscheidet ein Kästchen — es nennt auch, wie viele
-  es gerade wären.
-- **Der Zoom** gilt für alle Notizen und nur für das Editorfeld, 20 bis 500
-  Prozent. Er ändert nur die Darstellung: eine Schriftgröße im Markdown wäre
-  ein Formatzeichen, das kein anderes Programm versteht.
-- **Eingeklappte Abschnitte** sind ebenfalls nur Ansicht und stehen nie in
-  der Datei. Landet der Cursor in einem versteckten Block, klappt er wieder
-  auf — sonst schriebe man in Text, den niemand sieht.
-- **Der PDF-Export** kann ein Inhaltsverzeichnis und das Beziehungsnetz
-  mitgeben, und Wiki-Links werden darin zu Sprungzielen, wenn die gemeinte
-  Notiz mit exportiert wurde.
-- **Eigene Wörter** der Rechtschreibprüfung stehen in den Einstellungen und
-  lassen sich dort wieder entfernen.
+- A **campaign** is a container; a note belongs to exactly one and can only
+  be linked within it.
+- **Note types** are schema-driven and belong to the campaign
+  (`campaign.json`), not to the code. Field keys survive renaming a label,
+  and removing a field deletes no values.
+- **Wiki links** sit as `[[Title]]` in plain text and are carried along when
+  a note is renamed. Links to missing notes are coloured differently and are
+  listed in the "Open links" panel.
+- **Relationships** hang on the pair of notes and are directed; they are not
+  part of the link syntax.
+- **Images** are copied into `assets/`, not linked, and shown through the
+  `backstory-asset://` protocol.
+- **Version history** saves before overwriting, at most every five minutes.
+  Restoring is itself undoable.
+- **The assistant** writes nothing into your text; it asks, checks against
+  linked notes and comments on style. A checkbox decides whether the linked
+  notes are sent along — it also says how many that would be right now.
+- **Zoom** applies to every note and only to the editor area, 20 to 500
+  percent. It changes the display only: a font size in the Markdown would be
+  a formatting character no other program understands.
+- **Collapsed sections** are display only as well and never end up in the
+  file. If the cursor lands inside a hidden block, it unfolds again —
+  otherwise you would be typing into text nobody can see.
+- **The PDF export** can include a table of contents and the relationship
+  map, and wiki links become jump targets in it when the note they mean was
+  exported too.
+- **Custom words** for the spell checker live in the settings and can be
+  removed there again.
 
 ```
-apps/backstory/src/shared/     Datenmodell, Wiki-Link-Parsing, Texte
-apps/backstory/src/main/       Hauptprozess: Dateien, IPC, Export, KI
-apps/backstory/src/preload/    Einzige Brücke zum Renderer
-apps/backstory/src/renderer/   React, TipTap-Editor, Notizindex, Graph
+apps/backstory/src/shared/     Data model, wiki link parsing, texts
+apps/backstory/src/main/       Main process: files, IPC, export, AI
+apps/backstory/src/preload/    The only bridge to the renderer
+apps/backstory/src/renderer/   React, TipTap editor, note index, graph
 ```
 
-Der Renderer hat keinen Node-Zugriff.
+The renderer has no Node access.
 
 ## Initiative Tracker
 
-Systemneutral: ein Eintrag hat Initiative, Trefferpunkte und Zustände — was
-die Zahlen bedeuten, entscheidet der Tisch.
+System-neutral: an entry has initiative, hit points and conditions — what the
+numbers mean is up to the table.
 
-- **Gruppen**: sechs Goblins würfeln eine Initiative und haben sechs
-  Trefferpunktsätze. Deshalb hängen die Trefferpunkte am Körper, nicht am
-  Eintrag.
-- **Zustände tragen eine Dauer**: offen, bis Beginn oder Ende des nächsten
-  Zuges, bis Rundenende. Sie zählen selbst ab.
-- **Geländeereignisse** laufen bei Initiative 20 und bei Gleichstand hinter
-  Figuren mit 20, wie die Unterschlupfaktion im Regelwerk. Sie haben keine
-  Trefferpunkte und werden nicht durchgestrichen.
-- **Leertaste heißt weiter.** Schaden wird getippt und mit Enter angewendet,
-  nicht geklickt — Schaden ist selten eins.
-- Rechtsklick auf eine Zeile öffnet ein Menü.
-- Begegnungen sind Dokumente (Markdown mit YAML-Kopf); der laufende Kampf ist
-  Sitzungszustand und liegt als JSON daneben.
-- Bilder werden in den eigenen Ordner kopiert, nicht verlinkt.
+- **Groups**: six goblins roll one initiative and have six sets of hit
+  points. That is why hit points hang on the body, not on the entry.
+- **Conditions carry a duration**: open-ended, until the start or end of the
+  next turn, until the end of the round. They count down by themselves.
+- **Terrain events** act on initiative 20 and, on a tie, behind characters
+  with 20, like the lair action in the rulebook. They have no hit points and
+  are not struck through.
+- **Space means next.** Damage is typed and applied with Enter, not clicked —
+  damage is rarely one.
+- Right-clicking a row opens a menu.
+- Encounters are documents (Markdown with a YAML header); the running fight
+  is session state and sits next to them as JSON.
+- Images are copied into the tool's own folder, not linked.
 
-Die Regeln stehen als reine Funktionen in `src/shared/kampf.ts`. Ein Fehler
-in der Zugreihenfolge fällt am Tisch niemandem auf und lässt sich nicht
-nachstellen — er muss sich prüfen lassen, bevor er passiert.
+The rules are pure functions in `src/shared/kampf.ts`. A mistake in turn
+order goes unnoticed at the table and cannot be reproduced — it has to be
+checkable before it happens.
 
 ## NPC Creator
 
-Eine Randfigur auf Knopfdruck: Name, Spezies, Tätigkeit, Auffälliges, Wille,
-Geheimnis, Eigenheit.
+A background character at the push of a button: name, species, occupation,
+something noticeable, what they want, a secret, a quirk.
 
-- Jedes Feld lässt sich einzeln neu würfeln, festhalten (Schloss) oder von
-  Hand überschreiben. Eine Figur trägt fertige Texte, keine Verweise in die
-  Tabellen.
-- Namensklang wählbar: feminin, maskulin, neutral.
-- **Mit KI** schlägt das Modell frei vor, nicht aus den Tabellen — sonst wäre
-  es ein langsamer und teurer Würfel. Ohne KI gelten die Tabellen.
-- **Export** legt eine Notiz in der offenen Kampagne des Story Creators
-  an. Die Notizliste dort aktualisiert sich sofort.
-- Gewürfelt wird in der Arbeitssprache; eine fertige Figur wechselt die
-  Sprache nicht mit, sonst überschriebe eine Übersetzung Handarbeit.
+- Every field can be rerolled on its own, locked, or overwritten by hand. A
+  character carries finished text, not references into the tables.
+- The sound of the name is selectable: feminine, masculine, neutral.
+- **With AI** the model suggests freely rather than from the tables —
+  otherwise it would be a slow and expensive die. Without AI the tables
+  apply.
+- **Export** creates a note in the Story Creator's open campaign. The note
+  list there updates immediately.
+- Rolling happens in the working language; a finished character does not
+  switch languages with it, or a translation would overwrite handwritten
+  text.
 
-Die Erzeugung steht als reine Funktion in `src/shared/erzeuge.ts`, die
-Modellaufgaben in `src/shared/kiAufgaben.ts`.
+Generation is a pure function in `src/shared/erzeuge.ts`, the model's tasks
+are in `src/shared/kiAufgaben.ts`.
 
-## Inspirationshilfe
+## Inspiration
 
-Das leere Blatt am Anfang einer Kampagne. Sechs Bausteine, ein Knopf:
-Aufhänger, Fraktionen, Figuren, Orte, Verbindungen und ein Zeitstrahl —
-was passiert, wenn die Gruppe nichts tut.
+The blank page at the start of a campaign. Six building blocks, one button:
+hook, factions, characters, places, connections, and a timeline of what
+happens if the party does nothing.
 
-- **Ohne KI vollständig.** Die Bausteine werden aus kombinierenden Tabellen
-  gezogen: über eine Million verschiedene Aufhänger, ebenso viele Orte und
-  Figuren. Die Zahl steht in der Oberfläche und ist aus den Tabellen
-  nachgerechnet, nicht behauptet.
-- **Vier Regler**: Umfang (Abend, Bogen, Kampagne), Region, Thema, Tonfall.
-  Region, Thema und Tonfall sind freie Felder mit Vorschlagsliste; bekannte
-  Begriffe verengen die Tabellen, eigene lassen sie offen.
-- **Verbindungen sind gerichtet**: A sieht B als Mentorin, B sieht A als
-  Bedrohung. Jede Figur hängt an mindestens einer anderen.
-- **Schloss je Baustein**, wie im NPC Creator. Der Knopf am Baustein selbst
-  würfelt ihn trotzdem neu.
-- **Alles ist von Hand überschreibbar.** Ein Wurf ist ein Vorschlag, kein
-  Ergebnis. Wer einen Satz selbst schreibt, hält den Baustein damit auch
-  fest — das nächste „Alles würfeln" nimmt ihn nicht mit.
-- **Figuren, die es schon gibt**, lassen sich aus der offenen Kampagne holen
-  (und damit auch die des NPC Creators, der dort ablegt). Sie werden gleich
-  ins Geflecht eingehängt und bekommen beim Übernehmen keine zweite Notiz.
-- **Das Geflecht als Bild**: Figuren als Punkte, Verbindungen als Pfeile.
-  Die Liste darunter sagt, was zwischen zweien liegt; das Bild sagt, wo die
-  Geschichte dicht ist und wer am Rand steht.
-- **„Karte anlegen"** an jedem Ort öffnet den Karteneditor und beginnt dort
-  eine Karte unter diesem Namen — mit dem, was über den Ort bekannt ist, als
-  Notiz-Pins darauf. Gezeichnet wird nichts: eine Karte aus Text zu erzeugen
-  hieße, das Datenmodell des Karteneditors von außen zu bedienen. Steht auf
-  der offenen Karte schon etwas, fragt er vorher nach.
-- **Mit KI** schlägt das Modell einen Baustein frei vor, nicht aus den
-  Tabellen — mit dem bisherigen Entwurf als Umgebung. Sie versteht auch
-  eigene Regionen wie „Schwebende Inseln", mit denen die Tabellen nichts
-  anfangen können. Ohne KI gelten die Tabellen.
-- **Die Welt**: bei den KI-Knöpfen kommen ein, zwei Sätze dazu, in welcher
-  Welt das spielt — eigene Angaben wie „Cyberpunk City" gelten dabei wörtlich.
-  Gewürfelt bleibt das leer, die Tabellen liefern Bausteine, keine Welt.
-- **„Alles von der KI"** entwirft alle sechs Bausteine in einer Antwort und
-  aufeinander bezogen: die Fraktion kennt den Aufhänger, die Verbindung
-  kennt die Figuren. Was das Modell ausläßt, kommt aus den Tabellen, was zu
-  viel ist, fällt weg — der eingestellte Umfang gilt —, und festgehaltene
-  Bausteine bleiben stehen.
-- **Übernehmen** legt je Figur, Ort und Fraktion eine Notiz in der offenen
-  Kampagne an, dazu eine Übersicht mit Wiki-Verweisen — der Graph im
-  Story Creator hat sofort etwas zu zeichnen. Entwurf hier, Wahrheit
-  dort: eine eigene Ablage gibt es nicht.
+- **Complete without AI.** The blocks are drawn from combining tables: over a
+  million different hooks, as many places and as many characters. The number
+  is shown in the interface and is computed from the tables, not claimed.
+- **Four dials**: scope (evening, arc, campaign), region, theme, tone.
+  Region, theme and tone are free fields with a suggestion list; known terms
+  narrow the tables, your own leave them open.
+- **Connections are directed**: A sees B as a mentor, B sees A as a threat.
+  Every character hangs off at least one other.
+- **A lock per block**, as in the NPC Creator. The button on the block itself
+  rerolls it anyway.
+- **Everything can be overwritten by hand.** A roll is a suggestion, not a
+  result. Writing a sentence yourself also pins that block — the next "roll
+  everything" leaves it alone.
+- **Characters that already exist** can be pulled in from the open campaign
+  (including the NPC Creator's, which files them there). They are hooked into
+  the web right away and get no second note when taken over.
+- **The web as a picture**: characters as dots, connections as arrows. The
+  list below says what lies between two of them; the picture says where the
+  story is dense and who stands at the edge.
+- **"Start a map"** on any place opens the Map Editor and begins a map under
+  that name — with what is known about the place as note pins on it. Nothing
+  is drawn: generating a map from text would mean driving the Map Editor's
+  data model from outside. If the open map already has something on it, it
+  asks first.
+- **With AI** the model suggests a block freely rather than from the tables,
+  with the draft so far as context. It also understands regions of your own,
+  like "floating islands", that the tables can do nothing with. Without AI
+  the tables apply.
+- **The world**: the AI buttons add a sentence or two about the world this
+  plays in — your own entries, like "cyberpunk city", are taken literally.
+  Rolled, it stays empty: the tables deliver building blocks, not a world.
+- **"All from AI"** drafts all six blocks in one answer and relates them to
+  each other: the faction knows the hook, the connection knows the
+  characters. What the model leaves out comes from the tables, what is too
+  much is dropped — the chosen scope applies — and pinned blocks stay as they
+  are.
+- **Taking it over** creates a note per character, place and faction in the
+  open campaign, plus an overview with wiki links — the graph in the Story
+  Creator has something to draw right away. Draft here, truth there: there is
+  no second store for the same world.
 
-Konzept und offene Punkte: `docs/inspirationshilfe.md`.
+Concept and open points: `docs/inspirationshilfe.md` (German).
 
-## Würfel
+## Dice
 
-- **Die Form ist das Einzige, woran man eine Würfelart erkennt** — Farbe und
-  Muster gelten für alle. Deshalb sind die Umrisse die bekannten Silhouetten,
-  nicht die geometrisch korrekten Projektionen.
-- Auswahl ist eine Zahl je Art und darf negativ sein: `3` beim d20 und `-2`
-  beim d4 heißt `3d20 - 2d4`. Linksklick legt dazu, Rechtsklick nimmt weg.
-- Die Zahlenfarbe wird aus der Leuchtdichte nach WCAG gerechnet, damit sie
-  auf jeder Würfelfarbe lesbar bleibt.
-- Effekte: Glitzer beim Höchstwurf, violette Streifen bei einer 1, je
-  einzeln abschaltbar. Abzugswürfel bekommen keinen.
-- Der Verlauf hält die letzten 40 Würfe nur für die Sitzung.
+- **Shape is the only thing that tells one kind of die from another** —
+  colour and pattern apply to all of them. That is why the outlines are the
+  familiar silhouettes, not geometrically correct projections.
+- The selection is one number per kind and may be negative: `3` on the d20
+  and `-2` on the d4 means `3d20 - 2d4`. Left-click adds, right-click takes
+  away.
+- The number's colour is computed from WCAG luminance so it stays readable on
+  any die colour.
+- Effects: sparkle on a maximum roll, purple stripes on a 1, each can be
+  switched off. Subtracted dice get none.
+- The history keeps the last 40 rolls for the session only.
 
-**Als Körper (3D):** ein Schalter im Aussehen-Bereich lässt die Würfel fallen
-statt flache Umrisse zu drehen. Aus ist der Standard, weil die Darstellung
-Grafikbeschleunigung braucht; fehlt sie, bleibt es automatisch flach.
+**As bodies (3D):** a switch in the appearance section drops the dice instead
+of spinning flat outlines. Off is the default, because the display needs
+graphics acceleration; without it, it stays flat automatically.
 
-**Die Physik bestimmt nicht das Ergebnis.** Gewürfelt wird mit `wuerfle()`,
-einer reinen Funktion. Die Simulation lässt die Körper fallen; danach wird
-die Beschriftung so umnummeriert, dass oben das Ergebnis steht — paarweise
-mit den gegenüberliegenden Flächen, damit die Summenregel gilt. d100 und der
-eigene Würfel sind unbeschriftete Kugeln, für 37 oder 100 Seiten gibt es
-keinen Körper.
+**The physics does not decide the result.** Rolling happens in `wuerfle()`, a
+pure function. The simulation lets the bodies fall; afterwards the labels are
+renumbered so the result faces up — in pairs with the opposite faces, so the
+sum rule still holds. The d100 and the custom die are unlabelled spheres;
+there is no body for 37 or 100 sides.
 
-Gemessen (ohne Grafikkarte, Software-WebGL): 100 Würfel liegen nach 211
-Schritten und 1635 ms Rechenzeit; die Anzeige ist auf gut zwei Sekunden
-gedeckelt. three.js und cannon-es lassen das Bündel von 157 auf 724 kB
-wachsen.
+Measured (no graphics card, software WebGL): 100 dice come to rest after 211
+steps and 1635 ms of compute; the display is capped at a little over two
+seconds. three.js and cannon-es grow the bundle from 157 to 724 kB.
 
 ## TTRPG Map Editor
 
-`apps/mapmaker` kam als eigenständiges Repository dazu und bringt eine eigene
-Historie und eine eigene `CLAUDE.md` mit — dort steht das Eigentliche. Zwei
-Anpassungen für den Workspace:
+`apps/mapmaker` joined as a standalone repository and brings its own history
+and its own `CLAUDE.md` — that is where the substance is. Two adjustments for
+the workspace:
 
-- `vite.config.ts` setzt `base: './'`. Ohne das zeigen die Pfade der gebauten
-  `index.html` unter `file://` und in einer `WebContentsView` ins Leere.
-- Die Vite-Plugins tragen eine Typ-Notlösung (`as Plugin[]`): der Workspace
-  teilt sich `@vitejs/plugin-react` mit Apps auf Vite 5, während diese
-  Anwendung Vite 6 benutzt. Zur Laufzeit folgenlos.
+- `vite.config.ts` sets `base: './'`. Without it, the built `index.html`'s
+  paths point nowhere under `file://` and in a `WebContentsView`.
+- The Vite plugins carry a typing workaround (`as Plugin[]`): the workspace
+  shares `@vitejs/plugin-react` with apps on Vite 5 while this application
+  uses Vite 6. No effect at runtime.
 
-Nicht in der CI dieses Repositories: der Rust-Anteil (`src-tauri/`,
-`npm run tauri:dev`/`tauri:build`), der End-to-End-Lauf unter `e2e/` und die
-`build:portable`-Variante. Alle drei laufen lokal unverändert.
+Not part of this repository's CI: the Rust side (`src-tauri/`,
+`npm run tauri:dev`/`tauri:build`), the end-to-end run under `e2e/`, and the
+`build:portable` variant. All three run locally, unchanged.
 
-## Datenablage
+## Where the data lives
 
-Der Speicherort des Story Creators liegt standardmäßig im
-Nutzerdatenverzeichnis und ist unter Einstellungen → Speicherort änderbar.
+The Story Creator's storage location defaults to the user data directory and
+can be changed under Settings → Storage location.
 
-Der Speicherort lässt sich auch als ZIP sichern und wieder einlesen. Eine
-eingelesene Kampagne bekommt immer eine neue Kennung — eine vorhandene wird
-nie überschrieben.
+That location can also be backed up as a ZIP and read back in. A campaign
+read back in always gets a new identifier — an existing one is never
+overwritten.
 
 ```
-<Speicherort>/                  Daten des Story Creators
+<storage location>/             Story Creator data
   campaigns/<campaignId>/
     campaign.json
-    notes/<noteId>.md           YAML-Frontmatter + Markdown
-    assets/                     Bilder der Kampagne
-    history/<noteId>/           Frühere Stände
-  writing-prompts.de.json       Vorschläge der Schreibhilfe, frei bearbeitbar
+    notes/<noteId>.md           YAML front matter + Markdown
+    assets/                     the campaign's images
+    history/<noteId>/           earlier states
+  writing-prompts.de.json       writing-help prompts, freely editable
   writing-prompts.en.json
 
-<Nutzerdatenverzeichnis>/       Daten der Hülle
-  einstellungen.json            Sprache, KI, verschlüsselter Schlüssel
-  fenster.json                  Fenstergröße und -stelle
-  symbole/                      Eigene App-Symbole
+<user data directory>/          the shell's data
+  einstellungen.json            language, AI, encrypted key
+  fenster.json                  window size and position
+  symbole/                      your own app icons
 ```
 
-- Eine selbst abgelegte Markdown-Datei in `notes/` wird mitgelesen. Fehlt der
-  YAML-Kopf, dient die erste Überschrift als Titel. Der Dateiname wird zur ID
-  und darf nur Buchstaben, Ziffern, `-` und `_` enthalten.
-- Die Anwendung läuft nur einmal; ein zweiter Start holt das Fenster nach
-  vorn.
-- Jede Datei trägt eine `schemaVersion` für spätere Migrationen.
-- Voreingestellte Sprache ist Englisch; eine einmal getroffene Wahl bleibt.
+- A Markdown file you drop into `notes/` yourself is read along. Without a
+  YAML header the first heading serves as the title. The file name becomes
+  the ID and may only contain letters, digits, `-` and `_`.
+- The application runs only once; a second start brings the window to the
+  front.
+- Every file carries a `schemaVersion` for later migrations.
+- The default language is English; a choice you make once sticks.
 
 ## Tests
 
-| Befehl | Was er prüft |
+| Command | What it checks |
 | --- | --- |
-| `npm test` | Kernlogik aller Workspaces |
-| `npm run typecheck` | Typen aller Workspaces |
-| `npm run smoke` | Gebaute Hülle: Start, Wechsel, KI, Symbole, NPC-Export |
-| `npm run smoke:backstory` | Kampagne, Notizen, Wiki-Link, Umbenennen, Rechtschreibung, Einlesen |
-| `npm run roundtrip` | Speichern verändert das Markdown nicht |
-| `npm run verify:package:suite -- <pfad>` | Gepacktes Paket kommt hoch |
+| `npm test` | core logic of all workspaces |
+| `npm run typecheck` | types of all workspaces |
+| `npm run smoke` | the built shell: start, switching, AI, icons, NPC export, introductions |
+| `npm run smoke:backstory` | campaign, notes, wiki link, renaming, spelling, reading back in |
+| `npm run roundtrip` | saving does not change the Markdown |
+| `npm run verify:package:suite -- <path>` | the packaged build comes up |
 
-Zu beachten:
+Worth knowing:
 
-- `smoke` und `smoke:backstory` sind **zwei getrennte Läufe**. Wer nur den
-  ersten anstößt, übersieht Regressionen im Story Creator.
-- Der Rauchtest läuft gegen die ungepackte App. Ob im Installationspaket
-  etwas fehlt, sieht nur `verify:package`. Beides läuft in der CI, bevor die
-  Windows-Anwendung hochgeladen wird.
-- Der Rundlauf ist nötig, weil die Tests der Kernlogik nur Markdown ↔ HTML
-  prüfen. Kennt das Editor-Schema ein Element nicht, fällt es beim Laden weg
-  und ist nach dem Speichern verloren — so gingen früher Tabellen, Links und
-  tiefe Überschriften verloren.
+- `smoke` and `smoke:backstory` are **two separate runs**. Starting only the
+  first one misses regressions in the Story Creator.
+- The smoke test runs against the unpacked app. Whether something is missing
+  from the installer is only seen by `verify:package`. Both run in CI before
+  the Windows application is uploaded.
+- The round trip is needed because the core logic tests only check Markdown ↔
+  HTML. If the editor schema does not know an element, it is dropped on load
+  and lost after saving — that is how tables, links and deep headings were
+  lost in the past.
 
-Unter Linux mit Xvfb:
+On Linux with Xvfb:
 
 ```bash
 npm run dist:backstory:linux:dir
@@ -433,18 +434,43 @@ xvfb-run -a npm run verify:package -w apps/backstory -- \
   "$PWD/apps/backstory/release/linux-unpacked/backstory-creator"
 ```
 
-## Stand und Grenzen
+## State and limits
 
-Alle fünf Werkzeuge laufen eingebettet; `encounter` ist geplant und noch
-nicht anklickbar.
+All six tools run embedded; `encounter` is planned and not clickable yet.
 
-Bekannte Grenzen:
+Known limits:
 
-- Beim Kampagnenwechsel werden alle Notizen geladen. Für einige hundert
-  unkritisch, bei deutlich mehr bräuchte es einen Index.
-- Umbenennen schreibt alle betroffenen Dateien einzeln; ein Absturz
-  mittendrin ließe einen Teil der Links auf dem alten Namen.
-- Mehrdeutige Namen (gleicher Titel oder Alias) werden im Index erfasst, in
-  der Oberfläche aber nicht gesondert angezeigt.
+- Switching campaigns loads every note. Fine for a few hundred; well beyond
+  that it would need an index.
+- Renaming writes every affected file one by one; a crash in between would
+  leave part of the links on the old name.
+- Ambiguous names (same title or alias) are recorded in the index but not
+  called out in the interface.
 
-Offene Aufgaben und geplante Phasen: [BACKLOG.md](BACKLOG.md).
+Open tasks and planned phases: [BACKLOG.md](BACKLOG.md) (German).
+
+## Trademarks
+
+This project is not affiliated with, endorsed by or reviewed by Foundry
+Gaming LLC, Roll20, Owlbear Rodeo, Obsidian, Anthropic or Ollama. Those names
+appear here solely to describe which programs and services the tools work
+with.
+
+## About this project
+
+Code, architecture and this documentation were to a very large extent written
+with [Claude Code](https://claude.com/claude-code), Anthropic's AI assistant —
+as a developer working on its own across many sessions, not just as
+autocomplete. Contributions are welcome, with or without AI assistance.
+
+Code comments, commit messages and the project documents
+(`KONVENTIONEN.md`, `BACKLOG.md`, `docs/`) are in German. The interface is
+available in German and English.
+
+## License
+
+[GNU Affero General Public License v3.0 or later](LICENSE).
+
+Free software: you may use it, change it and pass it on. If a modified
+version is offered over a network, its source has to be available too.
+Without any warranty, as described in the license.
