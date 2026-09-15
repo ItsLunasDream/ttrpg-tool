@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import type { AiTask } from '../../shared/types';
+import { leseAntwort, type Stueck } from '../../shared/antwortMarkdown';
 import { useAssistant } from '../assistant';
 import { useT } from '../i18n';
 
@@ -26,6 +27,64 @@ const TASKS: { task: AiTask; key: 'ai.questions' | 'ai.consistency' | 'ai.style'
   { task: 'consistency', key: 'ai.consistency' },
   { task: 'style', key: 'ai.style' }
 ];
+
+/**
+ * Die Antwort mit ihrer Auszeichnung.
+ *
+ * Aus Bausteinen gebaut, nicht aus HTML: die Antwort kommt von einem
+ * Sprachmodell, und was daraus kommt, wird nie als Markup eingesetzt.
+ */
+function Stuecke({ stuecke }: { stuecke: Stueck[] }) {
+  return (
+    <>
+      {stuecke.map((stueck, position) => {
+        if (stueck.art === 'fett') return <strong key={position}>{stueck.text}</strong>;
+        if (stueck.art === 'kursiv') return <em key={position}>{stueck.text}</em>;
+        if (stueck.art === 'code') return <code key={position}>{stueck.text}</code>;
+        return <Fragment key={position}>{stueck.text}</Fragment>;
+      })}
+    </>
+  );
+}
+
+function Antwort({ text, className }: { text: string; className: string }) {
+  return (
+    <div className={className}>
+      {leseAntwort(text).map((baustein, position) => {
+        if (baustein.art === 'code') {
+          return (
+            <pre className="assistant__code" key={position}>
+              {baustein.text}
+            </pre>
+          );
+        }
+
+        if (baustein.art === 'ueberschrift') {
+          return (
+            <p className="assistant__heading" key={position}>
+              <Stuecke stuecke={baustein.stuecke} />
+            </p>
+          );
+        }
+
+        if (baustein.art === 'liste') {
+          const punkte = baustein.punkte.map((punkt, stelle) => (
+            <li key={stelle}>
+              <Stuecke stuecke={punkt} />
+            </li>
+          ));
+          return baustein.nummeriert ? <ol key={position}>{punkte}</ol> : <ul key={position}>{punkte}</ul>;
+        }
+
+        return (
+          <p key={position}>
+            <Stuecke stuecke={baustein.stuecke} />
+          </p>
+        );
+      })}
+    </div>
+  );
+}
 
 /**
  * Das Gespraech mit dem Assistenten. Der Text der Notiz wird nie angefasst:
@@ -73,7 +132,7 @@ export function AssistantThread({ status, variant }: Props) {
         {messages.map((message, position) => (
           <div className={`assistant__turn assistant__turn--${message.role}`} key={position}>
             <span className="assistant__role">{t(message.role === 'user' ? 'ai.you' : 'ai.assistant')}</span>
-            <div className="assistant__answer">{message.content}</div>
+            <Antwort className="assistant__answer" text={message.content} />
           </div>
         ))}
 
@@ -82,7 +141,7 @@ export function AssistantThread({ status, variant }: Props) {
         {streaming ? (
           <div className="assistant__turn assistant__turn--assistant">
             <span className="assistant__role">{t('ai.assistant')}</span>
-            <div className="assistant__answer is-streaming">{streaming}</div>
+            <Antwort className="assistant__answer is-streaming" text={streaming} />
           </div>
         ) : null}
 

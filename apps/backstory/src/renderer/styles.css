@@ -1437,6 +1437,46 @@ mark {
   max-height: 320px;
   overflow-y: auto;
   padding: 9px;
+}
+
+/* Zeilenumbrueche innerhalb eines Absatzes bleiben stehen, Abstaende
+   zwischen den Bausteinen macht dagegen der Aufbau. */
+.assistant__answer p {
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+}
+
+.assistant__answer > *:last-child {
+  margin-bottom: 0;
+}
+
+.assistant__answer .assistant__heading {
+  font-weight: 600;
+}
+
+.assistant__answer ul,
+.assistant__answer ol {
+  margin: 0 0 6px;
+  padding-left: 18px;
+}
+
+.assistant__answer li {
+  margin-bottom: 2px;
+}
+
+.assistant__answer code {
+  background: var(--bg);
+  border-radius: 3px;
+  font-size: 11px;
+  padding: 1px 3px;
+}
+
+.assistant__code {
+  background: var(--bg);
+  border-radius: var(--radius);
+  margin: 0 0 6px;
+  overflow-x: auto;
+  padding: 7px 9px;
   white-space: pre-wrap;
 }
 
