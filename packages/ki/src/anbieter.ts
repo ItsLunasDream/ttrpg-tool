@@ -19,7 +19,7 @@
  * Schluessel statt fertiger Texte, sonst waeren die Meldungen bei englischer
  * Oberflaeche weiterhin deutsch. Die Texte dazu gehoeren der Anwendung, die
  * sie anzeigt; die Namen sind so gewaehlt, dass sie in das Woerterbuch des
- * Backstory Creators passen, das sie schon fuehrt.
+ * Story Creators passen, das sie schon fuehrt.
  */
 export type KiSchluessel =
   | 'error.aiNoConnection'

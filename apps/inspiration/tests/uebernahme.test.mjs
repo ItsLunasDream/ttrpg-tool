@@ -21,6 +21,7 @@ const ZU = { ...T.STANDARD_ZUSCHNITT, umfang: 'abend' };
 /** Eine vollstaendige Antwort, wie sie ein williges Modell schicken wuerde. */
 function volleAntwort() {
   return {
+    welt: 'Eine Hafenstadt aus Beton und Neon, in der es seit Jahren regnet.',
     aufhaenger: {
       ausloeser: 'Die Glocke hat um Mitternacht geläutet.',
       betroffene: 'Der Küster bittet um Hilfe.',
@@ -187,4 +188,55 @@ test('die Anfrage sagt, was festgehalten ist', () => {
   );
   assert.match(text, /steht fest/);
   assert.match(text, /der Aufhänger/);
+});
+
+test('die Weltbeschreibung kommt mit und steht im Entwurf', () => {
+  // Der Punkt aus der Rueckmeldung: bei eigenen Angaben („Cyberpunk City")
+  // fuehlte sich die Ausgabe nicht zugeschnitten an. Ein, zwei Saetze zur
+  // Welt sagen, was das Modell aus den Vorgaben gemacht hat.
+  const roh = T.uebernehmbarerEntwurf(volleAntwort());
+  assert.match(roh.welt, /Neon/);
+  const entwurf = T.baueEntwurf(roh, null, ZU, 'de', wuerfelgeber(11));
+  assert.match(entwurf.welt, /Neon/);
+});
+
+test('ohne neue Weltbeschreibung bleibt die alte stehen', () => {
+  const vorher = { ...T.LEERER_ENTWURF, welt: 'Alte Welt.' };
+  const ohne = { ...volleAntwort(), welt: '' };
+  const entwurf = T.baueEntwurf(T.uebernehmbarerEntwurf(ohne), vorher, ZU, 'de', wuerfelgeber(12));
+  assert.equal(entwurf.welt, 'Alte Welt.');
+});
+
+test('gewuerfelt gibt es keine Welt, und ein Wurf wirft die vorhandene nicht weg', () => {
+  const frisch = T.erzeugeEntwurf(ZU, 'de', wuerfelgeber(13));
+  assert.equal(frisch.welt, '');
+
+  const mitWelt = { ...frisch, welt: 'Beton und Neon.' };
+  const nochmal = T.erzeugeEntwurf(ZU, 'de', wuerfelgeber(14), [], mitWelt);
+  assert.equal(nochmal.welt, 'Beton und Neon.');
+});
+
+test('die Weltbeschreibung steht oben im Export', () => {
+  const entwurf = T.baueEntwurf(T.uebernehmbarerEntwurf(volleAntwort()), null, ZU, 'de', wuerfelgeber(15));
+  const markdown = T.alsMarkdown(entwurf, 'de');
+  assert.ok(markdown.indexOf('Neon') < markdown.indexOf('## Aufhänger'));
+
+  const notizen = T.alsNotizen(entwurf, 'de', 'Überblick');
+  assert.match(notizen[0].markdown, /Neon/);
+});
+
+test('die Anfrage besteht auf den eigenen Angaben', () => {
+  // Ohne diesen Nachdruck uebersetzt ein Modell „Cyberpunk City" gern in die
+  // vertraute Fantasystadt zurueck.
+  const text = T.anweisung(
+    {
+      aufgabe: 'entwurf',
+      vorgaben: { umfang: 'abend', region: 'Cyberpunk City', thema: 'Freiheit', tonfall: 'episch' },
+      entwurf: null
+    },
+    'de'
+  );
+  assert.match(text, /Cyberpunk City/);
+  assert.match(text, /bindend/);
+  assert.match(text, /"welt"/);
 });

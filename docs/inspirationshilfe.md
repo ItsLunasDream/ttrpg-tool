@@ -9,7 +9,7 @@ Dies war ein Konzept, kein Plan zum Abarbeiten. Inzwischen ist es gebaut:
 
 **Stand:** Alle fünf Stufen stehen — Gerüst und Einbettung, die vier Regler,
 die sechs Bausteine, die Verbindungen, die KI neben den Tabellen, das
-Übernehmen in den Backstory Creator, das Geflecht als Bild und der Knopf
+Übernehmen in den Story Creator, das Geflecht als Bild und der Knopf
 „Karte anlegen" zum Karteneditor. Dazu, über das Konzept hinaus: Bearbeiten
 von Hand, das Holen vorhandener Figuren aus der offenen Kampagne und ein
 KI-Knopf, der alle sechs Bausteine in einer zusammenhängenden Antwort
@@ -23,7 +23,7 @@ Anwendung schließt, ohne zu übernehmen, fängt neu an.
 ## Wozu
 
 Am Anfang einer Kampagne steht ein leeres Blatt. Der NPC Creator füllt eine
-Zeile davon (eine Randfigur), der Backstory Creator verwaltet, was schon
+Zeile davon (eine Randfigur), der Story Creator verwaltet, was schon
 steht. Dazwischen fehlt das Werkzeug, das aus einer Handvoll Einfälle ein
 Gerüst macht: wer will was, wer steht wem im Weg, wo passiert es.
 
@@ -40,13 +40,13 @@ eine Oberfläche für ein fremdes Modell.
 
 ## Die wichtigste Entscheidung: wo die Welt liegt
 
-Der Backstory Creator hält Figuren, Orte und gerichtete Beziehungen bereits
+Der Story Creator hält Figuren, Orte und gerichtete Beziehungen bereits
 als Notizen. Die Inspirationshilfe darf keine zweite Ablage aufmachen, sonst
 gibt es die Welt zweimal und niemand weiß, welche gilt.
 
 **Vorschlag:** Die Inspirationshilfe hat eine eigene, kurzlebige Ablage für
 den Entwurf — Skizzen, verworfene Einfälle, Varianten. Was bleiben soll,
-wandert per Knopf als Notiz in die offene Kampagne des Backstory Creators,
+wandert per Knopf als Notiz in die offene Kampagne des Story Creators,
 mit Wiki-Verweisen untereinander. Der Weg dorthin existiert schon: der NPC
 Creator legt genauso Figuren ab.
 
@@ -94,7 +94,7 @@ Der Kern des Wunsches und der interessanteste Teil.
   der Kampagne — werden ausgewählt, und das Werkzeug schlägt vor, was sie
   miteinander zu tun haben.
 
-**Bedienung:** ein Geflecht wie der Graph im Backstory Creator, aber als
+**Bedienung:** ein Geflecht wie der Graph im Story Creator, aber als
 Entwurf. Zwei Figuren zusammenziehen heißt „findet etwas zwischen diesen
 beiden". Das Ergebnis ist eine gerichtete Beziehung, wie sie der Backstory
 Creator führt: A sieht B als Mentorin, B sieht A als Bedrohung.
@@ -119,7 +119,7 @@ Ort mit Karte ist ein Schauplatz. Der einfache Weg:
   Beziehungsnetz auftaucht.
 
 Das ist derselbe Handgriff, den der NPC Creator schon macht, nur in Richtung
-Karteneditor statt Backstory Creator.
+Karteneditor statt Story Creator.
 
 **Was verlockend klingt und schwierig ist**
 
@@ -146,8 +146,9 @@ keinen Eingriff in fremdes Datenmodell.
 anlegen" in Stufe 5, zusammen mit dem Zeichnen des Geflechts. Das Beschreiben
 der Karte gehört zu den Orten und kostet nichts extra.
 
-**So gebaut.** Der Knopf steht an jedem Ort und schickt genau eines
-hinüber: den Namen. Der Weg führt über die Hülle und nicht direkt — die
+**So gebaut.** Der Knopf steht an jedem Ort und schickt zwei Dinge hinüber:
+den Namen und das, was über den Ort bekannt ist — als Notiz-Pins auf der
+neuen Karte (die Kartenzeile zuerst, dann Art, Merkmal, Zustand). Der Weg führt über die Hülle und nicht direkt — die
 beiden Anwendungen kennen einander nicht. Sie holt den Karteneditor nach
 vorn und stellt den Namen zu, sobald er montiert, geladen und sichtbar ist;
 dort entsteht daraus eine leere Karte, mit Rückfrage, falls auf der offenen
@@ -158,13 +159,13 @@ gezeichnet, wie hier vorgeschlagen.
 
 - **„Was, wenn"** — eine bestehende Figur nehmen und fragen, was sie
   ausgerechnet in dieser Region zu suchen hat.
-- **Namensaussaat** — alles Erzeugte kann als Notizen im Backstory Creator
+- **Namensaussaat** — alles Erzeugte kann als Notizen im Story Creator
   landen, untereinander verlinkt, statt Zeile für Zeile abgetippt zu werden.
 - **Würfeln statt wählen** — ein Knopf, der alle sechs Bausteine auf einmal
   zieht. Für den Abend, an dem in zehn Minuten gespielt wird.
 - **Festhalten wie im NPC Creator** — ein Schloss je Baustein, damit
   Nachwürfeln nicht wegnimmt, was schon gefällt.
-- **Widerspruchsprüfung** — der Assistent des Backstory Creators kann bereits
+- **Widerspruchsprüfung** — der Assistent des Story Creators kann bereits
   gegen verlinkte Notizen prüfen. Für eine frisch erzeugte Kampagne wäre das
   derselbe Handgriff.
 
@@ -195,6 +196,6 @@ Falls gebaut wird, in dieser Reihenfolge — jede Stufe für sich benutzbar:
 2. Figuren aus dem NPC Creator übernehmen, Verbindungen aus der Mustertabelle.
 3. KI: Bausteine frei vorschlagen lassen, wie im NPC Creator neben den
    Tabellen und nicht an ihrer Stelle.
-4. Übernehmen in den Backstory Creator, mit Wiki-Verweisen.
+4. Übernehmen in den Story Creator, mit Wiki-Verweisen.
 5. Das Geflecht als Bild, Zeitstrahl, und der Knopf „Karte anlegen" zum
    Karteneditor.

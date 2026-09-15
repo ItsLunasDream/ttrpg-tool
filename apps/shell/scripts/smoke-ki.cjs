@@ -16,7 +16,7 @@ const os = require('node:os');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ki-smoke-'));
 const userData = path.join(tmp, 'userData');
 
-// Eine Einstellungsdatei des Backstory Creators, wie sie aus der Zeit vor
+// Eine Einstellungsdatei des Story Creators, wie sie aus der Zeit vor
 // diesem Umbau stammen koennte. Die Uebernahme soll sie finden.
 fs.mkdirSync(path.join(userData, 'backstory'), { recursive: true });
 fs.writeFileSync(
@@ -71,7 +71,7 @@ app.whenReady().then(async () => {
   const uebernommen = aufDerPlatte();
   pruefe(
     uebernommen.ki?.anbieter === 'ollama',
-    'die im Backstory Creator eingerichtete KI wurde uebernommen'
+    'die im Story Creator eingerichtete KI wurde uebernommen'
   );
   pruefe(
     uebernommen.ki?.ollamaModell === 'uebernommenes-modell',
@@ -232,7 +232,7 @@ app.whenReady().then(async () => {
   );
   pruefe(zustand.schluessel === undefined, 'der Schluessel selbst kommt nicht zurueck');
 
-  // --- Kommt der Wechsel im Backstory Creator an? --------------------------
+  // --- Kommt der Wechsel im Story Creator an? --------------------------
   /*
    * Gemeldet: "Wenn man im Menue die KI Tools ausschaltet ist es im Backstory
    * Creator noch nicht aktualisiert. Erst wenn man die Sprache aendert."
@@ -243,13 +243,13 @@ app.whenReady().then(async () => {
   await js("document.querySelector('.huelle') && [...document.querySelectorAll('button')].find(b => /Close|Schließen/.test(b.textContent))?.click(); true");
   await warte(400);
   await js(`(() => { const k=[...document.querySelectorAll('.kachel:not(:disabled)')]
-    .find(x => /Backstory/.test(x.textContent)); if(!k) return false; k.click(); return true; })()`);
+    .find(x => /Story Creator/.test(x.textContent)); if(!k) return false; k.click(); return true; })()`);
   await warte(5000);
 
   const bs = fenster.contentView.children.find((v) =>
     v.webContents.getURL().includes('/apps/backstory/')
   );
-  pruefe(Boolean(bs), 'der Backstory Creator kommt hoch');
+  pruefe(Boolean(bs), 'der Story Creator kommt hoch');
   if (bs) {
     const bjs = (a) => bs.webContents.executeJavaScript(a);
     // Eine Kampagne mit einer Notiz, sonst gibt es keinen Editor und damit

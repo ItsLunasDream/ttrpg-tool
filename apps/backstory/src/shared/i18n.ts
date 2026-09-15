@@ -43,7 +43,7 @@ const de = {
   'bar.help': 'Hilfe',
   'bar.about': 'Über',
 
-  'about.title': 'Über Backstory Creator',
+  'about.title': 'Über Story Creator',
   'about.author': 'Von ItsLunasDream',
   'about.version': 'Version {version}',
   'about.license': 'Lizenz: GNU Affero General Public License v3.0 (oder neuer)',
@@ -461,7 +461,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'bar.help': 'Help',
   'bar.about': 'About',
 
-  'about.title': 'About Backstory Creator',
+  'about.title': 'About Story Creator',
   'about.author': 'By ItsLunasDream',
   'about.version': 'Version {version}',
   'about.license': 'License: GNU Affero General Public License v3.0 (or later)',

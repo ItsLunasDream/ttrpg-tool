@@ -37,7 +37,7 @@ export function CampaignBar(props: Props) {
 
   return (
     <header className="campaign-bar">
-      <span className="campaign-bar__brand">Backstory Creator</span>
+      <span className="campaign-bar__brand">Story Creator</span>
 
       {/* Ein eigenes Menue statt einer Auswahlliste des Systems: nur so
           steht das Anlegen dort, wo man es sucht — unten in der offenen

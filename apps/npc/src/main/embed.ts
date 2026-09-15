@@ -5,7 +5,7 @@
  * zurueck, was sie zum Anzeigen braucht. Kein eigenstaendiger Hauptprozess.
  *
  * Der NPC Creator hat keine eigene Ablage — die Figuren gehoeren in den
- * Backstory Creator, und die Merkliste lebt nur in der Sitzung. Gespeichert
+ * Story Creator, und die Merkliste lebt nur in der Sitzung. Gespeichert
  * wird hier nichts.
  */
 import path from 'node:path';
@@ -32,7 +32,7 @@ export interface ExportErgebnis {
 /**
  * Wie eine Figur ins Archiv kommt.
  *
- * Die Huelle reicht das durch, weil nur sie weiss, ob der Backstory Creator
+ * Die Huelle reicht das durch, weil nur sie weiss, ob der Story Creator
  * ueberhaupt montiert ist und welche Kampagne offen steht. Der NPC Creator
  * kennt den Vault nicht und soll ihn auch nicht kennen.
  */
@@ -114,7 +114,7 @@ export async function mountNpc(options: NpcEmbedOptions): Promise<NpcEmbed> {
   ipcMain.removeHandler(kanal('export'));
   ipcMain.handle(kanal('export'), async (_e, titel: string, markdown: string) => {
     if (!options.anlegen) {
-      return { ok: false, text: 'Der Backstory Creator ist nicht verfügbar.' };
+      return { ok: false, text: 'Der Story Creator ist nicht verfügbar.' };
     }
     try {
       return await options.anlegen(titel, markdown);
@@ -213,7 +213,7 @@ export async function mountNpc(options: NpcEmbedOptions): Promise<NpcEmbed> {
     csp: CSP,
     flush: async () => {
       // Nichts zu sichern: die Merkliste lebt nur in der Sitzung, und Figuren
-      // wandern auf Knopfdruck in den Backstory Creator.
+      // wandern auf Knopfdruck in den Story Creator.
     },
     setLanguage: async (webContents, language) => {
       if (!webContents.isDestroyed()) webContents.send(kanal('sprache:gesetzt'), language);

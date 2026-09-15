@@ -7,7 +7,7 @@
  * verweisen. Was sie nicht sehen koennen, ist, ob ein Klick ankommt, ob die
  * Einbettung haelt und ob am Ende wirklich Dateien auf der Platte liegen.
  *
- * Beides in einem Lauf, weil der Export ohne Backstory Creator nur die
+ * Beides in einem Lauf, weil der Export ohne Story Creator nur die
  * halbe Wahrheit ist: erst mit Kampagne zeigt sich, ob zwoelf Notizen
  * durchgehen, ob sie in derselben Kampagne landen und ob die Verweise
  * stimmen.
@@ -54,7 +54,7 @@ app.whenReady().then(async () => {
   await mjs("[...document.querySelectorAll('.kachel:not(:disabled)')][0].click(); true");
   await warte(5000);
   const bs = sicht('backstory');
-  pruefe(Boolean(bs), 'der Backstory Creator kommt hoch');
+  pruefe(Boolean(bs), 'der Story Creator kommt hoch');
   if (!bs) { app.exit(1); return; }
   const bjs = (a) => bs.webContents.executeJavaScript(a);
 
@@ -215,7 +215,7 @@ app.whenReady().then(async () => {
     setz.call(e, 'Der lange Winter');
     e.dispatchEvent(new Event('input',{bubbles:true})); return true; })()`);
   await warte(200);
-  await js("[...document.querySelectorAll('button')].find(b=>/Backstory/.test(b.textContent)).click(); true");
+  await js("[...document.querySelectorAll('button')].find(b=>/Story Creator/.test(b.textContent)).click(); true");
   await warte(2500);
   const meldung = await js("document.querySelector('.fuss__meldung')?.textContent ?? ''");
   pruefe(
@@ -229,7 +229,7 @@ app.whenReady().then(async () => {
   const suche = (ordner) => {
     for (const e of fs.readdirSync(ordner, { withFileTypes: true })) {
       const p = path.join(ordner, e.name);
-      // `history` auslassen. Der Backstory Creator legt dort zu jeder Notiz
+      // `history` auslassen. Der Story Creator legt dort zu jeder Notiz
       // eine Fassung ab — beim Anlegen also eine mit dem Titel und noch
       // leerem Rumpf. Beim ersten Anlauf zaehlte dieser Test deshalb 34 statt
       // 17 Notizen und verglich die Verweise gegen die leere Erstfassung.
@@ -334,15 +334,49 @@ app.whenReady().then(async () => {
   await js(
     `[...${orteKarte}.querySelectorAll('button')].find(b => /Karte anlegen|Start a map/.test(b.textContent)).click(); true`
   );
-  await warte(6000);
-
-  const map = sicht('mapmaker');
+  /*
+   * Ab hier wird gewartet, indem nachgesehen wird, nicht indem still Zeit
+   * vergeht: die Meldung drueben steht nur vier Sekunden, und ein festes
+   * `warte` haette sie je nach Rechner verpasst.
+   */
+  let map = null;
+  for (let versuch = 0; versuch < 20 && !map; versuch += 1) {
+    await warte(400);
+    map = sicht('mapmaker');
+  }
   pruefe(Boolean(map), 'der Karteneditor kommt nach vorn');
   if (map) {
-    const name = await map.webContents.executeJavaScript(
-      "document.querySelector('.map-name')?.textContent ?? ''"
-    );
+    const mjsKarte = (a) => map.webContents.executeJavaScript(a);
+    const name = await mjsKarte("document.querySelector('.map-name')?.textContent ?? ''");
     pruefe(name === ortsname, `und die neue Karte heisst wie der Ort (${name} / ${ortsname})`);
+
+    /*
+     * Und sie ist nicht leer: was ueber den Ort bekannt ist, steht als Pin
+     * darauf. Die erste Fassung schickte nur den Namen, und drueben stand man
+     * vor einer leeren Flaeche — genau das war die Rueckmeldung.
+     *
+     * Gemessen wird an der Statuszeile des Karteneditors. Die Pins selbst
+     * liegen im Dokument und werden auf eine Leinwand gezeichnet; im DOM sind
+     * sie nicht zu finden, und das VTT-Panel ist beim Start zugeklappt.
+     *
+     * Die Meldung steht nur vier Sekunden. Der erste Anlauf schaute stur
+     * sechs Sekunden nach dem Klick nach und fand nichts mehr — das sah aus
+     * wie eine leere Karte und war eine abgelaufene Meldung.
+     */
+    // Das TIEFSTE Element mit der Meldung, nicht das erste: jeder Vorfahre
+    // enthaelt sie ebenfalls, und die Fehlermeldung zeigte dann die halbe
+    // Oberflaeche statt der Zeile, um die es geht.
+    const suche =
+      "[...document.querySelectorAll('*')].filter(e => /angelegt, mit|created, with/.test(e.textContent ?? '')).at(-1)?.textContent ?? ''";
+    let status = '';
+    for (let versuch = 0; versuch < 8 && !status; versuch += 1) {
+      status = await mjsKarte(suche);
+      if (!status) await warte(400);
+    }
+    pruefe(
+      /[1-9]\d* (Notizen|notes)/.test(status),
+      `auf der neuen Karte liegen Notizen (Statuszeile: ${status.slice(0, 80) || 'nichts'})`
+    );
   }
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' | ') || 'keine'})`);

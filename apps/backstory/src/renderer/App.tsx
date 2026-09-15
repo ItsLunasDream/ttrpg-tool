@@ -287,7 +287,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
    * Der Verlauf der Huelle: melden, welche Notiz offen ist, und einem Sprung
    * folgen.
    *
-   * Laeuft der Backstory Creator eigenstaendig, hoert niemand zu und nichts
+   * Laeuft der Story Creator eigenstaendig, hoert niemand zu und nichts
    * davon tut etwas — die Bruecke ist dieselbe.
    */
   useEffect(() => {

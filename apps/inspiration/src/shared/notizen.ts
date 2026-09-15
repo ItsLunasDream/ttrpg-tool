@@ -1,5 +1,5 @@
 /**
- * Der Entwurf als Notizen fuer den Backstory Creator.
+ * Der Entwurf als Notizen fuer den Story Creator.
  *
  * „Entwurf hier, Wahrheit dort" (docs/inspirationshilfe.md): dieses Werkzeug
  * fuehrt keine zweite Welt. Was bleiben soll, wandert auf Knopfdruck
@@ -13,7 +13,7 @@
 import type { Entwurf, EntwurfsFigur, Fraktion, Ort, Verbindung } from './erzeuge';
 import type { Sprache } from './tabellen';
 
-/** Die Notiztypen des Backstory Creators, soweit hier gebraucht. */
+/** Die Notiztypen des Story Creators, soweit hier gebraucht. */
 export type NotizTyp = 'character' | 'location' | 'faction' | 'note';
 
 export interface Notiz {
@@ -26,7 +26,7 @@ function w(sprache: Sprache, de: string, en: string): string {
   return sprache === 'de' ? de : en;
 }
 
-/** Ein Wiki-Verweis, wie der Backstory Creator ihn liest. */
+/** Ein Wiki-Verweis, wie der Story Creator ihn liest. */
 export function verweis(titel: string): string {
   return `[[${titel}]]`;
 }
@@ -111,12 +111,35 @@ export function verbindungenVon(
 }
 
 /**
+ * Was von einem Ort auf die Karte gehoert.
+ *
+ * Kurze Pins, keine Abhandlung: am Tisch liest man sie im Vorbeigehen. Die
+ * Kartenzeile zuerst, weil sie sagt, wie der Ort aussieht — sie ist der
+ * Grund, ueberhaupt eine Karte anzufangen.
+ */
+export function alsKartennotizen(
+  ort: Ort,
+  sprache: Sprache
+): { title: string; text: string }[] {
+  const heraus: { title: string; text: string }[] = [];
+  if (ort.karte) heraus.push({ title: w(sprache, 'Auf der Karte', 'On the map'), text: ort.karte });
+  if (ort.art) heraus.push({ title: ort.name || w(sprache, 'Der Ort', 'The place'), text: ort.art });
+  if (ort.merkmal) heraus.push({ title: w(sprache, 'Merkmal', 'What sets it apart'), text: ort.merkmal });
+  if (ort.zustand) heraus.push({ title: w(sprache, 'Zustand', 'How it stands'), text: ort.zustand });
+  return heraus;
+}
+
+/**
  * Alles in einem Text.
  *
  * Das ist auch die Fassung, die in die Zwischenablage geht.
  */
 export function alsMarkdown(entwurf: Entwurf, sprache: Sprache): string {
   const teile: string[] = [];
+
+  // Die Welt steht oben und ohne Ueberschrift — sie ist der Rahmen, nicht
+  // ein Baustein unter anderen.
+  if (entwurf.welt) teile.push(`*${entwurf.welt}*`);
 
   teile.push(`## ${w(sprache, 'Aufhänger', 'Hook')}`, aufhaengerText(entwurf, sprache));
 
@@ -168,6 +191,7 @@ export function alsNotizen(entwurf: Entwurf, sprache: Sprache, titel: string): N
     typ: 'note',
     titel,
     markdown: zeilen(
+      entwurf.welt ? `*${entwurf.welt}*` : '',
       `## ${w(sprache, 'Aufhänger', 'Hook')}`,
       aufhaengerText(entwurf, sprache),
       liste(w(sprache, 'Fraktionen', 'Factions'), entwurf.fraktionen.map((f) => f.name)),

@@ -56,7 +56,7 @@ test('je Figur, Ort und Fraktion entsteht eine Notiz, plus die Uebersicht', () =
 });
 
 test('die Uebersicht verweist auf jede andere Notiz', () => {
-  // Damit der Graph im Backstory Creator sofort etwas zu zeichnen hat. Ohne
+  // Damit der Graph im Story Creator sofort etwas zu zeichnen hat. Ohne
   // Verweise laegen dort zwanzig Notizen ohne jede Verbindung.
   const notizen = T.alsNotizen(ENTWURF, 'de', 'Der lange Winter');
   const uebersicht = notizen[0].markdown;
@@ -136,4 +136,29 @@ test('fuer eine vorhandene Figur wird keine zweite Notiz angelegt', () => {
   // In der Uebersicht steht sie trotzdem — der Verweis trifft ihre eigene,
   // schon vorhandene Notiz, und genau dafuer holt man sie herueber.
   assert.ok(notizen[0].markdown.includes('[[Elara von Salzfurt]]'));
+});
+
+test('ein Ort wird zu Pins fuer die Karte', () => {
+  // Die erste Fassung schickte nur den Namen hinueber, und drueben stand man
+  // vor einer leeren Flaeche. Was ueber den Ort bekannt ist, gehoert auf die
+  // Karte — die Kartenzeile zuerst, sie sagt, wie er aussieht.
+  const ort = {
+    name: 'Rabenstein',
+    art: 'ein Turm ohne Tür',
+    merkmal: 'Es gibt keinen Spiegel.',
+    zustand: 'Steht leer.',
+    karte: 'Drei Zugänge, einer verschüttet.'
+  };
+  const pins = T.alsKartennotizen(ort, 'de');
+  assert.equal(pins.length, 4);
+  assert.match(pins[0].text, /Drei Zugänge/);
+  assert.ok(pins.every((pin) => pin.title && pin.text));
+
+  // Leere Felder ergeben keinen leeren Pin.
+  assert.deepEqual(T.alsKartennotizen({ name: '', art: '', merkmal: '', zustand: '', karte: '' }, 'de'), []);
+});
+
+test('die Pins sprechen die eingestellte Sprache', () => {
+  const pins = T.alsKartennotizen({ name: 'X', art: 'a mill', merkmal: '', zustand: '', karte: 'One way in.' }, 'en');
+  assert.equal(pins[0].title, 'On the map');
 });

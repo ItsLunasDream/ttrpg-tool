@@ -8,7 +8,7 @@ export const texte = {
   'knopf.nachwuerfeln': ['Neu würfeln', 'Reroll'],
   'knopf.festhalten': ['Festhalten', 'Lock'],
   'knopf.losgeben': ['Freigeben', 'Unlock'],
-  'knopf.export': ['In den Backstory Creator', 'Send to Backstory Creator'],
+  'knopf.export': ['In den Story Creator', 'Send to Story Creator'],
   'knopf.exportLaeuft': ['Wird angelegt …', 'Creating …'],
   'knopf.exportFertig': ['Angelegt', 'Created'],
   'leer': ['Noch keine Figur — wirf eine.', 'No character yet — roll one.'],

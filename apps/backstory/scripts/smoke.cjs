@@ -568,22 +568,17 @@ app.whenReady().then(async () => {
     const klapppfeile = await run(window, `return document.querySelectorAll('.einklapp-pfeil').length;`);
     check(klapppfeile >= 1, `Kein Pfeil neben der Ueberschrift (${klapppfeile})`);
 
-    // Den Cursor aus dem Abschnitt herausnehmen: steht er darin, klappt er
-    // gleich wieder auf — genau das soll er, damit niemand in unsichtbaren
-    // Text schreibt.
-    await run(
-      window,
-      `const erster = document.querySelector('.ProseMirror > p');
-       const bereich = document.createRange();
-       bereich.setStart(erster.firstChild ?? erster, 0);
-       bereich.collapse(true);
-       const auswahl = window.getSelection();
-       auswahl.removeAllRanges();
-       auswahl.addRange(bereich);
-       return true;`
-    );
-    await sleep(400);
-
+    /*
+     * Der Cursor steht hier noch in „Ein Satz darunter." — also genau in dem
+     * Abschnitt, der gleich verschwindet.
+     *
+     * Frueher stand an dieser Stelle ein Umweg: der Test nahm den Cursor
+     * vorher heraus, weil die Ansicht einen Abschnitt wieder aufklappt,
+     * sobald er darin landet. Aus Sicht der Bedienung hiess das, dass der
+     * Pfeil von dort aus nichts tat. Jetzt wandert der Cursor beim Zuklappen
+     * ans Ende der Ueberschrift, und der Umweg ist weg — was der Test
+     * ausdruecklich in dieser Lage prueft.
+     */
     const vorherSichtbar = await run(
       window,
       `return [...document.querySelectorAll('.ProseMirror > *')].filter((e) => !e.classList.contains('ist-eingeklappt')).length;`
@@ -602,6 +597,18 @@ app.whenReady().then(async () => {
     check(
       !(await run(window, `return [...document.querySelectorAll('.ProseMirror > *')].some((e) => !e.classList.contains('ist-eingeklappt') && e.textContent === 'Ein Satz darunter.');`)),
       'Der Text unter der Ueberschrift ist noch sichtbar'
+    );
+
+    // Und der Cursor steht jetzt in der Ueberschrift, nicht mehr im
+    // versteckten Text: sonst schriebe der naechste Tastendruck dorthin.
+    check(
+      await run(
+        window,
+        `const knoten = window.getSelection().anchorNode;
+         const element = knoten && knoten.nodeType === 3 ? knoten.parentElement : knoten;
+         return Boolean(element && element.closest('h1, h2, h3, h4'));`
+      ),
+      'Der Cursor ist nicht in die geschlossene Ueberschrift gesprungen'
     );
 
     // Alles aufklappen bringt sie zurueck.
@@ -1176,6 +1183,20 @@ app.whenReady().then(async () => {
         const bytes = fs.readFileSync(path.join(exportDir, pdf));
         check(bytes.subarray(0, 4).toString() === '%PDF', 'Datei ist kein PDF');
         check(bytes.length > 1000, `PDF ist verdächtig klein: ${bytes.length} Bytes`);
+
+        /*
+         * Sprungziele im PDF.
+         *
+         * Dass die Verweise im HTML zu `<a href="#...">` werden, pruefen die
+         * Modultests. Ob daraus im PDF wirklich anklickbare Ziele werden,
+         * entscheidet erst der Druck: Chromium legt dafuer Link-Annotationen
+         * an (`/Annots` mit `/Subtype /Link`). Ohne diese Pruefung waere die
+         * Frage „springt das im Reader?" nur zu beantworten, indem jemand
+         * das PDF oeffnet und klickt.
+         */
+        const roh = bytes.toString('latin1');
+        check(roh.includes('/Link'), 'Im PDF gibt es keine anklickbaren Verweise');
+        check(roh.includes('/Dest') || roh.includes('/A <<'), 'Die Verweise im PDF haben kein Ziel');
       }
 
       // Das Beziehungsnetz ist eine Seite mehr. Gezaehlt wird gegen einen

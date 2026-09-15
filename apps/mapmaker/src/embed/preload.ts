@@ -22,8 +22,14 @@ const PREFIX = 'mapmaker:';
  * sich, kein Knopf (siehe docs/inspirationshilfe.md).
  */
 contextBridge.exposeInMainWorld('ttrpgToolsKarte', {
-  onNeu: (callback: (name: string) => void): (() => void) => {
-    const listener = (_event: unknown, name: string) => callback(name);
+  onNeu: (
+    callback: (name: string, notizen?: { title: string; text: string }[]) => void
+  ): (() => void) => {
+    const listener = (
+      _event: unknown,
+      name: string,
+      notizen?: { title: string; text: string }[]
+    ) => callback(name, notizen);
     ipcRenderer.on(`${PREFIX}neue-karte`, listener);
     return () => {
       ipcRenderer.off(`${PREFIX}neue-karte`, listener);

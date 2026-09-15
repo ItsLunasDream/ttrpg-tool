@@ -14,7 +14,7 @@
  * blieb bis zum Neustart der Huelle unbrauchbar, auch nachdem man gebaut
  * hatte. Genau das prueft Schritt 2 und 3.
  *
- * Geprueft wird am Backstory Creator, und das ist keine Beliebigkeit: er ist
+ * Geprueft wird am Story Creator, und das ist keine Beliebigkeit: er ist
  * die Anwendung, die ein eigenes Protokoll (backstory-asset) und eigene
  * IPC-Kanaele anmeldet. Der Karteneditor tut beides nicht — an ihm blieb
  * dieser Test gruen, auch mit dem alten, kaputten Stand. Ein Test, der den
@@ -76,7 +76,7 @@ app.whenReady().then(async () => {
   const detail = () => js("document.querySelector('.stoerung__detail')?.textContent ?? ''");
   const rat = () => js("document.querySelector('.stoerung__text')?.textContent ?? ''");
 
-  // Der Backstory Creator ist der erste Eintrag in den Kacheln.
+  // Der Story Creator ist der erste Eintrag in den Kacheln.
   await js("document.querySelectorAll('.kachel')[0].click(); true");
   await warte(3000);
 

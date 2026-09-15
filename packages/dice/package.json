@@ -2,6 +2,7 @@
   "name": "@suite/dice",
   "version": "0.2.0",
   "private": true,
+  "license": "AGPL-3.0-or-later",
   "description": "Wuerfelausdruecke lesen und werfen — plattformfreies, geteiltes Paket",
   "type": "module",
   "exports": {

@@ -4,6 +4,7 @@ import type { NoteIndex } from '../noteIndex';
 import type { GraphPosition } from '../../shared/types';
 import { buildGraphEdges, buildGraphNodes, type GraphMode } from '../graph/build';
 import { layoutGraph, type GraphNode } from '../graph/layout';
+import { typFarbe } from '../../shared/graphFarben';
 import { useT } from '../i18n';
 
 interface Props {
@@ -47,7 +48,6 @@ const EDGE_GAP = 5;
 const LABEL_SIDE = 2.4;
 
 /** Feste Farbreihe, damit Notiztypen wiedererkennbar bleiben. */
-const TYPE_COLORS = ['#c4a35a', '#8ec3e0', '#a3c48b', '#d98a7c', '#b39ddb', '#7fb3a8'];
 
 export function GraphView({ index, activeNoteId, positions: saved, onSavePositions, onOpenNote, onClose }: Props) {
   const t = useT();
@@ -169,13 +169,8 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
 
   const byId = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
 
-  const typeColor = useCallback(
-    (typeId: string) => {
-      const position = index.types.findIndex((def) => def.id === typeId);
-      return TYPE_COLORS[(position === -1 ? index.types.length : position) % TYPE_COLORS.length];
-    },
-    [index.types]
-  );
+  // Die Farben stehen in shared, weil das Bild fuers PDF dieselben braucht.
+  const typeColor = useCallback((typeId: string) => typFarbe(index.types, typeId), [index.types]);
 
   /**
    * Kanten, zu denen es eine Gegenrichtung gibt. Die beiden werden dann

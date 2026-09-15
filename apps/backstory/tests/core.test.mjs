@@ -1167,3 +1167,48 @@ test('Auch kleine Netze fuellen die Flaeche noch aus', () => {
     assert.ok(hoehe > 150, `${anzahl} Knoten: nur ${Math.round(hoehe)} hoch`);
   }
 });
+
+test('eine Notiz ohne Verbindungen sprengt das Netz nicht', () => {
+  /*
+   * Der gemeldete Fall: eine einzelne, mit nichts verbundene Notiz stand weit
+   * oben rechts, und die verbundenen klebten so dicht aufeinander, dass ihre
+   * Namen nicht mehr zu lesen waren.
+   *
+   * Ursache war die Abstossung ohne Reichweitengrenze: die Einzelne wurde
+   * immer weiter weggeschoben, und das abschliessende Einpassen streckte
+   * dann auf genau diese Spanne — der Rest wurde winzig.
+   */
+  const ids = ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id, degree: 2 }));
+  ids.push({ id: 'allein', degree: 0 });
+  const edges = [
+    { source: 'a', target: 'b', label: '', kind: 'relation' },
+    { source: 'b', target: 'c', label: '', kind: 'relation' },
+    { source: 'c', target: 'd', label: '', kind: 'relation' },
+    { source: 'd', target: 'e', label: '', kind: 'relation' },
+    { source: 'e', target: 'a', label: '', kind: 'relation' }
+  ];
+
+  const nodes = layoutGraph(ids, edges, { width: 800, height: 600, seed: 7 });
+  const at = (id) => nodes.find((node) => node.id === id);
+  const abstand = (erster, zweiter) => Math.hypot(erster.x - zweiter.x, erster.y - zweiter.y);
+
+  // Die verbundenen Notizen muessen lesbar auseinanderliegen. Vor der
+  // Reichweitengrenze lagen hier Paare unter 30 Punkten beieinander.
+  const verbunden = ['a', 'b', 'c', 'd', 'e'].map(at);
+  let engste = Infinity;
+  for (let i = 0; i < verbunden.length; i++) {
+    for (let j = i + 1; j < verbunden.length; j++) {
+      engste = Math.min(engste, abstand(verbunden[i], verbunden[j]));
+    }
+  }
+  assert.ok(engste > 60, `die verbundenen Notizen kleben aufeinander (${engste.toFixed(0)})`);
+
+  // Und die einzelne steht erkennbar daneben, aber nicht in einer anderen Welt.
+  const mitte = verbunden.reduce(
+    (summe, node) => ({ x: summe.x + node.x / 5, y: summe.y + node.y / 5 }),
+    { x: 0, y: 0 }
+  );
+  const weg = abstand(at('allein'), mitte);
+  assert.ok(weg > 60, `die einzelne Notiz steht mitten im Netz (${weg.toFixed(0)})`);
+  assert.ok(weg < 500, `die einzelne Notiz steht viel zu weit weg (${weg.toFixed(0)})`);
+});

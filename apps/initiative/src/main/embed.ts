@@ -6,7 +6,7 @@
  * Sprachkopplung. Die Anwendung selbst merkt nicht, dass sie eingebettet
  * laeuft.
  *
- * Anders als der Backstory Creator bringt der Tracker keinen eigenen
+ * Anders als der Story Creator bringt der Tracker keinen eigenen
  * eigenstaendigen Hauptprozess mit: er laeuft ausschliesslich in der Huelle.
  * Ein zweiter Einstiegspunkt waere Code, den niemand benutzt und den trotzdem
  * jeder pflegen muesste.

@@ -21,7 +21,7 @@ export interface ExportErgebnis {
 
 const api = {
   /**
-   * Legt die Figur als Notiz im Backstory Creator an.
+   * Legt die Figur als Notiz im Story Creator an.
    *
    * Auf Knopfdruck und nicht von selbst: eine Figur, die man verwirft, soll
    * nicht schon im Archiv liegen.

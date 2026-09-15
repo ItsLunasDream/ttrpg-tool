@@ -296,3 +296,30 @@ export function expandToGroups(doc: MapDocument, ids: ObjectId[]): ObjectId[] {
   }
   return [...out];
 }
+
+/**
+ * Ob auf dieser Karte schon etwas steht.
+ *
+ * Gebraucht vor allem beim Ueberschreiben: „Neu" fragte bisher nur nach,
+ * wenn Objekte da waren. Wer nur eine Notiz gesetzt hatte — oder eine Wand,
+ * ein Licht, eine Hilfslinie —, verlor sie wortlos. Das ist genau die Art
+ * Verlust, die niemand bemerkt, bis er sie sucht.
+ *
+ * Der Kartenname zaehlt bewusst nicht mit: eine frisch benannte, sonst leere
+ * Karte ist nichts, wofuer man nachfragen muesste.
+ */
+export function hatInhalt(doc: MapDocument): boolean {
+  return (
+    Object.keys(doc.objects).length > 0 ||
+    doc.vtt.walls.length > 0 ||
+    doc.vtt.portals.length > 0 ||
+    doc.vtt.lights.length > 0 ||
+    doc.vtt.notes.length > 0 ||
+    (doc.guides?.length ?? 0) > 0 ||
+    // Ein Hoehenfeld zaehlt erst, wenn darin wirklich gemalt wurde: beim
+    // Anlegen einer Rasterebene entsteht es flach und voller Nullen.
+    Object.values(doc.heightMaps ?? {}).some((feld) =>
+      (feld?.data ?? []).some((wert) => wert !== SEA_LEVEL && wert !== 0)
+    )
+  );
+}

@@ -5,9 +5,10 @@ import { createPortal } from 'react-dom';
 import { useEditor } from '@/model/store';
 import { allLayerTemplates, onLayerTemplatesChange } from '@/assets/layerTemplateStore';
 import { applyTemplateToFreshDocument, type LayerTemplate } from '@/model/layerTemplates';
-import { createDocument, defaultTargetLayer } from '@/model/document';
-import { RenameMap } from '@/model/commands';
+import { createDocument, defaultTargetLayer, hatInhalt } from '@/model/document';
+import { AddVttItems, RenameMap } from '@/model/commands';
 import { makeId } from '@/model/ids';
+import type { MapNote } from '@/model/types';
 import { getRenderer } from '@/engine/instance';
 import {
   documentFromVersion,
@@ -206,7 +207,11 @@ export function FileMenu() {
     // Gibt zurueck, ob wirklich eine neue Karte entstanden ist. Gebraucht
     // wird das vom Anstoss von aussen (siehe unten): wer die Rueckfrage
     // abbricht, soll auch nicht die alte Karte umbenannt bekommen.
-    if (Object.keys(doc.objects).length > 0 && !window.confirm(t('file.confirmNew'))) return false;
+    //
+    // Gefragt wird, sobald IRGENDETWAS auf der Karte steht — frueher nur bei
+    // Objekten. Wer eine Notiz gesetzt hatte oder eine Wand gezogen, verlor
+    // sie wortlos.
+    if (hatInhalt(doc) && !window.confirm(t('file.confirmNew'))) return false;
     const frisch = createDocument();
     // Auf einer frischen Karte ersetzt die Vorlage die Standardebenen: sie
     // stehen zu lassen hieße, genau die Aufräumarbeit zu hinterlassen, die die
@@ -232,14 +237,54 @@ export function FileMenu() {
    */
   useEffect(() => {
     const bruecke = (window as unknown as {
-      ttrpgToolsKarte?: { onNeu(callback: (name: string) => void): () => void };
+      ttrpgToolsKarte?: {
+        onNeu(
+          callback: (name: string, notizen?: { title: string; text: string }[]) => void
+        ): () => void;
+      };
     }).ttrpgToolsKarte;
     if (!bruecke) return;
-    return bruecke.onNeu((name) => {
+    return bruecke.onNeu((name, notizen = []) => {
       const sauber = name.trim();
       if (!sauber) return;
       if (!onNew()) return;
       useEditor.getState().exec(new RenameMap(sauber));
+
+      /*
+       * Was die Inspirationshilfe ueber den Ort weiss, wird zu Pins.
+       *
+       * Eine leere Karte mit dem richtigen Namen war der erste Anlauf und zu
+       * wenig: man stand vor einer leeren Flaeche und musste im anderen
+       * Werkzeug nachlesen, was darauf gehoert. Jetzt steht es auf der Karte.
+       * Gezeichnet wird weiterhin nichts — dafuer ist dieser Editor da.
+       */
+      const brauchbar = notizen.filter((notiz) => notiz && notiz.text.trim());
+      if (brauchbar.length === 0) return;
+
+      const zustand = useEditor.getState();
+      const frisch = zustand.doc;
+      const breite = frisch.size.cols * frisch.grid.tileSize;
+      const hoehe = frisch.size.rows * frisch.grid.tileSize;
+      const vorgabe = zustand.note;
+
+      // Nebeneinander auf halber Hoehe, mit gleichem Abstand: eine Reihe, die
+      // man beim Oeffnen sofort sieht und beliebig verschieben kann.
+      const pins: MapNote[] = brauchbar.map((notiz, stelle) => ({
+        id: makeId('note'),
+        x: (breite / (brauchbar.length + 1)) * (stelle + 1),
+        y: hoehe / 2,
+        title: notiz.title.slice(0, 80),
+        text: notiz.text,
+        icon: vorgabe.icon,
+        size: vorgabe.size,
+        color: vorgabe.color,
+        // Vorbereitung, keine Spielerinformation.
+        playerVisible: false,
+      }));
+      zustand.exec(new AddVttItems('notes', pins, t('cmd.addNote')));
+      // Sonst sieht man nur eine neue, scheinbar leere Flaeche: die Pins
+      // liegen verteilt und muessen nicht im ersten Blickfeld liegen.
+      flash(t('file.fromTool', { name: sauber, count: pins.length }));
     });
     // Ohne Abhaengigkeiten waere `onNew` bei jedem Rendern ein anderes, und
     // die Anmeldung liefe staendig neu. `doc` steckt darin, weil die

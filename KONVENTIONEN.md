@@ -1,7 +1,7 @@
 # Konventionen
 
 Regeln, die für alle Anwendungen und Pakete in diesem Workspace gelten, nicht
-nur für den Backstory Creator. Sie sollen es leicht machen, künftige
+nur für den Story Creator. Sie sollen es leicht machen, künftige
 Werkzeuge (Kampagnenplaner, Mapmaker, weitere) dazuzunehmen, ohne dass jedes
 sein eigenes Datenformat und seine eigenen Annahmen mitbringt.
 

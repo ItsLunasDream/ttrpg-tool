@@ -204,7 +204,7 @@ export function erzeugeFigur(
 /**
  * Die Figur als Text, wie er in eine Notiz wandert.
  *
- * Markdown, weil der Backstory Creator Markdown speichert. Leere Felder
+ * Markdown, weil der Story Creator Markdown speichert. Leere Felder
  * fallen weg — eine Zeile „Eigenheit: " sagt weniger als keine Zeile.
  *
  * Die Beschriftungen kommen mit, damit die Notiz auch ohne dieses Werkzeug
@@ -223,7 +223,7 @@ export function alsMarkdown(figur: Figur, sprache: Sprache): string {
   /*
    * Leerzeile zwischen den Zeilen, nicht nur ein Umbruch.
    *
-   * Der Backstory Creator liest Markdown mit `breaks: false`. Mit einfachem
+   * Der Story Creator liest Markdown mit `breaks: false`. Mit einfachem
    * Umbruch wurde aus der ganzen Figur ein einziger Absatz — in der Notiz
    * stand alles hintereinander weg. Aufgefallen ist das erst beim Bau der
    * Inspirationshilfe, die denselben Weg benutzt.

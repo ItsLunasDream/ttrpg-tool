@@ -1,5 +1,5 @@
 /**
- * Der KI-Assistent des Backstory Creators.
+ * Der KI-Assistent des Story Creators.
  *
  * Wie mit einem Modell gesprochen wird, steht in @suite/ki — dort liegen die
  * Anbieter, die Fehlerschluessel und die Schnittstelle. Hier steht nur, was
@@ -70,7 +70,7 @@ export function createProvider(
       ollamaAdresse: settings.ollamaBaseUrl,
       ollamaModell: settings.ollamaModel,
       claudeModell: settings.claudeModel,
-      // Der eigenstaendige Backstory Creator bietet den offenen Anbieter
+      // Der eigenstaendige Story Creator bietet den offenen Anbieter
       // nicht an: eingerichtet wird die KI in der Huelle, und dort steht er.
       offenAdresse: '',
       offenModell: ''

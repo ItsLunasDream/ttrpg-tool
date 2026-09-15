@@ -35,6 +35,8 @@ interface Props {
   readonly symbolordnerOeffnen: () => Promise<string>;
   /** Liest die Symbole neu von der Platte. */
   readonly symboleNeuLaden: () => Promise<void>;
+  /** Vergisst, welche Einfuehrungen schon gesehen sind. */
+  readonly einfuehrungenZuruecksetzen: () => Promise<void>;
   readonly onClose: () => void;
   readonly t: (key: MessageKey, params?: MessageParams) => string;
 }
@@ -49,12 +51,14 @@ export function Einstellungen({
   setzeSchluessel,
   symbolordnerOeffnen,
   symboleNeuLaden,
+  einfuehrungenZuruecksetzen,
   onClose,
   t
 }: Props) {
   const [fehler, setFehler] = useState<string | null>(null);
   const [schluessel, setSchluessel] = useState('');
   const [pruefend, setPruefend] = useState(false);
+  const [einfuehrungenZurueck, setEinfuehrungenZurueck] = useState(false);
 
   /**
    * Der Fehler wird angezeigt und nicht verschluckt: eine Einstellung, die
@@ -238,6 +242,21 @@ export function Einstellungen({
           {t('settings.iconsReload')}
         </button>
       </div>
+
+      <h3 className="feld__ueberschrift">{t('settings.intro')}</h3>
+      <p className="feld__hinweis">{t('settings.introHint')}</p>
+      <div className="feld__knoepfe">
+        <button
+          type="button"
+          onClick={() => {
+            setEinfuehrungenZurueck(true);
+            melde(einfuehrungenZuruecksetzen());
+          }}
+        >
+          {t('settings.introReset')}
+        </button>
+      </div>
+      {einfuehrungenZurueck && <p className="feld__hinweis">{t('settings.introDone')}</p>}
 
       {fehler && <p className="feld__fehler">{fehler}</p>}
     </Dialog>

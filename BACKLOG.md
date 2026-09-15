@@ -10,7 +10,7 @@ eines Abschnitts ist keine Priorisierung.
 Hilft beim Erfinden einer Kampagne: Region, Thema, Figuren, Orte, und wie
 das zusammenhängt. Das Konzept steht in [docs/inspirationshilfe.md](docs/inspirationshilfe.md)
 — mit der wichtigsten Entscheidung darin: Entwurf im neuen Werkzeug, Wahrheit
-im Backstory Creator. Eine zweite Ablage für dieselbe Welt gibt es nicht.
+im Story Creator. Eine zweite Ablage für dieselbe Welt gibt es nicht.
 
 Erst besprechen, dann bauen.
 
@@ -403,7 +403,7 @@ Was dabei entschieden wurde:
 
 - **Das Paket bringt den Mechanismus, nicht die Aufgaben.** Die Anbieter, die
   Fehlerschlüssel, die Schnittstelle. Was gefragt wird, bleibt bei der
-  Anwendung, die fragt — `prompts.ts` des Backstory Creators wanderte nicht
+  Anwendung, die fragt — `prompts.ts` des Story Creators wanderte nicht
   mit. Die Schnittstelle wurde dabei schmaler: `frage()` nimmt nur noch
   Systemanweisung und Nachrichten, statt einer Anfrage mit Notiz und Aufgabe,
   die beide Anbieter ohnehin ignoriert haben. So passt sie auch auf Fragen,
@@ -425,7 +425,7 @@ Was dabei entschieden wurde:
   sein eigener KI-Abschnitt aus den Einstellungen und ein Satz sagt, wo es
   stattdessen steht. Zwei Stellen für dieselbe Sache wären eine zu viel, und
   wer in der falschen einstellt, sucht den Fehler lange.
-- **Übernahme statt Neueintippen.** Wer die KI früher im Backstory Creator
+- **Übernahme statt Neueintippen.** Wer die KI früher im Story Creator
   eingerichtet hat, findet sie beim ersten Start der Hülle wieder. Der
   verschlüsselte Schlüssel wandert unverändert mit: derselbe Rechner,
   derselbe Schlüsselbund. Genau einmal — steht in der Hülle schon etwas,
@@ -453,7 +453,7 @@ festgelegt, wäre es ein langsamer und teurer Würfel.
 Zwei Wege: ein Knopf für die ganze Figur, und einer je Zeile für ein
 einzelnes Feld.
 
-Der Unterschied zum Assistenten des Backstory Creators ist grundsätzlich.
+Der Unterschied zum Assistenten des Story Creators ist grundsätzlich.
 Dort darf das Modell ausdrücklich **nicht** schreiben, weil die
 Hintergrundgeschichte der Autorin gehört. Hier **soll** es schreiben — eine
 Randfigur, die gleich am Tisch auftaucht, will niemand selbst ausformulieren.
@@ -561,7 +561,7 @@ Entscheidungen dabei:
   teurere Sorte, hier aber die richtige: beim Skalieren zöge sich das Symbol
   mit in die Breite und aus dem runden Rand würde ein Oval.
 
-Danach fehlten noch Backstory Creator, Karteneditor und NPC Creator — die
+Danach fehlten noch Story Creator, Karteneditor und NPC Creator — die
 drei Werkzeuge, die `motion.css` nicht einmal geladen hatten. Jetzt benutzen
 alle fünf dieselben Zeiten und Kurven.
 
@@ -571,7 +571,7 @@ Zwei Fallen dabei, beide erst beim Ausprobieren aufgefallen:
   behält React dasselbe Element, und eine CSS-Animation läuft nur, wenn das
   Element neu entsteht — sie bliebe genau bei dem Vorgang aus, für den sie
   gedacht ist.
-- Der Toast des Backstory Creators bekommt eine eigene Bewegung statt
+- Der Toast des Story Creators bekommt eine eigene Bewegung statt
   `.motion-eintritt`: er steht mit `translateX(-50%)` in der Mitte, und die
   Klasse des Pakets überschreibt diese Verschiebung — er spränge beim
   Erscheinen nach rechts.
@@ -787,3 +787,45 @@ Kampagnenauswahl, Graph, Hilfe und Einstellungen.
 Neu ist eine Hilfe mit den Tastenkürzeln und den Handgriffen, die man sonst
 nicht findet: `[[` zum Verlinken, Strg+Klick zum Öffnen, Bilder ziehen,
 Bildbreite über die Werkzeugleiste, Zoom im Graph.
+
+### Einführung beim ersten Start und beim ersten Öffnen
+
+Beim allerersten Start der Sammlung geht ein Willkommen auf, beim ersten
+Öffnen jedes Werkzeugs eine kurze Erklärung: ein Satz, worum es geht, und
+drei bis fünf Punkte, was man damit tut. Danach nie wieder.
+
+Entscheidungen:
+
+- **In der Hülle, nicht in den Werkzeugen.** So sieht die Einführung überall
+  gleich aus, und kein Werkzeug kann sie vergessen. Der Preis ist, dass die
+  Texte in `apps/shell/src/shared/einfuehrung.ts` stehen und nicht neben dem
+  Werkzeug, das sie beschreiben — dafür fällt in einem Test auf, wenn ein
+  neues Werkzeug ohne Einführung waehlbar wird.
+- **Die Texte stehen nicht im Wörterbuch.** Sie gehören zusammen, sind länger
+  als eine Knopfbeschriftung und verschwänden dort zwischen zwanzig
+  Einzelschlüsseln. Zweisprachig sind sie trotzdem, als `{de, en}` je Zeile.
+- **Genau einmal, und das wird sofort gemerkt.** Gespeichert wird die Kennung
+  beim Schließen in `einfuehrungGesehen` der Einstellungen, nicht erst beim
+  Beenden: nach einem Absturz soll nicht alles noch einmal kommen. Ein
+  Kästchen „nicht mehr zeigen" gibt es deshalb nicht — es käme ohnehin nicht
+  wieder. Wer sie zurückhaben will, findet in den Einstellungen einen Knopf.
+- **Derselbe Dialograhmen wie Einstellungen und Über.** Escape, Klick auf den
+  Hintergrund und der Fokus sind damit erledigt; nur die Aufschrift des
+  Knopfes ist eine andere, weil gelesen und losgelegt hier dasselbe ist wie
+  geschlossen.
+- **Erst wenn das Werkzeug wirklich da ist.** Die Einführung kommt nach einer
+  erfolgreichen Einbettung, nicht davor — vor einer Fehlermeldung zu
+  erklären, was das Werkzeug alles kann, wäre die falsche Reihenfolge.
+- **Liegt schon ein Dialog vorn, passiert nichts.** Die Einführung bleibt
+  dann ungesehen und kommt beim nächsten Öffnen von selbst wieder. Zwei
+  Fenster übereinander zu legen und eines davon ungelesen als erledigt zu
+  verbuchen wäre der schlechtere Handel.
+- **Geplante Werkzeuge brauchen keine.** Die Kachel „Begegnungen" lässt sich
+  nicht anklicken; der Test verlangt eine Einführung erst, wenn ein Werkzeug
+  wählbar wird.
+
+Der Rauchtest läuft zweimal als zwei Prozesse (`EINFUEHRUNG_LAUF=1`, dann
+`=2`) auf demselben Datenordner. Anders ist der eigentliche Punkt nicht zu
+zeigen: dass nach einem Neustart nichts mehr kommt. Zwei Electron-Sitzungen
+gleichzeitig auf einem Datenordner gehen dabei nicht — die zweite lädt kein
+Werkzeug mehr.

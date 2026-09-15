@@ -11,7 +11,7 @@ import { istAnbieterId } from '@suite/ki/einstellungen';
 import type { ShellSettings } from './settings';
 
 /**
- * Uebernimmt eine KI, die frueher im Backstory Creator eingerichtet wurde.
+ * Uebernimmt eine KI, die frueher im Story Creator eingerichtet wurde.
  *
  * Bis diese Einstellung in die Huelle wanderte, lag sie in dessen
  * settings.json. Wer sie dort eingerichtet hat, soll sie nicht neu eintippen
@@ -55,7 +55,7 @@ export async function findeKiUebernahme(
       ollamaAdresse: text(roh.ollamaBaseUrl, aktuell.ki.ollamaAdresse),
       ollamaModell: text(roh.ollamaModel, aktuell.ki.ollamaModell),
       claudeModell: text(roh.claudeModel, aktuell.ki.claudeModell),
-      // Den offenen Anbieter gab es im Backstory Creator nie, es ist also
+      // Den offenen Anbieter gab es im Story Creator nie, es ist also
       // nichts zu uebernehmen.
       offenAdresse: aktuell.ki.offenAdresse,
       offenModell: aktuell.ki.offenModell

@@ -109,19 +109,19 @@ app.whenReady().then(async () => {
 
   // --- Der Export ----------------------------------------------------------
   /*
-   * Ohne geoeffneten Backstory Creator kann nichts angelegt werden. Wichtig
+   * Ohne geoeffneten Story Creator kann nichts angelegt werden. Wichtig
    * ist, dass das gesagt wird, statt stumm ins Leere zu schreiben — und dass
    * die Anwendung dabei nicht stehenbleibt.
    */
   const exportKnopf =
-    "[...document.querySelectorAll('button')].find(b => /Backstory/.test(b.textContent))";
+    "[...document.querySelectorAll('button')].find(b => /Story Creator/.test(b.textContent))";
   pruefe(await js(`Boolean(${exportKnopf})`), 'der Knopf zum Uebergeben ist da');
   await js(`${exportKnopf}.click(); true`);
   await warte(900);
   const meldung = await js("document.querySelector('.stoerung')?.textContent ?? ''");
   pruefe(
     meldung.length > 0,
-    `ohne Backstory Creator sagt der Export, woran es liegt (${meldung || 'nichts'})`
+    `ohne Story Creator sagt der Export, woran es liegt (${meldung || 'nichts'})`
   );
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' | ') || 'keine'})`);

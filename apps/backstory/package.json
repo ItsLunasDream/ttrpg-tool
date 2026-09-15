@@ -60,7 +60,7 @@
   "license": "AGPL-3.0-or-later",
   "build": {
     "appId": "de.itslunasdream.backstorycreator",
-    "productName": "Backstory Creator",
+    "productName": "Story Creator",
     "copyright": "Copyright © ItsLunasDream",
     "electronVersion": "33.4.11",
     "npmRebuild": false,
@@ -96,7 +96,7 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "Backstory Creator",
+      "shortcutName": "Story Creator",
       "artifactName": "BackstoryCreator-Setup-${version}.${ext}"
     },
     "portable": {

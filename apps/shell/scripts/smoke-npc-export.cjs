@@ -3,7 +3,7 @@
  *
  * Kampagne bereitstellen, Figur wuerfeln, ein Feld von Hand aendern,
  * uebergeben — und dann nachsehen, ob die Notiz wirklich auf der Platte
- * liegt und ob das Symbol des Backstory Creators gewischt hat.
+ * liegt und ob das Symbol des Story Creators gewischt hat.
  *
  * Der andere Rauchtest (smoke-npc.cjs) sieht den NPC Creator allein und kann
  * den Export nur dabei beobachten, wie er sagt, dass es nicht geht. Erst
@@ -36,14 +36,14 @@ app.whenReady().then(async()=>{
   await mjs("[...document.querySelectorAll('.kachel:not(:disabled)')][0].click(); true");
   await warte(5000);
   const bs=sicht('backstory');
-  pruefe(Boolean(bs),'der Backstory Creator kommt hoch');
+  pruefe(Boolean(bs),'der Story Creator kommt hoch');
   if(!bs){ app.exit(1); return; }
   const bjs=(a)=>bs.webContents.executeJavaScript(a);
 
   // Eine Kampagne muss es geben, sonst hat die Figur keinen Ort. Ob schon
   // eine da ist, entscheidet der Stand des Speicherorts — also erst nachsehen.
   const kampagnen = await bjs(`(async () => {
-    // Die Bruecke des Backstory Creators verpackt jede Antwort in
+    // Die Bruecke des Story Creators verpackt jede Antwort in
     // { ok, value } — wer direkt auf .name zugreift, bekommt undefined.
     const auspacken = (antwort) => (antwort && 'value' in antwort ? antwort.value : antwort);
     const liste = auspacken(await window.api.campaigns.list()) ?? [];
@@ -98,7 +98,7 @@ app.whenReady().then(async()=>{
     'und wird dabei von selbst festgehalten'
   );
 
-  await njs(`[...document.querySelectorAll('button')].find(b=>/Backstory/.test(b.textContent)).click(); true`);
+  await njs(`[...document.querySelectorAll('button')].find(b=>/Story Creator/.test(b.textContent)).click(); true`);
   // Frueh nachsehen: die Markierung haelt nur 1,4 Sekunden, und ein Blick
   // danach zeigt nichts — das sagt aber nichts darueber, ob sie da war.
   await warte(500);
@@ -106,11 +106,11 @@ app.whenReady().then(async()=>{
   await warte(1300);
   const stoerung = await njs("document.querySelector('.stoerung')?.textContent ?? ''");
   pruefe(stoerung==='', `der Export meldet keinen Fehler (${stoerung||'keiner'})`);
-  const knopf = await njs(`[...document.querySelectorAll('button')].find(b=>/Backstory|Angelegt|Created/.test(b.textContent)).textContent`);
+  const knopf = await njs(`[...document.querySelectorAll('button')].find(b=>/Story Creator|Angelegt|Created/.test(b.textContent)).textContent`);
   pruefe(/Angelegt|Created/.test(knopf), `der Knopf meldet Vollzug (${knopf})`);
 
   // --- Wischt das Symbol? --------------------------------------------------
-  pruefe(wischtFrueh>0, `das Symbol des Backstory Creators wischt (${wischtFrueh})`);
+  pruefe(wischtFrueh>0, `das Symbol des Story Creators wischt (${wischtFrueh})`);
   const spaeter = await mjs("document.querySelectorAll('.schiene__eintrag--gemeldet').length");
   pruefe(spaeter===0, `und hoert danach wieder auf (${spaeter})`);
 
@@ -136,14 +136,14 @@ app.whenReady().then(async()=>{
    * Zurueckwechseln wird die Ansicht bewusst NICHT neu geladen — das wuerfe
    * den Zustand weg.
    *
-   * "Manchmal geht es" passt dazu: wer den Backstory Creator erst nach dem
+   * "Manchmal geht es" passt dazu: wer den Story Creator erst nach dem
    * Export zum ersten Mal oeffnet oder zwischendurch die Kampagne wechselt,
    * bekommt eine frische Liste.
    */
   await mjs("document.querySelector('.schiene__heim').click(); true");
   await warte(700);
   await mjs(`(() => { const k=[...document.querySelectorAll('.kachel:not(:disabled)')]
-    .find(x => /Backstory/.test(x.textContent)); if(!k) return false; k.click(); return true; })()`);
+    .find(x => /Story Creator/.test(x.textContent)); if(!k) return false; k.click(); return true; })()`);
   await warte(2500);
 
   const inDerListe = await bjs(
@@ -151,7 +151,7 @@ app.whenReady().then(async()=>{
   );
   pruefe(
     typeof inDerListe === 'string' && inDerListe.includes(name),
-    `die Figur steht in der Liste des Backstory Creators (${name})`
+    `die Figur steht in der Liste des Story Creators (${name})`
   );
   console.log('  (Liste: ' + inDerListe + ')');
 

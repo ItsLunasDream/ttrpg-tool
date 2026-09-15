@@ -57,6 +57,14 @@ export function baueEntwurf(
   const behalten = (baustein: Baustein) => festgehalten.includes(baustein) && vorlage !== null;
   const menge = MENGEN[zuschnitt.umfang];
 
+  /*
+   * Die Weltbeschreibung haengt an keinem Baustein und hat kein Schloss: sie
+   * beschreibt den ganzen Entwurf. Liefert das Modell keine, bleibt die
+   * bisherige stehen — wegzuwerfen, was es nicht ersetzt hat, waere die
+   * schlechtere Wahl.
+   */
+  const welt = roh.welt || vorlage?.welt || '';
+
   const aufhaenger = behalten('aufhaenger')
     ? vorlage!.aufhaenger
     : roh.aufhaenger
@@ -148,5 +156,5 @@ export function baueEntwurf(
     })).filter((punkt) => punkt.was !== '');
   }
 
-  return { aufhaenger, fraktionen, figuren, orte, verbindungen, zeitstrahl };
+  return { welt, aufhaenger, fraktionen, figuren, orte, verbindungen, zeitstrahl };
 }

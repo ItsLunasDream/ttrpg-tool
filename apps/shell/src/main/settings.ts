@@ -32,12 +32,23 @@ export interface ShellSettings {
    * Erreicht die Oberflaeche nie — sie erfaehrt nur, ob einer da ist.
    */
   claudeSchluessel: string;
+  /**
+   * Welche Einfuehrungen schon gesehen wurden — Werkzeug-Kennungen, dazu
+   * 'suite' fuer das Willkommen der Sammlung.
+   *
+   * Steht hier und nicht im Browserspeicher der Oberflaeche: wer die
+   * Anwendung neu installiert oder den Datenordner mitnimmt, soll nicht
+   * wieder von vorn begruesst werden — und wer sie zuruecksetzen will, findet
+   * sie in einer Datei, die er kennt.
+   */
+  einfuehrungGesehen: string[];
 }
 
 export const DEFAULT_SETTINGS: ShellSettings = {
   language: DEFAULT_LANGUAGE,
   ki: KI_VOREINSTELLUNGEN,
-  claudeSchluessel: ''
+  claudeSchluessel: '',
+  einfuehrungGesehen: []
 };
 
 /** Erzwingt gueltige Werte, egal was in der Datei stand. */
@@ -47,7 +58,12 @@ export function sanitizeSettings(roh: unknown): ShellSettings {
   return {
     language: isLanguage(wert.language) ? wert.language : DEFAULT_SETTINGS.language,
     ki: sanitizeKi(wert.ki),
-    claudeSchluessel: typeof wert.claudeSchluessel === 'string' ? wert.claudeSchluessel : ''
+    claudeSchluessel: typeof wert.claudeSchluessel === 'string' ? wert.claudeSchluessel : '',
+    // Nur Zeichenketten, und jede nur einmal: die Liste waechst sonst bei
+    // jedem Start um denselben Eintrag.
+    einfuehrungGesehen: Array.isArray(wert.einfuehrungGesehen)
+      ? [...new Set(wert.einfuehrungGesehen.filter((id): id is string => typeof id === 'string'))]
+      : []
   };
 }
 

@@ -13,6 +13,6 @@ export default defineConfig({
     outDir: resolve(__dirname, 'dist/renderer'),
     emptyOutDir: true
   },
-  // Nicht 5173 oder 5273: die belegen Backstory Creator und Huelle.
+  // Nicht 5173 oder 5273: die belegen Story Creator und Huelle.
   server: { port: 5473, strictPort: true }
 });

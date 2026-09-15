@@ -1,7 +1,7 @@
 /**
  * Was der NPC Creator ein Sprachmodell fragt.
  *
- * Der Unterschied zum Assistenten des Backstory Creators ist grundsaetzlich:
+ * Der Unterschied zum Assistenten des Story Creators ist grundsaetzlich:
  * dort darf das Modell ausdruecklich NICHT schreiben, weil die
  * Hintergrundgeschichte der Autorin gehoert. Hier soll es schreiben — eine
  * Randfigur, die gleich am Tisch auftaucht, will niemand selbst ausformulieren.

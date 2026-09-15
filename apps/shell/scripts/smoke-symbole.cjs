@@ -36,6 +36,15 @@ fs.writeFileSync(path.join(ordner, 'initiative.png'), 'das ist kein Bild');
 fs.writeFileSync(path.join(ordner, 'mapmaker.png'), Buffer.alloc(3 * 1024 * 1024, 7));
 // Und eine mit einem Format, das nicht vorgesehen ist.
 fs.writeFileSync(path.join(ordner, 'npc.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
+/*
+ * Ein Symbol fuer ein Werkzeug, das es noch gar nicht gibt.
+ *
+ * „Begegnungen" steht als Kachel da und ist nicht anklickbar. Gelesen wird
+ * trotzdem jede Bilddatei im Ordner — der Dateiname ist die Kennung, es gibt
+ * keine Liste erlaubter Namen. Wer das Symbol schon hat, soll es auch schon
+ * sehen.
+ */
+fs.writeFileSync(path.join(ordner, 'encounter.png'), MAGENTA_PNG);
 
 /*
  * Ein mitgeliefertes Symbol, wie es aus dem Repository kaeme.
@@ -112,7 +121,11 @@ app.whenReady().then(async () => {
     gelesen.dice === eigenesDice,
     'und ein eigenes sticht das mitgelieferte mit demselben Namen'
   );
-  pruefe(!('encounter' in gelesen), 'wo nirgends eine Datei liegt, steht auch nichts');
+  pruefe(
+    typeof gelesen.encounter === 'string',
+    'auch ein Symbol fuer ein noch nicht gebautes Werkzeug wird gelesen'
+  );
+  pruefe(!('gibtsnicht' in gelesen), 'wo nirgends eine Datei liegt, steht auch nichts');
   // Die kaputte Datei hat die richtige Endung: sie wird gelesen und
   // weitergereicht. Aussortiert wird sie erst in der Oberflaeche, wenn der
   // Browser sie nicht anzeigen kann.
@@ -121,15 +134,23 @@ app.whenReady().then(async () => {
   // --- Und was in der Oberflaeche steht ------------------------------------
   /*
    * Die Reihenfolge der Kacheln ist die aus shared/apps.ts: backstory,
-   * mapmaker, initiative, dice, npc, encounter. Nur dice hat ein brauchbares
-   * Bild — alle anderen muessen das eingebaute Symbol zeigen, auch die mit
-   * der kaputten Datei.
+   * mapmaker, initiative, dice, npc, inspiration, encounter. Brauchbare
+   * Bilder haben dice und encounter — alle anderen muessen das eingebaute
+   * Symbol zeigen, auch die mit der kaputten Datei.
    */
   const bilder = await js(
     "[...document.querySelectorAll('.kachel__icon')].map(e => e.firstElementChild.tagName).join(',')"
   );
   pruefe(bilder.includes('IMG'), `mindestens eine Kachel zeigt ein Bild (${bilder})`);
   pruefe(bilder.includes('svg'), 'und mindestens eine das eingebaute Symbol');
+  // Die letzte Kachel ist „Begegnungen": geplant, nicht anklickbar — und
+  // trotzdem mit eigenem Bild.
+  pruefe(
+    (await js(
+      "[...document.querySelectorAll('.kachel')].at(-1).querySelector('.kachel__icon').firstElementChild.tagName"
+    )) === 'IMG',
+    'die Kachel des geplanten Werkzeugs zeigt das eigene Bild'
+  );
 
   // Die kaputte Datei: das img meldet einen Fehler, und die Oberflaeche
   // faellt auf das eingebaute Symbol zurueck.
@@ -138,13 +159,13 @@ app.whenReady().then(async () => {
     "[...document.querySelectorAll('.kachel__icon')].map(e => e.firstElementChild.tagName).join(',')"
   );
   /*
-   * Zwei brauchbare Bilder: das eigene fuer dice und das mitgelieferte fuer
-   * backstory. Die kaputte Datei (initiative), die zu grosse (mapmaker) und
-   * das nicht vorgesehene Format (npc) muessen auf das eingebaute
-   * zurueckfallen.
+   * Drei brauchbare Bilder: das eigene fuer dice, das mitgelieferte fuer
+   * backstory und das fuer das geplante encounter. Die kaputte Datei
+   * (initiative), die zu grosse (mapmaker) und das nicht vorgesehene Format
+   * (npc) muessen auf das eingebaute zurueckfallen.
    */
   pruefe(
-    (nachFehler.match(/IMG/g) ?? []).length === 2,
+    (nachFehler.match(/IMG/g) ?? []).length === 3,
     `nur die brauchbaren Bilder bleiben stehen (${nachFehler})`
   );
 

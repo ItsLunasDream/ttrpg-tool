@@ -606,3 +606,66 @@ body {
   border-color: var(--betont);
   color: var(--betont);
 }
+
+/*
+ * Der Hinweis auf eigene Angaben.
+ *
+ * Auffaelliger als die Zahlenzeile daneben, aber keine Fehlermeldung: „Cyberpunk
+ * City" einzutragen ist richtig, es erreicht nur die Tabellen nicht.
+ */
+.wurf__eigenes {
+  margin: 0;
+  flex-basis: 100%;
+  color: var(--fest);
+  font-size: 12px;
+}
+
+/*
+ * Das Geflecht braucht die ganze Breite.
+ *
+ * In einer Rasterspalte von 320 Punkten stehen sieben Namen so dicht, dass
+ * man nichts mehr liest — und genau dafuer ist das Bild da. Bei schmalem
+ * Fenster hat das Raster ohnehin nur eine Spalte, dann faellt es nicht auf.
+ */
+.karte--breit {
+  grid-column: 1 / -1;
+}
+
+.karte--breit .zeilen {
+  /* Die Saetze darunter in zwei Spalten, sonst wird die Karte sehr lang. */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px 18px;
+}
+
+/* ---------- Die Welt ---------- */
+
+/*
+ * Der Rahmen ueber den Bausteinen, nicht einer von ihnen: die zwei Saetze
+ * sagen, worin das alles spielt. Sie kommen nur von der KI — beim Wuerfeln
+ * steht hier nichts, und dann ist der Abschnitt auch nicht da.
+ */
+.welt {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-left: 3px solid var(--betont);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.welt__titel {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-leise);
+}
+
+.welt__hinweis {
+  margin: 0;
+  color: var(--text-leise);
+  font-size: 12px;
+}
