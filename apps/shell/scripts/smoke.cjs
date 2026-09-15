@@ -199,6 +199,36 @@ app.whenReady().then(async () => {
     await js("document.querySelector('.schiene__heim').click()");
     await warte(500);
     pruefe(await js("Boolean(document.querySelector('.menue'))"), 'zurueck im Startmenue');
+
+    // ---- Verlauf: zurueck und vorwaerts ----
+    //
+    // Die Daumentasten der Maus lassen sich hier nicht druecken —
+    // sendInputEvent kennt nur links, mitte, rechts. Geprueft wird deshalb
+    // derselbe Weg, den sie nehmen: Alt und Pfeiltaste in der Huelle.
+    const altPfeil = (taste) =>
+      js(`window.dispatchEvent(new KeyboardEvent('keydown', { key: '${taste}', altKey: true, bubbles: true })); true`);
+
+    await altPfeil('ArrowLeft');
+    await warte(900);
+    pruefe(
+      !(await js("Boolean(document.querySelector('.menue'))")),
+      'Alt und Pfeil links geht zum vorigen Werkzeug zurueck'
+    );
+
+    await altPfeil('ArrowRight');
+    await warte(900);
+    pruefe(
+      await js("Boolean(document.querySelector('.menue'))"),
+      'Alt und Pfeil rechts fuehrt wieder ins Startmenue'
+    );
+
+    // Am Anfang des Verlaufs passiert nichts, kein Rundlauf.
+    await altPfeil('ArrowRight');
+    await warte(600);
+    pruefe(
+      await js("Boolean(document.querySelector('.menue'))"),
+      'am Ende des Verlaufs bleibt die Stelle stehen'
+    );
   } else {
     console.log('  --   Kachelwechsel uebersprungen: keine waehlbare Kachel');
   }

@@ -9,6 +9,20 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { ShellSettings } from '../main/settings';
 
 const api = {
+  /**
+   * Zurueck und vorwaerts. Der Befehl kommt aus dem Hauptprozess: die
+   * Daumentasten der Maus erreichen die Oberflaeche der Huelle nicht, wenn
+   * gerade eine eingebettete Anwendung den Fokus hat.
+   */
+  verlauf: {
+    beiBefehl: (fn: (richtung: 'zurueck' | 'vorwaerts') => void): (() => void) => {
+      const hoerer = (_e: unknown, richtung: 'zurueck' | 'vorwaerts') => fn(richtung);
+      ipcRenderer.on('verlauf:befehl', hoerer);
+      return () => {
+        ipcRenderer.off('verlauf:befehl', hoerer);
+      };
+    }
+  },
   fenster: {
     minimieren: () => ipcRenderer.invoke('fenster:minimieren') as Promise<void>,
     maximierenUmschalten: () => ipcRenderer.invoke('fenster:maximieren-umschalten') as Promise<boolean>,

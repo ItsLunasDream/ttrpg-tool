@@ -19,6 +19,14 @@ import {
   type MessageKey,
   type MessageParams
 } from '../shared/i18n';
+import {
+  LEERER_VERLAUF,
+  aktuelleStelle,
+  besuche,
+  vorwaerts,
+  zurueck,
+  type Verlauf
+} from '../shared/verlauf';
 import { AppSymbol, SuiteIcon } from './icons';
 import { KI_VOREINSTELLUNGEN, type KiEinstellungen } from '@suite/ki/einstellungen';
 import { Einstellungen, type KiZustandAnsicht } from './Einstellungen';
@@ -57,6 +65,21 @@ const UEBERGANG_MS = 340;
 
 export function App() {
   const [aktiv, setAktiv] = useState<string | null>(null);
+  /**
+   * Wo man war, wie im Browser.
+   *
+   * Eine Referenz und kein Zustand: nichts auf dem Schirm haengt daran, und
+   * ein Zustand liesse die Oberflaeche bei jedem Wechsel ein zweites Mal
+   * zeichnen. Sitzungszustand ist er ohnehin — beim naechsten Start faengt
+   * er leer an, wie ein frisches Fenster auch.
+   */
+  const verlauf = useRef<Verlauf>(LEERER_VERLAUF);
+  /**
+   * `waehle` steht weiter unten, wird aber schon vom Verlauf gebraucht. Eine
+   * Referenz ist ehrlicher als die Reihenfolge umzustellen: der Wechsel
+   * haengt an vielem, der Verlauf nur an ihm.
+   */
+  const waehleRef = useRef<((id: string | null, von?: DOMRect, ausVerlauf?: boolean) => void) | null>(null);
   /**
    * Was auf der Buehne los ist.
    *
@@ -135,6 +158,7 @@ export function App() {
     // ein zweites Mal anfordern.
     const abmeldenStart = window.shell.app.beiStartMitWerkzeug((id) => {
       setAktiv(id);
+      verlauf.current = besuche(verlauf.current, { app: id });
       setBuehne({ zustand: 'offen' });
     });
     // Eine der eingebetteten Anwendungen (oder eine andere Sitzung dieses
@@ -148,6 +172,41 @@ export function App() {
       abmeldenSprache();
     };
   }, []);
+
+  /**
+   * Zurueck und vorwaerts, wie im Browser.
+   *
+   * Die Daumentasten der Maus kommen aus dem Hauptprozess: unter Windows als
+   * `app-command`, unabhaengig davon, welche Ansicht gerade den Fokus hat.
+   * Alt und Pfeil funktioniert hier zusaetzlich, solange die Huelle selbst
+   * den Fokus hat.
+   */
+  const geheZu = useCallback(
+    (richtung: 'zurueck' | 'vorwaerts') => {
+      const naechster = richtung === 'zurueck' ? zurueck(verlauf.current) : vorwaerts(verlauf.current);
+      if (naechster === verlauf.current) return;
+
+      verlauf.current = naechster;
+      waehleRef.current?.(aktuelleStelle(naechster)?.app ?? null, undefined, true);
+    },
+    []
+  );
+
+  useEffect(() => {
+    const abmelden = window.shell.verlauf.beiBefehl(geheZu);
+
+    function onKeyDown(ereignis: KeyboardEvent) {
+      if (!ereignis.altKey) return;
+      if (ereignis.key === 'ArrowLeft') geheZu('zurueck');
+      else if (ereignis.key === 'ArrowRight') geheZu('vorwaerts');
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      abmelden();
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [geheZu]);
 
   const t = useMemo<Uebersetzer>(
     () => (key, params) => translate(sprache, key, params),
@@ -191,8 +250,11 @@ export function App() {
    * die Ansicht ueber die Huelle; hier wird nur noch gemerkt, was sichtbar
    * ist.
    */
-  const waehle = useCallback((id: string | null, von?: DOMRect) => {
+  const waehle = useCallback((id: string | null, von?: DOMRect, ausVerlauf = false) => {
     setAktiv(id);
+    // Ein Schritt aus dem Verlauf traegt sich nicht selbst wieder ein, sonst
+    // haenge man beim Zurueckgehen fest.
+    if (!ausVerlauf) verlauf.current = besuche(verlauf.current, { app: id });
     if (id === null) {
       setBuehne({ zustand: 'laedt' });
       setUebergang(null);
@@ -234,6 +296,8 @@ export function App() {
         });
       });
   }, [wenigerBewegung]);
+
+  waehleRef.current = waehle;
 
   const ladeSymboleNeu = useCallback(async () => {
     setSymbole(await window.shell.symbole.lesen());

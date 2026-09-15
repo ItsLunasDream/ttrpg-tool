@@ -240,6 +240,11 @@ function verbergeAlle(): void {
  * hier keine "Ursprungs"-Anwendung, die schon Bescheid wuesste — eingestellt
  * wird die KI immer in der Huelle.
  */
+/** Zurueck oder vorwaerts an die Oberflaeche der Huelle. */
+function meldeVerlauf(richtung: 'zurueck' | 'vorwaerts'): void {
+  huelle?.webContents.send('verlauf:befehl', richtung);
+}
+
 function meldeKiWechsel(): void {
   for (const montiert of offen.values()) montiert.meldeKiWechsel?.();
 }
@@ -330,6 +335,23 @@ async function erzeugeFenster(): Promise<void> {
       sandbox: true
     }
   });
+  /*
+   * Die Daumentasten der Maus.
+   *
+   * Unter Windows meldet das Fenster sie als `app-command`, unabhaengig
+   * davon, welche Ansicht gerade den Fokus hat — genau das wird hier
+   * gebraucht, denn meistens liegt eine eingebettete Anwendung vorn.
+   *
+   * Unter Linux und macOS gibt es dieses Ereignis nicht. Dort greift bisher
+   * nur Alt und Pfeiltaste, solange die Huelle den Fokus hat; die Tasten in
+   * den eingebetteten Anwendungen muessen dort einzeln weitergereicht
+   * werden. Ausgeliefert wird Windows.
+   */
+  fenster.on('app-command', (_ereignis: unknown, befehl: string) => {
+    if (befehl === 'browser-backward') meldeVerlauf('zurueck');
+    else if (befehl === 'browser-forward') meldeVerlauf('vorwaerts');
+  });
+
   fenster.contentView.addChildView(huelle);
   legeHuelleAus();
 

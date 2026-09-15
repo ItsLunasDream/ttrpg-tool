@@ -4,3 +4,13 @@ export * from '../src/shared/apps';
 export * from '../src/shared/i18n';
 export * from '../src/main/settings';
 export * from '../src/main/kiUebernahme';
+export {
+  LEERER_VERLAUF,
+  VERLAUF_TIEFE,
+  besuche,
+  zurueck,
+  vorwaerts,
+  kannZurueck,
+  kannVorwaerts,
+  aktuelleStelle
+} from '../src/shared/verlauf';
