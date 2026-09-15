@@ -527,3 +527,82 @@ body {
   padding: 1px 7px;
   white-space: nowrap;
 }
+
+/* ---------- Das Geflecht ---------- */
+
+/*
+ * Ein Bild ueber der Liste, nicht an ihrer Stelle: das Bild zeigt, wo die
+ * Geschichte dicht ist, die Saetze darunter will man lesen und aendern.
+ */
+.geflecht {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.geflecht__leer {
+  margin: 0;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.geflecht__kante line {
+  stroke: var(--rand);
+  stroke-width: 1.5;
+}
+
+.geflecht__kante text {
+  fill: var(--text-leise);
+  font-size: 9px;
+}
+
+.geflecht marker path {
+  fill: var(--rand);
+}
+
+.geflecht__kante:hover line {
+  stroke: var(--betont);
+}
+
+.geflecht__kante:hover text {
+  fill: var(--text);
+}
+
+.geflecht__knoten circle {
+  fill: var(--betont);
+}
+
+/* Figuren aus der Kampagne bleiben hohl — sie gehoeren nicht diesem Entwurf. */
+.geflecht__knoten--vorhanden circle {
+  fill: var(--grund-hoch);
+  stroke: var(--betont);
+  stroke-width: 2;
+}
+
+.geflecht__knoten text {
+  fill: var(--text);
+  font-size: 11px;
+}
+
+/*
+ * Der Knopf zum Karteneditor sitzt unter dem Ort und faellt nicht auf: er
+ * ist eine Abzweigung, kein Ziel. Die Karte selbst zeichnet dieses Werkzeug
+ * nicht — es beginnt drueben eine leere unter demselben Namen.
+ */
+.knopf--schmal {
+  align-self: flex-start;
+  font-size: 12px;
+  padding: 4px 9px;
+  margin-top: 4px;
+}
+
+/*
+ * Der grosse KI-Knopf steht neben dem Wuerfelknopf, nicht vor ihm: die
+ * Tabellen sind der Normalweg, das Modell die Zugabe. Darum ist er auch
+ * nicht gefuellt, sondern nur umrandet.
+ */
+.knopf--kigross {
+  background: none;
+  border-color: var(--betont);
+  color: var(--betont);
+}

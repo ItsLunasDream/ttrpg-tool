@@ -17,7 +17,13 @@ import type { WebContents } from 'electron';
 import { baueAnbieter, KiFehler, leseJsonAntwort } from '@suite/ki';
 import type { KiEinstellungen } from '@suite/ki/einstellungen';
 import { kanal } from '../shared/kanaele';
-import { anweisung, systemAnweisung, uebernehmbar, type Frage } from '../shared/kiAufgaben';
+import {
+  anweisung,
+  systemAnweisung,
+  uebernehmbar,
+  type Frage,
+  type RohEntwurf
+} from '../shared/kiAufgaben';
 import type { Notiz } from '../shared/notizen';
 import type { Sprache } from '../shared/tabellen';
 
@@ -54,6 +60,16 @@ export interface KampagnenFigur {
 export type Figurenquelle = () => Promise<readonly KampagnenFigur[]>;
 
 /**
+ * Beginnt im Karteneditor eine leere Karte unter diesem Namen.
+ *
+ * Wieder ueber die Huelle und nicht direkt: dieses Werkzeug kennt den
+ * Karteneditor nicht. Mehr als der Name geht auch nicht hinueber — eine
+ * Karte aus Text zu zeichnen hiesse, sein Datenmodell von aussen zu
+ * bedienen, und das ist ein Projekt fuer sich (docs/inspirationshilfe.md).
+ */
+export type Kartenanleger = (name: string) => Promise<boolean>;
+
+/**
  * Woher die KI-Anbindung kommt.
  *
  * Die Huelle richtet sie einmal fuer die ganze Sammlung ein und reicht sie
@@ -69,7 +85,7 @@ export type KiQuelle = () => { einstellungen: KiEinstellungen; schluessel: strin
 export interface KiErgebnis {
   readonly ok: boolean;
   /** Bei Erfolg die Felder des Bausteins (oder die Schritte), sonst null. */
-  readonly wert: Record<string, string> | readonly string[] | null;
+  readonly wert: Record<string, string> | readonly string[] | RohEntwurf | null;
   /** Bei Misserfolg der Schluessel der Meldung, sonst leer. */
   readonly grund: string;
 }
@@ -85,6 +101,8 @@ export interface InspirationEmbedOptions {
   readonly kiQuelle?: KiQuelle;
   /** Die Figuren der offenen Kampagne. Fehlt sie, bleibt die Liste leer. */
   readonly figuren?: Figurenquelle;
+  /** Der Weg zum Karteneditor. Fehlt er, gibt es den Knopf nicht. */
+  readonly karteAnlegen?: Kartenanleger;
 }
 
 export interface InspirationEmbed {
@@ -151,6 +169,26 @@ export async function mountInspiration(
       // Eine leere Liste ist hier die ehrlichere Antwort als ein Fehler: die
       // Oberflaeche sagt dann „niemand da", und das stimmt aus ihrer Sicht.
       return [];
+    }
+  });
+
+  /**
+   * Ob es den Weg zum Karteneditor gibt.
+   *
+   * Die Oberflaeche blendet den Knopf danach ein. Ohne Huelle — etwa im
+   * Entwicklungsserver allein — gibt es ihn gar nicht erst, statt ausgegraut
+   * dazustehen.
+   */
+  ipcMain.removeHandler(kanal('karte:da'));
+  ipcMain.handle(kanal('karte:da'), () => Boolean(options.karteAnlegen));
+
+  ipcMain.removeHandler(kanal('karte'));
+  ipcMain.handle(kanal('karte'), async (_e, name: string): Promise<boolean> => {
+    if (!options.karteAnlegen) return false;
+    try {
+      return await options.karteAnlegen(name);
+    } catch {
+      return false;
     }
   });
 

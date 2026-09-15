@@ -43,6 +43,11 @@ export interface MontierteApp {
   readonly id: string;
   readonly sicht: WebContentsView;
   /**
+   * Beginnt eine leere Karte unter diesem Namen. Nur der Karteneditor kann
+   * das; alle anderen lassen es weg.
+   */
+  neueKarte?(name: string): void;
+  /**
    * Bringt die Anwendung an eine Stelle zurueck, die der Verlauf kennt.
    * Werkzeuge ohne eigene Stellen lassen das weg.
    */
@@ -120,6 +125,14 @@ export interface MontageHaken {
    * sie soll ueberall gleich aussehen, gleich wer sie ausloest.
    */
   readonly onEreignis?: (appId: string) => void;
+  /**
+   * Beginnt im Karteneditor eine leere Karte unter diesem Namen.
+   *
+   * Steht hier und nicht als Draht zwischen den beiden Anwendungen: die
+   * Inspirationshilfe kennt den Karteneditor nicht, und er kennt sie nicht.
+   * Die Huelle holt ihn nach vorn und stellt den Namen zu, sobald er steht.
+   */
+  readonly oeffneKarte?: (name: string) => Promise<boolean>;
   /**
    * Die KI-Anbindung der Sammlung.
    *
@@ -438,6 +451,8 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
      * bleiben, und die Kampagne ist ohnehin die Stelle, an der die Wahrheit
      * liegt.
      */
+    // Der Weg zum Karteneditor. Nicht direkt: die Huelle holt ihn nach vorn.
+    karteAnlegen: haken.oeffneKarte,
     figuren: async () => {
       if (!backstoryEmbed) return [];
       const kampagnen = await backstoryEmbed.vault.listCampaigns();
@@ -693,6 +708,11 @@ async function montiereMapmaker(id: string, haken: MontageHaken): Promise<Montie
     },
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
-    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    // Eine leere Karte unter einem gegebenen Namen — angestossen aus der
+    // Inspirationshilfe, ueber die Huelle. Mehr geht bewusst nicht: eine
+    // Karte aus Text zu zeichnen hiesse, sein Datenmodell von aussen zu
+    // bedienen (siehe docs/inspirationshilfe.md).
+    neueKarte: (name: string) => eingebettet.neueKarte(sicht.webContents as WebContents, name)
   };
 }

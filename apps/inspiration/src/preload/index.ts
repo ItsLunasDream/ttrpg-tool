@@ -1,14 +1,14 @@
 /** Die Bruecke zwischen Oberflaeche und Hauptprozess. */
 import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
-import type { Frage } from '../shared/kiAufgaben';
+import type { Frage, RohEntwurf } from '../shared/kiAufgaben';
 import type { KampagnenFigur } from '../main/embed';
 import type { Notiz } from '../shared/notizen';
 import type { Sprache } from '../shared/tabellen';
 
 export interface KiErgebnis {
   readonly ok: boolean;
-  readonly wert: Record<string, string> | readonly string[] | null;
+  readonly wert: Record<string, string> | readonly string[] | RohEntwurf | null;
   /** Bei Misserfolg der Schluessel der Meldung, sonst leer. */
   readonly grund: string;
 }
@@ -38,6 +38,17 @@ const api = {
    * uebernommen wurde, liegt anschliessend als Notiz in derselben Kampagne.
    */
   figuren: () => ipcRenderer.invoke(kanal('figuren')) as Promise<readonly KampagnenFigur[]>,
+
+  /**
+   * Der Karteneditor.
+   *
+   * `da` sagt, ob es den Weg ueberhaupt gibt; `anlegen` holt den Editor nach
+   * vorn und beginnt dort eine leere Karte unter diesem Namen.
+   */
+  karte: {
+    da: () => ipcRenderer.invoke(kanal('karte:da')) as Promise<boolean>,
+    anlegen: (name: string) => ipcRenderer.invoke(kanal('karte'), name) as Promise<boolean>
+  },
 
   /**
    * Die KI.

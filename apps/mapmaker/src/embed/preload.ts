@@ -12,6 +12,25 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 const PREFIX = 'mapmaker:';
 
+/**
+ * Eine neue Karte, angestossen von aussen.
+ *
+ * Die Inspirationshilfe erzeugt Orte; zu einem davon soll man hier eine
+ * leere Karte beginnen koennen, ohne den Namen abzutippen. Mehr geht bewusst
+ * nicht ueber diese Bruecke: eine Karte aus Text zu zeichnen hiesse, das
+ * Datenmodell dieser Anwendung von aussen zu bedienen — ein Projekt fuer
+ * sich, kein Knopf (siehe docs/inspirationshilfe.md).
+ */
+contextBridge.exposeInMainWorld('ttrpgToolsKarte', {
+  onNeu: (callback: (name: string) => void): (() => void) => {
+    const listener = (_event: unknown, name: string) => callback(name);
+    ipcRenderer.on(`${PREFIX}neue-karte`, listener);
+    return () => {
+      ipcRenderer.off(`${PREFIX}neue-karte`, listener);
+    };
+  }
+});
+
 contextBridge.exposeInMainWorld('ttrpgToolsSprache', {
   /** Meldet der Huelle, dass hier die Sprache gewechselt wurde. */
   gewechselt: (language: string) => ipcRenderer.send(`${PREFIX}sprache-gewechselt`, language),

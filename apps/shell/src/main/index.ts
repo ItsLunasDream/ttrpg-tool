@@ -254,6 +254,42 @@ function meldeKiWechsel(): void {
   for (const montiert of offen.values()) montiert.meldeKiWechsel?.();
 }
 
+/**
+ * Ein Kartenname, der auf den Karteneditor wartet.
+ *
+ * Die Inspirationshilfe stoesst „Karte anlegen" an; der Karteneditor muss
+ * dafuer erst montiert, geladen und sichtbar sein. Bis dahin liegt der Name
+ * hier. Zugestellt wird er am Ende von `app:zeigen` — und danach vergessen,
+ * damit der naechste Wechsel von Hand nicht noch einmal eine leere Karte
+ * beginnt.
+ */
+let wartendeKarte: string | null = null;
+
+/**
+ * Holt den Karteneditor nach vorn und beginnt dort eine leere Karte.
+ *
+ * Der Wechsel laeuft ueber die Oberflaeche der Huelle und nicht am
+ * Hauptprozess vorbei: nur sie kennt ihren Verlauf, ihre Schiene und die
+ * Animation. Ohne das saehe man die Ansicht wechseln, waehrend die Schiene
+ * weiter das alte Werkzeug markiert.
+ */
+async function oeffneKarteImEditor(name: string): Promise<boolean> {
+  const sauber = name.trim();
+  if (!sauber || !huelle) return false;
+  wartendeKarte = sauber;
+  huelle.webContents.send('app:oeffne', 'mapmaker');
+
+  // Steht er schon vorn, kommt kein Wechsel mehr — dann jetzt zustellen.
+  if (aktiveApp === 'mapmaker') {
+    const montiert = offen.get('mapmaker');
+    if (montiert?.neueKarte && montiert.istGeladen()) {
+      montiert.neueKarte(sauber);
+      wartendeKarte = null;
+    }
+  }
+  return true;
+}
+
 function montageHaken(herkunft: string, sprache: Language): MontageHaken {
   return {
     language: sprache,
@@ -269,7 +305,8 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
     kiQuelle: () => ({
       einstellungen: gemerkteEinstellungen.ki,
       schluessel: entschluessle(gemerkteEinstellungen.claudeSchluessel)
-    })
+    }),
+    oeffneKarte: oeffneKarteImEditor
   };
 }
 
@@ -730,6 +767,13 @@ function registriereKanaele(): void {
     // `holeNachVorn` legt vorher neu aus: das Fenster kann seit dem letzten
     // Mal eine andere Groesse haben.
     holeNachVorn(montiert, true);
+
+    // Wartet ein Kartenname auf genau dieses Werkzeug, wird er jetzt
+    // zugestellt — erst hier ist es geladen und kann darauf antworten.
+    if (wartendeKarte && montiert.neueKarte) {
+      montiert.neueKarte(wartendeKarte);
+      wartendeKarte = null;
+    }
     return { zustand: 'offen' };
   });
 

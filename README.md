@@ -293,10 +293,21 @@ was passiert, wenn die Gruppe nichts tut.
 - **Figuren, die es schon gibt**, lassen sich aus der offenen Kampagne holen
   (und damit auch die des NPC Creators, der dort ablegt). Sie werden gleich
   ins Geflecht eingehängt und bekommen beim Übernehmen keine zweite Notiz.
+- **Das Geflecht als Bild**: Figuren als Punkte, Verbindungen als Pfeile.
+  Die Liste darunter sagt, was zwischen zweien liegt; das Bild sagt, wo die
+  Geschichte dicht ist und wer am Rand steht.
+- **„Karte anlegen"** an jedem Ort öffnet den Karteneditor und beginnt dort
+  eine leere Karte unter diesem Namen. Mehr geht bewusst nicht hinüber: eine
+  Karte aus Text zu zeichnen hieße, sein Datenmodell von außen zu bedienen.
 - **Mit KI** schlägt das Modell einen Baustein frei vor, nicht aus den
-  Tabellen — immer nur einen, mit dem bisherigen Entwurf als Umgebung. Sie
-  versteht auch eigene Regionen wie „Schwebende Inseln", mit denen die
-  Tabellen nichts anfangen können. Ohne KI gelten die Tabellen.
+  Tabellen — mit dem bisherigen Entwurf als Umgebung. Sie versteht auch
+  eigene Regionen wie „Schwebende Inseln", mit denen die Tabellen nichts
+  anfangen können. Ohne KI gelten die Tabellen.
+- **„Alles von der KI"** entwirft alle sechs Bausteine in einer Antwort und
+  aufeinander bezogen: die Fraktion kennt den Aufhänger, die Verbindung
+  kennt die Figuren. Was das Modell ausläßt, kommt aus den Tabellen, was zu
+  viel ist, fällt weg — der eingestellte Umfang gilt —, und festgehaltene
+  Bausteine bleiben stehen.
 - **Übernehmen** legt je Figur, Ort und Fraktion eine Notiz in der offenen
   Kampagne an, dazu eine Übersicht mit Wiki-Verweisen — der Graph im
   Backstory Creator hat sofort etwas zu zeichnen. Entwurf hier, Wahrheit

@@ -24,7 +24,18 @@ import { MENGEN, type Sprache, type UmfangId } from './tabellen';
 import { ZEITMARKEN } from './zeitstrahl';
 
 /** Wonach gefragt werden kann. */
-export const KI_AUFGABEN = ['aufhaenger', 'fraktion', 'figur', 'ort', 'verbindung', 'zeitstrahl'] as const;
+export const KI_AUFGABEN = [
+  'aufhaenger',
+  'fraktion',
+  'figur',
+  'ort',
+  'verbindung',
+  'zeitstrahl',
+  // Alles auf einmal, als zusammenhaengende Antwort. Die teuerste Anfrage und
+  // die einzige, bei der das Modell die Bausteine aufeinander beziehen kann:
+  // die Fraktion kennt den Aufhaenger, die Verbindung kennt die Figuren.
+  'entwurf'
+] as const;
 export type KiAufgabe = (typeof KI_AUFGABEN)[number];
 
 /**
@@ -94,7 +105,8 @@ export const FELDER: Record<KiAufgabe, readonly string[]> = {
   figur: ['name', 'rolle', 'triebfeder', 'hebel', 'makel'],
   ort: ['name', 'art', 'merkmal', 'zustand', 'karte'],
   verbindung: ['muster', 'hin', 'zurueck'],
-  zeitstrahl: ['schritte']
+  zeitstrahl: ['schritte'],
+  entwurf: ['aufhaenger', 'fraktionen', 'figuren', 'orte', 'verbindungen', 'zeitstrahl']
 };
 
 /** Was in dem jeweiligen Feld stehen soll — geht als Erklaerung mit. */
@@ -176,7 +188,41 @@ const ERKLAERUNG: Record<KiAufgabe, Record<'de' | 'en', readonly string[]>> = {
   zeitstrahl: {
     de: ['"schritte": eine Liste von Sätzen, je einer pro Zeitpunkt, mit steigender Wucht'],
     en: ['"schritte": a list of sentences, one per point in time, escalating']
+  },
+  entwurf: {
+    de: [
+      '"aufhaenger": { "ausloeser", "betroffene", "komplikation", "frist" }',
+      '"fraktionen": Liste aus { "name", "art", "ziel", "mittel", "schwaeche" }',
+      '"figuren": Liste aus { "name", "rolle", "triebfeder", "hebel", "makel" }',
+      '"orte": Liste aus { "name", "art", "merkmal", "zustand", "karte" }',
+      '"verbindungen": Liste aus { "a", "b", "muster", "hin", "zurueck" } —',
+      '  "a" und "b" sind Nummern von Figuren, gezählt ab 0 in der Reihenfolge',
+      '  deiner Liste. "hin" ist, wie a die b sieht, "zurueck", wie b die a',
+      '  sieht; beide Sätze nennen die Namen und sehen dieselbe Sache anders.',
+      '"zeitstrahl": Liste von Sätzen, je einer pro Zeitpunkt, mit steigender Wucht'
+    ],
+    en: [
+      '"aufhaenger": { "ausloeser", "betroffene", "komplikation", "frist" }',
+      '"fraktionen": list of { "name", "art", "ziel", "mittel", "schwaeche" }',
+      '"figuren": list of { "name", "rolle", "triebfeder", "hebel", "makel" }',
+      '"orte": list of { "name", "art", "merkmal", "zustand", "karte" }',
+      '"verbindungen": list of { "a", "b", "muster", "hin", "zurueck" } —',
+      '  "a" and "b" are character numbers, counted from 0 in the order of',
+      '  your own list. "hin" is how a sees b, "zurueck" how b sees a; both',
+      '  name the people and see the same thing differently.',
+      '"zeitstrahl": list of sentences, one per point in time, escalating'
+    ]
   }
+};
+
+/** Wie die Bausteine im Klartext heissen — fuer „das steht fest". */
+const BAUSTEIN_TEXT: Record<string, { de: string; en: string }> = {
+  aufhaenger: { de: 'der Aufhänger', en: 'the hook' },
+  fraktionen: { de: 'die Fraktionen', en: 'the factions' },
+  figuren: { de: 'die Figuren', en: 'the characters' },
+  orte: { de: 'die Orte', en: 'the places' },
+  verbindungen: { de: 'die Verbindungen', en: 'the connections' },
+  zeitstrahl: { de: 'der Zeitstrahl', en: 'the timeline' }
 };
 
 function vorgabezeilen(vorgaben: Vorgaben, sprache: Sprache): string[] {
@@ -246,6 +292,14 @@ export interface Frage {
   readonly entwurf: Entwurf | null;
   /** Nur bei 'verbindung': die beiden Namen, um die es geht. */
   readonly namen?: readonly [string, string];
+  /**
+   * Nur bei 'entwurf': welche Bausteine stehen bleiben.
+   *
+   * Sie gehen als „das steht fest" mit, damit das Modell darum herumbaut,
+   * statt sie zu ersetzen. Sonst waeren die Schloesser beim grossen Knopf
+   * wirkungslos — und das faellt erst auf, wenn der gute Aufhaenger weg ist.
+   */
+  readonly festgehalten?: readonly string[];
 }
 
 const EINLEITUNG: Record<KiAufgabe, Record<'de' | 'en', string>> = {
@@ -269,6 +323,10 @@ const EINLEITUNG: Record<KiAufgabe, Record<'de' | 'en', string>> = {
   zeitstrahl: {
     de: 'Sag, was passiert, wenn die Gruppe nichts tut.',
     en: 'Say what happens if the party does nothing.'
+  },
+  entwurf: {
+    de: 'Entwirf das Gerüst einer Geschichte — alles auf einmal und aufeinander bezogen.',
+    en: 'Sketch the scaffold of a story — all of it at once, and all of a piece.'
   }
 };
 
@@ -296,7 +354,44 @@ export function anweisung(frage: Frage, sprache: Sprache): string {
     teile.push('', de ? 'Das steht schon:' : 'What is already there:', ...bekannt);
   }
 
-  if (frage.aufgabe === 'zeitstrahl') {
+  if (frage.aufgabe === 'entwurf') {
+    const menge = MENGEN[frage.vorgaben.umfang];
+    teile.push(
+      '',
+      de ? 'Liefere genau:' : 'Deliver exactly:',
+      de
+        ? `- ${menge.fraktionen} Fraktionen, deren Ziele einander im Weg stehen`
+        : `- ${menge.fraktionen} factions whose goals get in each other\u2019s way`,
+      de ? `- ${menge.figuren} Figuren` : `- ${menge.figuren} characters`,
+      de ? `- ${menge.orte} Orte` : `- ${menge.orte} places`,
+      de
+        ? `- ${Math.max(1, menge.figuren - 1)} Verbindungen, so dass jede Figur an mindestens einer haengt`
+        : `- ${Math.max(1, menge.figuren - 1)} connections, so every character hangs on at least one`,
+      de ? `- ${menge.schritte} Schritte im Zeitstrahl` : `- ${menge.schritte} steps on the timeline`,
+      '',
+      de
+        ? 'Alles gehört zusammen: die Fraktionen zum Aufhänger, die Figuren zu den Fraktionen, die Orte zu beidem.'
+        : 'It all belongs together: factions to the hook, characters to the factions, places to both.'
+    );
+
+    // Was festgehalten ist, bleibt stehen. Das Modell soll darum herumbauen,
+    // statt es zu ersetzen — sonst waeren die Schloesser hier wirkungslos.
+    const behalten = frage.festgehalten ?? [];
+    if (behalten.length > 0 && frage.entwurf) {
+      teile.push(
+        '',
+        de ? 'Das steht fest und darf nicht ersetzt werden:' : 'This is fixed and must not be replaced:',
+        ...behalten.map((baustein) =>
+          de ? `- ${BAUSTEIN_TEXT[baustein]?.de ?? baustein}` : `- ${BAUSTEIN_TEXT[baustein]?.en ?? baustein}`
+        ),
+        de
+          ? 'Lass diese Schlüssel weg oder wiederhole sie unverändert.'
+          : 'Leave those keys out, or repeat them unchanged.'
+      );
+    }
+  }
+
+  if (frage.aufgabe === 'zeitstrahl' || frage.aufgabe === 'entwurf') {
     const marken = ZEITMARKEN[frage.vorgaben.umfang].slice(
       0,
       MENGEN[frage.vorgaben.umfang].schritte
@@ -313,7 +408,9 @@ export function anweisung(frage: Frage, sprache: Sprache): string {
     de ? 'Antworte als JSON mit genau diesen Schlüsseln:' : 'Answer as JSON with exactly these keys:',
     frage.aufgabe === 'zeitstrahl'
       ? '{"schritte": ["…", "…"]}'
-      : `{${FELDER[frage.aufgabe].map((feld) => `"${feld}": "…"`).join(', ')}}`,
+      : frage.aufgabe === 'entwurf'
+        ? '{"aufhaenger": {…}, "fraktionen": [{…}], "figuren": [{…}], "orte": [{…}], "verbindungen": [{…}], "zeitstrahl": ["…"]}'
+        : `{${FELDER[frage.aufgabe].map((feld) => `"${feld}": "…"`).join(', ')}}`,
     '',
     ...ERKLAERUNG[frage.aufgabe][de ? 'de' : 'en'],
     '',
@@ -342,12 +439,113 @@ function sauber(wert: unknown): string {
  *
  * Ausnahme ist die Frist: sie darf leer bleiben, genau wie beim Wuerfeln.
  */
+/**
+ * Ein ganzer Entwurf, wie ihn das Modell geschickt hat — roh und geprueft.
+ *
+ * Roh, weil noch nichts ergaenzt ist: was fehlt, fuellt `baueEntwurf` aus den
+ * Tabellen nach. Geprueft, weil hier alles wegfaellt, was nicht ins Muster
+ * passt — ein einzelnes unvollstaendiges Stueck darf nicht die ganze Antwort
+ * kosten, und eine Verbindung auf Figur 9 von 5 darf nicht ins Geflecht.
+ */
+export interface RohEntwurf {
+  readonly aufhaenger: Record<string, string> | null;
+  readonly fraktionen: readonly Record<string, string>[];
+  readonly figuren: readonly Record<string, string>[];
+  readonly orte: readonly Record<string, string>[];
+  readonly verbindungen: readonly {
+    a: number;
+    b: number;
+    muster: string;
+    hin: string;
+    zurueck: string;
+  }[];
+  readonly zeitstrahl: readonly string[];
+}
+
+function liste(wert: unknown): readonly unknown[] {
+  return Array.isArray(wert) ? wert : [];
+}
+
+/** Ein Stueck mit allen Pflichtfeldern, oder nichts. */
+function stueck(roh: unknown, felder: readonly string[]): Record<string, string> | null {
+  if (typeof roh !== 'object' || roh === null) return null;
+  const quelle = roh as Record<string, unknown>;
+  const ergebnis: Record<string, string> = {};
+  for (const feld of felder) {
+    const wert = sauber(quelle[feld]);
+    if (!wert && feld !== 'frist') return null;
+    ergebnis[feld] = wert;
+  }
+  return ergebnis;
+}
+
+/**
+ * Die Gesamtantwort auswerten.
+ *
+ * Grosszuegig im Kleinen, streng im Ganzen: einzelne Stuecke, die nicht
+ * vollstaendig sind, fallen weg; kommt gar nichts Brauchbares an, gilt die
+ * Antwort als misslungen. Ein Entwurf, bei dem sich nichts geaendert hat,
+ * saehe sonst aus wie ein Knopf, der nicht reagiert.
+ */
+export function uebernehmbarerEntwurf(gelesen: unknown, anzahlFiguren = 0): RohEntwurf | null {
+  if (typeof gelesen !== 'object' || gelesen === null) return null;
+  const roh = gelesen as Record<string, unknown>;
+
+  const figuren = liste(roh.figuren)
+    .map((eintrag) => stueck(eintrag, FELDER.figur))
+    .filter((eintrag): eintrag is Record<string, string> => eintrag !== null);
+
+  // Wie viele Figuren es am Ende gibt, entscheidet, welche Verbindungen
+  // gelten duerfen: die des Modells, oder die der festgehaltenen Liste.
+  const grenze = Math.max(figuren.length, anzahlFiguren);
+
+  const verbindungen = liste(roh.verbindungen)
+    .map((eintrag) => {
+      const teil = stueck(eintrag, FELDER.verbindung);
+      if (!teil || typeof eintrag !== 'object' || eintrag === null) return null;
+      const quelle = eintrag as Record<string, unknown>;
+      const a = Number(quelle.a);
+      const b = Number(quelle.b);
+      // Eine Verbindung auf eine Figur, die es nicht gibt, oder auf sich
+      // selbst: weg damit. Im Bild waere das eine Linie ins Nichts.
+      if (!Number.isInteger(a) || !Number.isInteger(b)) return null;
+      if (a < 0 || b < 0 || a >= grenze || b >= grenze || a === b) return null;
+      return { a, b, muster: teil.muster, hin: teil.hin, zurueck: teil.zurueck };
+    })
+    .filter((eintrag): eintrag is RohEntwurf['verbindungen'][number] => eintrag !== null);
+
+  const ergebnis: RohEntwurf = {
+    aufhaenger: stueck(roh.aufhaenger, FELDER.aufhaenger),
+    fraktionen: liste(roh.fraktionen)
+      .map((eintrag) => stueck(eintrag, FELDER.fraktion))
+      .filter((eintrag): eintrag is Record<string, string> => eintrag !== null),
+    figuren,
+    orte: liste(roh.orte)
+      .map((eintrag) => stueck(eintrag, FELDER.ort))
+      .filter((eintrag): eintrag is Record<string, string> => eintrag !== null),
+    verbindungen,
+    zeitstrahl: liste(roh.zeitstrahl)
+      .map(sauber)
+      .filter((satz) => satz.length > 0)
+  };
+
+  const leer =
+    !ergebnis.aufhaenger &&
+    ergebnis.fraktionen.length === 0 &&
+    ergebnis.figuren.length === 0 &&
+    ergebnis.orte.length === 0 &&
+    ergebnis.zeitstrahl.length === 0;
+  return leer ? null : ergebnis;
+}
+
 export function uebernehmbar(
   aufgabe: KiAufgabe,
   gelesen: unknown
-): Record<string, string> | readonly string[] | null {
+): Record<string, string> | readonly string[] | RohEntwurf | null {
   if (typeof gelesen !== 'object' || gelesen === null) return null;
   const roh = gelesen as Record<string, unknown>;
+
+  if (aufgabe === 'entwurf') return uebernehmbarerEntwurf(gelesen);
 
   if (aufgabe === 'zeitstrahl') {
     const liste = Array.isArray(roh.schritte) ? roh.schritte : Array.isArray(gelesen) ? gelesen : null;

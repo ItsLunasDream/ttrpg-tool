@@ -244,6 +244,69 @@ function starte() {
       'und der Knopf laesst sich danach wieder druecken'
     );
 
+    // --- Alles auf einmal ----------------------------------------------------
+    /*
+     * Der grosse Knopf: eine Antwort fuer alle sechs Bausteine. Die Antwort
+     * hier ist absichtlich luecken- und fehlerhaft — zu wenige Orte, eine
+     * Verbindung auf eine Figur, die es nicht gibt. Beides muss das Werkzeug
+     * auffangen: auffuellen aus den Tabellen, Unsinn verwerfen. Genau daran
+     * haengt, ob der Regler „Umfang" noch stimmt.
+     */
+    antwort = {
+      art: 'json',
+      json: {
+        aufhaenger: {
+          ausloeser: 'Der Damm bei Aschfurt ist gebrochen.',
+          betroffene: 'Die Müllerin bittet um Hilfe.',
+          komplikation: 'Nur: das Wasser steigt weiter.',
+          frist: 'Drei Tage.'
+        },
+        fraktionen: [
+          { name: 'Der Bund', art: 'eine Zunft', ziel: 'Den Damm halten.', mittel: 'Geld.', schwaeche: 'Alt.' }
+        ],
+        figuren: [
+          { name: 'Runa Aschfurt', rolle: 'Auftraggebend', triebfeder: 'Will das Dorf retten.', hebel: 'Kennt den Damm.', makel: 'Aber: schweigt.' },
+          { name: 'Gorm Steinweide', rolle: 'Gegenseite', triebfeder: 'Will das Land.', hebel: 'Hat Papiere.', makel: 'Aber: zahlt nie.' }
+        ],
+        orte: [
+          { name: 'Aschfurt', art: 'eine Mühle', merkmal: 'Steht schief.', zustand: 'Unter Wasser.', karte: 'Ein Steg.' }
+        ],
+        verbindungen: [
+          { a: 0, b: 1, muster: 'Alte Rechnung', hin: 'Runa wartet.', zurueck: 'Gorm hat es vergessen.' },
+          { a: 0, b: 12, muster: 'Unsinn', hin: 'x', zurueck: 'y' }
+        ],
+        zeitstrahl: ['Das Wasser steigt.', 'Die Ernte ist hin.']
+      }
+    };
+    await js("document.querySelector('.knopf--kigross').click(); true");
+    await warte(2000);
+
+    const werte = (nr) =>
+      js(`[...[...document.querySelectorAll('.karte')][${nr}].querySelectorAll('input, textarea')].map(e => e.value)`);
+
+    const haken = await werte(0);
+    pruefe(haken.join(' ').includes('Aschfurt'), `der Aufhaenger kommt von der KI (${haken[0]})`);
+
+    const fraktionen = await js("[...document.querySelectorAll('.karte')][1].querySelectorAll('.block').length");
+    const figuren = await js("[...document.querySelectorAll('.karte')][2].querySelectorAll('.block').length");
+    const orte = await js("[...document.querySelectorAll('.karte')][3].querySelectorAll('.block').length");
+    const zeit = await js("document.querySelectorAll('.zeitstrahl li').length");
+    pruefe(fraktionen === 3, `zu wenige Fraktionen werden aufgefuellt (${fraktionen})`);
+    pruefe(figuren === 5, `zu wenige Figuren werden aufgefuellt (${figuren})`);
+    pruefe(orte === 3, `zu wenige Orte werden aufgefuellt (${orte})`);
+    pruefe(zeit === 4, `der Zeitstrahl bekommt die Marken des Umfangs (${zeit})`);
+
+    const gelieferte = await werte(2);
+    pruefe(gelieferte.join(' ').includes('Runa Aschfurt'), 'die gelieferten Figuren stehen vorn');
+
+    const geflecht = await werte(4);
+    pruefe(geflecht.join(' ').includes('Alte Rechnung'), 'die gelieferte Verbindung ist dabei');
+    pruefe(!geflecht.join(' ').includes('Unsinn'), 'die Verbindung ins Leere nicht');
+    pruefe(
+      await js("Boolean(document.querySelector('.geflecht'))"),
+      'und das Geflecht wird gezeichnet'
+    );
+
     pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' | ') || 'keine'})`);
 
     console.log(

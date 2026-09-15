@@ -7,12 +7,18 @@ alles zusammenhängt.
 Dies war ein Konzept, kein Plan zum Abarbeiten. Inzwischen ist es gebaut:
 `apps/inspiration`.
 
-**Stand:** Stufe 1 bis 4 stehen (Gerüst, Einbettung, Regler, alle sechs
-Bausteine, Verbindungen, KI neben den Tabellen, Übernehmen in den Backstory
-Creator), dazu das Bearbeiten von Hand und das Holen vorhandener Figuren aus
-der offenen Kampagne. Offen ist Stufe 5: das Geflecht als Bild und der Knopf
-„Karte anlegen" zum Karteneditor. Was unten über die offenen Fragen steht,
-ist damit teils beantwortet — die Antworten stehen jeweils dabei.
+**Stand:** Alle fünf Stufen stehen — Gerüst und Einbettung, die vier Regler,
+die sechs Bausteine, die Verbindungen, die KI neben den Tabellen, das
+Übernehmen in den Backstory Creator, das Geflecht als Bild und der Knopf
+„Karte anlegen" zum Karteneditor. Dazu, über das Konzept hinaus: Bearbeiten
+von Hand, das Holen vorhandener Figuren aus der offenen Kampagne und ein
+KI-Knopf, der alle sechs Bausteine in einer zusammenhängenden Antwort
+entwirft. Die offenen Fragen unten sind beantwortet; die Antworten stehen
+jeweils dabei.
+
+Offen bleibt aus den „weiteren Vorschlägen": „Was, wenn" und die
+Widerspruchsprüfung. Und der Entwurf lebt nur in der Sitzung — wer die
+Anwendung schließt, ohne zu übernehmen, fängt neu an.
 
 ## Wozu
 
@@ -140,6 +146,14 @@ keinen Eingriff in fremdes Datenmodell.
 anlegen" in Stufe 5, zusammen mit dem Zeichnen des Geflechts. Das Beschreiben
 der Karte gehört zu den Orten und kostet nichts extra.
 
+**So gebaut.** Der Knopf steht an jedem Ort und schickt genau eines
+hinüber: den Namen. Der Weg führt über die Hülle und nicht direkt — die
+beiden Anwendungen kennen einander nicht. Sie holt den Karteneditor nach
+vorn und stellt den Namen zu, sobald er montiert, geladen und sichtbar ist;
+dort entsteht daraus eine leere Karte, mit Rückfrage, falls auf der offenen
+schon etwas steht. Die Zeile „Auf der Karte" bleibt Text und wird nicht
+gezeichnet, wie hier vorgeschlagen.
+
 ## Weitere Vorschläge
 
 - **„Was, wenn"** — eine bestehende Figur nehmen und fragen, was sie
@@ -162,8 +176,11 @@ der Karte gehört zu den Orten und kostet nichts extra.
    wenn er bis zum Übernehmen im Speicher lebt? **Gebaut:** nur im Speicher.
    Wer die Anwendung schließt, verliert einen nicht übernommenen Entwurf —
    das ist der Preis dafür, dass es keine zweite Ablage gibt.
-3. Wie viel darf die KI auf einmal? **Gebaut:** immer nur ein Baustein, mit
-   dem bisherigen Entwurf als Umgebung.
+3. Wie viel darf die KI auf einmal? **Gebaut:** beides. Je Baustein ein
+   kleiner Knopf, mit dem bisherigen Entwurf als Umgebung — und ein großer,
+   der alles auf einmal entwirft, damit die Stücke aufeinander Bezug nehmen
+   können. Was die Gesamtantwort ausläßt, kommt aus den Tabellen; was über
+   den eingestellten Umfang hinausgeht, fällt weg.
 4. Übernimmt man einzeln oder alles zusammen? **Gebaut:** alles zusammen,
    auf einen Knopf. Eine Auswahl je Notiz wäre ein zweiter Dialog vor dem
    eigentlichen Ziel; wer einzelne Stücke nicht will, löscht die Notiz

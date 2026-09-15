@@ -118,6 +118,21 @@ const api = {
         ipcRenderer.off('app:ereignis', hoerer);
       };
     },
+    /**
+     * Der Hauptprozess bittet darum, ein Werkzeug zu zeigen.
+     *
+     * Bisher wechselte die Anwendung nur auf Klick oder ueber den Verlauf.
+     * Fuer „Karte anlegen" in der Inspirationshilfe muss der Wechsel aber von
+     * innen kommen: das Werkzeug reicht einen Ortsnamen an die Huelle, und
+     * die holt den Karteneditor nach vorn.
+     */
+    beiOeffnen: (fn: (id: string) => void): (() => void) => {
+      const hoerer = (_e: unknown, id: string) => fn(id);
+      ipcRenderer.on('app:oeffne', hoerer);
+      return () => {
+        ipcRenderer.off('app:oeffne', hoerer);
+      };
+    },
     /** Oeffnet eine http(s)-Adresse im Browser des Systems. */
     oeffneExtern: (adresse: string) =>
       ipcRenderer.invoke('app:oeffne-extern', adresse) as Promise<void>

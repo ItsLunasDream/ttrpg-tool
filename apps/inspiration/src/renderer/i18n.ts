@@ -68,6 +68,21 @@ export const texte = {
   'feld.haken': ['Haken', 'Snag'],
   'feld.karte': ['Auf der Karte', 'On the map'],
 
+  'knopf.karte': ['Karte anlegen', 'Start a map'],
+  'karte.hinweis': [
+    'Öffnet den Karteneditor und beginnt dort eine leere Karte unter diesem Namen.',
+    'Opens the map editor and starts an empty map under this name.'
+  ],
+
+  'geflecht.alt': [
+    'Das Geflecht: Figuren als Punkte, Verbindungen als Pfeile.',
+    'The web: characters as dots, connections as arrows.'
+  ],
+  'geflecht.leer': [
+    'Zwei Figuren, dann steht hier ein Geflecht.',
+    'Two characters, and a web appears here.'
+  ],
+
   'knopf.holen': ['Aus der Kampagne', 'From the campaign'],
   'holen.titel': ['Figuren, die es schon gibt', 'Characters that already exist'],
   'holen.hinweis': [
@@ -92,6 +107,11 @@ export const texte = {
   'export.leer': ['Erst würfeln, dann übernehmen.', 'Roll something first, then send it over.'],
   'export.fehler': ['Das hat nicht geklappt: {grund}', 'That did not work: {grund}'],
 
+  'ki.alles': ['Alles von der KI', 'All from the AI'],
+  'ki.allesHinweis': [
+    'Ein Zug: die KI entwirft alle sechs Bausteine aufeinander bezogen. Was sie auslässt, kommt aus den Tabellen; festgehaltene Bausteine bleiben stehen.',
+    'One go: the AI drafts all six blocks as one piece. Whatever it leaves out comes from the tables; locked blocks stay as they are.'
+  ],
   'ki.vorschlagen': ['Von der KI', 'Ask the AI'],
   'ki.laeuft': ['Die KI denkt …', 'The AI is thinking …'],
   'ki.zeile': ['Von der KI vorschlagen lassen', 'Let the AI suggest this'],

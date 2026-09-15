@@ -318,6 +318,33 @@ app.whenReady().then(async () => {
     `sie ist als vorhanden gekennzeichnet (${marke || 'ohne Marke'})`
   );
 
+  // --- Karte anlegen -------------------------------------------------------
+  /*
+   * Der Weg zum Karteneditor (Stufe 5 des Konzepts). Er geht ueber drei
+   * Prozessgrenzen — Werkzeug, Hauptprozess, Karteneditor —, und genau dort
+   * sieht ein Modelltest nichts: der Name muss ankommen, nachdem der Editor
+   * montiert, geladen und sichtbar ist, nicht vorher.
+   */
+  const orteKarte = "[...document.querySelectorAll('.karte')][3]";
+  const ortsname = await js(`${orteKarte}.querySelector('.block__titel').value`);
+  const karteKnopf = await js(
+    `Boolean([...${orteKarte}.querySelectorAll('button')].find(b => /Karte anlegen|Start a map/.test(b.textContent)))`
+  );
+  pruefe(karteKnopf === true, 'am Ort steht der Knopf zum Karteneditor');
+  await js(
+    `[...${orteKarte}.querySelectorAll('button')].find(b => /Karte anlegen|Start a map/.test(b.textContent)).click(); true`
+  );
+  await warte(6000);
+
+  const map = sicht('mapmaker');
+  pruefe(Boolean(map), 'der Karteneditor kommt nach vorn');
+  if (map) {
+    const name = await map.webContents.executeJavaScript(
+      "document.querySelector('.map-name')?.textContent ?? ''"
+    );
+    pruefe(name === ortsname, `und die neue Karte heisst wie der Ort (${name} / ${ortsname})`);
+  }
+
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' | ') || 'keine'})`);
 
   console.log(

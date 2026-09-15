@@ -51,11 +51,14 @@ export { VERBINDUNGEN, fuelle } from '../src/shared/verbindungen';
 export { SCHRITTE, ZEITMARKEN } from '../src/shared/zeitstrahl';
 export { alsMarkdown, alsNotizen, verbindungenVon, verweis } from '../src/shared/notizen';
 export { kanal, PRAEFIX } from '../src/shared/kanaele';
+export { baueEntwurf } from '../src/shared/uebernahme';
 export {
   KI_AUFGABEN,
   FELDER,
   MAX_ZEICHEN,
   systemAnweisung,
   anweisung,
-  uebernehmbar
+  uebernehmbar,
+  uebernehmbarerEntwurf
 } from '../src/shared/kiAufgaben';
+export { berechneGeflecht, beschriftung, KNOTEN_RADIUS, RAND } from '../src/shared/geflecht';

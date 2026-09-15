@@ -33,7 +33,10 @@ import {
 import type { EntwurfsFigur, Fraktion, Ort, Verbindung } from '../shared/erzeuge';
 import { alsMarkdown, alsNotizen } from '../shared/notizen';
 import { ZEITMARKEN } from '../shared/zeitstrahl';
-import type { KiAufgabe } from '../shared/kiAufgaben';
+// `beschriftung` heisst hier schon etwas anderes (der Text eines Paares).
+import { KNOTEN_RADIUS, berechneGeflecht, beschriftung as knotenText } from '../shared/geflecht';
+import type { KiAufgabe, RohEntwurf } from '../shared/kiAufgaben';
+import { baueEntwurf } from '../shared/uebernahme';
 import {
   REGION_TEXTE,
   THEMA_TEXTE,
@@ -125,8 +128,20 @@ export function App() {
   const [kampagnenFiguren, setKampagnenFiguren] = useState<readonly { titel: string; kurz: string }[] | null>(
     null
   );
+  /**
+   * Ob es den Weg zum Karteneditor gibt.
+   *
+   * In der Huelle ja, am eigenen Entwicklungsserver nicht. Fehlt er, ist der
+   * Knopf gar nicht da — ein ausgegrauter fuehrte zu der Frage, wo man ihn
+   * einschaltet, und die Antwort waere „gar nicht".
+   */
+  const [karteDa, setKarteDa] = useState(false);
 
   useEffect(() => onLanguageChange(() => setSprache(getLanguage())), []);
+
+  useEffect(() => {
+    void api.karte.da().then(setKarteDa, () => setKarteDa(false));
+  }, []);
 
   useEffect(() => {
     const frage = () => void api.ki.da().then(setKiDa, () => setKiDa(false));
@@ -152,6 +167,19 @@ export function App() {
       tonfall: alsTonfallId(tonfallText)
     }),
     [umfang, regionText, themaText, tonfallText]
+  );
+
+  /**
+   * Das Geflecht als Bild.
+   *
+   * Die Liste darunter sagt, was zwischen zweien liegt; sie sagt nicht, wo
+   * die Geschichte dicht ist und wer am Rand steht. Deshalb steht das Bild
+   * ueber der Liste und nicht an ihrer Stelle — die Saetze selbst will man
+   * lesen und aendern koennen.
+   */
+  const geflecht = useMemo(
+    () => (entwurf ? berechneGeflecht(entwurf.figuren, entwurf.verbindungen) : null),
+    [entwurf]
   );
 
   const zahlen = useMemo(() => moeglichkeiten(), []);
@@ -305,7 +333,10 @@ export function App() {
             aufgabe,
             vorgaben: { umfang, region: regionText, thema: themaText, tonfall: tonfallText },
             entwurf: jetzt,
-            namen
+            namen,
+            // Nur beim grossen Knopf von Belang: das Modell soll um die
+            // festgehaltenen Bausteine herumbauen, statt sie zu ersetzen.
+            festgehalten
           },
           getLanguage()
         );
@@ -321,12 +352,33 @@ export function App() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [entwurf, kiLaeuft, umfang, regionText, themaText, tonfallText, zuschnitt]
+    [entwurf, kiLaeuft, umfang, regionText, themaText, tonfallText, zuschnitt, festgehalten]
   );
 
   /** Was die KI geliefert hat, an die richtige Stelle setzen. */
   const uebernimmKi = useCallback(
-    (aufgabe: KiAufgabe, stelle: number, wert: Record<string, string> | readonly string[]) => {
+    (
+      aufgabe: KiAufgabe,
+      stelle: number,
+      wert: Record<string, string> | readonly string[] | RohEntwurf
+    ) => {
+      /*
+       * Der ganze Entwurf auf einmal.
+       *
+       * Eigener Weg, weil er als Einziger auch aus dem Nichts heraus
+       * funktionieren muss: wer das Werkzeug oeffnet und sofort auf „Alles
+       * von der KI" drueckt, hat noch keinen Entwurf, den man ergaenzen
+       * koennte. `baueEntwurf` fuellt dabei aus den Tabellen auf, was die
+       * Antwort auslaesst.
+       */
+      if (aufgabe === 'entwurf') {
+        setEntwurf((alt) =>
+          baueEntwurf(wert as RohEntwurf, alt, zuschnitt, getLanguage(), wuerfel, festgehalten)
+        );
+        setExportStand('ruht');
+        return;
+      }
+
       const feld = (name: string) => (wert as Record<string, string>)[name] ?? '';
       ersetze((alt) => {
         switch (aufgabe) {
@@ -412,7 +464,7 @@ export function App() {
         }
       });
     },
-    [ersetze, umfang, zuschnitt]
+    [ersetze, umfang, zuschnitt, festgehalten]
   );
 
   /**
@@ -616,6 +668,17 @@ export function App() {
         <button type="button" className="knopf knopf--gross" onClick={wuerfleAlles}>
           {t('knopf.allesWuerfeln')}
         </button>
+        {kiDa && (
+          <button
+            type="button"
+            className="knopf knopf--gross knopf--kigross"
+            disabled={kiLaeuft !== null}
+            title={t('ki.allesHinweis')}
+            onClick={() => void frageKi('entwurf', 'entwurf')}
+          >
+            {kiLaeuft === 'entwurf' ? t('ki.laeuft') : t('ki.alles')}
+          </button>
+        )}
         <p className="wurf__zahlen">{t('moeglichkeiten', formatiert)}</p>
       </div>
 
@@ -844,6 +907,17 @@ export function App() {
                     wert={ort.karte}
                     aendere={(wert) => setzeOrt(stelle, 'karte', wert)}
                   />
+                  {karteDa && (
+                    <button
+                      type="button"
+                      className="knopf knopf--schmal"
+                      title={t('karte.hinweis')}
+                      disabled={!ort.name.trim()}
+                      onClick={() => void api.karte.anlegen(ort.name)}
+                    >
+                      {t('knopf.karte')}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -851,6 +925,60 @@ export function App() {
 
           <section className="karte">
             {kopf('verbindungen', 'hinweis.verbindungen')}
+            {geflecht && geflecht.knoten.length >= 2 ? (
+              <svg
+                className="geflecht"
+                viewBox={`0 0 ${geflecht.breite} ${geflecht.hoehe}`}
+                role="img"
+                aria-label={t('geflecht.alt')}
+              >
+                <defs>
+                  {/* Die Pfeilspitze sitzt am Ende jeder Linie: die Richtung
+                      ist bei diesen Beziehungen der ganze Witz. */}
+                  <marker
+                    id="geflecht-pfeil"
+                    viewBox="0 0 8 8"
+                    refX="7"
+                    refY="4"
+                    markerWidth="7"
+                    markerHeight="7"
+                    orient="auto-start-reverse"
+                  >
+                    <path d="M0,0 L8,4 L0,8 z" />
+                  </marker>
+                </defs>
+                {geflecht.kanten.map((kante, stelle) => (
+                  <g className="geflecht__kante" key={`${kante.von}-${kante.nach}-${stelle}`}>
+                    <line
+                      x1={kante.x1}
+                      y1={kante.y1}
+                      x2={kante.x2}
+                      y2={kante.y2}
+                      markerEnd="url(#geflecht-pfeil)"
+                    />
+                    <text x={kante.mx} y={kante.my - 4} textAnchor="middle">
+                      {kante.muster}
+                    </text>
+                  </g>
+                ))}
+                {geflecht.knoten.map((knoten) => {
+                  const wo = knotenText(knoten, geflecht);
+                  return (
+                    <g
+                      className={knoten.vorhanden ? 'geflecht__knoten geflecht__knoten--vorhanden' : 'geflecht__knoten'}
+                      key={knoten.stelle}
+                    >
+                      <circle cx={knoten.x} cy={knoten.y} r={KNOTEN_RADIUS} />
+                      <text x={wo.x} y={wo.y} textAnchor={wo.anker}>
+                        {knoten.name}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            ) : (
+              <p className="geflecht__leer">{t('geflecht.leer')}</p>
+            )}
             <ul className="zeilen">
               {entwurf.verbindungen.map((verbindung, stelle) => (
                 <li className="block" key={stelle}>

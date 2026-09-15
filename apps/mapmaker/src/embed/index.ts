@@ -86,6 +86,14 @@ export interface MapmakerEmbed {
    * dort (oder von der Huelle selbst), und die Meldung liefe im Kreis.
    */
   setLanguage(webContents: WebContents, language: Language): Promise<void>;
+  /**
+   * Beginnt hier eine leere Karte unter diesem Namen.
+   *
+   * Fuer den Knopf „Karte anlegen" in der Inspirationshilfe. Der Karteneditor
+   * fragt selbst nach, wenn auf der offenen Karte schon etwas steht — von
+   * aussen wird nichts weggeworfen.
+   */
+  neueKarte(webContents: WebContents, name: string): void;
 }
 
 /**
@@ -135,6 +143,9 @@ export function mountMapmaker(options: MapmakerEmbedOptions): MapmakerEmbed {
     // getrennt gebuendelte Preload waere sonst weg.
     preloadPath: path.join(options.distDir, '..', 'dist-embed', 'preload.js'),
     flush: () => Promise.resolve(),
+    neueKarte: (webContents, name) => {
+      if (!webContents.isDestroyed()) webContents.send(`${PREFIX}neue-karte`, name);
+    },
     setLanguage: (webContents, language) => {
       if (!webContents.isDestroyed()) {
         webContents.send(`${PREFIX}sprache-setzen`, language);

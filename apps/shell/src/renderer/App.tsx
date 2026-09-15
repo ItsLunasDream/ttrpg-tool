@@ -212,6 +212,21 @@ export function App() {
   );
 
   /**
+   * Ein Werkzeug bittet darum, ein anderes zu zeigen.
+   *
+   * Bisher wechselte die Huelle nur auf Klick oder ueber den Verlauf. „Karte
+   * anlegen" in der Inspirationshilfe braucht den Wechsel von innen: das
+   * Werkzeug reicht der Huelle einen Ortsnamen, die holt den Karteneditor
+   * nach vorn, und der Hauptprozess stellt den Namen zu, sobald er steht.
+   */
+  useEffect(() => {
+    const ab = window.shell?.app?.beiOeffnen?.((id) => {
+      if (id !== aktivRef.current) waehleRef.current?.(id);
+    });
+    return () => ab?.();
+  }, []);
+
+  /**
    * Ein Werkzeug meldet, wo es steht — im Backstory Creator die offene Notiz.
    *
    * Nur, wenn es auch das sichtbare ist: eine Anwendung, die im Hintergrund
