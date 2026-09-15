@@ -3,7 +3,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { parseFrontmatter, stringifyFrontmatter } from './frontmatter';
 import { hasLinkReservedChars, rewriteWikiLinks } from '../shared/wikilinks';
-import { DEFAULT_NOTE_TYPES, isKnownNoteType, toKey } from '../shared/noteTypes';
+import { DEFAULT_NOTE_TYPES, isKnownNoteType, toKey, vorlageNotiztypen } from '../shared/noteTypes';
 import { defaultPrompts } from '../shared/writingPrompts';
 import type { PromptCategory } from '../shared/writingPrompts';
 import { SCHEMA_VERSION } from '../shared/types';
@@ -403,7 +403,12 @@ export class Vault {
 
   private readonly pending = new Map<string, Promise<void>>();
 
-  async createCampaign(name: string): Promise<Campaign> {
+  /**
+   * Die Notiztypen kommen in der Sprache, in der gerade gearbeitet wird. Ab
+   * hier gehoeren sie der Kampagne: ein spaeterer Sprachwechsel zieht sie
+   * nicht mit, er wuerde sonst eigene Beschriftungen ueberschreiben.
+   */
+  async createCampaign(name: string, language: Language = DEFAULT_LANGUAGE): Promise<Campaign> {
     const trimmed = name.trim();
     if (!trimmed) throw new VaultError('error.campaignName');
 
@@ -412,7 +417,7 @@ export class Vault {
       schemaVersion: SCHEMA_VERSION,
       name: trimmed,
       createdAt: new Date().toISOString(),
-      noteTypes: structuredClone(DEFAULT_NOTE_TYPES),
+      noteTypes: structuredClone(vorlageNotiztypen(language)),
       graphPositions: {}
     };
     const dir = this.campaignDir(campaign.id);

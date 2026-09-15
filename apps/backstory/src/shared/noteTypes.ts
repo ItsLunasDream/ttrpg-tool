@@ -1,62 +1,151 @@
 import type { FieldDef, NoteType, NoteTypeDef } from './types';
+import { DEFAULT_LANGUAGE, type Language } from './i18n';
 
 /**
- * Vorlage fuer neue Kampagnen. Ab dem Anlegen gehoeren die Typen der Kampagne
- * und koennen dort frei angepasst werden, ohne dass sich diese Datei aendert.
+ * Vorlage fuer neue Kampagnen, in beiden Sprachen.
+ *
+ * Genommen wird die Fassung, die zur eingestellten Sprache passt, wenn die
+ * Kampagne angelegt wird. Ab dem Anlegen gehoeren die Typen der Kampagne und
+ * werden dort frei angepasst; ein spaeterer Sprachwechsel zieht sie NICHT
+ * mit. Er wuerde sonst eigene Beschriftungen ueberschreiben, und die gehoeren
+ * der Autorin.
+ *
+ * Die Schluessel sind in beiden Fassungen dieselben. Nur die Beschriftungen
+ * unterscheiden sich — so findet eine Notiz ihre Werte wieder, egal in
+ * welcher Sprache ihre Kampagne angelegt wurde.
  */
-export const DEFAULT_NOTE_TYPES: NoteTypeDef[] = [
-  {
-    id: 'character',
-    label: 'Charakter',
-    plural: 'Charaktere',
-    fields: [
-      { key: 'portrait', label: 'Portrait', type: 'image' },
-      { key: 'age', label: 'Alter', type: 'text', placeholder: 'z.B. 132' },
-      { key: 'pronouns', label: 'Pronomen', type: 'text', placeholder: 'z.B. sie/ihr' },
-      { key: 'species', label: 'Spezies', type: 'text', placeholder: 'z.B. Waldelfe' },
-      { key: 'class', label: 'Klasse', type: 'text', placeholder: 'z.B. Waldläuferin' },
-      { key: 'height', label: 'Größe', type: 'text', placeholder: 'z.B. 1,72 m' },
-      { key: 'dndBeyondUrl', label: 'D&D-Beyond-Sheet', type: 'url', placeholder: 'https://www.dndbeyond.com/characters/...' }
-    ]
-  },
-  {
-    id: 'location',
-    label: 'Ort',
-    plural: 'Orte',
-    fields: [
-      { key: 'locationType', label: 'Art', type: 'text', placeholder: 'z.B. Hafenstadt' },
-      { key: 'region', label: 'Region', type: 'text', placeholder: 'z.B. Schwertküste' },
-      { key: 'population', label: 'Einwohner', type: 'text', placeholder: 'z.B. ca. 4.000' }
-    ]
-  },
-  {
-    id: 'faction',
-    label: 'Fraktion',
-    plural: 'Fraktionen',
-    fields: [
-      { key: 'factionType', label: 'Art', type: 'text', placeholder: 'z.B. Diebesgilde' },
-      { key: 'leader', label: 'Anführung', type: 'text' },
-      { key: 'headquarters', label: 'Sitz', type: 'text' },
-      { key: 'goals', label: 'Ziele', type: 'textarea' }
-    ]
-  },
-  {
-    id: 'event',
-    label: 'Ereignis',
-    plural: 'Ereignisse',
-    fields: [
-      { key: 'date', label: 'Zeitpunkt', type: 'text', placeholder: 'z.B. 1492 DR, Sommer' },
-      { key: 'place', label: 'Schauplatz', type: 'text' }
-    ]
-  },
-  {
-    // Fuer alles, was in keine der anderen Schubladen passt.
-    id: 'note',
-    label: 'Notiz',
-    plural: 'Notizen',
-    fields: []
-  }
-];
+export const NOTIZTYP_VORLAGEN: Record<Language, NoteTypeDef[]> = {
+  de: [
+    {
+      id: 'character',
+      label: 'Charakter',
+      plural: 'Charaktere',
+      fields: [
+        { key: 'portrait', label: 'Portrait', type: 'image' },
+        { key: 'age', label: 'Alter', type: 'text', placeholder: 'z.B. 132' },
+        { key: 'pronouns', label: 'Pronomen', type: 'text', placeholder: 'z.B. sie/ihr' },
+        { key: 'species', label: 'Spezies', type: 'text', placeholder: 'z.B. Waldelfe' },
+        { key: 'class', label: 'Klasse', type: 'text', placeholder: 'z.B. Waldläuferin' },
+        { key: 'height', label: 'Größe', type: 'text', placeholder: 'z.B. 1,72 m' },
+        {
+          key: 'dndBeyondUrl',
+          label: 'D&D-Beyond-Sheet',
+          type: 'url',
+          placeholder: 'https://www.dndbeyond.com/characters/...'
+        }
+      ]
+    },
+    {
+      id: 'location',
+      label: 'Ort',
+      plural: 'Orte',
+      fields: [
+        { key: 'locationType', label: 'Art', type: 'text', placeholder: 'z.B. Hafenstadt' },
+        { key: 'region', label: 'Region', type: 'text', placeholder: 'z.B. Schwertküste' },
+        { key: 'population', label: 'Einwohner', type: 'text', placeholder: 'z.B. ca. 4.000' }
+      ]
+    },
+    {
+      id: 'faction',
+      label: 'Fraktion',
+      plural: 'Fraktionen',
+      fields: [
+        { key: 'factionType', label: 'Art', type: 'text', placeholder: 'z.B. Diebesgilde' },
+        { key: 'leader', label: 'Anführung', type: 'text' },
+        { key: 'headquarters', label: 'Sitz', type: 'text' },
+        { key: 'goals', label: 'Ziele', type: 'textarea' }
+      ]
+    },
+    {
+      id: 'event',
+      label: 'Ereignis',
+      plural: 'Ereignisse',
+      fields: [
+        { key: 'date', label: 'Zeitpunkt', type: 'text', placeholder: 'z.B. 1492 DR, Sommer' },
+        { key: 'place', label: 'Schauplatz', type: 'text' }
+      ]
+    },
+    {
+      // Fuer alles, was in keine der anderen Schubladen passt.
+      id: 'note',
+      label: 'Notiz',
+      plural: 'Notizen',
+      fields: []
+    }
+  ],
+  en: [
+    {
+      id: 'character',
+      label: 'Character',
+      plural: 'Characters',
+      fields: [
+        { key: 'portrait', label: 'Portrait', type: 'image' },
+        { key: 'age', label: 'Age', type: 'text', placeholder: 'e.g. 132' },
+        { key: 'pronouns', label: 'Pronouns', type: 'text', placeholder: 'e.g. she/her' },
+        { key: 'species', label: 'Species', type: 'text', placeholder: 'e.g. wood elf' },
+        { key: 'class', label: 'Class', type: 'text', placeholder: 'e.g. ranger' },
+        { key: 'height', label: 'Height', type: 'text', placeholder: "e.g. 5'8\"" },
+        {
+          key: 'dndBeyondUrl',
+          label: 'D&D Beyond sheet',
+          type: 'url',
+          placeholder: 'https://www.dndbeyond.com/characters/...'
+        }
+      ]
+    },
+    {
+      id: 'location',
+      label: 'Location',
+      plural: 'Locations',
+      fields: [
+        { key: 'locationType', label: 'Kind', type: 'text', placeholder: 'e.g. port city' },
+        { key: 'region', label: 'Region', type: 'text', placeholder: 'e.g. Sword Coast' },
+        { key: 'population', label: 'Population', type: 'text', placeholder: 'e.g. about 4,000' }
+      ]
+    },
+    {
+      id: 'faction',
+      label: 'Faction',
+      plural: 'Factions',
+      fields: [
+        { key: 'factionType', label: 'Kind', type: 'text', placeholder: "e.g. thieves' guild" },
+        { key: 'leader', label: 'Leadership', type: 'text' },
+        { key: 'headquarters', label: 'Seat', type: 'text' },
+        { key: 'goals', label: 'Goals', type: 'textarea' }
+      ]
+    },
+    {
+      id: 'event',
+      label: 'Event',
+      plural: 'Events',
+      fields: [
+        { key: 'date', label: 'When', type: 'text', placeholder: 'e.g. 1492 DR, summer' },
+        { key: 'place', label: 'Where', type: 'text' }
+      ]
+    },
+    {
+      id: 'note',
+      label: 'Note',
+      plural: 'Notes',
+      fields: []
+    }
+  ]
+};
+
+/** Die Vorlage in der Sprache, in der gerade gearbeitet wird. */
+export function vorlageNotiztypen(language: Language): NoteTypeDef[] {
+  return NOTIZTYP_VORLAGEN[language] ?? NOTIZTYP_VORLAGEN[DEFAULT_LANGUAGE];
+}
+
+/**
+ * Die deutsche Vorlage.
+ *
+ * Sie bleibt der Rueckfallwert fuer Kampagnen, die noch gar keine Typen
+ * tragen oder deren Typen beim Migrieren verloren gingen: deren Notizen sind
+ * unter der deutschen Vorlage entstanden, und ihre Werte haengen an deren
+ * Schluesseln.
+ */
+export const DEFAULT_NOTE_TYPES: NoteTypeDef[] = NOTIZTYP_VORLAGEN.de;
 
 export const FIELD_TYPES: FieldDef['type'][] = [
   'text',
@@ -101,9 +190,16 @@ export function fieldLabel(types: NoteTypeDef[], typeId: NoteType, key: string):
 export function factoryFieldKey(typeId: string, label: string): string | undefined {
   const wanted = label.trim().toLocaleLowerCase('de-DE');
   if (!wanted) return undefined;
-  return DEFAULT_NOTE_TYPES.find((def) => def.id === typeId)?.fields.find(
-    (field) => field.label.toLocaleLowerCase('de-DE') === wanted
-  )?.key;
+
+  // Beide Sprachen, denn die Kampagne kann in der einen angelegt und in der
+  // anderen weiterbearbeitet worden sein.
+  for (const vorlage of Object.values(NOTIZTYP_VORLAGEN)) {
+    const treffer = vorlage
+      .find((def) => def.id === typeId)
+      ?.fields.find((field) => field.label.toLocaleLowerCase('de-DE') === wanted)?.key;
+    if (treffer) return treffer;
+  }
+  return undefined;
 }
 
 /**

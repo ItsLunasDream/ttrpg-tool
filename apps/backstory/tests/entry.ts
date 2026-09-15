@@ -7,6 +7,8 @@ export { leseBreite, istAnteil, breiteAlsAttribute, breiteAusAttributen } from '
 export { verlinkteNotizen, KONTEXT_HOECHSTENS } from '../src/shared/kiKontext';
 export {
   DEFAULT_NOTE_TYPES,
+  NOTIZTYP_VORLAGEN,
+  vorlageNotiztypen,
   findNoteType,
   fieldLabel,
   toKey,

@@ -4,7 +4,7 @@ import { buildIndex, filterNotes, searchNotes, type SearchFilters } from './note
 import { hasLinkReservedChars, normalizeName } from '../shared/wikilinks';
 import { verlinkteNotizen } from '../shared/kiKontext';
 import { effektiverStand, zieheUmbenennungNach, type Entwurf } from './entwuerfe';
-import { DEFAULT_NOTE_TYPES } from '../shared/noteTypes';
+import { vorlageNotiztypen } from '../shared/noteTypes';
 import type {
   AppSettings,
   Campaign,
@@ -125,7 +125,9 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   autosaveAnRef.current = autosaveAn;
 
   const activeCampaign = campaigns.find((campaign) => campaign.id === activeCampaignId) ?? null;
-  const noteTypes: NoteTypeDef[] = activeCampaign?.noteTypes ?? DEFAULT_NOTE_TYPES;
+  // Ohne offene Kampagne gilt die Vorlage in der eingestellten Sprache.
+  const noteTypes: NoteTypeDef[] =
+    activeCampaign?.noteTypes ?? vorlageNotiztypen(settings?.language ?? DEFAULT_LANGUAGE);
   /**
    * Der Stand, den die Person vor sich hat: die Notizen von der Platte, wo
    * vorhanden durch ihren Entwurf ersetzt.

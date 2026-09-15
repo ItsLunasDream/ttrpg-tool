@@ -184,7 +184,9 @@ export function registerIpc(context: IpcContext): void {
   });
 
   handle<[], Campaign[]>('campaign:list', () => vault.listCampaigns());
-  handle<[string], Campaign>('campaign:create', (name) => vault.createCampaign(name));
+  handle<[string], Campaign>('campaign:create', (name) =>
+    vault.createCampaign(name, context.settings.language)
+  );
   handle<[string, string], Campaign>('campaign:rename', (id, name) => vault.renameCampaign(id, name));
   handle<[string], void>('campaign:delete', (id) => vault.deleteCampaign(id));
   handle<[string], Campaign>('campaign:get', (id) => vault.getCampaign(id));
