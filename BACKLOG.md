@@ -859,3 +859,25 @@ Verlauf längst.
 Offen bleibt davon nur das, was sich hier nicht prüfen lässt: ob die
 Daumentasten der Maus auf dem Windows-Gerät ankommen (siehe den Abschnitt
 darüber — zweiter Weg über die Preloads gebaut, Prüfung steht aus).
+
+## Zwei neue Werkzeuge: Konzepte
+
+Beides steht als Konzept, nicht als Plan zum Abarbeiten. Erst besprechen,
+dann bauen.
+
+- **Status Effect Creator** — [docs/statuseffekte.md](docs/statuseffekte.md).
+  Eigene Zustände mit Stufen und Regeltext, mit und ohne KI, optional mit
+  einer Umgebung, die sie auslöst („Freezing, jede Stunde in großer Kälte,
+  stapelt bis fünf"). Der Weg führt in den Initiative Tracker, der die
+  Zustände dann selbst mitzählt.
+- **Monster Creator** — [docs/monster.md](docs/monster.md). Homebrew-Monster
+  zu einem vorgegebenen CR. Der Kern ist nicht der Erzeuger, sondern die
+  **Prüfung**: eine reine Funktion, die aus den Zahlen einen CR rechnet und
+  jedes Ergebnis daran misst, auch das von der KI.
+
+Ein Punkt am Monster Creator ist rechtlich und muss vor dem Bauen geklärt
+sein: die Richtwerttabellen aus dem Dungeon Master's Guide dürfen nicht ins
+Repository — das Kapitel zum Monsterbau steht nicht im SRD. Es gibt eine
+Quelle unter CC-BY-4.0, die dasselbe liefert (Lazy GM's 5e Monster Builder
+Resource Document); die Lizenz ist gelesen, sollte aber vor dem Übernehmen
+von Zahlen noch einmal selbst geprüft werden.
