@@ -193,6 +193,104 @@ Die Prosa bleibt in beiden Fällen unangetastet. Eine Fähigkeit
 umzuschreiben, weil ihre Zahlen nicht passen, ist Aufgabe der Zahlen, nicht
 des Textes.
 
+## Die Sammlung: was schon gebaut wurde
+
+Ein Werkzeug, das nur erzeugt und nie zeigt, was es erzeugt hat, ist eine
+Einbahnstraße. Nach zehn Abenden liegen dreißig Monster da, und man findet
+keines wieder.
+
+**Zwei Ansichten, ein Umschalter:**
+
+```
+Kacheln       groß, mit Symbol, Name, CR und Thema. Zum Stöbern —
+              „ich brauche irgendwas Untotes um CR 4".
+
+Liste         eine Zeile je Monster: Name · Thema · CR · XP · TP · RK.
+              Zum Wiederfinden — „wie hieß der Golem nochmal".
+```
+
+Die Kacheln sind die Vorgabe. Sie sehen aus wie die Kacheln des Startmenüs,
+damit die Sammlung nicht wie ein zweites Programm wirkt, und sie sind nach
+CR gruppiert.
+
+**Gesucht wird über ein Feld, nicht über drei.** Ein einziges Suchfeld, das
+Name, Thema und CR gleichzeitig durchsucht:
+
+```
+„untot"        →  alles mit Thema Untot
+„golem"        →  Namenstreffer
+„cr 4"         →  alle mit CR 4
+„cr 3-6"       →  Bereich
+„untot 4"      →  beides zusammen: Untote mit CR 4
+```
+
+Drei getrennte Felder wären genauer und langsamer. Ein Feld, das Zahlen als
+CR liest und Wörter als Name oder Thema, trifft in der Praxis, was gemeint
+ist — und wer es genauer will, klickt die Filterleiste daneben auf.
+
+Dazu das Übliche, weil es sonst fehlt: sortieren nach CR, Name oder Datum;
+Rechtsklick für Umbenennen, Duplizieren, Löschen; und die Anzeige, wie viele
+Monster gerade gefunden wurden.
+
+## Ein vorhandenes Monster prüfen
+
+Derselbe Code ohne Erzeuger, und deshalb fast geschenkt: einen Statblock
+hineingeben und nur nachrechnen lassen.
+
+Zwei Wege hinein:
+- **Aus der Sammlung** — ein Monster öffnen und den Befund sehen. Nützlich,
+  wenn sich die Richtwerte ändern oder man später klüger ist.
+- **Von außen** — Zahlen eintippen oder einen Statblock als Markdown
+  einwerfen. Für Monster aus Büchern, aus dem Netz, von früher.
+
+Das ist der schnellste Weg zu einem Werkzeug, das schon etwas taugt, bevor
+der Erzeuger steht: die Prüfung ist ohnehin der Kern, und sie allein
+beantwortet die Frage „ist das Ding, das ich gerade gebaut habe, in Ordnung".
+
+## Varianten: dasselbe Monster, zwei Grade höher
+
+Am Tisch ständig gebraucht — der Räuberhauptmann, der in Kapitel drei noch
+einmal auftaucht, diesmal gefährlicher.
+
+**Die Zahlen skalieren, die Prosa bleibt.** Trefferpunkte, Schaden,
+Angriffsbonus und Rettungs-SG wandern auf die Richtwerte des neuen CR;
+Name, Beschreibung und Fähigkeitentexte bleiben unangetastet. Was sich an
+den Zahlen einer Fähigkeit ändert (`2W8` → `3W8`), wird im Text ersetzt, der
+Satz drumherum nicht.
+
+Angeboten wird das als „Variante anlegen", nicht als „ändern": das
+Ursprungsmonster bleibt stehen. Ein Räuberhauptmann CR 3 und einer CR 5 sind
+zwei Einträge, und beide will man behalten.
+
+## Der Weg in den Encounter Creator
+
+Die Gruppenrechnung — „vier Gegner mit CR 2" gegen „ein Gegner mit CR 5" —
+steht **nicht** in diesem Werkzeug. Sie gehört in den Encounter Creator, der
+als Kachel `encounter` ohnehin geplant ist: dort geht es um eine Begegnung
+gegen eine bestimmte Gruppe, hier um ein einzelnes Monster.
+
+Damit das später ohne Umbau zusammenpasst, wird hier **intern vorbereitet**:
+
+- **Die Ablage ist die Schnittstelle.** Monster liegen als Markdown mit
+  YAML-Kopf im Datenordner, wie die Begegnungen des Trackers. Der Encounter
+  Creator liest denselben Ordner — er braucht keinen Kanal zum Monster
+  Creator, nur den Pfad. Das ist die billigste Kopplung, die es gibt, und
+  sie überlebt, wenn eines der beiden Werkzeuge umgebaut wird.
+- **Im YAML-Kopf steht alles, was eine Begegnungsrechnung braucht**, in
+  Zahlen und nicht in Prosa: `cr`, `xp`, `tp`, `rk`, `schaden_pro_runde`,
+  `angriffsbonus`, `rolle`, `thema`. Wer den Statblock lesen müsste, um an
+  den CR zu kommen, hätte schon verloren.
+- **Ein Knopf „in die Begegnung"**, wie der NPC Creator ihn zum Story
+  Creator hat. Solange es den Encounter Creator nicht gibt, ist der Knopf
+  nicht da — vorgesehen ist er trotzdem, und der Weg dorthin ist derselbe
+  wie beim Kartenknopf der Inspirationshilfe: die Hülle reicht durch.
+- **Mehrfachauswahl in der Sammlung** ist deshalb schon eingeplant: man
+  schickt selten ein Monster in eine Begegnung, meistens drei.
+
+Was hier **nicht** vorbereitet wird: die Begegnungsmathematik selbst. Sie
+gehört dorthin, wo sie gebraucht wird, und hier erfunden zu werden hieße,
+sie zweimal zu haben.
+
 ## Wohin ein fertiges Monster geht
 
 - **Initiative Tracker** — der Hauptweg. Ein fertiges Monster gehört in die
@@ -206,10 +304,6 @@ des Textes.
 - **Wie viele Fähigkeiten?** Ein Monster mit acht Sonderfähigkeiten liest am
   Tisch niemand. Eine Obergrenze nach CR wäre eine Vorgabe mit Meinung —
   vermutlich die richtige.
-- **Gruppen.** „Vier Gegner mit CR 2" ist etwas anderes als „ein Gegner mit
-  CR 5". Die Umrechnung über Begegnungsmultiplikatoren gehört eigentlich in
-  den Initiative Tracker oder ein eigenes Begegnungswerkzeug — das steht als
-  `encounter` ohnehin auf der Kachelliste. Hier zunächst weglassen?
 - **Welche Fassung?** 5e 2014 und 2024 rechnen CR unterschiedlich. Die
   CC-BY-Quelle oben ist auf dem Stand von 2024. Ein Schalter wäre möglich,
   verdoppelt aber die Tabellen und die Tests.

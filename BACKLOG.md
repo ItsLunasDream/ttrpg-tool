@@ -882,9 +882,42 @@ dann bauen.
   automatisch nachgezogen (und es wird gesagt), von Hand gibt es nur einen
   Warnhinweis mit den empfohlenen Werten.
 
+Was in den Konzepten seit der ersten Fassung dazugekommen ist: beim
+Statuseffekt-Werkzeug Pakete (mehrere zusammengehörende Zustände in einem
+Wurf, aufeinander abgestimmt), die Eichung des Punktesystems an den
+Zuständen des Regelwerks und eine Karte zum Vorlesen. Beim Monster Creator
+eine Sammlung mit Kacheln und Liste samt einem Suchfeld für Name, Thema und
+CR zugleich, die Prüfung eines vorhandenen Statblocks ohne Erzeuger, und
+Varianten („dasselbe Monster, zwei Grade höher": Zahlen skalieren, Prosa
+behalten).
+
+Die Gruppenrechnung steht ausdrücklich **nicht** im Monster Creator. Sie
+gehört in den Encounter Creator; der Monster Creator bereitet die Übergabe
+nur vor — über die Ablage als Schnittstelle, mit allen Zahlen im YAML-Kopf,
+und mit Mehrfachauswahl in der Sammlung.
+
 Ein Punkt am Monster Creator ist rechtlich und muss vor dem Bauen geklärt
 sein: die Richtwerttabellen aus dem Dungeon Master's Guide dürfen nicht ins
 Repository — das Kapitel zum Monsterbau steht nicht im SRD. Es gibt eine
 Quelle unter CC-BY-4.0, die dasselbe liefert (Lazy GM's 5e Monster Builder
 Resource Document); die Lizenz ist gelesen, sollte aber vor dem Übernehmen
 von Zahlen noch einmal selbst geprüft werden.
+
+## Vorgemerkt: vier Ausbauten für die Sammlung
+
+Aus einer Durchsicht, was der Sammlung noch fehlt. Alle vier stehen als
+Aufgabe, keiner davon hat ein Konzept.
+
+1. **Werkzeugübergreifende Suche (Strg+K).** Ein Feld in der Hülle, das
+   Notizen, Begegnungen, NPCs, Zustände und Monster auf einmal durchsucht
+   und dorthin springt. Verlauf und Schiene sind dafür gebaut; es fehlt der
+   Index über die Werkzeuge hinweg.
+2. **Encounter Creator** — die Kachel `encounter`, die heute „später" sagt.
+   Monster auswählen, Schwierigkeit gegen die Gruppe rechnen, in den Tracker
+   schieben. Hierher gehört die Gruppenrechnung.
+3. **Loot Generator.** Eigene Zufallstabellen, verschachtelbar, plus Beute
+   nach Grad. Kleines Werkzeug, am Tisch das meistgebrauchte.
+4. **Sicherung der ganzen Sammlung.** Heute sichert nur der Story Creator
+   seine Kampagne. Begegnungen, Karten, Symbole und Einstellungen bleiben
+   außen vor. Der API-Schlüssel gehört nicht in eine Sicherung — er liegt im
+   Schlüsselbund des Systems und wäre anderswo ohnehin wertlos.
