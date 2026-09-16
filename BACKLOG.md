@@ -869,11 +869,18 @@ dann bauen.
   Eigene Zustände mit Stufen und Regeltext, mit und ohne KI, optional mit
   einer Umgebung, die sie auslöst („Freezing, jede Stunde in großer Kälte,
   stapelt bis fünf"). Der Weg führt in den Initiative Tracker, der die
-  Zustände dann selbst mitzählt.
+  Zustände dann selbst mitzählt. Ohne KI kommen Stichpunkte heraus, keine
+  Prosa; Regler sind Art, Thema, Wirkrichtung (Schaden/Buff/Debuff), Härte
+  und Stufenzahl. Ein Punktesystem wiegt den Zustand und vergleicht ihn mit
+  bekannten — es behauptet aber ausdrücklich nicht, ihn zu balancieren:
+  dafür fehlt die Angabe, wie oft man ihn bekommt.
 - **Monster Creator** — [docs/monster.md](docs/monster.md). Homebrew-Monster
   zu einem vorgegebenen CR. Der Kern ist nicht der Erzeuger, sondern die
   **Prüfung**: eine reine Funktion, die aus den Zahlen einen CR rechnet und
-  jedes Ergebnis daran misst, auch das von der KI.
+  jedes Ergebnis daran misst, auch das von der KI. Was bei einer Abweichung
+  passiert, hängt an der Herkunft der Zahlen: von der KI werden sie
+  automatisch nachgezogen (und es wird gesagt), von Hand gibt es nur einen
+  Warnhinweis mit den empfohlenen Werten.
 
 Ein Punkt am Monster Creator ist rechtlich und muss vor dem Bauen geklärt
 sein: die Richtwerttabellen aus dem Dungeon Master's Guide dürfen nicht ins

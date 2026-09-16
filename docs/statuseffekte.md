@@ -104,8 +104,28 @@ Vorschlagsliste, damit eigene Begriffe nicht abprallen:
 
 - **Art**: Umgebung, Gift, Fluch, Krankheit, Verletzung, Magie, Segen
 - **Thema**: Kälte, Hitze, Fäulnis, Wahnsinn, Licht, Leere, …
+- **Wirkrichtung**: Schaden, Debuff, Buff, gemischt
 - **Härte**: lästig, ernst, gefährlich, tödlich
 - **Stufen**: keine, 3, 5, eigene Zahl
+
+**Art und Wirkrichtung sind zwei verschiedene Fragen**, deshalb zwei Regler.
+Die Art sagt, *woher* der Zustand kommt; die Wirkrichtung, *wohin* er wirkt.
+Ein Fluch kann Schaden über Zeit sein oder ein Debuff; ein Segen ist fast
+immer ein Buff, aber „Blessed by the Wolf" kann beides sein — Stärke dazu,
+Selbstbeherrschung weg.
+
+Die Wirkrichtung wählt die Wirkungsliste aus, aus der gezogen wird:
+
+```
+Schaden   Schaden je Runde/Stunde | verlorene Trefferpunkte-Höchstgrenze
+Debuff    Nachteil, Abzüge, verlorene Aktionen, Bewegung
+Buff      Vorteil, Boni, zusätzliche Bewegung, Widerstand
+gemischt  ein Buff und ein Debuff, die zusammengehören
+```
+
+„Gemischt" ist der interessanteste Fall und der, den Tabellen gut können:
+zwei Wirkungen mit Vorzeichen, die aufeinander zeigen. Genau das schreibt
+sich von Hand ungern auf.
 
 Daraus baut der Würfel einen vollständigen Zustand. Jedes Feld hat ein
 Schloss und lässt sich von Hand überschreiben — dieselbe Handhabung wie im
@@ -137,6 +157,39 @@ der Inspirationshilfe, und sie steht wie dort in der Oberfläche.
 Namen entstehen zweiteilig (Thema + Form: „Frostbite", „Creeping Chill",
 „Winter's Grasp"), Kurzsätze aus einer Satzschablone je Thema.
 
+### Stichpunkte statt Fließtext — und Masken dort, wo Text sein muss
+
+Ohne KI wird **nicht ausformuliert**. Eine Stufe ist ein Stichpunkt:
+
+```
+2   Bewegungsrate halbiert
+3   Nachteil auf Angriffswürfe und Geschicklichkeitsproben
+```
+
+und nicht „Die klamme Kälte macht deine Glieder schwer, sodass du dich nur
+noch halb so schnell bewegen kannst." Der zweite Satz liest am Tisch
+niemand, und eine Tabelle, die ihn erzeugt, klingt nach drei Würfen immer
+gleich — das ist der Weg, auf dem generierter Text langweilig wird.
+
+**Textmasken gibt es trotzdem, aber nur an zwei Stellen**, und beide sind
+kurz genug, dass Wiederholung nicht auffällt:
+
+```
+Kurzsatz          „{Thema-Bild} {kriecht|frisst|legt sich} {dir in die
+                   Knochen|über deine Sinne|auf die Brust}."
+Verschlimmerung   „{Intervall} {Umgebung} ohne {Schutz}"
+Linderung         „{Dauer} {Gegenmittel} senkt um {Zahl}"
+```
+
+Eine Maske ist dabei nur ein Satz mit Lücken, und die Lücken werden aus
+denselben Tabellen gefüllt wie alles andere. Wichtig ist die Anzahl: je
+Maske ein Dutzend Varianten je Lücke, sonst erkennt man das Muster nach
+fünf Zuständen wieder.
+
+**Was die KI daraus macht:** sie bekommt genau diese Stichpunkte und darf
+sie ausformulieren, wenn jemand das will. Ein eigener Knopf, nicht
+automatisch — wer Stichpunkte wollte, soll keine Prosa zurückbekommen.
+
 ## Was die KI dazu tut
 
 Dasselbe Muster wie in den anderen Werkzeugen: **frei vorschlagen, nicht aus
@@ -153,6 +206,58 @@ bevor es angezeigt wird.** Stufen dürfen nicht rückwärts schwächer werden,
 eine Stufe darf nicht zweimal dieselbe Wirkung tragen, Zahlen müssen im
 Rahmen liegen. Was das Modell ausläßt, füllen die Tabellen auf. Das ist
 genau der Weg, den `uebernahme.ts` in der Inspirationshilfe schon geht.
+
+## Ein Punktesystem — und was es ehrlicherweise leisten kann
+
+Dein Einwand dazu ist der richtige: **ein Zustand lässt sich nicht so
+balancieren wie ein Monster.** Beim Monster steht die Frage fest („vier
+Figuren, ein Kampf, wie lange hält es durch"). Beim Zustand fehlt genau die
+Angabe, die alles entscheidet — wie oft man ihn bekommt und wie leicht man
+ihn wieder los wird. Derselbe „Freezing"-Zustand ist harmlos, wenn die
+Gruppe alle zwei Stunden an ein Feuer kommt, und tödlich auf einem
+Gletschermarsch ohne Holz.
+
+Ein Punktwert, der so täte, als wüsste er das, wäre eine Scheingenauigkeit.
+Und die ist schlimmer als gar keine Zahl: sie gibt Sicherheit, wo keine ist.
+
+**Was sich trotzdem sinnvoll rechnen lässt**, ist nicht „Balance", sondern
+das **Gewicht** eines Zustands — wie schwer er wiegt, wenn er anliegt:
+
+```
+Jede Wirkung hat einen Punktwert:
+  Nachteil auf eine Fertigkeit            1
+  Bewegung halbiert                       2
+  Nachteil auf alle Angriffe              3
+  keine Reaktion                          2
+  keine Aktion / handlungsunfähig         6
+  Schaden je Runde                        1 je 5 % der Höchst-TP
+  Buff: Vorteil auf eine Sache           -1
+  …
+
+Gewicht = Summe der Wirkungen bis zur höchsten Stufe
+```
+
+Damit kann das Werkzeug drei Dinge sagen, die alle stimmen:
+
+1. **„Dieser Zustand wiegt 14. Das ist so viel wie drei Stufen
+   Erschöpfung."** Ein Vergleich mit Bekanntem — die einzige Zahl, die am
+   Tisch etwas bedeutet.
+2. **„Der Sprung von Stufe 3 auf 4 verdoppelt das Gewicht."** Ungleichmäßige
+   Stufen sind der häufigste Fehler bei selbstgebauten Zuständen, und man
+   sieht sie beim Schreiben nicht.
+3. **„Das passt nicht zu deinem Regler."** Auf „lästig" gestellt und Gewicht
+   22 herausbekommen heißt: irgendetwas ist durchgerutscht — meistens eine
+   Wirkung aus der falschen Schwereliste.
+
+Was es **nicht** sagt und auch nicht sagen soll: ob der Zustand für deine
+Kampagne zu hart ist. Das hängt am Auslöser, und den kennt nur der Tisch.
+Das Werkzeug schreibt diesen Satz auch hin, statt ihn wegzulassen.
+
+**Das Gewicht prüft auch die KI.** Dasselbe Muster wie beim Monster Creator:
+was das Modell liefert, wird gewogen, bevor es angezeigt wird. Steigt das
+Gewicht über die Stufen nicht an, ist die Antwort kaputt und wird
+zurückgewiesen — dafür braucht es kein Urteil über Balance, das ist reines
+Nachzählen.
 
 ## Wohin ein fertiger Zustand geht
 
@@ -186,6 +291,12 @@ Handwerkszeug, das über Kampagnen hinweg gilt.
   verschiedene Wirkungen (wie oben), oder fünfmal dieselbe. Das Konzept oben
   nimmt Ersteres. Beides anzubieten wäre möglich, kostet aber einen Regler
   mehr.
+- **Die Punktwerte selbst.** Die Liste oben ist geschätzt, nicht hergeleitet
+  — „Nachteil auf alle Angriffe = 3" ist eine Meinung. Sie wird belastbarer,
+  wenn wir sie gegen die Zustände aus dem Regelwerk eichen: Erschöpfung,
+  Vergiftet, Gelähmt und so weiter durchrechnen und sehen, ob die Rangfolge
+  herauskommt, die jeder am Tisch im Gefühl hat. Das ist dieselbe Gegenprobe
+  wie beim Monster Creator, nur billiger.
 - **Gehört ein Zustand einer Kampagne?** Oben steht: nein. Dagegen spricht,
   dass man dann eine wachsende Liste ohne Ordnung bekommt. Vielleicht
   Schlagworte statt Zuordnung.

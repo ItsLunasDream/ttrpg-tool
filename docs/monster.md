@@ -29,8 +29,9 @@ Drei Sätze, die alles Weitere bestimmen:
    rein, Befund raus, kein Zufall, keine Dateien. Nur so lässt sie sich gegen
    bekannte Monster prüfen (siehe unten), und nur so ist sie glaubwürdig.
 3. **Die KI darf vorschlagen, nicht entscheiden.** Ihre Antwort geht
-   denselben Weg wie ein Handeintrag: durch die Prüfung. Besteht sie nicht,
-   sagt das Werkzeug, was klemmt.
+   denselben Weg wie ein Handeintrag: durch die Prüfung. Was danach
+   passiert, ist der einzige Unterschied zwischen beiden — die KI wird
+   korrigiert, der Mensch bekommt einen Hinweis. Warum, steht weiter unten.
 
 ## Woher die Richtwerte kommen — und woher nicht
 
@@ -145,22 +146,52 @@ Sie schreibt das, was Tabellen schlecht können: **Namen, Fähigkeiten mit
 Eigenart, Taktik, Beschreibung.** Die Zahlen setzt sie vor, aber sie
 entscheiden nichts — sie gehen durch die Prüfung wie alles andere.
 
-Der Ablauf, wenn die KI ein Monster liefert:
+### Die Regel: die KI wird korrigiert, der Mensch wird beraten
+
+Was bei einem daneben liegenden CR passiert, hängt davon ab, **woher die
+Zahlen kommen** — und nur davon:
 
 ```
-Antwort lesen  →  Zahlen prüfen  →  wenn CR daneben:
-                                      a) Zahlen automatisch nachziehen
-                                         (Trefferpunkte und Schaden auf die
-                                          Richtwerte des Ziel-CR)
-                                      b) und es dazusagen
+von der KI        →  automatisch nachziehen, und es dazusagen
+von Hand/Würfel   →  nur ein Warnhinweis mit den empfohlenen Werten
 ```
 
-Punkt b) ist wichtig: stillschweigend nachzuziehen wäre bequem und falsch.
-Wer sieht, dass die KI beim Schaden um 40 Prozent danebenlag, lernt etwas
-über ihre Vorschläge.
+Das ist keine Willkür, sondern folgt daraus, wer die Entscheidung getroffen
+hat. Die KI hat 137 Trefferpunkte nicht *gewollt* — sie hat eine Zahl
+geraten, die ungefähr passen sollte. Sie zu korrigieren nimmt niemandem
+etwas weg. Wer die 137 dagegen selbst eingetippt hat, hat sich dabei etwas
+gedacht, und sie ungefragt zu ändern wäre eine Anmaßung. Da genügt der
+Hinweis, was stattdessen üblich wäre.
 
-Die Prosa bleibt unangetastet. Eine Fähigkeit umzuschreiben, weil ihre
-Zahlen nicht passen, ist Aufgabe der Zahlen, nicht des Textes.
+Der Ablauf bei einer KI-Antwort:
+
+```
+Antwort lesen  →  Zahlen prüfen  →  CR daneben:
+                                     Trefferpunkte und Schaden pro Runde
+                                     auf die Richtwerte des Ziel-CR ziehen
+                                  →  und in der Meldung sagen, was
+                                     geändert wurde und um wie viel
+```
+
+Das Dazusagen ist kein Beiwerk. Stillschweigend nachzuziehen wäre bequem
+und falsch: wer sieht, dass das Modell beim Schaden um vierzig Prozent
+danebenlag, lernt etwas über seine Vorschläge. Und es gibt einen Knopf
+„zurück zum Vorschlag der KI" — vielleicht war die Abweichung ja Absicht.
+
+Beim Warnhinweis von Hand steht dasselbe, nur ohne Eingriff:
+
+```
+⚠ Gerechnet: CR 7, eingestellt: CR 5
+
+  Empfohlen für CR 5:   Trefferpunkte 130–144, Schaden/Runde 33–38
+  Du hast:              136 ✓                  58 ✗
+
+  [ Schaden auf 36 setzen ]   [ so lassen ]
+```
+
+Die Prosa bleibt in beiden Fällen unangetastet. Eine Fähigkeit
+umzuschreiben, weil ihre Zahlen nicht passen, ist Aufgabe der Zahlen, nicht
+des Textes.
 
 ## Wohin ein fertiges Monster geht
 
@@ -172,10 +203,6 @@ Zahlen nicht passen, ist Aufgabe der Zahlen, nicht des Textes.
 
 ## Offene Fragen
 
-- **Wie weit geht die Automatik?** Soll das Werkzeug ein unpassendes Monster
-  von selbst zurechtrücken, oder nur sagen, was klemmt? Vorschlag: sagen,
-  mit einem Knopf „übernehmen" je Vorschlag. Automatik ohne Zustimmung nimmt
-  einem die Entscheidung ab, die man gerade treffen wollte.
 - **Wie viele Fähigkeiten?** Ein Monster mit acht Sonderfähigkeiten liest am
   Tisch niemand. Eine Obergrenze nach CR wäre eine Vorgabe mit Meinung —
   vermutlich die richtige.
