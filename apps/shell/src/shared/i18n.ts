@@ -19,6 +19,9 @@ const en = {
   'menu.hint': 'Everything lives in the same place. Switch any time, nothing gets lost.',
   'menu.version': 'Version {version}',
 
+  'verlauf.zurueck': 'Back',
+  'verlauf.vorwaerts': 'Forward',
+
   'rail.home': 'Back to the start menu',
   'rail.homeShort': 'Start menu',
 
@@ -145,6 +148,9 @@ const de: Partial<Record<MessageKey, string>> = {
   'menu.question': 'Womit möchtest du arbeiten?',
   'menu.hint': 'Alles liegt im selben Speicherort. Wechseln geht jederzeit, nichts geht dabei verloren.',
   'menu.version': 'Fassung {version}',
+
+  'verlauf.zurueck': 'Zurück',
+  'verlauf.vorwaerts': 'Vorwärts',
 
   'rail.home': 'Zurück zum Startmenü',
   'rail.homeShort': 'Startmenü',

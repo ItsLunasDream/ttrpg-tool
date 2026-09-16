@@ -23,6 +23,8 @@ import {
   LEERER_VERLAUF,
   aktuelleStelle,
   besuche,
+  kannVorwaerts,
+  kannZurueck,
   vorwaerts,
   zurueck,
   type Verlauf
@@ -128,6 +130,15 @@ export function App() {
   } | null>(null);
   /** Welcher Dialog offen ist, oder `null`. Es ist immer hoechstens einer. */
   const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | 'einfuehrung' | null>(null);
+  /**
+   * Ob zurueck und vorwaerts gerade moeglich sind.
+   *
+   * Der Verlauf selbst liegt in einem Ref und loest kein Neuzeichnen aus —
+   * das ist Absicht, er aendert sich bei jedem Wechsel. Fuer die zwei
+   * Knoepfe in der Titelleiste braucht es aber einen Zustand, sonst blieben
+   * sie ausgegraut stehen.
+   */
+  const [verlaufsStand, setVerlaufsStand] = useState({ zurueck: false, vorwaerts: false });
   /**
    * Welche Einfuehrung gerade gezeigt wird, und welche schon gesehen sind.
    *
@@ -272,12 +283,21 @@ export function App() {
    * Stellen auf einmal. Alt und Pfeil geht zusaetzlich, solange die Huelle
    * den Fokus hat.
    */
+  /** Die zwei Knoepfe in der Titelleiste nachziehen. Nach jedem Schritt. */
+  const zieheVerlaufNach = useCallback(() => {
+    setVerlaufsStand({
+      zurueck: kannZurueck(verlauf.current),
+      vorwaerts: kannVorwaerts(verlauf.current)
+    });
+  }, []);
+
   const geheZu = useCallback(
     (richtung: 'zurueck' | 'vorwaerts') => {
       const naechster = richtung === 'zurueck' ? zurueck(verlauf.current) : vorwaerts(verlauf.current);
       if (naechster === verlauf.current) return;
 
       verlauf.current = naechster;
+      zieheVerlaufNach();
       const ziel = aktuelleStelle(naechster);
 
       // Dasselbe Werkzeug, andere Stelle: dann bleibt die Ansicht stehen und
@@ -297,7 +317,7 @@ export function App() {
         window.setTimeout(() => void window.shell.verlauf.springe(app, ort), UEBERGANG_MS);
       }
     },
-    []
+    [zieheVerlaufNach]
   );
 
   /**
@@ -392,6 +412,7 @@ export function App() {
     // Ein Schritt aus dem Verlauf traegt sich nicht selbst wieder ein, sonst
     // haenge man beim Zurueckgehen fest.
     if (!ausVerlauf) verlauf.current = besuche(verlauf.current, { app: id });
+    zieheVerlaufNach();
     if (id === null) {
       setBuehne({ zustand: 'laedt' });
       setUebergang(null);
@@ -435,7 +456,7 @@ export function App() {
           detail: fehler instanceof Error ? fehler.message : String(fehler)
         });
       });
-  }, [wenigerBewegung, zeigeEinfuehrung]);
+  }, [wenigerBewegung, zeigeEinfuehrung, zieheVerlaufNach]);
 
   waehleRef.current = waehle;
   aktivRef.current = aktiv;
@@ -482,6 +503,41 @@ export function App() {
       >
         <span className="titelleiste__marke" aria-hidden="true">
           <SuiteIcon size={18} />
+        </span>
+        {/*
+         * Zurueck und vorwaerts zum Anfassen.
+         *
+         * Die Daumentasten der Maus sind der bequemere Weg, aber sie haengen
+         * am Geraet und am System — auf dem Windows-Rechner kam in einem
+         * offenen Werkzeug nichts an. Zwei Knoepfe haengen an nichts.
+         *
+         * Sie stehen links neben dem Namen, wo sie in jedem Browser stehen.
+         */}
+        <span className="titelleiste__verlauf">
+          <button
+            type="button"
+            className="titelleiste__pfeil"
+            aria-label={t('verlauf.zurueck')}
+            title={t('verlauf.zurueck')}
+            disabled={!verlaufsStand.zurueck}
+            onClick={() => geheZu('zurueck')}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+              <path d="M7.5 2 L3.5 6 L7.5 10" fill="none" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="titelleiste__pfeil"
+            aria-label={t('verlauf.vorwaerts')}
+            title={t('verlauf.vorwaerts')}
+            disabled={!verlaufsStand.vorwaerts}
+            onClick={() => geheZu('vorwaerts')}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+              <path d="M4.5 2 L8.5 6 L4.5 10" fill="none" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+          </button>
         </span>
         <span className="titelleiste__name">TTRPG-Tools</span>
         {eintrag && <span className="titelleiste__pfad">› {t(nameKey(eintrag.id))}</span>}

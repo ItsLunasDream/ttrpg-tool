@@ -50,7 +50,7 @@ function startBericht(): void {
   console.log(`  ${String(Date.now() - startBeginn).padStart(6)} ms   GESAMT`);
 }
 import { join } from 'node:path';
-import { readFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 import { berechneAppFlaeche } from '../shared/apps';
 import { mountApp, registerSchemes, type MontageHaken, type MontierteApp } from './apps';
 import { brichFahrtAb, fahreEin } from './fahrt';
@@ -256,10 +256,42 @@ function meldeOrt(appId: string, ort: string | null): void {
 let letzterVerlaufsbefehl = 0;
 const VERLAUF_SPERRE_MS = 300;
 
-function meldeVerlauf(richtung: 'zurueck' | 'vorwaerts'): void {
+/**
+ * Ein Protokoll fuer die Daumentasten, wenn TTRPG_TOOLS_TASTEN_LOG gesetzt ist.
+ *
+ * Es gibt Geraete und Systeme, auf denen die Seitentasten nicht dort
+ * ankommen, wo man es erwartet — und von hier aus laesst sich das nicht
+ * nachstellen: dieser Rechner hat keine Maus mit Seitentasten, und was unter
+ * Windows passiert, ist eine Vermutung, solange es niemand misst.
+ *
+ * Deshalb schreibt die Huelle auf Wunsch mit, WAS ankommt und WOHER. Eine
+ * Zeile je Signal, in `maustasten.log` im Datenordner. Wer den Fehler
+ * meldet, schickt die Datei mit, und aus dem Raten wird ein Befund.
+ *
+ * Standardmaessig aus: im Normalbetrieb will niemand eine Datei, die bei
+ * jedem Klick waechst.
+ */
+const tastenProtokoll = process.env.TTRPG_TOOLS_TASTEN_LOG === '1';
+let protokollDatei = '';
+
+function protokolliere(zeile: string): void {
+  if (!tastenProtokoll) return;
+  try {
+    appendFileSync(protokollDatei, `${new Date().toISOString()} ${zeile}\n`, 'utf8');
+  } catch {
+    // Ein Protokoll, das sich nicht schreiben laesst, darf nichts kaputt
+    // machen. Es ist eine Diagnosehilfe, kein Teil des Betriebs.
+  }
+}
+
+function meldeVerlauf(richtung: 'zurueck' | 'vorwaerts', woher = '?'): void {
   const jetzt = Date.now();
-  if (jetzt - letzterVerlaufsbefehl < VERLAUF_SPERRE_MS) return;
+  if (jetzt - letzterVerlaufsbefehl < VERLAUF_SPERRE_MS) {
+    protokolliere(`verworfen (Sperrfrist)  ${richtung}  ${woher}`);
+    return;
+  }
   letzterVerlaufsbefehl = jetzt;
+  protokolliere(`ausgefuehrt             ${richtung}  ${woher}`);
   huelle?.webContents.send('verlauf:befehl', richtung);
 }
 
@@ -414,8 +446,9 @@ async function erzeugeFenster(): Promise<void> {
    * beide tragen, soll ein Druck ein Schritt bleiben.
    */
   fenster.on('app-command', (_ereignis: unknown, befehl: string) => {
-    if (befehl === 'browser-backward') meldeVerlauf('zurueck');
-    else if (befehl === 'browser-forward') meldeVerlauf('vorwaerts');
+    protokolliere(`app-command am Fenster: ${befehl}`);
+    if (befehl === 'browser-backward') meldeVerlauf('zurueck', 'app-command');
+    else if (befehl === 'browser-forward') meldeVerlauf('vorwaerts', 'app-command');
   });
 
   fenster.contentView.addChildView(huelle);
@@ -825,12 +858,15 @@ function registriereKanaele(): void {
    * einmal, und im Startmenue sprang der Verlauf dann zwei Stellen weit,
    * weil dort beide Wege zugleich trugen.
    */
-  ipcMain.on('huelle:verlauf-taste', (ereignis, richtung: unknown) => {
-    const bekannt =
-      ereignis.sender === huelle?.webContents ||
-      [...offen.values()].some((montiert) => montiert.sicht.webContents === ereignis.sender);
-    if (!bekannt) return;
-    if (richtung === 'zurueck' || richtung === 'vorwaerts') meldeVerlauf(richtung);
+  ipcMain.on('huelle:verlauf-taste', (ereignis, richtung: unknown, art: unknown) => {
+    const ausHuelle = ereignis.sender === huelle?.webContents;
+    const werkzeug = [...offen.entries()].find(
+      ([, montiert]) => montiert.sicht.webContents === ereignis.sender
+    );
+    const woher = ausHuelle ? 'Huelle' : (werkzeug?.[0] ?? 'unbekannt');
+    protokolliere(`Dokument (${woher}): ${String(art)} → ${String(richtung)}`);
+    if (!ausHuelle && !werkzeug) return;
+    if (richtung === 'zurueck' || richtung === 'vorwaerts') meldeVerlauf(richtung, `${woher}/${String(art)}`);
   });
 
   /**
@@ -899,6 +935,11 @@ process.on('unhandledRejection', (grund) => {
 app.whenReady().then(async () => {
   startMarke('Electron bereit');
   einstellungsDatei = join(app.getPath('userData'), 'einstellungen.json');
+  protokollDatei = join(app.getPath('userData'), 'maustasten.log');
+  if (tastenProtokoll) {
+    console.log(`[shell] Tastenprotokoll an: ${protokollDatei}`);
+    protokolliere('--- Start ---');
+  }
   const gelesen = await readSettings(einstellungsDatei);
 
   // Wer die KI frueher im Story Creator eingerichtet hat, soll sie nicht

@@ -37,6 +37,27 @@ Das ist der Teil, den hier niemand prüfen kann.
 - [ ] Falls eine Taste nicht geht: geht die andere? Geht Alt+Pfeil? (grenzt die Ursache ein)
 - [ ] Maus mit Herstellersoftware: sind M4/M5 dort auf etwas anderes umbelegt?
 
+Wenn die Daumentasten **in einem offenen Werkzeug** nichts tun, misst dieses
+Protokoll, woran es liegt — statt weiter zu raten:
+
+```
+setx TTRPG_TOOLS_TASTEN_LOG 1        (einmalig, danach neues Fenster)
+```
+
+Dann die Anwendung starten, im Startmenü zweimal die Daumentasten drücken,
+ein Werkzeug öffnen, dort noch einmal drücken, beenden. Die Datei
+`maustasten.log` im Datenordner (`%APPDATA%\ttrpg-tools`) enthält je Signal
+eine Zeile: ob es als `app-command` am Fenster ankam oder aus dem Dokument,
+aus welchem Werkzeug, und welches Ereignis es war. Bleibt sie beim Druck im
+Werkzeug leer, kommt die Taste gar nicht an — dann liegt es an Chromium oder
+am Treiber und nicht an der Hülle.
+
+Danach wieder abschalten: `setx TTRPG_TOOLS_TASTEN_LOG 0`
+
+- [ ] **Alt+Pfeil links** wirkt auch, während ein Werkzeug offen ist
+- [ ] Die zwei Pfeile in der Titelleiste gehen zurück und vorwärts
+- [ ] Sie sind ausgegraut, wenn es in die Richtung nichts zu holen gibt
+
 ## Fenster und Hülle
 
 - [ ] Fenster maximieren, wiederherstellen, minimieren — auch per Doppelklick auf die Titelleiste

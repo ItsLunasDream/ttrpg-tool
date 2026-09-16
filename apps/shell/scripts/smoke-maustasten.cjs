@@ -167,6 +167,60 @@ app.whenReady().then(async () => {
     );
   }
 
+  /*
+   * Alt und Pfeil AUS EINEM WERKZEUG HERAUS.
+   *
+   * Der zweite Weg, und der einzige, der nicht am Geraet haengt. Bisher
+   * lauschte nur die Huelle auf die Tastatur — liegt ein Werkzeug vorn, ist
+   * das ein anderes Dokument, und dort kam nichts an. Gemeldet wird es jetzt
+   * vom Preload des Werkzeugs, genau wie die Maustaste.
+   */
+  console.log('\nAlt und Pfeil, waehrend ein Werkzeug vorn liegt:');
+  if (await js("Boolean(document.querySelector('.schiene__heim'))")) {
+    await js("document.querySelector('.schiene__heim').click(); true");
+    await warte(1500);
+  }
+  await js("document.querySelector('.kachel--bereit').click(); true");
+  await warte(5000);
+  if (await js("Boolean(document.querySelector('.dialog__knopf'))")) {
+    await js("document.querySelector('.dialog__knopf').click(); true");
+    await warte(400);
+  }
+  const vorTastatur = await aktiv();
+  const werkzeug2 = fenster.contentView.children.find(
+    (sicht) => sicht !== huelle && sicht.webContents.getURL().includes('/apps/')
+  );
+  if (werkzeug2) {
+    await werkzeug2.webContents.executeJavaScript(
+      "window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', altKey: true, bubbles: true })); true"
+    );
+    await warte(2500);
+    const danachTastatur = await aktiv();
+    pruefe(
+      danachTastatur !== vorTastatur,
+      `Alt+Pfeil aus dem Werkzeug heraus wirkt (${danachTastatur || 'Startmenue'} statt ${vorTastatur})`
+    );
+  }
+
+  // --- Die Knoepfe in der Titelleiste --------------------------------------
+  /*
+   * Der Weg, der an keinem Geraet haengt. Er muss immer da sein, sonst gibt
+   * es keinen verlaesslichen Weg zurueck.
+   */
+  console.log('\nDie Knoepfe in der Titelleiste:');
+  pruefe(
+    (await js("document.querySelectorAll('.titelleiste__pfeil').length")) === 2,
+    'zwei Pfeile stehen in der Titelleiste'
+  );
+  const vorKnopf = await aktiv();
+  const konnte = await js(
+    "!document.querySelectorAll('.titelleiste__pfeil')[0].disabled"
+  );
+  pruefe(konnte === true, 'der Zurueck-Pfeil ist anklickbar, wenn es etwas zu tun gibt');
+  await js("document.querySelectorAll('.titelleiste__pfeil')[0].click(); true");
+  await warte(2500);
+  pruefe((await aktiv()) !== vorKnopf, 'und er bewegt den Verlauf');
+
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
   console.log(fehler.length === 0 ? '\nMaustasten bestanden.' : `\n${fehler.length} Fehler.`);
   app.exit(fehler.length === 0 ? 0 : 1);

@@ -105,6 +105,45 @@ body {
   color: var(--text);
 }
 
+/*
+ * Zurueck und vorwaerts. Links neben dem Namen, wie im Browser.
+ *
+ * `-webkit-app-region: no-drag` ist noetig, weil die Titelleiste das Fenster
+ * zieht: ohne das waere ein Klick auf den Pfeil ein Anfassen des Fensters.
+ */
+.titelleiste__verlauf {
+  display: flex;
+  gap: 2px;
+  margin-left: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.titelleiste__pfeil {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-leise);
+  cursor: pointer;
+  transition: background var(--motion-feedback) var(--motion-ease-standard);
+}
+
+.titelleiste__pfeil:hover:not(:disabled) {
+  background: #23273244;
+  color: var(--text);
+}
+
+.titelleiste__pfeil:disabled {
+  /* Sichtbar bleiben, aber still: wer sieht, dass es nicht weitergeht,
+     sucht nicht nach dem Knopf. */
+  opacity: 0.3;
+  cursor: default;
+}
+
 .titelleiste__knopf:disabled {
   opacity: 0.45;
   cursor: default;
