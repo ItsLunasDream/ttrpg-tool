@@ -13,6 +13,12 @@ import { SuiteIcon } from './icons';
 
 const REPO_URL = 'https://github.com/ItsLunasDream/ttrpg-tool';
 const LICENSE_URL = `${REPO_URL}/blob/main/LICENSE`;
+/*
+ * Die Namensnennung fuer fremde Daten. CC-BY verlangt sie, und sie nur ins
+ * README zu schreiben reicht nicht: wer die Anwendung benutzt, sieht das
+ * README nie.
+ */
+const NOTICE_URL = `${REPO_URL}/blob/main/NOTICE.md`;
 
 interface Props {
   readonly version: string;
@@ -37,6 +43,7 @@ export function Ueber({ version, onClose, t }: Props) {
         <p className="ueber__lizenz">{t('about.license')}</p>
         <p>{t('about.licenseDetail')}</p>
         <p className="ueber__gewaehr">{t('about.warranty')}</p>
+        <p className="ueber__gewaehr">{t('about.notice')}</p>
 
         <div className="ueber__verweise">
           {/* Kein <a href>: die Ansicht wuerde selbst dorthin navigieren und
@@ -48,6 +55,9 @@ export function Ueber({ version, onClose, t }: Props) {
           </button>
           <button type="button" onClick={() => void window.shell.app.oeffneExtern(LICENSE_URL)}>
             {t('about.licenseLink')}
+          </button>
+          <button type="button" onClick={() => void window.shell.app.oeffneExtern(NOTICE_URL)}>
+            {t('about.noticeLink')}
           </button>
         </div>
       </div>

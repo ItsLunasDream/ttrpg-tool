@@ -36,6 +36,7 @@ import {
 import { mountDice } from '../../../dice/src/main/embed';
 import { mountNpc } from '../../../npc/src/main/embed';
 import { mountInspiration } from '../../../inspiration/src/main/embed';
+import { mountMonster } from '../../../monster/src/main/embed';
 import type { KiQuelle } from './ki';
 import type { Language } from '../shared/i18n';
 
@@ -301,6 +302,7 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'dice') return montiereDice(id, haken);
   if (id === 'npc') return montiereNpc(id, haken);
   if (id === 'inspiration') return montiereInspiration(id, haken);
+  if (id === 'monster') return montiereMonster(id, haken);
   return null;
 }
 
@@ -718,5 +720,76 @@ async function montiereMapmaker(id: string, haken: MontageHaken): Promise<Montie
     // bedienen (siehe docs/inspirationshilfe.md).
     neueKarte: (name: string, notizen = []) =>
       eingebettet.neueKarte(sicht.webContents as WebContents, name, [...notizen])
+  };
+}
+
+/**
+ * Der Monster Creator.
+ *
+ * Er bekommt einen eigenen Datenordner, und das ist die Stelle, an der der
+ * Encounter Creator spaeter ansetzt: dieselben Dateien, kein Kanal zwischen
+ * den beiden Werkzeugen. Deshalb liegt der Ordner unter dem Datenordner
+ * DIESES Werkzeugs und nicht irgendwo im Sitzungszustand.
+ */
+async function montiereMonster(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountMonster({
+    distDir: appDistDir(id, 'main'),
+    devServerUrl: process.env.MONSTER_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    datenordner: datenordner(id),
+    // Die KI der Sammlung, wie ueberall. Ein eigener Zugang je Werkzeug waere
+    // eine zweite Stelle, an der derselbe Schluessel liegt.
+    kiQuelle: haken.kiQuelle,
+    anlegen: async (titel, markdown) => {
+      if (!backstoryEmbed) {
+        return { ok: false, text: 'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.' };
+      }
+      const kampagnen = await backstoryEmbed.vault.listCampaigns();
+      if (kampagnen.length === 0) {
+        return { ok: false, text: 'Es gibt noch keine Kampagne, in die das passt.' };
+      }
+      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
+      const notiz = await backstoryEmbed.vault.createNote(kampagne.id, 'creature', titel);
+      await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+
+      // Dem Story Creator sagen, dass etwas dazugekommen ist — sonst liegt
+      // die Notiz auf der Platte und seine offene Liste zeigt sie nicht.
+      if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
+        backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
+      }
+      haken.onEreignis?.('backstory');
+      return { ok: true, text: `${titel} → ${kampagne.name}` };
+    }
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
   };
 }

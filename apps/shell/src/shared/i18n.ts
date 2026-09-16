@@ -19,6 +19,9 @@ const en = {
   'menu.hint': 'Everything lives in the same place. Switch any time, nothing gets lost.',
   'menu.version': 'Version {version}',
 
+  'verlauf.zurueck': 'Back',
+  'verlauf.vorwaerts': 'Forward',
+
   'rail.home': 'Back to the start menu',
   'rail.homeShort': 'Start menu',
 
@@ -110,6 +113,9 @@ const en = {
   'about.licenseDetail':
     'Free software: you may use, change and redistribute it. If a modified version is offered over a network, its source must be made available too.',
   'about.warranty': 'Without any warranty, as described in the license.',
+  'about.notice':
+    'Some data comes from other works under CC-BY-4.0 and is credited there — the monster baselines by challenge rating from the Lazy GM\u2019s 5e Monster Builder Resource Document.',
+  'about.noticeLink': 'Attributions',
   'about.sourceLink': 'Source code on GitHub',
   'about.licenseLink': 'Read the full license',
 
@@ -123,6 +129,8 @@ const en = {
   'app.dice.description': 'Roll dice expressions, with advantage and disadvantage',
   'app.npc.name': 'NPC Creator',
   'app.npc.description': 'Roll a character the table can meet right away',
+  'app.monster.name': 'Monster Creator',
+  'app.monster.description': 'Build homebrew monsters that hold up to a challenge-rating check',
   'app.inspiration.name': 'Inspiration',
   'app.inspiration.description': 'Build a campaign scaffold: hooks, factions, places, ties',
   'app.encounter.name': 'Encounters',
@@ -142,6 +150,9 @@ const de: Partial<Record<MessageKey, string>> = {
   'menu.question': 'Womit möchtest du arbeiten?',
   'menu.hint': 'Alles liegt im selben Speicherort. Wechseln geht jederzeit, nichts geht dabei verloren.',
   'menu.version': 'Fassung {version}',
+
+  'verlauf.zurueck': 'Zurück',
+  'verlauf.vorwaerts': 'Vorwärts',
 
   'rail.home': 'Zurück zum Startmenü',
   'rail.homeShort': 'Startmenü',
@@ -234,6 +245,9 @@ const de: Partial<Record<MessageKey, string>> = {
   'about.licenseDetail':
     'Freie Software: du darfst sie benutzen, verändern und weitergeben. Wird eine veränderte Fassung über ein Netzwerk angeboten, muss ihr Quelltext ebenfalls offenstehen.',
   'about.warranty': 'Ohne jede Gewährleistung, wie in der Lizenz beschrieben.',
+  'about.notice':
+    'Einzelne Daten stammen aus fremden Werken unter CC-BY-4.0 und sind dort genannt — die Richtwerte je Herausforderungsgrad aus dem Lazy GM\u2019s 5e Monster Builder Resource Document.',
+  'about.noticeLink': 'Namensnennungen',
   'about.sourceLink': 'Quelltext auf GitHub',
   'about.licenseLink': 'Vollständigen Lizenztext lesen',
 
@@ -247,6 +261,8 @@ const de: Partial<Record<MessageKey, string>> = {
   'app.dice.description': 'Würfelausdrücke werfen, mit Vorteil und Nachteil',
   'app.npc.name': 'NPC Creator',
   'app.npc.description': 'Eine Figur würfeln, die der Tisch sofort treffen kann',
+  'app.monster.name': 'Monster Creator',
+  'app.monster.description': 'Homebrew-Monster bauen, die einer Grad-Prüfung standhalten',
   'app.inspiration.name': 'Inspirationshilfe',
   'app.inspiration.description': 'Ein Gerüst für die Kampagne: Aufhänger, Fraktionen, Orte, Verbindungen',
   'app.encounter.name': 'Begegnungen',

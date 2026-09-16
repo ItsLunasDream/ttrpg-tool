@@ -207,7 +207,35 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
       }
     ]
   }
+,
+  {
+    id: 'monster',
+    titel: { de: 'Monster Creator', en: 'Monster Creator' },
+    satz: {
+      de: 'Homebrew-Monster zu einem Grad, den du vorgibst — und jede Zahl wird nachgerechnet.',
+      en: 'Homebrew monsters at a rating you choose — and every number gets checked.'
+    },
+    punkte: [
+      {
+        de: 'Grad, Art und Rolle einstellen, würfeln. Der Rest kommt aus Tabellen, ganz ohne KI.',
+        en: 'Set rating, type and role, then roll. The rest comes from tables, no AI needed.'
+      },
+      {
+        de: 'Unter dem Steckbrief steht der Befund: hält es genug aus, teilt es genug aus, und was sich drehen lässt.',
+        en: 'Below the stat block sits the verdict: does it take enough, does it deal enough, and what you can turn.'
+      },
+      {
+        de: 'Was die KI liefert, wird nachgerechnet und bei Bedarf auf den Grad gezogen — mit Ansage.',
+        en: 'What the AI delivers is recomputed and pulled to the rating if needed — and it says so.'
+      },
+      {
+        de: 'Gespeichertes findest du unter „Sammlung", als Kacheln oder Liste. Ein Feld sucht Name, Art und Grad zugleich.',
+        en: 'What you save lives under “Collection”, as tiles or a list. One field searches name, type and rating at once.'
+      }
+    ]
+  }
 ];
+
 
 /** Die Einfuehrung zu einer Kennung, oder `undefined`. */
 export function einfuehrungFuer(id: string): Einfuehrung | undefined {

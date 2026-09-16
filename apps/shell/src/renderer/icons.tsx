@@ -135,6 +135,24 @@ function NpcIcon({ size = 26 }: IconProps): ReactElement {
  * ihnen liegt. Der Funke allein waere vom NPC Creator kaum zu unterscheiden,
  * die Punkte allein saehen aus wie ein Graph.
  */
+/**
+ * Monster Creator: ein Schaedel mit Hoernern, auf einer Waage.
+ *
+ * Die Waage ist der Punkt. Das Werkzeug baut nicht nur ein Monster, es wiegt
+ * es — und das ist der Teil, der es von einem Wuerfel unterscheidet.
+ */
+function MonsterIcon({ size = 26 }: IconProps): ReactElement {
+  return (
+    <Rahmen size={size}>
+      <path d="M14 16c0-5 4-8 10-8s10 3 10 8v6c0 3-2 5-4 6h-12c-2-1-4-3-4-6z" />
+      <path d="M14 14l-4-5M34 14l4-5" />
+      <circle cx="19" cy="19" r="1.6" />
+      <circle cx="29" cy="19" r="1.6" />
+      <path d="M24 30v8M16 38h16" />
+    </Rahmen>
+  );
+}
+
 function InspirationIcon({ size = 26 }: IconProps): ReactElement {
   return (
     <Rahmen size={size}>
@@ -154,6 +172,7 @@ const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
   dice: DiceIcon,
   npc: NpcIcon,
   inspiration: InspirationIcon,
+  monster: MonsterIcon,
   encounter: EncounterIcon
 };
 

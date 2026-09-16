@@ -113,8 +113,73 @@ zufällig gleich, deshalb fällt es nicht auf.
 - Die Windows-Anwendung ist nicht signiert, Windows zeigt beim ersten Start
   eine SmartScreen-Warnung. Eine Signatur bräuchte ein kostenpflichtiges
   Zertifikat
+- Der Monster Creator kennt keine Erfahrungspunkte. Aus der CC-BY-Quelle sind
+  nur sieben XP-Werte belegt, die übrigen 27 wären geraten. Deshalb steht `xp`
+  nicht im YAML-Kopf. Der Encounter Creator braucht die Tabelle; sie muss
+  vorher aus einer belegten Quelle kommen
+- Die Eichung der Monsterprüfung läuft gegen sieben Statblocks aus derselben
+  CC-BY-Quelle wie die Richtwerte. Die liegen bauartbedingt auf der Kurve, das
+  Bestehen sagt also wenig. Eine belastbare Eichung bräuchte Monster aus dem
+  SRD 5.2 quer über die Grade; die Quellen waren aus der Entwicklungsumgebung
+  nicht erreichbar
 
 ## Erledigt
+
+### Vorwärts im Verlauf war nach einem Schritt zurück sofort wieder tot
+
+Beim Nachziehen der Rauchtests aufgefallen, nicht gemeldet, aber echt: ein
+Schritt zurück funktionierte, der Schritt vorwärts danach nicht.
+
+Zwei Ursachen, beide in der Hülle:
+
+- **Alt und Pfeil löste zwei Schritte aus.** Die Hülle hörte selbst auf die
+  Taste *und* bekam denselben Druck über den Hauptprozess. Der eigene Weg
+  lief an der Sperrfrist vorbei, die genau das verhindern soll. Der zweite
+  Hörer ist weg; es bleibt der eine Weg über den Hauptprozess, den auch die
+  Daumentasten nehmen.
+- **Der Ortsbericht nach einem Sprung galt als neuer Besuch.** Ein Werkzeug
+  meldet nach dem Sprung, wo es steht — und das warf den Vorwärts-Ast weg,
+  wie es ein echter neuer Besuch tun soll. Jetzt gilt ein Bericht kurz nach
+  einem Verlaufsschritt als dessen Antwort und zählt nicht.
+
+### Monster Creator: die Prüfung ist der Kern
+
+Ein achtes Werkzeug. Homebrew-Monster zu einem vorgegebenen
+Herausforderungsgrad, mit und ohne KI — und jedes Ergebnis geht durch
+dieselbe Prüfung, egal woher die Zahlen kommen.
+
+Die Richtwerte von CR 0 bis 30 stammen aus dem *Lazy GM's 5e Monster
+Builder Resource Document* unter CC-BY-4.0. Sie stehen wörtlich in
+`richtwerte.ts`, mit Lizenzkopf in der Datei und Nennung in `NOTICE.md` und
+im README. Die Tabellen aus dem Dungeon Master's Guide sind bewusst nicht
+angefasst worden.
+
+Die Prüfung rechnet einen Verteidigungs-CR aus Trefferpunkten und
+Rüstungsklasse, einen Angriffs-CR aus Schaden pro Runde und Angriffsbonus
+und nimmt den Mittelwert. Rein, ohne Zufall und ohne Dateien. Drei Fehler
+hat erst sie selbst ans Licht gebracht: das Schadensband war bei niedrigen
+Graden zu eng, das Urteil hing allein an den Bändern (ein CR 11 ging als
+CR 15 durch), und das Nachziehen zog auf die Bandkante statt auf den
+Richtwert.
+
+Der Erzeuger verschiebt Rollen in **Tabellenzeilen**, nicht in Prozent. Der
+erste Anlauf mit Prozentsätzen ließ die Hälfte der erzeugten Monster an der
+eigenen Prüfung scheitern. Ein Test fährt jetzt alle 7140 Kombinationen aus
+Grad, Rolle und Saat durch und verlangt, dass jedes Ergebnis besteht.
+
+Bei der KI ist der Unterschied bewusst: ihre Zahlen werden nachgezogen und
+es wird gesagt, was geändert wurde (der ursprüngliche Vorschlag bleibt
+abrufbar); ein Handeintrag wird nur gewarnt, nie überschrieben.
+
+Dazu die Ablage als Markdown mit YAML-Kopf — das ist die spätere
+Schnittstelle zum Encounter Creator, nicht ein Kanal zwischen zwei
+Werkzeugen —, eine Sammlung als Kacheln und Liste mit einem Suchfeld für
+Name, Art, Rolle und Grad zugleich („untot 4" heißt untot **und** Grad 4),
+Varianten auf anderen Graden und der Markdown-Export.
+
+Offen geblieben und als bekannte Grenze notiert: die CR-XP-Tabelle (nur
+sieben Werte sind belegt) und eine echte Eichung an SRD-Monstern.
+
 
 ### Testrunde mit simulierten Nutzerinnen
 
@@ -862,8 +927,12 @@ darüber — zweiter Weg über die Preloads gebaut, Prüfung steht aus).
 
 ## Zwei neue Werkzeuge: Konzepte
 
-Beides steht als Konzept, nicht als Plan zum Abarbeiten. Erst besprechen,
-dann bauen.
+Der **Monster Creator ist inzwischen gebaut** (siehe „Monster Creator: die
+Prüfung ist der Kern" unter „Erledigt"); sein Konzepttext steht unten
+trotzdem unverändert, damit man Plan und Ergebnis vergleichen kann. Was
+davon offen blieb, steht in `docs/monster.md` unter „Stand der Umsetzung".
+Der Status Effect Creator steht weiter als Konzept, nicht als Plan zum
+Abarbeiten.
 
 - **Status Effect Creator** — [docs/statuseffekte.md](docs/statuseffekte.md).
   Eigene Zustände mit Stufen und Regeltext, mit und ohne KI, optional mit
@@ -882,9 +951,42 @@ dann bauen.
   automatisch nachgezogen (und es wird gesagt), von Hand gibt es nur einen
   Warnhinweis mit den empfohlenen Werten.
 
+Was in den Konzepten seit der ersten Fassung dazugekommen ist: beim
+Statuseffekt-Werkzeug Pakete (mehrere zusammengehörende Zustände in einem
+Wurf, aufeinander abgestimmt), die Eichung des Punktesystems an den
+Zuständen des Regelwerks und eine Karte zum Vorlesen. Beim Monster Creator
+eine Sammlung mit Kacheln und Liste samt einem Suchfeld für Name, Thema und
+CR zugleich, die Prüfung eines vorhandenen Statblocks ohne Erzeuger, und
+Varianten („dasselbe Monster, zwei Grade höher": Zahlen skalieren, Prosa
+behalten).
+
+Die Gruppenrechnung steht ausdrücklich **nicht** im Monster Creator. Sie
+gehört in den Encounter Creator; der Monster Creator bereitet die Übergabe
+nur vor — über die Ablage als Schnittstelle, mit allen Zahlen im YAML-Kopf,
+und mit Mehrfachauswahl in der Sammlung.
+
 Ein Punkt am Monster Creator ist rechtlich und muss vor dem Bauen geklärt
 sein: die Richtwerttabellen aus dem Dungeon Master's Guide dürfen nicht ins
 Repository — das Kapitel zum Monsterbau steht nicht im SRD. Es gibt eine
 Quelle unter CC-BY-4.0, die dasselbe liefert (Lazy GM's 5e Monster Builder
 Resource Document); die Lizenz ist gelesen, sollte aber vor dem Übernehmen
 von Zahlen noch einmal selbst geprüft werden.
+
+## Vorgemerkt: vier Ausbauten für die Sammlung
+
+Aus einer Durchsicht, was der Sammlung noch fehlt. Alle vier stehen als
+Aufgabe, keiner davon hat ein Konzept.
+
+1. **Werkzeugübergreifende Suche (Strg+K).** Ein Feld in der Hülle, das
+   Notizen, Begegnungen, NPCs, Zustände und Monster auf einmal durchsucht
+   und dorthin springt. Verlauf und Schiene sind dafür gebaut; es fehlt der
+   Index über die Werkzeuge hinweg.
+2. **Encounter Creator** — die Kachel `encounter`, die heute „später" sagt.
+   Monster auswählen, Schwierigkeit gegen die Gruppe rechnen, in den Tracker
+   schieben. Hierher gehört die Gruppenrechnung.
+3. **Loot Generator.** Eigene Zufallstabellen, verschachtelbar, plus Beute
+   nach Grad. Kleines Werkzeug, am Tisch das meistgebrauchte.
+4. **Sicherung der ganzen Sammlung.** Heute sichert nur der Story Creator
+   seine Kampagne. Begegnungen, Karten, Symbole und Einstellungen bleiben
+   außen vor. Der API-Schlüssel gehört nicht in eine Sicherung — er liegt im
+   Schlüsselbund des Systems und wäre anderswo ohnehin wertlos.

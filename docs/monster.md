@@ -193,6 +193,106 @@ Die Prosa bleibt in beiden Fällen unangetastet. Eine Fähigkeit
 umzuschreiben, weil ihre Zahlen nicht passen, ist Aufgabe der Zahlen, nicht
 des Textes.
 
+## Die Sammlung: was schon gebaut wurde
+
+Ein Werkzeug, das nur erzeugt und nie zeigt, was es erzeugt hat, ist eine
+Einbahnstraße. Nach zehn Abenden liegen dreißig Monster da, und man findet
+keines wieder.
+
+**Zwei Ansichten, ein Umschalter:**
+
+```
+Kacheln       groß, mit Symbol, Name, CR und Thema. Zum Stöbern —
+              „ich brauche irgendwas Untotes um CR 4".
+
+Liste         eine Zeile je Monster: Name · Thema · CR · XP · TP · RK.
+              Zum Wiederfinden — „wie hieß der Golem nochmal".
+```
+
+Die Kacheln sind die Vorgabe. Sie sehen aus wie die Kacheln des Startmenüs,
+damit die Sammlung nicht wie ein zweites Programm wirkt, und sie sind nach
+CR gruppiert.
+
+**Gesucht wird über ein Feld, nicht über drei.** Ein einziges Suchfeld, das
+Name, Thema und CR gleichzeitig durchsucht:
+
+```
+„untot"        →  alles mit Thema Untot
+„golem"        →  Namenstreffer
+„cr 4"         →  alle mit CR 4
+„cr 3-6"       →  Bereich
+„untot 4"      →  beides zusammen: Untote mit CR 4
+```
+
+Drei getrennte Felder wären genauer und langsamer. Ein Feld, das Zahlen als
+CR liest und Wörter als Name oder Thema, trifft in der Praxis, was gemeint
+ist — und wer es genauer will, klickt die Filterleiste daneben auf.
+
+Dazu das Übliche, weil es sonst fehlt: sortieren nach CR, Name oder Datum;
+Rechtsklick für Umbenennen, Duplizieren, Löschen; und die Anzeige, wie viele
+Monster gerade gefunden wurden.
+
+## Ein vorhandenes Monster prüfen
+
+Derselbe Code ohne Erzeuger, und deshalb fast geschenkt: einen Statblock
+hineingeben und nur nachrechnen lassen.
+
+Zwei Wege hinein:
+- **Aus der Sammlung** — ein Monster öffnen und den Befund sehen. Nützlich,
+  wenn sich die Richtwerte ändern oder man später klüger ist.
+- **Von außen** — Zahlen eintippen oder einen Statblock als Markdown
+  einwerfen. Für Monster aus Büchern, aus dem Netz, von früher.
+
+Das ist der schnellste Weg zu einem Werkzeug, das schon etwas taugt, bevor
+der Erzeuger steht: die Prüfung ist ohnehin der Kern, und sie allein
+beantwortet die Frage „ist das Ding, das ich gerade gebaut habe, in Ordnung".
+
+## Varianten: dasselbe Monster, zwei Grade höher
+
+Am Tisch ständig gebraucht — der Räuberhauptmann, der in Kapitel drei noch
+einmal auftaucht, diesmal gefährlicher.
+
+**Die Zahlen skalieren, die Prosa bleibt.** Trefferpunkte, Schaden,
+Angriffsbonus und Rettungs-SG wandern auf die Richtwerte des neuen CR;
+Name, Beschreibung und Fähigkeitentexte bleiben unangetastet. Was sich an
+den Zahlen einer Fähigkeit ändert (`2W8` → `3W8`), wird im Text ersetzt, der
+Satz drumherum nicht.
+
+Angeboten wird das als „Variante anlegen", nicht als „ändern": das
+Ursprungsmonster bleibt stehen. Ein Räuberhauptmann CR 3 und einer CR 5 sind
+zwei Einträge, und beide will man behalten.
+
+## Der Weg in den Encounter Creator
+
+Die Gruppenrechnung — „vier Gegner mit CR 2" gegen „ein Gegner mit CR 5" —
+steht **nicht** in diesem Werkzeug. Sie gehört in den Encounter Creator, der
+als Kachel `encounter` ohnehin geplant ist: dort geht es um eine Begegnung
+gegen eine bestimmte Gruppe, hier um ein einzelnes Monster.
+
+Damit das später ohne Umbau zusammenpasst, wird hier **intern vorbereitet**:
+
+- **Die Ablage ist die Schnittstelle.** Monster liegen als Markdown mit
+  YAML-Kopf im Datenordner, wie die Begegnungen des Trackers. Der Encounter
+  Creator liest denselben Ordner — er braucht keinen Kanal zum Monster
+  Creator, nur den Pfad. Das ist die billigste Kopplung, die es gibt, und
+  sie überlebt, wenn eines der beiden Werkzeuge umgebaut wird.
+- **Im YAML-Kopf steht alles, was eine Begegnungsrechnung braucht**, in
+  Zahlen und nicht in Prosa: `cr`, `tp`, `rk`, `schaden_pro_runde`,
+  `angriffsbonus`, `angriffe`, `legendaer`, `rolle`, `thema`. Wer den
+  Statblock lesen müsste, um an den CR zu kommen, hätte schon verloren.
+  Die Erfahrungspunkte stehen **nicht** dabei — warum, steht unten unter
+  „Stand der Umsetzung".
+- **Ein Knopf „in die Begegnung"**, wie der NPC Creator ihn zum Story
+  Creator hat. Solange es den Encounter Creator nicht gibt, ist der Knopf
+  nicht da — vorgesehen ist er trotzdem, und der Weg dorthin ist derselbe
+  wie beim Kartenknopf der Inspirationshilfe: die Hülle reicht durch.
+- **Mehrfachauswahl in der Sammlung** ist deshalb schon eingeplant: man
+  schickt selten ein Monster in eine Begegnung, meistens drei.
+
+Was hier **nicht** vorbereitet wird: die Begegnungsmathematik selbst. Sie
+gehört dorthin, wo sie gebraucht wird, und hier erfunden zu werden hieße,
+sie zweimal zu haben.
+
 ## Wohin ein fertiges Monster geht
 
 - **Initiative Tracker** — der Hauptweg. Ein fertiges Monster gehört in die
@@ -206,12 +306,60 @@ des Textes.
 - **Wie viele Fähigkeiten?** Ein Monster mit acht Sonderfähigkeiten liest am
   Tisch niemand. Eine Obergrenze nach CR wäre eine Vorgabe mit Meinung —
   vermutlich die richtige.
-- **Gruppen.** „Vier Gegner mit CR 2" ist etwas anderes als „ein Gegner mit
-  CR 5". Die Umrechnung über Begegnungsmultiplikatoren gehört eigentlich in
-  den Initiative Tracker oder ein eigenes Begegnungswerkzeug — das steht als
-  `encounter` ohnehin auf der Kachelliste. Hier zunächst weglassen?
 - **Welche Fassung?** 5e 2014 und 2024 rechnen CR unterschiedlich. Die
   CC-BY-Quelle oben ist auf dem Stand von 2024. Ein Schalter wäre möglich,
   verdoppelt aber die Tabellen und die Tests.
 - **Eigene Richtwerte.** Wer nach anderen Vorgaben baut, will die Tabelle
   ersetzen können. Als Datei im Datenordner, wie die Schreibhilfe-Vorschläge?
+
+## Stand der Umsetzung
+
+Der obere Teil dieser Datei ist das Konzept von vorher und bleibt so stehen.
+Hier steht, was davon tatsächlich gebaut ist, damit man beides
+auseinanderhalten kann.
+
+**Gebaut und geprüft** (`apps/monster`, 79 Tests plus ein Rauchtest in der
+Hülle):
+
+- `richtwerte.ts` — die CC-BY-Tabelle von CR 0 bis 30, wörtlich übernommen,
+  mit Lizenzkopf in der Datei und Nennung in `NOTICE.md` und im README.
+- `pruefung.ts` — der Kern: Verteidigungs-CR aus TP und RK,
+  Angriffs-CR aus Schaden pro Runde und Angriffsbonus, Ergebnis der
+  Mittelwert. Reine Funktion, kein Zufall, keine Dateien. `zieheNach` sagt
+  getrennt, was sie *rät* und was sie *berichtigt*.
+- `eichung.ts` — sieben Statblocks aus derselben CC-BY-Quelle als
+  Eichdaten. Wichtige Einschränkung, siehe unten.
+- `erzeuge.ts` — der Erzeuger. Ein Test fährt alle 7140 Kombinationen aus
+  Grad, Rolle und Saat durch und verlangt, dass jedes erzeugte Monster die
+  eigene Prüfung besteht.
+- `ablage.ts` — Markdown mit YAML-Kopf im Datenordner
+  (`<Datenordner>/monster/monster/`). Das ist die Schnittstelle zum
+  Encounter Creator, nicht ein Kanal zwischen zwei Werkzeugen.
+- `suche.ts` — ein Suchfeld für Name, Thema, Rolle und Grad, mit
+  UND-Bedeutung („untot 4" = untot **und** Grad 4).
+- `kiAufgaben.ts` — die KI schlägt vor, die Prüfung entscheidet. Ihre Zahlen
+  werden stillschweigend auf die Richtwerte gezogen; was sie ursprünglich
+  wollte, bleibt sichtbar. Ein Handeintrag wird nur gewarnt, nicht geändert.
+- Oberfläche mit Erzeugen, Prüfen von außen, Sammlung als Liste und als
+  Kacheln, Variante anlegen, Markdown-Export.
+
+**Zwei Lücken, die bewusst offen sind:**
+
+1. **Keine CR-XP-Tabelle.** Aus der CC-BY-Quelle sind nur sieben XP-Werte
+   belegt; die übrigen 27 aus dem Gedächtnis hinzuschreiben wäre geraten,
+   und geratene Zahlen in einer Datei, die „Richtwerte" heißt, sind
+   schlimmer als gar keine. Deshalb steht `xp` nicht im YAML-Kopf. Der
+   Encounter Creator braucht sie — vorher muss die Tabelle aus einer
+   belegten Quelle nachgetragen werden.
+2. **Die Eichung ist noch keine echte Eichung.** Die sieben Statblocks
+   stammen aus derselben Quelle wie die Richtwerte und liegen deshalb
+   bauartbedingt auf der Kurve; dass die Prüfung sie besteht, sagt wenig.
+   Eine belastbare Eichung braucht Monster aus dem SRD 5.2 (CC-BY),
+   quer über die Grade. Die entsprechenden Seiten waren aus der
+   Entwicklungsumgebung nicht erreichbar. Bis das nachgeholt ist, gilt die
+   Prüfung als plausibel, nicht als belegt.
+
+**Was aus dem Konzept nicht umgesetzt ist:** der Knopf „in die Begegnung"
+(es gibt den Encounter Creator noch nicht), der Weg in den Initiative
+Tracker, und die Mehrfachauswahl in der Sammlung. Alles drei hängt am
+Encounter Creator und wartet auf ihn.

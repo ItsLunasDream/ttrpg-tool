@@ -18,6 +18,9 @@ the provider you entered.
 - **Inspiration** — the scaffold for a new campaign: hook, factions,
   characters, places, connections, timeline. From tables, with AI if you
   want it.
+- **Monster Creator** — homebrew monsters at a challenge rating you choose.
+  Every number is checked against the baselines, whether it came from the
+  tables, from your keyboard or from an AI.
 - **TTRPG Map Editor** — draw battlemaps and world maps, export as Universal
   VTT.
 
@@ -84,6 +87,7 @@ apps/initiative/   Initiative Tracker
 apps/dice/         Dice
 apps/npc/          NPC Creator
 apps/inspiration/  Inspiration
+apps/monster/      Monster Creator
 packages/dice/     Reading and rolling dice expressions
 packages/i18n/     Language choice and text substitution
 packages/motion/   Timings, curves and base animations
@@ -331,6 +335,39 @@ happens if the party does nothing.
 
 Concept and open points: `docs/inspirationshilfe.md` (German).
 
+## Monster Creator
+
+Homebrew monsters at a rating you choose — and the check is the point, not
+the generator.
+
+- **The check is a pure function.** Hit points and armour give a defensive
+  CR, damage per round and attack bonus an offensive one; the result is the
+  average. Both halves are shown **separately**: the average alone hides a
+  monster that takes hits like CR 4 and deals damage like CR 9, which is how
+  homebrew usually goes wrong.
+- **The verdict says what to turn**, not just that something is off — and
+  each suggestion is a button.
+- **Whose numbers they are decides what happens.** From the AI: pulled onto
+  the rating automatically, and it says what changed by how much (with a way
+  back to the AI's own suggestion). From your keyboard: a warning with the
+  recommended values, nothing changed behind your back.
+- **Roles shift in table rows, not percentages.** The hit-point column is
+  flat in the middle of the table and the damage column is not; shifting both
+  by the same percentage moves them by different numbers of ratings. A test
+  generates every rating times every role and insists each result passes the
+  tool's own check.
+- **Check an existing monster** without generating one: type in numbers from
+  a book or from an older campaign and see what the rating says.
+- **The collection** holds what you built, as tiles or a list, with one
+  search field for name, type and rating at once (`undead 4`, `cr 3-6`).
+- Monsters are Markdown files with a YAML header in the data folder. Every
+  number lives in the header, so a future encounter tool can read them
+  without taking the stat block apart. Experience points are the one
+  exception: the CC-BY source only documents seven of them, and guessed
+  numbers in a file called "baselines" would be worse than none.
+
+The baselines come from a CC-BY source, credited in [NOTICE.md](NOTICE.md).
+
 ## Dice
 
 - **Shape is the only thing that tells one kind of die from another** —
@@ -441,7 +478,7 @@ xvfb-run -a npm run verify:package -w apps/backstory -- \
 
 ## State and limits
 
-All six tools run embedded; `encounter` is planned and not clickable yet.
+All seven tools run embedded; `encounter` is planned and not clickable yet.
 
 Known limits:
 
@@ -481,3 +518,15 @@ available in German and English.
 Free software: you may use it, change it and pass it on. If a modified
 version is offered over a network, its source has to be available too.
 Without any warranty, as described in the license.
+
+### Third-party content
+
+Some **data** in this repository comes from other works under their own
+licenses, which require attribution. The attributions live in
+[NOTICE.md](NOTICE.md) and travel with the project — leaving them out would
+be a licence violation, not a cosmetic slip.
+
+In short: the monster baselines by challenge rating come from the *Lazy GM's
+5e Monster Builder Resource Document* by Teos Abadía, Scott Fitzgerald Gray
+and Michael E. Shea, under CC-BY-4.0, which in turn includes material from
+the SRD 5.1. Nothing here is taken from the Dungeon Master's Guide.

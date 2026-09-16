@@ -259,6 +259,89 @@ Gewicht über die Stufen nicht an, ist die Antwort kaputt und wird
 zurückgewiesen — dafür braucht es kein Urteil über Balance, das ist reines
 Nachzählen.
 
+## Pakete: fünf Zustände, die zusammengehören
+
+Ein einzelner Zustand ist selten das, was man braucht. Wer einen
+Arktis-Abschnitt vorbereitet, braucht Kälte, Schneeblindheit, Erschöpfung
+durch Stapfen und den Hunger dazu — vier Zustände, die dieselbe Sprache
+sprechen sollen.
+
+**Ein Paket ist ein Wurf über mehrere Zustände hinweg**, mit gemeinsamem
+Thema und abgestimmter Härte:
+
+```
+Paket „Der lange Winter"        Thema: Kälte, Härte: ernst
+
+  Freezing          5 Stufen   Umgebung, jede Stunde
+  Snowblind         3 Stufen   Umgebung, nach Stunden im Schnee
+  Frostbite         3 Stufen   Folge von Freezing ab Stufe 3
+  Hollow Hunger     4 Stufen   Zeit, je Tag ohne warme Mahlzeit
+```
+
+Der Gewinn liegt nicht im Sparen von Klicks, sondern in der **Abstimmung**:
+Die Wirkungen werden über das ganze Paket verteilt, statt vier Mal
+unabhängig gezogen — so greift nicht dreimal derselbe Nachteil an, und die
+Zustände fühlen sich wie ein Regelwerk an und nicht wie vier Zufälle. Dass
+einer aus dem anderen folgt („Frostbite ab Freezing 3"), ist dabei ein
+eigenes Feld: **Folgezustand**.
+
+Fällt weitgehend nebenbei ab, sobald der einzelne Zustand steht — das
+Verteilen ist derselbe Erzeuger mit einem gemeinsamen Vorrat statt sechs
+Einzelwürfen.
+
+## Die Eichung: das Gewicht braucht einen Maßstab
+
+Oben steht ein Punktesystem, dessen Werte geschätzt sind. Geschätzte Werte
+sind ein Anfang, keine Grundlage. Deshalb gehört zum Werkzeug ein Schritt,
+der sie prüfbar macht: **die Zustände aus dem Regelwerk einmal einlesen und
+durchrechnen.**
+
+```
+Erschöpfung 1   →  Gewicht  2      Nachteil auf Fertigkeitswürfe
+Erschöpfung 3   →  Gewicht  7
+Erschöpfung 5   →  Gewicht 14
+Vergiftet       →  Gewicht  4
+Gelähmt         →  Gewicht 12
+Bewusstlos      →  Gewicht 16
+```
+
+Zwei Dinge fallen dabei ab, und beide sind mehr wert als die Zahlen selbst:
+
+1. **Ein Maßstab, den jeder kennt.** „Wiegt 14" sagt niemandem etwas. „Wiegt
+   so viel wie fünf Stufen Erschöpfung" sagt jedem alles.
+2. **Eine Gegenprobe für die Punktwerte.** Kommt eine Rangfolge heraus, die
+   jeder am Tisch im Gefühl hat — gelähmt ist schlimmer als vergiftet —,
+   taugen die Werte. Kommt etwas anderes heraus, taugen sie nicht, und das
+   merkt man vorher statt nachher.
+
+Die Zustände des SRD sind frei verwendbar (CC-BY), die Werte dürfen also ins
+Repository. Sie stehen dort als Eichdaten und als Test, nicht als Inhalt,
+den das Werkzeug anbietet.
+
+## Die Karte zum Vorlesen
+
+Ein Zustand am Tisch hat zwei Leser mit verschiedenen Bedürfnissen: die
+Spielleitung will die Regel, die Gruppe will wissen, was ihre Figur spürt.
+
+Deshalb eine **Karte** je Zustand — eine halbe Seite, zum Ausdrucken oder
+zum Hinhalten:
+
+```
+Vorderseite    Name, Symbol, der Kurzsatz, die aktuelle Stufe groß.
+               Was die Figur merkt. Keine Zahlen.
+
+Rückseite      Die Stufen als Liste, Verschlimmerung, Linderung.
+               Für die Spielleitung.
+```
+
+Technisch ist das derselbe Weg wie der PDF-Export des Story Creators
+(`printToPDF` im Hauptprozess), nur mit einem anderen Stylesheet — also
+wenig neue Mechanik. Mehrere Karten kommen auf einen Bogen, damit ein
+Ausdruck sich lohnt.
+
+Wer keinen Drucker hat, öffnet dieselbe Karte groß auf dem Schirm; das ist
+dasselbe Bild ohne Papier.
+
 ## Wohin ein fertiger Zustand geht
 
 Drei Wege, und alle drei gibt es in der Sammlung schon:
@@ -278,11 +361,12 @@ Handwerkszeug, das über Kampagnen hinweg gilt.
 
 ## Offene Fragen
 
-- **Der Zähler außerhalb des Kampfes.** „Jede Stunde" braucht im Tracker
-  eine Uhr, die es dort noch nicht gibt. Ist das Teil dieses Werkzeugs, ein
-  Ausbau des Trackers, oder lassen wir es zunächst weg und der Auslöser ist
-  nur Text? Ich würde mit Text anfangen und den Zähler erst bauen, wenn der
-  Rest steht.
+- ~~Der Zähler außerhalb des Kampfes.~~ **Entschieden: der Auslöser ist
+  zunächst nur Text.** „Jede Stunde in großer Kälte" steht am Zustand und
+  wird von der Spielleitung angewendet; eine Uhr, die außerhalb des Kampfes
+  läuft, baut der Tracker erst, wenn der Rest steht. Das hält das Werkzeug
+  klein und die Abhängigkeit zum Tracker gering — er muss zunächst nur
+  Stufen anzeigen können, nicht mitzählen.
 - **Wie eng an 5e?** Erschöpfung, Rettungswürfe und SG sind 5e-Begriffe. Ganz
   neutral zu bleiben hieße, nur Prosa zu erzeugen; ganz bei 5e zu bleiben
   schließt andere Tische aus. Vorschlag: die Tabellen sind 5e-nah, die
@@ -291,12 +375,11 @@ Handwerkszeug, das über Kampagnen hinweg gilt.
   verschiedene Wirkungen (wie oben), oder fünfmal dieselbe. Das Konzept oben
   nimmt Ersteres. Beides anzubieten wäre möglich, kostet aber einen Regler
   mehr.
-- **Die Punktwerte selbst.** Die Liste oben ist geschätzt, nicht hergeleitet
-  — „Nachteil auf alle Angriffe = 3" ist eine Meinung. Sie wird belastbarer,
-  wenn wir sie gegen die Zustände aus dem Regelwerk eichen: Erschöpfung,
-  Vergiftet, Gelähmt und so weiter durchrechnen und sehen, ob die Rangfolge
-  herauskommt, die jeder am Tisch im Gefühl hat. Das ist dieselbe Gegenprobe
-  wie beim Monster Creator, nur billiger.
+- **Die Punktwerte selbst** bleiben eine Meinung, bis die Eichung (siehe
+  oben) sie bestätigt. Offen ist dabei, was passiert, wenn sie es nicht tut:
+  Werte nachziehen, bis die Rangfolge stimmt, ist naheliegend — birgt aber
+  die Gefahr, sie so lange zu biegen, bis sie nur noch die Eichdaten
+  erklären und sonst nichts.
 - **Gehört ein Zustand einer Kampagne?** Oben steht: nein. Dagegen spricht,
   dass man dann eine wachsende Liste ohne Ordnung bekommt. Vielleicht
   Schlagworte statt Zuordnung.

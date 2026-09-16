@@ -18,6 +18,9 @@ auch die spricht nur mit dem eingetragenen Anbieter.
 - **Inspirationshilfe** — Gerüst für eine neue Kampagne: Aufhänger,
   Fraktionen, Figuren, Orte, Verbindungen, Zeitstrahl. Aus Tabellen, auf
   Wunsch mit KI.
+- **Monster Creator** — Homebrew-Monster zu einem Grad, den du vorgibst.
+  Jede Zahl wird gegen die Richtwerte geprüft, egal ob sie aus den Tabellen,
+  von der Tastatur oder von einer KI kam.
 - **TTRPG Map Editor** — Battlemaps und Weltkarten zeichnen, Export als
   Universal VTT.
 
@@ -85,6 +88,7 @@ apps/initiative/   Initiative Tracker
 apps/dice/         Würfel
 apps/npc/          NPC Creator
 apps/inspiration/  Inspirationshilfe
+apps/monster/      Monster Creator
 packages/dice/     Würfelausdrücke lesen und werfen
 packages/i18n/     Sprachwahl und Textersetzung
 packages/motion/   Zeiten, Kurven und Grundanimationen
@@ -333,6 +337,41 @@ was passiert, wenn die Gruppe nichts tut.
 
 Konzept und offene Punkte: `docs/inspirationshilfe.md`.
 
+## Monster Creator
+
+Homebrew-Monster zu einem Grad, den du vorgibst — und der Kern ist die
+Prüfung, nicht der Erzeuger.
+
+- **Die Prüfung ist eine reine Funktion.** Trefferpunkte und Rüstung ergeben
+  einen Verteidigungs-CR, Schaden pro Runde und Angriffsbonus einen
+  Angriffs-CR; das Ergebnis ist der Mittelwert. Beide Hälften stehen
+  **getrennt** da: der Mittelwert allein verschweigt ein Monster, das wie
+  CR 4 einsteckt und wie CR 9 austeilt — und genau so geht Homebrew meistens
+  schief.
+- **Der Befund sagt, was sich drehen lässt**, nicht nur dass etwas klemmt —
+  und jeder Vorschlag ist ein Knopf.
+- **Wessen Zahlen es sind, entscheidet, was passiert.** Von der KI: automatisch
+  auf den Grad gezogen, mit Ansage, was sich um wie viel geändert hat (samt
+  Weg zurück zum Vorschlag der KI). Von Hand: ein Warnhinweis mit den
+  empfohlenen Werten, aber nichts wird hinter deinem Rücken geändert.
+- **Rollen verschieben in Tabellenzeilen, nicht in Prozent.** Die
+  Trefferpunkt-Spalte ist in der Mitte flach, die Schadensspalte nicht;
+  dieselben Prozente verschieben also um verschieden viele Grade. Ein Test
+  erzeugt alle Grade mal alle Rollen und besteht darauf, dass jedes Ergebnis
+  die eigene Prüfung besteht.
+- **Ein vorhandenes Monster prüfen**, ohne eines zu bauen: Zahlen aus einem
+  Buch oder aus einer alten Kampagne eintippen und sehen, was der Grad sagt.
+- **Die Sammlung** zeigt Gebautes als Kacheln oder Liste, mit einem Suchfeld
+  für Name, Art und Grad zugleich (`untot 4`, `cr 3-6`).
+- Monster sind Markdown-Dateien mit YAML-Kopf im Datenordner. Alle Zahlen
+  stehen im Kopf, damit ein künftiges Begegnungswerkzeug sie lesen kann, ohne
+  den Statblock zu zerlegen. Ausgenommen sind die Erfahrungspunkte: die
+  CC-BY-Quelle belegt nur sieben davon, und geratene Zahlen in einer Datei
+  namens „Richtwerte" wären schlimmer als gar keine.
+
+Die Richtwerte stammen aus einer CC-BY-Quelle, genannt in
+[NOTICE.md](NOTICE.md).
+
 ## Würfel
 
 - **Die Form ist das Einzige, woran man eine Würfelart erkennt** — Farbe und
@@ -444,7 +483,7 @@ xvfb-run -a npm run verify:package -w apps/backstory -- \
 
 ## Stand und Grenzen
 
-Alle sechs Werkzeuge laufen eingebettet; `encounter` ist geplant und noch
+Alle sieben Werkzeuge laufen eingebettet; `encounter` ist geplant und noch
 nicht anklickbar.
 
 Bekannte Grenzen:
@@ -488,3 +527,15 @@ Freie Software: benutzen, verändern und weitergeben ist ausdrücklich
 erlaubt. Wird eine veränderte Fassung über ein Netzwerk angeboten, muss ihr
 Quelltext ebenfalls offenstehen. Ohne jede Gewährleistung, wie in der Lizenz
 beschrieben.
+
+### Fremde Inhalte
+
+Einzelne **Daten** im Repository stammen aus fremden Werken unter eigenen
+Lizenzen, die eine Namensnennung verlangen. Sie steht in
+[NOTICE.md](NOTICE.md) und wird mitgegeben — sie wegzulassen wäre ein
+Lizenzbruch, kein Schönheitsfehler.
+
+Kurz: die Richtwerte je Herausforderungsgrad im Monster Creator stammen aus
+dem *Lazy GM's 5e Monster Builder Resource Document* von Teos Abadía, Scott
+Fitzgerald Gray und Michael E. Shea unter CC-BY-4.0, das seinerseits Material
+aus dem SRD 5.1 enthält. Aus dem Dungeon Master's Guide stammt nichts.
