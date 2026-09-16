@@ -131,3 +131,17 @@ Danach wieder abschalten: `setx TTRPG_TOOLS_TASTEN_LOG 0`
 
 - [ ] Alles schließen und neu starten: Sprache, KI-Einstellung, Fenstergröße und Symbole stehen wie vorher
 - [ ] Der Datenordner enthält nichts Überraschendes
+
+## Monster Creator
+
+- [ ] Grad, Art und Rolle einstellen, würfeln: der Steckbrief passt zur Rolle (ein Schütze teilt mehr aus als ein Verteidiger)
+- [ ] Der Befund unter dem Steckbrief steht auf „Passt", wenn frisch gewürfelt wurde
+- [ ] Im Reiter „Prüfen" absichtlich Unsinn eintragen: die Ampel schlägt aus und nennt Vorschläge
+- [ ] Ein Vorschlag als Knopf angeklickt setzt den Wert wirklich
+- [ ] „In die Sammlung" speichert; die Datei liegt im Datenordner unter `monster/monster/`
+- [ ] Die Datei in einem Texteditor öffnen: der YAML-Kopf trägt alle Zahlen
+- [ ] Sammlung: Kacheln und Liste zeigen dasselbe
+- [ ] Suche: „untot" findet die Art, „4" den Grad, „untot 4" beides zugleich
+- [ ] Mit KI: die Meldung sagt, was nachgezogen wurde, und der Weg zurück zum Vorschlag geht
+- [ ] Ohne KI läuft alles; nur die KI-Knöpfe fehlen
+- [ ] „In den Story Creator" legt eine Notiz in der offenen Kampagne an
