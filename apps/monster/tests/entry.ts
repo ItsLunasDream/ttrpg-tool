@@ -7,3 +7,8 @@ export * from '../src/shared/erzeuge';
 export * from '../src/shared/ablage';
 export * from '../src/shared/suche';
 export * from '../src/shared/kiAufgaben';
+export * from '../src/shared/attribute';
+export * from '../src/shared/bewegung';
+export * from '../src/shared/angriffe';
+export * from '../src/shared/widerstaende';
+export * from '../src/shared/schadensarten';

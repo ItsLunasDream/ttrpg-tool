@@ -42,6 +42,10 @@ export function Befund({ befund, onUebernehmen }: Props) {
         </span>
       </header>
 
+      {/* Ein Urteil ohne Rechenweg ist eine Behauptung. Der Satz steht
+          deshalb dabei und nicht in der Hilfe. */}
+      <p className="befund__erklaerung">{t('befund.erklaerung')}</p>
+
       <div className="befund__haelften">
         <Haelfte
           titel={t('befund.verteidigung')}

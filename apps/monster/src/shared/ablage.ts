@@ -22,8 +22,12 @@
  */
 
 import type { Monster } from './erzeuge';
-import { schadenJeAngriff } from './erzeuge';
-import type { Sprache } from './tabellen';
+import { angriffeProRunde } from './erzeuge';
+import { ATTRIBUTE, alsVorzeichen, attributKuerzel, modifikator, rettungsSg } from './attribute';
+import { alsZeile } from './bewegung';
+import { angriffName, angriffSchaden, reichweiteText, WAFFEN, type Angriff } from './angriffe';
+import { schadensartName } from './schadensarten';
+import type { Kategorie, Sprache } from './tabellen';
 
 /** Was ausser dem Monster noch in der Datei steht. */
 export interface Abgelegt extends Monster {
@@ -67,15 +71,30 @@ export function alsMarkdown(monster: Abgelegt, sprache: Sprache): string {
     `rk: ${w.rk}`,
     `schaden_pro_runde: ${w.schadenProRunde}`,
     `angriffsbonus: ${w.angriffsbonus}`,
-    `angriffe: ${monster.angriffe}`,
+    `angriffe: ${angriffeProRunde(monster)}`,
     `legendaer: ${w.legendaer ? 'true' : 'false'}`,
+    // Die Attribute einzeln und nicht als Block: der Encounter Creator soll
+    // sie mit demselben winzigen Leser holen koennen wie alles andere.
+    ...ATTRIBUTE.map((id) => `${id}: ${monster.attribute[id]}`),
+    `tempo: ${monster.bewegung.gangarten[0]?.fuss ?? 30}`,
+    `resistenzen: ${alsYaml(monster.widerstaende.resistenzen.join(' '))}`,
+    `immunitaeten: ${alsYaml(monster.widerstaende.immunitaeten.join(' '))}`,
+    `verwundbarkeiten: ${alsYaml(monster.widerstaende.verwundbarkeiten.join(' '))}`,
     `geaendert: ${monster.geaendert}`,
-    'schemaVersion: 1',
+    'schemaVersion: 2',
     '---',
     ''
   ];
 
-  const leib = [
+  /*
+   * Der Leib ist ein Statblock, kein Bericht.
+   *
+   * Aufbau und Reihenfolge wie in D&D: Kopf, Ruestung und Trefferpunkte,
+   * Bewegung, die sechs Attribute, dann was es aushaelt, dann was es kann,
+   * und zuletzt, was es tut. Wer den Block am Tisch liest, sucht immer an
+   * derselben Stelle.
+   */
+  const leib: string[] = [
     `# ${monster.name}`,
     '',
     `*${monster.thema} · ${monster.rolle} · ${de ? 'Grad' : 'CR'} ${monster.cr}*`,
@@ -86,32 +105,158 @@ export function alsMarkdown(monster: Abgelegt, sprache: Sprache): string {
     '',
     `**${de ? 'Trefferpunkte' : 'Hit Points'}** ${w.tp}`,
     '',
-    `**${de ? 'Umgebung' : 'Environment'}** ${monster.umgebung}`,
-    '',
-    `## ${de ? 'Aktionen' : 'Actions'}`,
-    '',
-    monster.angriffe > 1
-      ? `***${de ? 'Mehrfachangriff' : 'Multiattack'}.*** ${
-          de
-            ? `Es macht ${monster.angriffe} Angriffe.`
-            : `It makes ${monster.angriffe} attacks.`
-        }`
-      : '',
-    monster.angriffe > 1 ? '' : '',
-    `***${de ? 'Angriff' : 'Attack'}.*** +${w.angriffsbonus} ${
-      de ? 'auf Treffer' : 'to hit'
-    }. ${de ? 'Schaden' : 'Damage'}: ${schadenJeAngriff(monster)} ${monster.schadensart}.`,
-    '',
+    `**${de ? 'Bewegung' : 'Speed'}** ${alsZeile(monster.bewegung, sprache)}`,
+    ''
+  ];
+
+  // Die sechs Attribute als Tabelle — so steht es im Buch, und so liest es
+  // sich auch in einem Texteditor ohne Formatierung.
+  leib.push(
+    `| ${ATTRIBUTE.map((id) => attributKuerzel(id, sprache)).join(' | ')} |`,
+    `|${ATTRIBUTE.map(() => ' --- |').join('')}`,
+    `| ${ATTRIBUTE.map((id) => {
+      const wert = monster.attribute[id];
+      return `${wert} (${alsVorzeichen(modifikator(wert))})`;
+    }).join(' | ')} |`,
+    ''
+  );
+
+  const liste = (arten: readonly string[]) =>
+    arten.map((id) => schadensartName(id, sprache)).join(', ');
+
+  if (monster.widerstaende.verwundbarkeiten.length > 0) {
+    leib.push(
+      `**${de ? 'Verwundbarkeiten' : 'Damage Vulnerabilities'}** ${liste(monster.widerstaende.verwundbarkeiten)}`,
+      ''
+    );
+  }
+  if (monster.widerstaende.resistenzen.length > 0) {
+    leib.push(
+      `**${de ? 'Resistenzen' : 'Damage Resistances'}** ${liste(monster.widerstaende.resistenzen)}`,
+      ''
+    );
+  }
+  if (monster.widerstaende.immunitaeten.length > 0) {
+    leib.push(
+      `**${de ? 'Immunitäten' : 'Damage Immunities'}** ${liste(monster.widerstaende.immunitaeten)}`,
+      ''
+    );
+  }
+
+  leib.push(`**${de ? 'Umgebung' : 'Environment'}** ${monster.umgebung}`, '');
+
+  // Passive Faehigkeiten stehen ueber den Aktionen, ohne Ueberschrift —
+  // genau wie im Buch.
+  const passiv = monster.faehigkeiten.filter((f) => f.kategorie === 'passiv');
+  for (const f of passiv) leib.push(`***${f.name}.*** ${f.text}`, '');
+
+  const abschnitt = (kategorie: Kategorie, titelDe: string, titelEn: string): string[] => {
+    const treffer = monster.faehigkeiten.filter((f) => f.kategorie === kategorie);
+    if (treffer.length === 0) return [];
+    return [`## ${de ? titelDe : titelEn}`, '', ...treffer.flatMap((f) => [`***${f.name}.*** ${f.text}`, ''])];
+  };
+
+  /* --- Aktionen: erst die Angriffe, dann was sonst eine Aktion kostet --- */
+  const angriffe = monster.angriffe.filter((a) => a.art !== 'flaeche');
+  const flaechen = monster.angriffe.filter((a) => a.art === 'flaeche');
+  const aktionen: string[] = [`## ${de ? 'Aktionen' : 'Actions'}`, ''];
+
+  const gesamt = angriffeProRunde(monster);
+  if (gesamt > 1) {
+    const was = angriffe
+      .map((a) => `${a.anzahl}× ${angriffName(a.waffeId, sprache)}`)
+      .join(de ? ' und ' : ' and ');
+    aktionen.push(
+      `***${de ? 'Mehrfachangriff' : 'Multiattack'}.*** ${
+        de ? `Es greift ${gesamt}-mal an: ${was}.` : `It makes ${gesamt} attacks: ${was}.`
+      }`,
+      ''
+    );
+  }
+  for (const angriff of angriffe) aktionen.push(angriffZeile(angriff, sprache), '');
+  for (const flaeche of flaechen) aktionen.push(angriffZeile(flaeche, sprache), '');
+  aktionen.push(
     `*${de ? 'Schaden pro Runde' : 'Damage per round'}: ${w.schadenProRunde}*`,
     ''
-  ].filter((zeile, stelle, alle) => !(zeile === '' && alle[stelle - 1] === ''));
+  );
 
-  const faehigkeiten =
-    monster.faehigkeiten.length > 0
-      ? [`## ${de ? 'Fähigkeiten' : 'Features'}`, '', ...monster.faehigkeiten.flatMap((f) => [`***${f.name}.*** ${f.text}`, ''])]
-      : [];
+  const weitereAktionen = monster.faehigkeiten.filter((f) => f.kategorie === 'aktion');
+  for (const f of weitereAktionen) aktionen.splice(aktionen.length - 2, 0, `***${f.name}.*** ${f.text}`, '');
 
-  return [...kopf, ...leib, ...faehigkeiten].join('\n');
+  const schluss = [
+    ...aktionen,
+    ...abschnitt('bonusaktion', 'Bonusaktionen', 'Bonus Actions'),
+    ...abschnitt('reaktion', 'Reaktionen', 'Reactions')
+  ];
+
+  /*
+   * Legendaere Aktionen stehen nur da, wenn es welche gibt — und dann mit
+   * dem Satz, der erklaert, wie sie funktionieren. Ohne den Satz ist die
+   * Ueberschrift eine Behauptung.
+   */
+  if (w.legendaer) {
+    schluss.push(
+      `## ${de ? 'Legendäre Aktionen' : 'Legendary Actions'}`,
+      '',
+      de
+        ? 'Es kann 3 legendäre Aktionen einsetzen und wählt aus den folgenden Möglichkeiten. Nur eine legendäre Aktion auf einmal, und nur am Ende des Zuges einer anderen Kreatur. Zu Beginn seines Zuges bekommt es die verbrauchten zurück.'
+        : 'It can take 3 legendary actions, choosing from the options below. Only one legendary action can be used at a time and only at the end of another creature’s turn. It regains spent legendary actions at the start of its turn.',
+      ''
+    );
+    const legendaer = monster.faehigkeiten.filter((f) => f.kategorie === 'legendaer');
+    for (const f of legendaer) schluss.push(`***${f.name}.*** ${f.text}`, '');
+    // Ein Angriff als legendaere Aktion steht in fast jedem Statblock und
+    // macht den Unterschied zwischen „hat legendaere Aktionen" und „tut
+    // damit auch etwas".
+    const erster = angriffe[0];
+    if (erster) {
+      schluss.push(
+        de
+          ? `***Angriff.*** Es macht einen ${angriffName(erster.waffeId, sprache)}-Angriff.`
+          : `***Attack.*** It makes one ${angriffName(erster.waffeId, sprache)} attack.`,
+        ''
+      );
+    }
+  }
+
+  const alles = [...leib, ...schluss].filter(
+    (zeile, stelle, liste) => !(zeile === '' && liste[stelle - 1] === '')
+  );
+  return [...kopf, ...alles].join('\n');
+}
+
+/**
+ * Eine Angriffszeile, wie sie im Statblock steht.
+ *
+ * Nahkampf und Fernkampf mit Angriffswurf und Reichweite, Flaechen mit
+ * Rettungswurf und Form. Das ist der Unterschied, um den es geht: gegen
+ * einen Angriffswurf hilft Ruestung, gegen einen Rettungswurf nicht.
+ */
+export function angriffZeile(angriff: Angriff, sprache: Sprache): string {
+  const de = sprache !== 'en';
+  const waffe = WAFFEN.find((w) => w.id === angriff.waffeId);
+  const name = angriffName(angriff.waffeId, sprache);
+  const schaden = `${angriff.schadenJeAngriff} (${angriff.wuerfel}) ${angriffSchaden(angriff, sprache)}`;
+
+  if (angriff.art === 'flaeche' && angriff.rettung) {
+    const flaeche = waffe ? reichweiteText(waffe, sprache) : '';
+    const rettung = attributKuerzel(angriff.rettung.attribut, sprache);
+    const aufladen = angriff.aufladen ? (de ? ' (Aufladen 5–6)' : ' (Recharge 5–6)') : '';
+    return de
+      ? `***${name}${aufladen}.*** ${flaeche}. Jede Kreatur darin: Rettungswurf ${rettung} gegen SG ${angriff.rettung.sg}, sonst ${schaden}. Bei Erfolg die Hälfte.`
+      : `***${name}${aufladen}.*** ${flaeche}. Each creature in the area makes a DC ${angriff.rettung.sg} ${rettung} saving throw, taking ${schaden} on a failure, or half as much on a success.`;
+  }
+
+  const art = angriff.art === 'nah' ? (de ? 'Nahkampfangriff' : 'Melee Attack') : de ? 'Fernkampfangriff' : 'Ranged Attack';
+  const reichweite = waffe ? reichweiteText(waffe, sprache) : '';
+  return de
+    ? `***${name}.*** ${art}: +${angriff.trefferbonus ?? 0} auf Treffer, Reichweite ${reichweite}. Treffer: ${schaden}.`
+    : `***${name}.*** ${art}: +${angriff.trefferbonus ?? 0} to hit, reach/range ${reichweite}. Hit: ${schaden}.`;
+}
+
+/** Der Rettungs-SG gegen die Faehigkeiten dieses Monsters. Fuer die Oberflaeche. */
+export function sgVon(monster: Monster): number {
+  return rettungsSg(monster.werte.angriffsbonus);
 }
 
 /**

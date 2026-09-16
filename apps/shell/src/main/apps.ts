@@ -352,6 +352,25 @@ async function montiereDice(id: string, haken: MontageHaken): Promise<MontierteA
  * bekommt er nicht zu sehen. So bleibt die Kenntnis darueber, wo Notizen
  * liegen und welche Kampagne offen ist, an einer Stelle.
  */
+/**
+ * Der Notiztyp, unter dem ein Werkzeug seine Notiz anlegt.
+ *
+ * Nicht fest verdrahten: die Notiztypen gehoeren der Kampagne, und wer sie
+ * umbaut, hat sie gar nicht mehr alle. `createNote` weist einen unbekannten
+ * Typ mit `error.unknownNoteType` ab — genau das ist beim Monster Creator
+ * passiert, der unter „creature" anlegte, das es in keiner Vorlage gibt.
+ *
+ * Deshalb: die Wunschliste der Reihe nach durchgehen und den ersten Typ
+ * nehmen, den die Kampagne wirklich kennt. Bleibt keiner uebrig, den ersten
+ * ueberhaupt — eine Kampagne ohne Notiztypen gibt es nicht.
+ */
+function passenderNotiztyp(kampagne: { noteTypes: { id: string }[] }, wuensche: readonly string[]): string {
+  for (const wunsch of wuensche) {
+    if (kampagne.noteTypes.some((typ) => typ.id === wunsch)) return wunsch;
+  }
+  return kampagne.noteTypes[0]?.id ?? 'note';
+}
+
 async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountNpc({
     distDir: appDistDir(id, 'main'),
@@ -382,7 +401,8 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
       const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
       const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
 
-      const notiz = await backstoryEmbed.vault.createNote(kampagne.id, 'character', titel);
+      const typ = passenderNotiztyp(kampagne, ['character', 'note']);
+      const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
       await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
 
       // Dem Story Creator sagen, dass etwas dazugekommen ist. Ohne das
@@ -751,7 +771,10 @@ async function montiereMonster(id: string, haken: MontageHaken): Promise<Montier
       }
       const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
       const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
-      const notiz = await backstoryEmbed.vault.createNote(kampagne.id, 'creature', titel);
+      // „creature" gibt es in keiner Vorlage — ein Monster ist hier eine
+      // Figur, und notfalls eine freie Notiz.
+      const typ = passenderNotiztyp(kampagne, ['creature', 'character', 'note']);
+      const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
       await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
 
       // Dem Story Creator sagen, dass etwas dazugekommen ist — sonst liegt

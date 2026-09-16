@@ -20,7 +20,7 @@
 import { pruefe, zieheNach, type Befund, type Werte } from './pruefung';
 import { richtwert } from './richtwerte';
 import type { Monster } from './erzeuge';
-import { ROLLEN, THEMEN, text, type Sprache } from './tabellen';
+import { ROLLEN, THEMEN, text, type Kategorie, type Sprache } from './tabellen';
 
 export const KI_AUFGABEN = ['name', 'faehigkeit', 'beschreibung', 'monster'] as const;
 export type KiAufgabe = (typeof KI_AUFGABEN)[number];
@@ -35,6 +35,14 @@ export interface Frage {
   readonly rolleId?: string;
   /** Der bisherige Stand, wenn es einen gibt — fuer einzelne Felder. */
   readonly monster?: Monster | null;
+  /**
+   * Was der Mensch sich thematisch wuenscht, in eigenen Worten.
+   *
+   * „Ein Sumpfhexer, der Ertrunkene ruft" sagt mehr als jede Auswahlliste,
+   * und genau dafuer ist eine KI da. Die Zahlen beruehrt das nicht: die
+   * kommen aus den Richtwerten und werden nachgerechnet wie immer.
+   */
+  readonly wunsch?: string;
 }
 
 export function systemAnweisung(sprache: Sprache): string {
@@ -58,6 +66,22 @@ export function systemAnweisung(sprache: Sprache): string {
       ].join('\n');
 }
 
+/**
+ * Wie viele Faehigkeiten die KI liefern soll, nach Grad.
+ *
+ * Frueher stand hier „hoechstens drei", fuer jeden Grad. Auf Grad 30 ist
+ * das zu wenig: ein Endgegner mit drei Zeilen ist keiner. Die Zahlen folgen
+ * denen des Erzeugers, damit KI-Monster und gewuerfelte gleich dicht sind.
+ */
+function anzahlWunsch(crWert: number): string {
+  if (crWert < 3) return '2';
+  if (crWert < 6) return '3';
+  if (crWert < 10) return '4';
+  if (crWert < 15) return '5';
+  if (crWert < 21) return '6';
+  return '7';
+}
+
 /** Welche Schluessel die Antwort tragen muss. */
 export const FELDER: Record<KiAufgabe, readonly string[]> = {
   name: ['name'],
@@ -78,6 +102,20 @@ export function anweisung(frage: Frage, sprache: Sprache): string {
     thema ? (de ? `Art: ${text(thema.name, sprache)}` : `Type: ${text(thema.name, sprache)}`) : '',
     rolle ? (de ? `Rolle im Kampf: ${text(rolle.name, sprache)} — ${text(rolle.satz, sprache)}` : `Combat role: ${text(rolle.name, sprache)} — ${text(rolle.satz, sprache)}`) : ''
   );
+
+  /*
+   * Der eigene Wunsch steht GANZ OBEN, vor Grad, Art und Rolle.
+   *
+   * Modelle gewichten den Anfang staerker, und hier ist der freie Text das
+   * Eigentliche — die Auswahllisten sagen nur, in welchen Rahmen es passen
+   * muss.
+   */
+  if (frage.wunsch && frage.wunsch.trim() !== '') {
+    teile.unshift(
+      de ? `Gewünscht ist: ${frage.wunsch.trim().slice(0, MAX_ZEICHEN)}` : `Wanted: ${frage.wunsch.trim().slice(0, MAX_ZEICHEN)}`,
+      ''
+    );
+  }
 
   if (frage.monster) {
     const m = frage.monster;
@@ -107,8 +145,8 @@ export function anweisung(frage: Frage, sprache: Sprache): string {
       `- ${de ? 'Angriffsbonus' : 'Attack bonus'}: +${ziel.bonus}`,
       '',
       de
-        ? 'Liefere höchstens drei Fähigkeiten. Mehr liest am Tisch niemand.'
-        : 'Deliver at most three features. Nobody reads more at the table.'
+        ? `Liefere ${anzahlWunsch(ziel.wert)} Fähigkeiten. Jede bekommt ein Feld "kategorie" mit genau einem dieser Werte: passiv, aktion, bonusaktion, reaktion.`
+        : `Deliver ${anzahlWunsch(ziel.wert)} features. Each gets a "kategorie" field with exactly one of: passiv, aktion, bonusaktion, reaktion.`
     );
   }
 
@@ -123,6 +161,21 @@ export function anweisung(frage: Frage, sprache: Sprache): string {
 
 /* ---------- Die Antwort lesen ---------- */
 
+/**
+ * Die Kategorie aus der Antwort, mit einem sicheren Rueckfall.
+ *
+ * Modelle erfinden hier gern eigene Woerter („trait", „special"). Was nicht
+ * in der Liste steht, wird passiv — das ist der Abschnitt, in dem eine
+ * falsch einsortierte Faehigkeit am wenigsten Schaden anrichtet. Legendaer
+ * ist bewusst NICHT erlaubt: darueber entscheidet der Schalter, nicht das
+ * Modell.
+ */
+function alsKategorie(wert: unknown): Kategorie {
+  const erlaubt: readonly Kategorie[] = ['passiv', 'aktion', 'bonusaktion', 'reaktion'];
+  const gelesen = typeof wert === 'string' ? wert.trim().toLowerCase() : '';
+  return (erlaubt as readonly string[]).includes(gelesen) ? (gelesen as Kategorie) : 'passiv';
+}
+
 function alsText(wert: unknown): string {
   return typeof wert === 'string' ? wert.trim().slice(0, MAX_ZEICHEN) : '';
 }
@@ -135,7 +188,7 @@ function alsZahl(wert: unknown): number | null {
 export interface RohMonster {
   readonly name: string;
   readonly beschreibung: string;
-  readonly faehigkeiten: readonly { name: string; text: string }[];
+  readonly faehigkeiten: readonly { name: string; text: string; kategorie: Kategorie }[];
   readonly werte: Partial<Werte>;
 }
 
@@ -156,11 +209,16 @@ export function uebernehmbar(aufgabe: KiAufgabe, gelesen: unknown): unknown {
     ? o.faehigkeiten
         .map((eintrag) => {
           const f = eintrag as Record<string, unknown>;
-          return { name: alsText(f?.name), text: alsText(f?.text) };
+          return {
+            name: alsText(f?.name),
+            text: alsText(f?.text),
+            kategorie: alsKategorie(f?.kategorie)
+          };
         })
         .filter((f) => f.name && f.text)
-        // Drei sind genug, auch wenn das Modell fuenf schickt.
-        .slice(0, 3)
+        // Acht sind die Obergrenze, auch wenn das Modell zwoelf schickt —
+        // mehr liest am Tisch niemand.
+        .slice(0, 8)
     : [];
 
   const name = alsText(o.name);

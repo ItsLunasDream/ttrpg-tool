@@ -57,8 +57,10 @@ test('ein fehlender Kopf macht nichts kaputt', () => {
 });
 
 test('der Statblock nennt Mehrfachangriffe nur, wenn es welche gibt', () => {
-  const einer = T.alsMarkdown(beispiel({ angriffe: 1 }), 'de');
-  const mehrere = T.alsMarkdown(beispiel({ angriffe: 3 }), 'de');
+  const eins = beispiel();
+  const einAngriff = eins.angriffe.filter((a) => a.art !== 'flaeche')[0];
+  const einer = T.alsMarkdown({ ...eins, angriffe: [{ ...einAngriff, anzahl: 1 }] }, 'de');
+  const mehrere = T.alsMarkdown({ ...eins, angriffe: [{ ...einAngriff, anzahl: 3 }] }, 'de');
   assert.ok(!einer.includes('Mehrfachangriff'));
   assert.ok(mehrere.includes('Mehrfachangriff'));
 });

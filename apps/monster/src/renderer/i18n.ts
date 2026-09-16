@@ -22,6 +22,20 @@ const TEXTE = {
   'feld.rolle': ['Rolle im Kampf', 'Combat role'],
   'feld.legendaer': ['Legendäre Aktionen', 'Legendary actions'],
   'feld.beliebig': ['beliebig', 'any'],
+  'feld.kampfweite': ['Kampfentfernung', 'Fighting range'],
+  'feld.kiWunsch': ['Wunsch an die KI', 'What to tell the AI'],
+  'feld.kiWunschBeispiel': [
+    'z. B. ein Sumpfhexer, der Ertrunkene ruft',
+    'e.g. a bog witch who calls the drowned'
+  ],
+  'feld.kiWunschHinweis': [
+    'Gilt nur für die KI. An den Zahlen ändert das nichts — die kommen aus den Richtwerten.',
+    'Applies to the AI only. It does not change the numbers — those come from the baselines.'
+  ],
+  'kampfweite.egal': ['egal', 'any'],
+  'kampfweite.nah': ['Nahkampf', 'Melee'],
+  'kampfweite.fern': ['Fernkampf', 'Ranged'],
+  'kampfweite.gemischt': ['gemischt', 'Mixed'],
 
   'knopf.wuerfeln': ['Würfeln', 'Roll'],
   'knopf.ki': ['Von der KI', 'From the AI'],
@@ -32,6 +46,8 @@ const TEXTE = {
   'knopf.neuerName': ['Neuer Name', 'New name'],
   'knopf.neueFaehigkeiten': ['Neue Fähigkeiten', 'New features'],
   'knopf.neueWerte': ['Werte neu', 'Reroll numbers'],
+  'knopf.neueAngriffe': ['Neue Angriffe', 'New attacks'],
+  'knopf.neueBewegung': ['Neue Bewegung', 'New speed'],
   'knopf.zurueckZurKi': ['Zurück zum Vorschlag der KI', 'Back to the AI’s suggestion'],
   'knopf.uebernehmen': ['Übernehmen', 'Apply'],
   'knopf.loeschen': ['Löschen', 'Delete'],
@@ -41,10 +57,56 @@ const TEXTE = {
   'werte.schaden': ['Schaden pro Runde', 'Damage per round'],
   'werte.bonus': ['Angriffsbonus', 'Attack bonus'],
   'werte.angriffe': ['Angriffe', 'Attacks'],
+  'werte.tempo': ['Bewegung', 'Speed'],
+  'werte.umgebung': ['Umgebung', 'Environment'],
+  'werte.resistent': ['Resistenzen', 'Damage Resistances'],
+  'werte.immun': ['Immunitäten', 'Damage Immunities'],
+  'werte.verwundbar': ['Verwundbarkeiten', 'Damage Vulnerabilities'],
+  'werte.hauptattribut': [
+    'Hauptattribut — daran hängen Angriffsbonus und Rettungs-SG',
+    'Primary ability — the attack bonus and save DC hang on it'
+  ],
 
-  'befund.passt': ['Passt', 'On target'],
-  'befund.zuStark': ['Zu stark', 'Too strong'],
-  'befund.zuSchwach': ['Zu schwach', 'Too weak'],
+  'block.aktionen': ['Aktionen', 'Actions'],
+  'block.bonusaktionen': ['Bonusaktionen', 'Bonus Actions'],
+  'block.reaktionen': ['Reaktionen', 'Reactions'],
+  'block.legendaer': ['Legendäre Aktionen', 'Legendary Actions'],
+  'block.legendaerText': [
+    'Es kann 3 legendäre Aktionen einsetzen und wählt aus den folgenden Möglichkeiten. Nur eine auf einmal, und nur am Ende des Zuges einer anderen Kreatur. Zu Beginn seines Zuges bekommt es die verbrauchten zurück.',
+    'It can take 3 legendary actions, choosing from the options below. Only one at a time, and only at the end of another creature’s turn. It regains spent legendary actions at the start of its turn.'
+  ],
+  'block.legendaerAngriff': ['Angriff', 'Attack'],
+  'block.legendaerAngriffText': ['Es macht einen Angriff mit {waffe}.', 'It makes one {waffe} attack.'],
+  'block.mehrfachangriff': ['Mehrfachangriff', 'Multiattack'],
+  'block.mehrfachangriffText': [
+    'Es greift {anzahl}-mal an: {was}.',
+    'It makes {anzahl} attacks: {was}.'
+  ],
+  'block.nahkampf': [
+    'Nahkampfangriff: +{bonus} auf Treffer, Reichweite {reichweite}. Treffer: {schaden}.',
+    'Melee Attack: +{bonus} to hit, reach {reichweite}. Hit: {schaden}.'
+  ],
+  'block.fernkampf': [
+    'Fernkampfangriff: +{bonus} auf Treffer, Reichweite {reichweite}. Treffer: {schaden}.',
+    'Ranged Attack: +{bonus} to hit, range {reichweite}. Hit: {schaden}.'
+  ],
+  'block.flaeche': [
+    '{flaeche}. Jede Kreatur darin: Rettungswurf {attribut} gegen SG {sg}, sonst {schaden}. Bei Erfolg die Hälfte.',
+    '{flaeche}. Each creature in the area makes a DC {sg} {attribut} saving throw, taking {schaden} on a failure, or half as much on a success.'
+  ],
+  'block.aufladen': ['(Aufladen 5–6)', '(Recharge 5–6)'],
+  'block.summe': [
+    'Zusammen {gesamt} Schaden pro Runde — {anzahl} Angriffe zu je etwa {je}. Mit dieser Zahl rechnet die Prüfung.',
+    'Together {gesamt} damage per round — {anzahl} attacks at about {je} each. This is the number the check uses.'
+  ],
+
+  'befund.passt': ['Passt zum Grad', 'Matches the rating'],
+  'befund.zuStark': ['Zu stark für den Grad', 'Too strong for the rating'],
+  'befund.zuSchwach': ['Zu schwach für den Grad', 'Too weak for the rating'],
+  'befund.erklaerung': [
+    'Gerechnet wird wie in D&D 5e: aus Trefferpunkten und Rüstung ein Grad, den es aushält, aus Schaden und Angriffsbonus einer, den es austeilt. Der Mittelwert ist das Ergebnis.',
+    'Computed the D&D 5e way: hit points and armor give a rating it can survive, damage and attack bonus give one it can dish out. The result is the mean of the two.'
+  ],
   'befund.gerechnet': ['Gerechnet: Grad {cr}', 'Computed: CR {cr}'],
   'befund.eingestellt': ['Eingestellt: Grad {cr}', 'Set: CR {cr}'],
   'befund.verteidigung': ['Verteidigung', 'Defence'],
@@ -87,6 +149,11 @@ const TEXTE = {
   'sammlung.nachCr': ['nach Grad', 'by rating'],
   'sammlung.nachName': ['nach Name', 'by name'],
   'sammlung.nachDatum': ['zuletzt geändert', 'last changed'],
+
+  'hinweis.dnd': [
+    'Dieses Werkzeug rechnet nach den Regeln von D&D 5e (2024). Grade, Trefferpunkte, Rüstungsklasse und Schaden pro Runde sind so gemeint, wie sie dort gemeint sind.',
+    'This tool follows the rules of D&D 5e (2024). Ratings, hit points, armor class and damage per round mean what they mean there.'
+  ],
 
   'pruefen.hinweis': [
     'Zahlen eintragen und nachrechnen lassen — für Monster aus Büchern, aus dem Netz oder von früher.',

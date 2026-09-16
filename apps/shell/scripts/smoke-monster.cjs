@@ -46,6 +46,8 @@ app.whenReady().then(async () => {
     return;
   }
   const js = (a) => sicht.webContents.executeJavaScript(a);
+  const menue = fenster.contentView.children[0];
+  const mjs = (a) => menue.webContents.executeJavaScript(a);
 
   const konsole = [];
   sicht.webContents.on('console-message', (_e, l, t) => {
@@ -69,12 +71,67 @@ app.whenReady().then(async () => {
   await js("[...document.querySelectorAll('.knopf')].find(k => /Roll|Würfeln/.test(k.textContent)).click(); true");
   await warte(600);
 
-  const name = await js("document.querySelector('.steckbrief h2')?.textContent ?? ''");
+  const name = await js("document.querySelector('.statblock__name')?.textContent ?? ''");
   pruefe(name.length > 2, `ein Monster steht da (${name})`);
   pruefe(
     await js("Boolean(document.querySelector('.befund'))"),
     'und der Befund steht darunter'
   );
+
+  // --- Der Statblock traegt, was ein Statblock traegt ------------------------
+  /*
+   * Die Zeilen, die am Tisch gebraucht werden. „Schaden pro Runde" allein
+   * hat niemandem gesagt, was passiert, wenn das Monster dran ist — jetzt
+   * steht der einzelne Angriff da, mit Waffe, Reichweite und Schadensart.
+   */
+  pruefe(
+    (await js("document.querySelectorAll('.statblock__attribute th').length")) === 6,
+    'die sechs Attribute stehen in einer Reihe'
+  );
+  const grund = await js("[...document.querySelectorAll('.statblock__zeile')].map(z => z.textContent).join(' | ')");
+  // Die Huelle laeuft im Rauchtest auf Englisch, die Anwendung folgt ihr.
+  for (const [de, en] of [['Rüstungsklasse', 'Armor class'], ['Trefferpunkte', 'Hit points'], ['Bewegung', 'Speed']]) {
+    pruefe(grund.includes(de) || grund.includes(en), `die Zeile „${en}" steht da`);
+  }
+  pruefe(/Fuß|ft\./.test(grund), 'und die Bewegung steht in Fuß');
+
+  const aktionen = await js("[...document.querySelectorAll('.statblock__eintrag')].map(e => e.textContent).join(' | ')");
+  pruefe(
+    /auf Treffer|Rettungswurf|to hit|saving throw/.test(aktionen),
+    'mindestens ein Angriff mit Trefferbonus oder Rettungswurf'
+  );
+  pruefe(/\dd\d/.test(aktionen), 'und mit einem Wuerfelausdruck');
+
+  const ueberschriften = await js("[...document.querySelectorAll('.statblock__ueberschrift')].map(u => u.textContent).join(', ')");
+  pruefe(
+    /Aktionen|Actions/.test(ueberschriften),
+    `die Abschnitte sind sortiert (${ueberschriften})`
+  );
+
+  // --- Legendaer an macht einen sichtbaren Unterschied -----------------------
+  const ohneLegende = await js(
+    "[...document.querySelectorAll('.statblock__ueberschrift')].some(u => /Legend/.test(u.textContent))"
+  );
+  await js(`(() => {
+    const kaestchen = document.querySelector('.regler__kaestchen input');
+    kaestchen.click();
+    return true;
+  })()`);
+  await warte(150);
+  await js("[...document.querySelectorAll('.knopf')].find(k => /Roll|Würfeln/.test(k.textContent)).click(); true");
+  await warte(600);
+  const mitLegende = await js(
+    "[...document.querySelectorAll('.statblock__ueberschrift')].some(u => /Legend/.test(u.textContent))"
+  );
+  pruefe(mitLegende && !ohneLegende, 'der Schalter fuer legendaere Aktionen aendert den Block');
+
+  // Zurueck, damit der Rest wie vorher laeuft.
+  await js("document.querySelector('.regler__kaestchen input').click(); true");
+  await warte(150);
+  await js("[...document.querySelectorAll('.knopf')].find(k => /Roll|Würfeln/.test(k.textContent)).click(); true");
+  await warte(600);
+  const name2 = await js("document.querySelector('.statblock__name')?.textContent ?? ''");
+  pruefe(name2.length > 2, `und danach steht wieder ein Monster da (${name2})`);
 
   // --- Der Befund sagt „passt" ---------------------------------------------
   /*
@@ -112,7 +169,10 @@ app.whenReady().then(async () => {
     for (const feld of ['cr:', 'tp:', 'rk:', 'schaden_pro_runde:', 'angriffsbonus:', 'thema:', 'rolle:']) {
       pruefe(inhalt.includes(feld), `der Kopf traegt ${feld}`);
     }
-    pruefe(inhalt.includes(`# ${name}`), 'und der Leib traegt den Namen als Ueberschrift');
+    pruefe(/^# .+/m.test(inhalt), 'und der Leib traegt den Namen als Ueberschrift');
+    for (const feld of ['st:', 'ge:', 'ko:', 'in:', 'we:', 'ch:', 'tempo:']) {
+      pruefe(inhalt.includes(feld), `der Kopf traegt ${feld}`);
+    }
   }
 
   // --- Die Sammlung ---------------------------------------------------------
@@ -139,7 +199,7 @@ app.whenReady().then(async () => {
 
   pruefe((await suchen('8')) === 1, 'eine Zahl sucht den Grad');
   pruefe((await suchen('99')) === 0, 'ein anderer Grad findet nichts');
-  pruefe((await suchen(name.slice(0, 4))) === 1, 'der Anfang des Namens findet es wieder');
+  pruefe((await suchen(name2.slice(0, 4))) === 1, 'der Anfang des Namens findet es wieder');
   await suchen('');
 
   // --- Umschalten auf die Liste --------------------------------------------
@@ -173,6 +233,101 @@ app.whenReady().then(async () => {
     (await js("document.querySelectorAll('.pruefen .befund__vorschlaege li').length")) > 0,
     'und es steht dabei, was sich drehen laesst'
   );
+
+  // --- In den Story Creator -------------------------------------------------
+  /*
+   * Der Weg, der lange kaputt war und es niemandem gesagt hat.
+   *
+   * Der Monster Creator legte die Notiz unter dem Typ „creature" an, den es
+   * in keiner Notiztyp-Vorlage gibt; der Story Creator wies das mit
+   * `error.unknownNoteType` ab. Gemerkt hat das niemand, weil dieser
+   * Rauchtest den Export gar nicht anfasste — er sah nur den Monster
+   * Creator fuer sich, und der meldet einen Fehlschlag genauso ruhig wie
+   * einen Erfolg.
+   *
+   * Deshalb laeuft der Weg hier jetzt ganz durch: Kampagne anlegen,
+   * exportieren, auf der Platte nachsehen.
+   */
+  console.log('\nIn den Story Creator:');
+  // Ueber die Schiene, nicht ueber die Kacheln: das Startmenue liegt
+  // hinter der offenen Anwendung, und seine Kacheln sind von hier aus nicht
+  // anklickbar.
+  await mjs(`(() => {
+    const eintrag = [...document.querySelectorAll('.schiene__eintrag:not(:disabled)')]
+      .find((k) => /Story|Backstory/i.test(k.title));
+    if (!eintrag) return false;
+    eintrag.click();
+    return true;
+  })()`);
+  await warte(5000);
+  const bs = fenster.contentView.children.find((ansicht) =>
+    ansicht.webContents.getURL().includes('/apps/backstory/')
+  );
+  pruefe(Boolean(bs), 'der Story Creator kommt hoch');
+
+  if (bs) {
+    const kampagne = await bs.webContents.executeJavaScript(`(async () => {
+      const auspacken = (antwort) => (antwort && 'value' in antwort ? antwort.value : antwort);
+      const liste = auspacken(await window.api.campaigns.list()) ?? [];
+      if (liste.length > 0) return liste[0].name;
+      return auspacken(await window.api.campaigns.create('Testrunde')).name;
+    })()`);
+    pruefe(typeof kampagne === 'string' && kampagne.length > 0, `eine Kampagne steht bereit (${kampagne})`);
+
+    // Zurueck zum Monster Creator und exportieren.
+    await mjs(`(() => {
+      const eintrag = [...document.querySelectorAll('.schiene__eintrag:not(:disabled)')]
+        .find((k) => /Monster/i.test(k.title));
+      if (!eintrag) return false;
+      eintrag.click();
+      return true;
+    })()`);
+    await warte(2500);
+    // Zurueck auf den Reiter „Bauen": der Test stand zuletzt beim Pruefen,
+    // und dort gibt es keinen Export.
+    await js(`(() => {
+      const reiter = [...document.querySelectorAll('.reiter__knopf')].find((k) =>
+        /Build|Bauen/.test(k.textContent)
+      );
+      if (reiter) reiter.click();
+      return true;
+    })()`);
+    await warte(400);
+
+    const geklickt = await js(`(() => {
+      const knopf = [...document.querySelectorAll('.knopf')].find((k) =>
+        /Story Creator/i.test(k.textContent)
+      );
+      if (!knopf) return false;
+      knopf.click();
+      return true;
+    })()`);
+    pruefe(geklickt === true, 'der Knopf „In den Story Creator" ist da');
+    await warte(1500);
+
+    const meldung = await js("document.querySelector('.meldung')?.textContent ?? ''");
+    pruefe(
+      !/error\.|unknownNoteType|did not work|ging nicht/i.test(meldung),
+      `der Export meldet keinen Fehler (${meldung})`
+    );
+
+    // Wo der Vault liegt, sagt der Story Creator selbst — der Ort steht in
+    // seinen Einstellungen und ist nicht fest verdrahtet.
+    const wurzel = await bs.webContents.executeJavaScript(`(async () => {
+      const antwort = await window.api.settings.get();
+      const wert = antwort && 'value' in antwort ? antwort.value : antwort;
+      return wert.vaultRoot;
+    })()`);
+    const kampagnenOrdner = path.join(wurzel, 'campaigns');
+    const gefunden = [];
+    if (fs.existsSync(kampagnenOrdner)) {
+      for (const eintrag of fs.readdirSync(kampagnenOrdner)) {
+        const notizen = path.join(kampagnenOrdner, eintrag, 'notes');
+        if (fs.existsSync(notizen)) gefunden.push(...fs.readdirSync(notizen));
+      }
+    }
+    pruefe(gefunden.length > 0, `die Notiz liegt in der Kampagne (${gefunden.join(', ') || 'nichts'})`);
+  }
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
   console.log(fehler.length === 0 ? '\nMonster Creator bestanden.' : `\n${fehler.length} Fehler.`);

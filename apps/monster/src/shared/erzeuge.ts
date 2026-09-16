@@ -18,7 +18,11 @@ import {
   wertBeiStelle,
   type Richtwert
 } from './richtwerte';
-import { LEGENDAER_FAKTOR, RK_ZU_TP, pruefe, type Werte } from './pruefung';
+import { LEGENDAER_FAKTOR, RK_ZU_TP, pruefe, widerstandsAnteil, type Werte } from './pruefung';
+import { attributeFuer, profilFuer, type AttributId, type Attribute } from './attribute';
+import { bewegungFuer, type Bewegung } from './bewegung';
+import { baueAngriffe, type Angriff, type Kampfweite } from './angriffe';
+import { gewicht, widerstaendeFuer, KEINE_WIDERSTAENDE, type Widerstaende } from './widerstaende';
 import {
   FAEHIGKEITEN,
   ROLLEN,
@@ -39,13 +43,32 @@ export interface Monster {
   readonly rolleId: string;
   readonly rolle: string;
   readonly umgebung: string;
-  readonly schadensart: string;
   readonly werte: Werte;
-  /** Wie viele Angriffe der Rundenschaden aufgeteilt wird. */
-  readonly angriffe: number;
-  readonly faehigkeiten: readonly { name: string; text: string }[];
+  /** Die sechs Attribute, und welches davon die Angriffe traegt. */
+  readonly attribute: Attribute;
+  readonly hauptattribut: AttributId;
+  readonly bewegung: Bewegung;
+  /**
+   * Die Angriffe, aufgeschluesselt.
+   *
+   * Frueher stand hier eine Zahl — „drei Angriffe" — und daneben der
+   * Rundenschaden. Beides zusammen liess offen, was eigentlich passiert,
+   * wenn das Monster dran ist. Jetzt steht es da: womit, wie oft, wie weit
+   * und mit welchem Schaden.
+   */
+  readonly angriffe: readonly Angriff[];
+  readonly widerstaende: Widerstaende;
+  readonly faehigkeiten: readonly Faehigkeitseintrag[];
   /** Ein Satz, was es ist. Aus Rolle und Thema, nicht aus der Luft. */
   readonly satz: string;
+}
+
+/** Eine Faehigkeit, wie sie im Statblock steht. */
+export interface Faehigkeitseintrag {
+  readonly name: string;
+  readonly text: string;
+  /** In welchen Abschnitt des Statblocks sie gehoert. */
+  readonly kategorie: Faehigkeit['kategorie'];
 }
 
 export interface Wuensche {
@@ -54,6 +77,8 @@ export interface Wuensche {
   readonly themaId?: string;
   readonly rolleId?: string;
   readonly legendaer?: boolean;
+  /** Nah, fern, beides oder egal. Fehlt es, entscheidet der Wurf. */
+  readonly kampfweite?: Kampfweite;
 }
 
 /** Ein Eintrag aus einer Liste, mit dem uebergebenen Zufallsgeber. */
@@ -68,10 +93,27 @@ function zieh<T>(liste: readonly T[], rng: () => number): T {
  * Tisch niemand. Das ist eine Vorgabe mit Meinung, und sie steht hier statt
  * als Regler — wer mehr will, schreibt sie von Hand dazu.
  */
-function anzahlFaehigkeiten(wert: number): number {
-  if (wert < 1) return 1;
-  if (wert < 5) return 2;
-  return 3;
+export function anzahlFaehigkeiten(wert: number, rng: () => number): number {
+  /*
+   * Die Grundzahl waechst mit dem Grad, und zwar bis zum Ende.
+   *
+   * Vorher war bei drei Schluss, ab Grad 5 bis Grad 30 — und ein
+   * Erzunhold auf Grad 30 mit drei Faehigkeiten ist kein Erzunhold, sondern
+   * ein Goblin mit vielen Trefferpunkten. Wer auf Grad 30 einen Endgegner
+   * baut, erwartet sieben oder mehr.
+   */
+  const grund = wert < 1 ? 1 : wert < 3 ? 2 : wert < 6 ? 3 : wert < 10 ? 4 : wert < 15 ? 5 : wert < 21 ? 6 : 7;
+
+  /*
+   * Dazu ein Wurf von minus eins bis plus eins.
+   *
+   * Ohne ihn traegt jedes Monster desselben Grades gleich viele
+   * Faehigkeiten, und das sieht man einer Sammlung nach zehn Eintraegen an.
+   * Nach unten bleibt mindestens eine stehen: ein Monster ganz ohne ist
+   * eine Zahlenkolonne.
+   */
+  const wurf = Math.floor(rng() * 3) - 1;
+  return Math.max(1, grund + wurf);
 }
 
 /**
@@ -99,7 +141,8 @@ export function werteFuer(
   ziel: Richtwert,
   rolle: Rolle,
   rng: () => number,
-  legendaer = false
+  legendaer = false,
+  widerstaende: Widerstaende = KEINE_WIDERSTAENDE
 ): Werte {
   const stelle = Math.max(0, stelleVon(ziel.cr));
 
@@ -119,20 +162,45 @@ export function werteFuer(
   const schub = Math.max(-spielraum, Math.min(spielraum, rolle.verschiebung + streuung));
 
   const rk = ziel.rk + rolle.rk;
-  // Was die Ruestung an wirksamen Trefferpunkten bringt, wird von den
-  // rohen abgezogen — sie geht in die Pruefung ein.
+
+  /*
+   * Die Widerstaende in Zahlen, so wie die Pruefung sie liest: gewichtet,
+   * nicht gezaehlt. Resistenz gegen Hieb wiegt doppelt so schwer wie
+   * Resistenz gegen Strahlen.
+   */
+  const gewichte = {
+    resistenzen: gewicht(widerstaende.resistenzen),
+    immunitaeten: gewicht(widerstaende.immunitaeten),
+    verwundbarkeiten: gewicht(widerstaende.verwundbarkeiten)
+  };
+
+  /*
+   * Und wieder herausgerechnet.
+   *
+   * Ein Untoter mit Resistenz gegen Kaelte und nekrotisch haelt laenger
+   * durch als seine Trefferpunkte behaupten. Wenn er trotzdem die vollen
+   * Richtwert-Trefferpunkte bekaeme, waere er still zu stark — und zwar
+   * genau um den Betrag, den die Pruefung ihm hinterher anrechnet. Also
+   * bekommt er weniger rohe Trefferpunkte, und am Ende steht er wieder auf
+   * seinem Grad. Dasselbe Verfahren wie bei der Ruestung und der Legende.
+   */
   const ausRuestung = 1 + (rk - ziel.rk) * RK_ZU_TP;
+  const ausWiderstand = 1 + widerstandsAnteil({ tp: 1, rk, schadenProRunde: 1, angriffsbonus: 0, ...gewichte });
   const ausLegende = legendaer ? LEGENDAER_FAKTOR : 1;
 
   const baue = (schub: number): Werte => ({
-    tp: Math.max(1, Math.round(wertBeiStelle(stelle + schub, (e) => e.tp) / ausRuestung)),
+    tp: Math.max(
+      1,
+      Math.round(wertBeiStelle(stelle + schub, (e) => e.tp) / (ausRuestung * ausWiderstand))
+    ),
     rk,
     schadenProRunde: Math.max(
       1,
       Math.round(wertBeiStelle(stelle - schub, (e) => e.schadenProRunde) / ausLegende)
     ),
     angriffsbonus: ziel.bonus,
-    legendaer: legendaer || undefined
+    legendaer: legendaer || undefined,
+    ...gewichte
   });
 
   /*
@@ -159,11 +227,41 @@ export function werteFuer(
   return baue(0);
 }
 
-/** Faehigkeiten, die zur Rolle passen, ohne Wiederholung. */
-function waehleFaehigkeiten(rolle: Rolle, anzahl: number, rng: () => number): Faehigkeit[] {
-  const passend = FAEHIGKEITEN.filter((f) => !f.rollen || f.rollen.includes(rolle.id));
-  const uebrig = [...passend];
-  const heraus: Faehigkeit[] = [];
+/**
+ * Faehigkeiten, die zur Rolle passen, ohne Wiederholung.
+ *
+ * Legendaere Aktionen laufen getrennt: sie stehen in einem eigenen Abschnitt
+ * des Statblocks und ergeben nur Sinn, wenn das Monster ueberhaupt welche
+ * hat. Ohne diese Trennung stand „Legendäre Aktionen: an" in den Reglern und
+ * im Statblock aenderte sich nichts ausser einer Zahl — genau das ist
+ * aufgefallen.
+ */
+export function waehleFaehigkeiten(
+  rolle: Rolle,
+  anzahl: number,
+  rng: () => number,
+  legendaer = false
+): Faehigkeit[] {
+  const passt = (f: Faehigkeit) => !f.rollen || f.rollen.includes(rolle.id);
+  const gewoehnlich = FAEHIGKEITEN.filter((f) => f.kategorie !== 'legendaer' && passt(f));
+  const heraus = ziehMehrere(gewoehnlich, anzahl, rng);
+
+  if (legendaer) {
+    /*
+     * Zwei oder drei legendaere Aktionen, wie in den Statblocks ueblich.
+     * Der Angriff als vierte Moeglichkeit kommt beim Schreiben dazu, der
+     * steht in jedem Block und muss nicht in der Tabelle stehen.
+     */
+    const legendaere = FAEHIGKEITEN.filter((f) => f.kategorie === 'legendaer' && passt(f));
+    heraus.push(...ziehMehrere(legendaere, 2 + Math.floor(rng() * 2), rng));
+  }
+  return heraus;
+}
+
+/** Mehrere verschiedene Eintraege aus einer Liste ziehen. */
+function ziehMehrere<T>(liste: readonly T[], anzahl: number, rng: () => number): T[] {
+  const uebrig = [...liste];
+  const heraus: T[] = [];
   while (heraus.length < anzahl && uebrig.length > 0) {
     const stelle = Math.floor(rng() * uebrig.length);
     heraus.push(uebrig[stelle]);
@@ -172,8 +270,17 @@ function waehleFaehigkeiten(rolle: Rolle, anzahl: number, rng: () => number): Fa
   return heraus;
 }
 
-/** Ein Name aus zwei Teilen des Themas. */
+/**
+ * Der Name.
+ *
+ * Drei von zehn Monstern bekommen einen Einzelnamen, der Rest eine
+ * Zusammensetzung. Ohne den Einzelnamen heisst in einer Sammlung alles wie
+ * ein Kompositum, und bei Tieren klingt „Fellhetzer" neben „Wolf" wie eine
+ * Verlegenheitsloesung — was es vorher auch war.
+ */
 export function baueNamen(thema: Thema, sprache: Sprache, rng: () => number): string {
+  if (thema.einzeln.length > 0 && rng() < 0.3) return text(zieh(thema.einzeln, rng), sprache);
+
   const erstes = text(zieh(thema.erstes, rng), sprache);
   const zweites = text(zieh(thema.zweites, rng), sprache);
   // Im Deutschen zusammengeschrieben, im Englischen getrennt: „Grabwandler"
@@ -188,11 +295,33 @@ export function erzeugeMonster(wunsch: Wuensche, sprache: Sprache, rng: () => nu
   const thema = THEMEN.find((t) => t.id === wunsch.themaId) ?? zieh(THEMEN, rng);
   const rolle = ROLLEN.find((r) => r.id === wunsch.rolleId) ?? zieh(ROLLEN, rng);
 
-  const werte: Werte = werteFuer(ziel, rolle, rng, wunsch.legendaer ?? false);
-  const faehigkeiten = waehleFaehigkeiten(rolle, anzahlFaehigkeiten(ziel.wert), rng).map((f) => ({
-    name: text(f.name, sprache),
-    text: text(f.text, sprache)
-  }));
+  /*
+   * Die Reihenfolge ist keine Geschmacksfrage.
+   *
+   * Erst die Widerstaende, dann die Werte: die Werte muessen wissen, wie
+   * viel das Monster ohnehin schon aushaelt, sonst bekommt es die vollen
+   * Trefferpunkte UND die Resistenz obendrauf.
+   */
+  const widerstaende = widerstaendeFuer(thema, ziel.wert, rng);
+  const werte = werteFuer(ziel, rolle, rng, wunsch.legendaer ?? false, widerstaende);
+
+  const profil = profilFuer(thema, rolle);
+  const attribute = attributeFuer(ziel, profil, rng);
+
+  const angriffe = baueAngriffe(
+    {
+      themaId: thema.id,
+      rolleId: rolle.id,
+      themenschaden: thema.schaden,
+      kampfweite: wunsch.kampfweite ?? 'egal',
+      angriffeProRunde: ziel.angriffe,
+      schadenProRunde: werte.schadenProRunde,
+      angriffsbonus: werte.angriffsbonus,
+      attribute,
+      hauptattribut: profil.haupt
+    },
+    rng
+  );
 
   return {
     name: baueNamen(thema, sprache, rng),
@@ -202,12 +331,27 @@ export function erzeugeMonster(wunsch: Wuensche, sprache: Sprache, rng: () => nu
     rolleId: rolle.id,
     rolle: text(rolle.name, sprache),
     umgebung: text(zieh(UMGEBUNGEN, rng), sprache),
-    schadensart: text(zieh(thema.schaden, rng), sprache),
     werte,
-    angriffe: ziel.angriffe,
-    faehigkeiten,
+    attribute,
+    hauptattribut: profil.haupt,
+    bewegung: bewegungFuer(thema, rng),
+    angriffe,
+    widerstaende,
+    faehigkeiten: alsEintraege(
+      waehleFaehigkeiten(rolle, anzahlFaehigkeiten(ziel.wert, rng), rng, wunsch.legendaer ?? false),
+      sprache
+    ),
     satz: text(rolle.satz, sprache)
   };
+}
+
+/** Faehigkeiten in die Form bringen, in der sie im Statblock stehen. */
+function alsEintraege(faehigkeiten: readonly Faehigkeit[], sprache: Sprache): Faehigkeitseintrag[] {
+  return faehigkeiten.map((f) => ({
+    name: text(f.name, sprache),
+    text: text(f.text, sprache),
+    kategorie: f.kategorie
+  }));
 }
 
 /**
@@ -218,7 +362,7 @@ export function erzeugeMonster(wunsch: Wuensche, sprache: Sprache, rng: () => nu
  */
 export function wuerfleNeu(
   monster: Monster,
-  feld: 'name' | 'umgebung' | 'schadensart' | 'faehigkeiten' | 'werte',
+  feld: 'name' | 'umgebung' | 'angriffe' | 'faehigkeiten' | 'werte' | 'bewegung',
   sprache: Sprache,
   rng: () => number
 ): Monster {
@@ -231,19 +375,59 @@ export function wuerfleNeu(
       return { ...monster, name: baueNamen(thema, sprache, rng) };
     case 'umgebung':
       return { ...monster, umgebung: text(zieh(UMGEBUNGEN, rng), sprache) };
-    case 'schadensart':
-      return { ...monster, schadensart: text(zieh(thema.schaden, rng), sprache) };
+    case 'bewegung':
+      return { ...monster, bewegung: bewegungFuer(thema, rng) };
+    case 'angriffe':
+      // Nur die Angriffe neu, die Werte bleiben: der Rundenschaden ist
+      // vorgegeben und wird nur anders aufgeteilt. Wer den Biss nicht mag,
+      // will nicht gleich ein anderes Monster.
+      return { ...monster, angriffe: neueAngriffe(monster, rng) };
     case 'faehigkeiten':
       return {
         ...monster,
-        faehigkeiten: waehleFaehigkeiten(rolle, anzahlFaehigkeiten(ziel.wert), rng).map((f) => ({
-          name: text(f.name, sprache),
-          text: text(f.text, sprache)
-        }))
+        faehigkeiten: alsEintraege(
+          waehleFaehigkeiten(
+            rolle,
+            anzahlFaehigkeiten(ziel.wert, rng),
+            rng,
+            monster.werte.legendaer ?? false
+          ),
+          sprache
+        )
       };
-    case 'werte':
-      return { ...monster, werte: werteFuer(ziel, rolle, rng, monster.werte.legendaer ?? false) };
+    case 'werte': {
+      const werte = werteFuer(
+        ziel,
+        rolle,
+        rng,
+        monster.werte.legendaer ?? false,
+        monster.widerstaende
+      );
+      // Die Angriffe haengen am Rundenschaden und muessen mit: sonst steht
+      // im Statblock eine Summe, die nicht mehr aufgeht.
+      return { ...monster, werte, angriffe: neueAngriffe({ ...monster, werte }, rng) };
+    }
   }
+}
+
+/** Die Angriffe zu den jetzigen Werten eines Monsters. */
+function neueAngriffe(monster: Monster, rng: () => number): Angriff[] {
+  const thema = THEMEN.find((t) => t.id === monster.themaId) ?? THEMEN[0];
+  const ziel = richtwert(monster.cr) ?? richtwert('1')!;
+  return baueAngriffe(
+    {
+      themaId: monster.themaId,
+      rolleId: monster.rolleId,
+      themenschaden: thema.schaden,
+      kampfweite: 'egal',
+      angriffeProRunde: ziel.angriffe,
+      schadenProRunde: monster.werte.schadenProRunde,
+      angriffsbonus: monster.werte.angriffsbonus,
+      attribute: monster.attribute,
+      hauptattribut: monster.hauptattribut
+    },
+    rng
+  );
 }
 
 /**
@@ -253,21 +437,39 @@ export function wuerfleNeu(
  * Faehigkeitentexte sind dieselben. Angelegt wird damit ein zweiter Eintrag,
  * nicht der erste geaendert — ein Raeuberhauptmann CR 3 und einer CR 5 sind
  * zwei Monster, und beide will man behalten.
+ *
+ * Mitwandern muessen auch die Attribute: der Angriffsbonus steigt mit dem
+ * Grad, und der haengt am Hauptattribut. Ein Raeuberhauptmann CR 5, der
+ * seine CR-3-Staerke behaelt, hat einen Statblock, der sich widerspricht.
  */
 export function alsVariante(monster: Monster, neuerCr: string, rng: () => number): Monster {
   const ziel = richtwert(neuerCr) ?? richtwert('1')!;
+  const thema = THEMEN.find((t) => t.id === monster.themaId) ?? THEMEN[0];
   const rolle = ROLLEN.find((r) => r.id === monster.rolleId) ?? ROLLEN[0];
-  return {
-    ...monster,
-    cr: ziel.cr,
-    werte: werteFuer(ziel, rolle, rng, monster.werte.legendaer ?? false),
-    angriffe: ziel.angriffe
-  };
+  const werte = werteFuer(ziel, rolle, rng, monster.werte.legendaer ?? false, monster.widerstaende);
+  const profil = profilFuer(thema, rolle);
+  const attribute = attributeFuer(ziel, profil, rng);
+
+  const gewandelt: Monster = { ...monster, cr: ziel.cr, werte, attribute };
+  return { ...gewandelt, angriffe: neueAngriffe(gewandelt, rng) };
 }
 
-/** Der Schaden je Angriff, aus Rundenschaden und Anzahl. Nur zur Anzeige. */
+/**
+ * Der Schaden je Angriff.
+ *
+ * Steht jetzt an jedem Angriff selbst; diese Funktion ist der bequeme Weg
+ * fuer alles, was nur eine Zahl braucht — die Kacheln der Sammlung etwa.
+ */
 export function schadenJeAngriff(monster: Monster): number {
-  return Math.max(1, Math.round(monster.werte.schadenProRunde / Math.max(1, monster.angriffe)));
+  const erster = monster.angriffe.find((angriff) => angriff.art !== 'flaeche');
+  return erster?.schadenJeAngriff ?? monster.werte.schadenProRunde;
+}
+
+/** Wie viele Angriffe das Monster pro Runde macht, ohne die Flaeche. */
+export function angriffeProRunde(monster: Monster): number {
+  return monster.angriffe
+    .filter((angriff) => angriff.art !== 'flaeche')
+    .reduce((summe, angriff) => summe + angriff.anzahl, 0);
 }
 
 /** Besteht dieses Monster die eigene Pruefung? Bequemlichkeit fuer Tests und Oberflaeche. */
