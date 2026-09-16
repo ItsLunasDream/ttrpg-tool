@@ -146,3 +146,66 @@ export function stetigerCr(zahl: number, spalte: (eintrag: Richtwert) => number)
 export function alsGrad(wert: number): Richtwert {
   return naechsterCr(wert, (eintrag) => eintrag.wert);
 }
+
+/**
+ * Der Spaltenwert bei einem (auch gebrochenen) Grad.
+ *
+ * Die Umkehrung von `stetigerCr`: dort geht eine Zahl hinein und ein Grad
+ * heraus, hier ein Grad und die Zahl.
+ *
+ * Gebraucht vom Erzeuger. Der muss Rollen in GRADEN verschieben und nicht in
+ * Prozent — im mittleren Bereich der Tabelle sind sechs Prozent
+ * Trefferpunkte bereits ein voller Grad, waehrend es beim Schaden zehn sind.
+ * Wer beide um denselben Prozentsatz verschiebt, verschiebt sie um
+ * verschieden viele Grade, und das Ergebnis liegt daneben.
+ */
+export function wertBei(grad: number, spalte: (eintrag: Richtwert) => number): number {
+  if (grad <= RICHTWERTE[0].wert) return spalte(RICHTWERTE[0]);
+  for (let i = 1; i < RICHTWERTE.length; i += 1) {
+    const oben = RICHTWERTE[i];
+    if (grad <= oben.wert) {
+      const unten = RICHTWERTE[i - 1];
+      const spanne = oben.wert - unten.wert;
+      const anteil = spanne === 0 ? 0 : (grad - unten.wert) / spanne;
+      return spalte(unten) + anteil * (spalte(oben) - spalte(unten));
+    }
+  }
+  return spalte(GROESSTER_CR);
+}
+
+/**
+ * Der Spaltenwert an einer (auch gebrochenen) STELLE der Tabelle.
+ *
+ * Der Unterschied zu `wertBei` ist der Massstab: dort zaehlt der Grad, hier
+ * die Zeile. Und das ist fuer den Erzeuger der richtige Massstab, denn die
+ * Grade sind nicht gleichmaessig verteilt — zwischen CR 0 und CR 1/8 liegt
+ * ein Achtel, zwischen CR 20 und CR 21 eine ganze Eins. „Eine Rolle
+ * verschiebt um 0,8 Grad" bedeutet unten am Tisch etwas voellig anderes als
+ * oben; „um 0,8 Zeilen" ueberall dasselbe.
+ */
+export function wertBeiStelle(stelle: number, spalte: (eintrag: Richtwert) => number): number {
+  const begrenzt = Math.max(0, Math.min(RICHTWERTE.length - 1, stelle));
+  const unten = Math.floor(begrenzt);
+  const oben = Math.ceil(begrenzt);
+  if (unten === oben) return spalte(RICHTWERTE[unten]);
+  const anteil = begrenzt - unten;
+  return spalte(RICHTWERTE[unten]) + anteil * (spalte(RICHTWERTE[oben]) - spalte(RICHTWERTE[unten]));
+}
+
+/** Die Zeile eines Grades in der Tabelle, oder -1. */
+export function stelleVon(cr: string): number {
+  return RICHTWERTE.findIndex((eintrag) => eintrag.cr === cr);
+}
+
+/**
+ * Wie weit sich von dieser Zeile aus nach BEIDEN Seiten gehen laesst.
+ *
+ * An den Raendern ist das null: bei CR 0 kann eine Rolle nicht auch noch
+ * schwaecher austeilen, es gibt nichts darunter. Ohne diese Grenze zog die
+ * eine Haelfte hoch, waehrend die andere am Rand haengenblieb — und das
+ * Monster war am Ende staerker als bestellt. Rund tausend von siebentausend
+ * erzeugten Monstern fielen daran durch die eigene Pruefung.
+ */
+export function spielraumAn(stelle: number): number {
+  return Math.max(0, Math.min(stelle, RICHTWERTE.length - 1 - stelle));
+}

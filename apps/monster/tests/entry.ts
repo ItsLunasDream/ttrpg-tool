@@ -2,3 +2,5 @@
 export * from '../src/shared/richtwerte';
 export * from '../src/shared/pruefung';
 export * from '../src/shared/eichung';
+export * from '../src/shared/tabellen';
+export * from '../src/shared/erzeuge';

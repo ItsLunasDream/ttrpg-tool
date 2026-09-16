@@ -94,7 +94,7 @@ export interface Vorschlag {
  * gerundet und bewusst vorsichtig — RK wirkt nicht linear, und wer ihn zu
  * hoch ansetzt, baut Monster, die nur noch aus Ruestung bestehen.
  */
-const RK_ZU_TP = 0.1;
+export const RK_ZU_TP = 0.1;
 
 /**
  * Wie viel Resistenzen und Immunitaeten an wirksamen Trefferpunkten bringen.
@@ -116,7 +116,7 @@ const DECKEL_WIDERSTAND = 0.5;
  * er handelt einmal, sie viermal. Die Zahl ist grob, aber die Richtung ist
  * eindeutig, und sie wegzulassen waere der groessere Fehler.
  */
-const LEGENDAER_FAKTOR = 1.25;
+export const LEGENDAER_FAKTOR = 1.25;
 
 /** Die wirksamen Trefferpunkte: was das Monster tatsaechlich aushaelt. */
 export function wirksameTp(werte: Werte, ziel: Richtwert): number {
