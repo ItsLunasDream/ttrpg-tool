@@ -245,8 +245,21 @@ function meldeOrt(appId: string, ort: string | null): void {
   huelle?.webContents.send('verlauf:ort', appId, ort);
 }
 
-/** Zurueck oder vorwaerts an die Oberflaeche der Huelle. */
+/**
+ * Zurueck oder vorwaerts an die Oberflaeche der Huelle.
+ *
+ * Mit Sperrfrist, weil dieselbe Geste auf zwei Wegen ankommen kann: als
+ * `app-command` am Fenster und als Maustaste im Dokument der Ansicht (siehe
+ * unten). Welcher Weg traegt, haengt am System — und wo beide tragen, waere
+ * ein Druck sonst zwei Schritte im Verlauf.
+ */
+let letzterVerlaufsbefehl = 0;
+const VERLAUF_SPERRE_MS = 300;
+
 function meldeVerlauf(richtung: 'zurueck' | 'vorwaerts'): void {
+  const jetzt = Date.now();
+  if (jetzt - letzterVerlaufsbefehl < VERLAUF_SPERRE_MS) return;
+  letzterVerlaufsbefehl = jetzt;
   huelle?.webContents.send('verlauf:befehl', richtung);
 }
 
@@ -383,16 +396,22 @@ async function erzeugeFenster(): Promise<void> {
     }
   });
   /*
-   * Die Daumentasten der Maus.
+   * Die Daumentasten der Maus, Weg 1 von 2.
    *
-   * Unter Windows meldet das Fenster sie als `app-command`, unabhaengig
-   * davon, welche Ansicht gerade den Fokus hat — genau das wird hier
-   * gebraucht, denn meistens liegt eine eingebettete Anwendung vorn.
+   * Das Fenster meldet sie als `app-command`, unabhaengig davon, welche
+   * Ansicht den Fokus hat. Nachgemessen (Linux, X11, echte Tastenereignisse
+   * in genau diesen Aufbau): der Weg traegt dort auch dann, wenn der Zeiger
+   * ueber der eingebetteten Ansicht liegt.
    *
-   * Unter Linux und macOS gibt es dieses Ereignis nicht. Dort greift bisher
-   * nur Alt und Pfeiltaste, solange die Huelle den Fokus hat; die Tasten in
-   * den eingebetteten Anwendungen muessen dort einzeln weitergereicht
-   * werden. Ausgeliefert wird Windows.
+   * Verlassen kann man sich darauf trotzdem nicht. Unter Windows greift
+   * Chromium die Seitentasten in der Ansicht selbst ab und macht daraus
+   * „zurueck" fuer DIESE Ansicht — die hat keinen Verlauf, es passiert
+   * nichts, und die Meldung kommt hier nie an. Genau so wurde es berichtet.
+   * Deshalb gibt es Weg 2: die Preloads der Werkzeuge hoeren die Taste im
+   * Dokument und melden sie unten ueber `huelle:verlauf-taste`.
+   *
+   * Beide Wege enden in `meldeVerlauf`, und das hat eine Sperrfrist — wo
+   * beide tragen, soll ein Druck ein Schritt bleiben.
    */
   fenster.on('app-command', (_ereignis: unknown, befehl: string) => {
     if (befehl === 'browser-backward') meldeVerlauf('zurueck');
@@ -786,6 +805,32 @@ function registriereKanaele(): void {
     verbergeAlle();
     aktiveApp = null;
     huelle?.webContents.focus();
+  });
+
+  /**
+   * Die Daumentasten der Maus, Weg 2 von 2.
+   *
+   * Gemeldet vom Preload des Werkzeugs, das die Taste im Dokument gesehen
+   * hat — dort kommen die Seitentasten als `button` 3 und 4 an, auf jedem
+   * System und auch dann, wenn Chromium sie in der Ansicht selbst abfaengt
+   * und das Fenster deshalb nichts mitbekommt.
+   *
+   * Ein gemeinsamer Kanalname ohne Werkzeug-Praefix, weil die Meldung nichts
+   * mit dem Werkzeug zu tun hat: sie sagt nur, dass eine Taste gedrueckt
+   * wurde. Der Absender wird trotzdem geprueft — angenommen wird sie nur von
+   * der Huelle selbst oder einer montierten Ansicht dieses Fensters.
+   *
+   * Auch die Huelle meldet ueber diesen Umweg und nicht kurz intern: nur so
+   * laufen alle Wege durch dieselbe Sperrfrist. Die kurze Abkuerzung gab es
+   * einmal, und im Startmenue sprang der Verlauf dann zwei Stellen weit,
+   * weil dort beide Wege zugleich trugen.
+   */
+  ipcMain.on('huelle:verlauf-taste', (ereignis, richtung: unknown) => {
+    const bekannt =
+      ereignis.sender === huelle?.webContents ||
+      [...offen.values()].some((montiert) => montiert.sicht.webContents === ereignis.sender);
+    if (!bekannt) return;
+    if (richtung === 'zurueck' || richtung === 'vorwaerts') meldeVerlauf(richtung);
   });
 
   /**

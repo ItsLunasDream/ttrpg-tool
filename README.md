@@ -112,9 +112,13 @@ for the title bar and the rail.
 - Language is wired through: a change applies everywhere at once.
 - On opening, the tool's icon grows across the screen; if loading takes
   longer, the spinner follows.
-- **Back and forward** like in a browser, via the mouse's thumb buttons
-  (Windows) or Alt and an arrow key. The history keeps fifty steps and
-  remembers *where* you were — it has nothing to do with Ctrl+Z.
+- **Back and forward** like in a browser, via the mouse's side buttons or
+  Alt and an arrow key. The history keeps fifty steps and remembers *where*
+  you were — it has nothing to do with Ctrl+Z. The side buttons arrive on two
+  paths: as `app-command` from the window, and from the document of whichever
+  view is in front (each tool's preload reports it). One is not enough —
+  Chromium takes the side buttons inside the view on Windows, and the window
+  never hears about them.
 - Start directly in one tool: `TTRPG_TOOLS_START_APP=backstory`.
 - **An introduction the first time**: a welcome on the very first start, and
   a short explanation the first time you open each tool. Never again after
@@ -410,7 +414,7 @@ overwritten.
 | --- | --- |
 | `npm test` | core logic of all workspaces |
 | `npm run typecheck` | types of all workspaces |
-| `npm run smoke` | the built shell: start, switching, AI, icons, NPC export, introductions |
+| `npm run smoke` | the built shell: start, switching, AI, icons, NPC export, introductions, mouse side buttons |
 | `npm run smoke:backstory` | campaign, notes, wiki link, renaming, spelling, reading back in |
 | `npm run roundtrip` | saving does not change the Markdown |
 | `npm run verify:package:suite -- <path>` | the packaged build comes up |
