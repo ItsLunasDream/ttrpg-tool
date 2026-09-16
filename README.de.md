@@ -359,6 +359,14 @@ Prüfung, nicht der Erzeuger.
   dieselben Prozente verschieben also um verschieden viele Grade. Ein Test
   erzeugt alle Grade mal alle Rollen und besteht darauf, dass jedes Ergebnis
   die eigene Prüfung besteht.
+- **Ein echter Statblock, keine Zahlenkolonne.** Attribute, Bewegung und
+  jeder Angriff ausgeschrieben: Waffe, Reichweite, Trefferbonus, Würfel und
+  Schadensart. Die Waffe passt zum Wesen — eine Bestie führt keine
+  Hellebarde.
+- **Resistenzen, Immunitäten und Verwundbarkeiten sind keine Pflicht.** Sie
+  kommen über Chancen, mit dem Grad häufiger, und die meisten Monster
+  bekommen nichts. Was ein Monster länger aushalten lässt, wird von seinen
+  rohen Trefferpunkten abgezogen — so bleibt es auf seinem Grad.
 - **Ein vorhandenes Monster prüfen**, ohne eines zu bauen: Zahlen aus einem
   Buch oder aus einer alten Kampagne eintippen und sehen, was der Grad sagt.
 - **Die Sammlung** zeigt Gebautes als Kacheln oder Liste, mit einem Suchfeld

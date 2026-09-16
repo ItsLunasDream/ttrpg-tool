@@ -4,7 +4,7 @@ Zum Durchgehen von Hand, auf dem Windows-Gerät. Hier steht nur, was die
 automatischen Prüfungen **nicht** sehen können: das Aussehen, das Gefühl,
 das Gerät und alles, was erst nach einem Neustart auffällt.
 
-Was schon geprüft ist, steht nicht drin. `npm test` (674 Modelltests),
+Was schon geprüft ist, steht nicht drin. `npm test` (712 Modelltests),
 `npm run smoke`, `npm run smoke:backstory` und `npm run roundtrip` laufen in
 der CI und decken die Logik ab.
 
@@ -148,3 +148,12 @@ Danach wieder abschalten: `setx TTRPG_TOOLS_TASTEN_LOG 0`
 - [ ] Mit KI: die Meldung sagt, was nachgezogen wurde, und der Weg zurück zum Vorschlag geht
 - [ ] Ohne KI läuft alles; nur die KI-Knöpfe fehlen
 - [ ] „In den Story Creator" legt eine Notiz in der offenen Kampagne an
+- [ ] Der Steckbrief sieht aus wie ein Statblock: Kapitälchen, Attributreihe, Abschnitte
+- [ ] Bei jedem Angriff steht Waffe, Reichweite, Trefferbonus und Schadensart
+- [ ] Die Waffe passt zum Wesen (eine Bestie führt keine Hellebarde)
+- [ ] Zehnmal würfeln: nicht jedes Monster hat Resistenzen, und nicht jedes fliegt
+- [ ] Zehnmal würfeln: die Namen wiederholen sich nicht, es kommen auch Einzelnamen
+- [ ] Grad 30: deutlich mehr Fähigkeiten als auf Grad 1
+- [ ] Legendäre Aktionen an: der Abschnitt taucht wirklich auf
+- [ ] Kampfentfernung „Fernkampf": es kommt kein Nahkampfangriff heraus
+- [ ] Mit KI: der eigene Wunsch schlägt im Ergebnis durch

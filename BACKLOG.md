@@ -125,6 +125,49 @@ zufällig gleich, deshalb fällt es nicht auf.
 
 ## Erledigt
 
+### Monster Creator: aus Zahlen wurde ein Statblock
+
+Rückmeldung aus dem ersten richtigen Gebrauch, in einem Zug abgearbeitet.
+Der Kern des Werkzeugs war richtig, die Ausgabe war es nicht: ein Block mit
+Trefferpunkten, Rüstungsklasse und „Schaden pro Runde: 41" sagt nicht, was
+passiert, wenn das Monster dran ist.
+
+Neu am Modell: die sechs Attribute (mit einer harten Regel — Übungsbonus
+plus Modifikator des Hauptattributs ergibt den Angriffsbonus), die
+Bewegungsrate samt Klettern, Schwimmen, Fliegen und Graben, die Angriffe
+aufgeschlüsselt nach Waffe, Reichweite, Trefferbonus, Würfel und
+Schadensart, Flächenangriffe mit Rettungswurf, und Resistenzen,
+Immunitäten und Verwundbarkeiten.
+
+Der Grundsatz dabei, und er gilt für die nächsten Werkzeuge genauso: **die
+Zusätze sind keine Pflicht.** Alles davon hängt an einer Chance. Ein
+Bestiarium, in dem jedes Wesen resistent ist, fliegt und einen Odem hat, ist
+langweilig — und es nimmt den wenigen, bei denen es zählt, die Wirkung.
+
+Dabei ein echter Fehler in der Prüfung gefunden: die Spannen wurden gegen
+die **rohen** Trefferpunkte geprüft, angezeigt wurden die **wirksamen**.
+Solange nur die Rüstungsklasse hineinspielte, ging die Verschiebung in der
+Spanne unter. Mit Resistenzen nicht mehr — ein richtig gebautes Monster fiel
+durch die eigene Prüfung.
+
+Dazu 50 statt 12 Fähigkeiten mit Abschnitt im Statblock, eine Fähigkeitszahl
+die bis Grad 30 wächst, sechzehn statt acht Namensteile je Liste plus
+Einzelnamen, das klassische Statblock-Aussehen und ein freies Wunschfeld für
+die KI.
+
+### „In den Story Creator" tat gar nichts
+
+Der Monster Creator legte die Notiz unter dem Notiztyp `creature` an. Den
+gibt es in keiner Vorlage, der Story Creator wies das mit
+`error.unknownNoteType` ab.
+
+Aufgefallen ist es nur im Gebrauch, und das ist der eigentliche Punkt: der
+Rauchtest des Monster Creators fasste den Export gar nicht an. Er sah das
+Werkzeug für sich allein, und dort meldet ein Fehlschlag genauso ruhig wie
+ein Erfolg. Jetzt sucht sich jedes Werkzeug einen Notiztyp, den die Kampagne
+wirklich kennt, und der Rauchtest läuft den Weg bis zur Datei auf der Platte
+durch.
+
 ### Vorwärts im Verlauf war nach einem Schritt zurück sofort wieder tot
 
 Beim Nachziehen der Rauchtests aufgefallen, nicht gemeldet, aber echt: ein

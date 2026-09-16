@@ -356,6 +356,13 @@ the generator.
   by the same percentage moves them by different numbers of ratings. A test
   generates every rating times every role and insists each result passes the
   tool's own check.
+- **A real stat block, not a column of numbers.** Ability scores, speed and
+  every attack spelled out: weapon, reach, to-hit, dice and damage type. The
+  weapon fits the creature — a beast does not wield a halberd.
+- **Resistances, immunities and vulnerabilities are optional.** They come up
+  by chance, more often at high ratings, and most monsters get none. What a
+  monster survives longer is taken off its raw hit points, so it stays on its
+  rating.
 - **Check an existing monster** without generating one: type in numbers from
   a book or from an older campaign and see what the rating says.
 - **The collection** holds what you built, as tiles or a list, with one
