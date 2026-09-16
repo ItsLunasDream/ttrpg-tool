@@ -829,3 +829,33 @@ Der Rauchtest läuft zweimal als zwei Prozesse (`EINFUEHRUNG_LAUF=1`, dann
 zeigen: dass nach einem Neustart nichts mehr kommt. Zwei Electron-Sitzungen
 gleichzeitig auf einem Datenordner gehen dabei nicht — die zweite lädt kein
 Werkzeug mehr.
+
+### Verlauf: was in den restlichen Werkzeugen eine „Stelle" wäre
+
+Der Verlauf der Hülle merkt sich zwei Dinge: welches Werkzeug offen war, und
+*wo* man darin war. Das zweite kann bisher nur der Story Creator (die offene
+Notiz). Beim Durchgehen der übrigen fünf ist die Antwort ausgefallen wie
+folgt — und sie fällt gegen ein Nachrüsten aus:
+
+- **Würfel, NPC Creator, Inspirationshilfe** haben keine Stellen. Es gibt je
+  einen Arbeitsbereich, und den erreicht der Verlauf schon auf
+  Werkzeug-Ebene. Ein „Ort" wäre hier eine erfundene Größe.
+- **Initiative Tracker** hätte eine: die offene Begegnung. Ein Sprung dorthin
+  lädt aber eine andere Begegnung, und der *laufende* Kampf ist
+  Sitzungszustand, der dabei wegfiele. Genau davor steht heute eine
+  Rückfrage („Kampf beenden?"). Ein Verlaufssprung, der wortlos einen
+  laufenden Kampf verwirft, wäre schlechter als kein Verlaufssprung. Mit
+  Rückfrage wiederum wäre es kein Zurück mehr, sondern ein Dialog — und
+  Zurück soll billig sein.
+- **Karteneditor** hätte die offene Karte. Dasselbe Problem, eine Stufe
+  schärfer: ungesicherte Änderungen an einer Zeichnung wiegen mehr als eine
+  Runde Initiative.
+
+Bleibt also der Story Creator, und das ist kein Mangel: dort gibt es viele
+kleine Stellen, zwischen denen man wirklich hin und her springt. In den
+anderen Werkzeugen springt man zwischen *Werkzeugen*, und das kann der
+Verlauf längst.
+
+Offen bleibt davon nur das, was sich hier nicht prüfen lässt: ob die
+Daumentasten der Maus auf dem Windows-Gerät ankommen (siehe den Abschnitt
+darüber — zweiter Weg über die Preloads gebaut, Prüfung steht aus).

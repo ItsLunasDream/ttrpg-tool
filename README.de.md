@@ -456,7 +456,9 @@ Bekannte Grenzen:
 - Mehrdeutige Namen (gleicher Titel oder Alias) werden im Index erfasst, in
   der Oberfläche aber nicht gesondert angezeigt.
 
-Offene Aufgaben und geplante Phasen: [BACKLOG.md](BACKLOG.md).
+Offene Aufgaben und geplante Phasen: [BACKLOG.md](BACKLOG.md). Was vor
+einer Veröffentlichung von Hand durchzugehen ist — das, was die
+automatischen Prüfungen nicht sehen: [TESTLISTE.md](TESTLISTE.md).
 
 ## Marken
 

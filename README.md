@@ -452,7 +452,9 @@ Known limits:
 - Ambiguous names (same title or alias) are recorded in the index but not
   called out in the interface.
 
-Open tasks and planned phases: [BACKLOG.md](BACKLOG.md) (German).
+Open tasks and planned phases: [BACKLOG.md](BACKLOG.md) (German). What to
+check by hand before a release — the things automated tests cannot see:
+[TESTLISTE.md](TESTLISTE.md) (German).
 
 ## Trademarks
 
