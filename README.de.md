@@ -488,3 +488,15 @@ Freie Software: benutzen, verändern und weitergeben ist ausdrücklich
 erlaubt. Wird eine veränderte Fassung über ein Netzwerk angeboten, muss ihr
 Quelltext ebenfalls offenstehen. Ohne jede Gewährleistung, wie in der Lizenz
 beschrieben.
+
+### Fremde Inhalte
+
+Einzelne **Daten** im Repository stammen aus fremden Werken unter eigenen
+Lizenzen, die eine Namensnennung verlangen. Sie steht in
+[NOTICE.md](NOTICE.md) und wird mitgegeben — sie wegzulassen wäre ein
+Lizenzbruch, kein Schönheitsfehler.
+
+Kurz: die Richtwerte je Herausforderungsgrad im Monster Creator stammen aus
+dem *Lazy GM's 5e Monster Builder Resource Document* von Teos Abadía, Scott
+Fitzgerald Gray und Michael E. Shea unter CC-BY-4.0, das seinerseits Material
+aus dem SRD 5.1 enthält. Aus dem Dungeon Master's Guide stammt nichts.

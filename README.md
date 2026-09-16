@@ -481,3 +481,15 @@ available in German and English.
 Free software: you may use it, change it and pass it on. If a modified
 version is offered over a network, its source has to be available too.
 Without any warranty, as described in the license.
+
+### Third-party content
+
+Some **data** in this repository comes from other works under their own
+licenses, which require attribution. The attributions live in
+[NOTICE.md](NOTICE.md) and travel with the project — leaving them out would
+be a licence violation, not a cosmetic slip.
+
+In short: the monster baselines by challenge rating come from the *Lazy GM's
+5e Monster Builder Resource Document* by Teos Abadía, Scott Fitzgerald Gray
+and Michael E. Shea, under CC-BY-4.0, which in turn includes material from
+the SRD 5.1. Nothing here is taken from the Dungeon Master's Guide.

@@ -1,0 +1,19 @@
+{
+  "name": "ttrpg-monster",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Monster Creator — Homebrew-Monster zu einem vorgegebenen CR, mit Pruefung",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.node.json",
+    "test": "node scripts/build-tests.mjs && node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2"
+  },
+  "author": {
+    "name": "ItsLunasDream"
+  },
+  "license": "AGPL-3.0-or-later"
+}

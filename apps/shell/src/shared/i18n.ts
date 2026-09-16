@@ -110,6 +110,9 @@ const en = {
   'about.licenseDetail':
     'Free software: you may use, change and redistribute it. If a modified version is offered over a network, its source must be made available too.',
   'about.warranty': 'Without any warranty, as described in the license.',
+  'about.notice':
+    'Some data comes from other works under CC-BY-4.0 and is credited there — the monster baselines by challenge rating from the Lazy GM\u2019s 5e Monster Builder Resource Document.',
+  'about.noticeLink': 'Attributions',
   'about.sourceLink': 'Source code on GitHub',
   'about.licenseLink': 'Read the full license',
 
@@ -234,6 +237,9 @@ const de: Partial<Record<MessageKey, string>> = {
   'about.licenseDetail':
     'Freie Software: du darfst sie benutzen, verändern und weitergeben. Wird eine veränderte Fassung über ein Netzwerk angeboten, muss ihr Quelltext ebenfalls offenstehen.',
   'about.warranty': 'Ohne jede Gewährleistung, wie in der Lizenz beschrieben.',
+  'about.notice':
+    'Einzelne Daten stammen aus fremden Werken unter CC-BY-4.0 und sind dort genannt — die Richtwerte je Herausforderungsgrad aus dem Lazy GM\u2019s 5e Monster Builder Resource Document.',
+  'about.noticeLink': 'Namensnennungen',
   'about.sourceLink': 'Quelltext auf GitHub',
   'about.licenseLink': 'Vollständigen Lizenztext lesen',
 
