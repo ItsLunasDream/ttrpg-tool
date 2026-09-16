@@ -70,7 +70,15 @@ export function passt(eintrag: Eintrag, anfrage: Anfrage, sprache: Sprache): boo
   if (anfrage.themaId && eintrag.themaId !== anfrage.themaId) return false;
   if (anfrage.rolleId && eintrag.rolleId !== anfrage.rolleId) return false;
 
-  const woerter = anfrage.text.toLowerCase().split(/\s+/).filter(Boolean);
+  /*
+   * `cr` allein ist kein Suchwort, sondern der Anfang von „cr 4". Ohne diese
+   * Zeile steht die Liste zwischen dem zweiten und dem vierten Tastendruck
+   * leer da, und das sieht aus wie „nichts gefunden".
+   */
+  const woerter = anfrage.text
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((wort) => wort !== '' && wort !== 'cr');
   if (woerter.length === 0) return true;
 
   const wunsch = gradAus(woerter);
@@ -98,7 +106,7 @@ export function passt(eintrag: Eintrag, anfrage: Anfrage, sprache: Sprache): boo
 
   for (const wort of woerter) {
     // Was als Grad gelesen wurde, muss nicht auch im Text stehen.
-    if (wunsch && (alsZahl(wort.replace(/^cr/, '')) !== null || /^\d+-\d+$/.test(wort) || wort === 'cr')) {
+    if (wunsch && (alsZahl(wort.replace(/^cr/, '')) !== null || /^\d+-\d+$/.test(wort))) {
       continue;
     }
     if (!heuhaufen.includes(wort)) return false;

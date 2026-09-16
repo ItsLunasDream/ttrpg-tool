@@ -4,7 +4,7 @@ Zum Durchgehen von Hand, auf dem Windows-Gerät. Hier steht nur, was die
 automatischen Prüfungen **nicht** sehen können: das Aussehen, das Gefühl,
 das Gerät und alles, was erst nach einem Neustart auffällt.
 
-Was schon geprüft ist, steht nicht drin. `npm test` (595 Modelltests),
+Was schon geprüft ist, steht nicht drin. `npm test` (674 Modelltests),
 `npm run smoke`, `npm run smoke:backstory` und `npm run roundtrip` laufen in
 der CI und decken die Logik ab.
 
@@ -33,6 +33,8 @@ Das ist der Teil, den hier niemand prüfen kann.
 - [ ] … und auch, während ein Werkzeug offen ist und der Zeiger darüber liegt
 - [ ] **Daumentaste vorwärts** (M5) ebenso
 - [ ] Ein Druck geht **einen** Schritt, nicht zwei
+- [ ] Nach einem Schritt zurück führt **vorwärts** wieder an dieselbe Stelle
+- [ ] Das gilt auch innerhalb eines Werkzeugs (zwei Notizen im Story Creator)
 - [ ] Alt+Pfeil links und rechts tun dasselbe
 - [ ] Falls eine Taste nicht geht: geht die andere? Geht Alt+Pfeil? (grenzt die Ursache ein)
 - [ ] Maus mit Herstellersoftware: sind M4/M5 dort auf etwas anderes umbelegt?
@@ -142,6 +144,7 @@ Danach wieder abschalten: `setx TTRPG_TOOLS_TASTEN_LOG 0`
 - [ ] Die Datei in einem Texteditor öffnen: der YAML-Kopf trägt alle Zahlen
 - [ ] Sammlung: Kacheln und Liste zeigen dasselbe
 - [ ] Suche: „untot" findet die Art, „4" den Grad, „untot 4" beides zugleich
+- [ ] „Variante anlegen" auf einem anderen Grad: die Zahlen wandern, Name und Texte bleiben
 - [ ] Mit KI: die Meldung sagt, was nachgezogen wurde, und der Weg zurück zum Vorschlag geht
 - [ ] Ohne KI läuft alles; nur die KI-Knöpfe fehlen
 - [ ] „In den Story Creator" legt eine Notiz in der offenen Kampagne an

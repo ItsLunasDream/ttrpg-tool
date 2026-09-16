@@ -365,7 +365,9 @@ Prüfung, nicht der Erzeuger.
   für Name, Art und Grad zugleich (`untot 4`, `cr 3-6`).
 - Monster sind Markdown-Dateien mit YAML-Kopf im Datenordner. Alle Zahlen
   stehen im Kopf, damit ein künftiges Begegnungswerkzeug sie lesen kann, ohne
-  den Statblock zu zerlegen.
+  den Statblock zu zerlegen. Ausgenommen sind die Erfahrungspunkte: die
+  CC-BY-Quelle belegt nur sieben davon, und geratene Zahlen in einer Datei
+  namens „Richtwerte" wären schlimmer als gar keine.
 
 Die Richtwerte stammen aus einer CC-BY-Quelle, genannt in
 [NOTICE.md](NOTICE.md).

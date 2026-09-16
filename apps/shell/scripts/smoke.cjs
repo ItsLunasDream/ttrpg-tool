@@ -565,8 +565,8 @@ app.whenReady().then(async () => {
     'die Lizenz steht darin'
   );
   pruefe(
-    (await js("document.querySelectorAll('.ueber__verweise button').length")) === 2,
-    'zwei Verweise: Quelltext und Lizenz'
+    (await js("document.querySelectorAll('.ueber__verweise button').length")) === 3,
+    'drei Verweise: Quelltext, Lizenz und Hinweise (CC-BY-Nennung)'
   );
   await js("document.querySelector('.dialog__knopf').click()");
   await warte(700);

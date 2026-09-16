@@ -27,6 +27,7 @@ import {
   kannZurueck,
   vorwaerts,
   zurueck,
+  type Stelle,
   type Verlauf
 } from '../shared/verlauf';
 import { AppSymbol, SuiteIcon } from './icons';
@@ -67,6 +68,17 @@ type BuehnenZustand =
  */
 const UEBERGANG_MS = 340;
 
+/**
+ * Wie lange nach einem Verlaufsschritt jeder Ortsbericht als dessen Antwort
+ * gilt und deshalb nicht als neuer Besuch zaehlt.
+ *
+ * Grosszuegig bemessen: das Werkzeug muss erst geladen, dann gesprungen sein
+ * und erst danach melden. Zu kurz kostet den Vorwaerts-Ast; zu lang kostet
+ * hoechstens einen Eintrag, wenn jemand sofort nach einem Schritt zurueck
+ * woanders hinklickt.
+ */
+const SPRUNG_RUHE_MS = 800;
+
 export function App() {
   const [aktiv, setAktiv] = useState<string | null>(null);
   /**
@@ -78,6 +90,11 @@ export function App() {
    * er leer an, wie ein frisches Fenster auch.
    */
   const verlauf = useRef<Verlauf>(LEERER_VERLAUF);
+  /**
+   * Bis wann ein Ortsbericht zu einem laufenden Verlaufsschritt gehoert.
+   * `null`, solange kein Schritt laeuft.
+   */
+  const sprungLaeuft = useRef<number | null>(null);
   /**
    * `waehle` steht weiter unten, wird aber schon vom Verlauf gebraucht. Eine
    * Referenz ist ehrlicher als die Reihenfolge umzustellen: der Wechsel
@@ -297,6 +314,9 @@ export function App() {
       if (naechster === verlauf.current) return;
 
       verlauf.current = naechster;
+      // Bis hierhin gilt jeder Ortsbericht als Folge dieses Sprungs. Die
+      // Frist deckt den Uebergang der Ansicht und die Antwort des Werkzeugs.
+      sprungLaeuft.current = Date.now() + UEBERGANG_MS + SPRUNG_RUHE_MS;
       zieheVerlaufNach();
       const ziel = aktuelleStelle(naechster);
 
@@ -345,24 +365,36 @@ export function App() {
   useEffect(() => {
     return window.shell.verlauf.beiOrt((id, ort) => {
       if (id !== aktivRef.current) return;
-      verlauf.current = besuche(verlauf.current, { app: id, ort: ort ?? undefined });
+      const stelle: Stelle = { app: id, ort: ort ?? undefined };
+
+      /*
+       * Ein Bericht, der die Antwort auf unseren eigenen Sprung ist, darf
+       * nicht als neuer Besuch zaehlen: `besuche` wirft dabei den
+       * Vorwaerts-Ast weg, und nach einem Schritt zurueck waere vorwaerts
+       * sofort wieder tot. Browser machen es genauso.
+       *
+       * Warum nicht einfach auf Gleichheit pruefen: das Werkzeug meldet nach
+       * einem Sprung nicht zwingend genau die Stelle, auf die gesprungen
+       * wurde — steht im Verlauf nur das Werkzeug und keine Stelle darin,
+       * meldet es die Stelle, auf der es stehen bleibt.
+       */
+      const sprung = sprungLaeuft.current;
+      if (sprung !== null && Date.now() < sprung) return;
+      sprungLaeuft.current = null;
+
+      verlauf.current = besuche(verlauf.current, stelle);
     });
   }, []);
 
   useEffect(() => {
-    const abmelden = window.shell.verlauf.beiBefehl(geheZu);
-
-    function onKeyDown(ereignis: KeyboardEvent) {
-      if (!ereignis.altKey) return;
-      if (ereignis.key === 'ArrowLeft') geheZu('zurueck');
-      else if (ereignis.key === 'ArrowRight') geheZu('vorwaerts');
-    }
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      abmelden();
-      window.removeEventListener('keydown', onKeyDown);
-    };
+    /*
+     * Nur dieser eine Weg. Alt und Pfeil hoert das Preload ab und schickt es
+     * durch den Hauptprozess, genau wie die Daumentasten — der sperrt kurz
+     * nach, damit ein Druck ein Schritt bleibt. Ein zweiter Hoerer hier
+     * liefe an der Sperre vorbei, und der Verlauf sprang dann zwei Stellen
+     * auf einmal.
+     */
+    return window.shell.verlauf.beiBefehl(geheZu);
   }, [geheZu]);
 
   const t = useMemo<Uebersetzer>(

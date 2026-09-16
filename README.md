@@ -362,7 +362,9 @@ the generator.
   search field for name, type and rating at once (`undead 4`, `cr 3-6`).
 - Monsters are Markdown files with a YAML header in the data folder. Every
   number lives in the header, so a future encounter tool can read them
-  without taking the stat block apart.
+  without taking the stat block apart. Experience points are the one
+  exception: the CC-BY source only documents seven of them, and guessed
+  numbers in a file called "baselines" would be worse than none.
 
 The baselines come from a CC-BY source, credited in [NOTICE.md](NOTICE.md).
 

@@ -277,9 +277,11 @@ Damit das später ohne Umbau zusammenpasst, wird hier **intern vorbereitet**:
   Creator, nur den Pfad. Das ist die billigste Kopplung, die es gibt, und
   sie überlebt, wenn eines der beiden Werkzeuge umgebaut wird.
 - **Im YAML-Kopf steht alles, was eine Begegnungsrechnung braucht**, in
-  Zahlen und nicht in Prosa: `cr`, `xp`, `tp`, `rk`, `schaden_pro_runde`,
-  `angriffsbonus`, `rolle`, `thema`. Wer den Statblock lesen müsste, um an
-  den CR zu kommen, hätte schon verloren.
+  Zahlen und nicht in Prosa: `cr`, `tp`, `rk`, `schaden_pro_runde`,
+  `angriffsbonus`, `angriffe`, `legendaer`, `rolle`, `thema`. Wer den
+  Statblock lesen müsste, um an den CR zu kommen, hätte schon verloren.
+  Die Erfahrungspunkte stehen **nicht** dabei — warum, steht unten unter
+  „Stand der Umsetzung".
 - **Ein Knopf „in die Begegnung"**, wie der NPC Creator ihn zum Story
   Creator hat. Solange es den Encounter Creator nicht gibt, ist der Knopf
   nicht da — vorgesehen ist er trotzdem, und der Weg dorthin ist derselbe
@@ -309,3 +311,55 @@ sie zweimal zu haben.
   verdoppelt aber die Tabellen und die Tests.
 - **Eigene Richtwerte.** Wer nach anderen Vorgaben baut, will die Tabelle
   ersetzen können. Als Datei im Datenordner, wie die Schreibhilfe-Vorschläge?
+
+## Stand der Umsetzung
+
+Der obere Teil dieser Datei ist das Konzept von vorher und bleibt so stehen.
+Hier steht, was davon tatsächlich gebaut ist, damit man beides
+auseinanderhalten kann.
+
+**Gebaut und geprüft** (`apps/monster`, 79 Tests plus ein Rauchtest in der
+Hülle):
+
+- `richtwerte.ts` — die CC-BY-Tabelle von CR 0 bis 30, wörtlich übernommen,
+  mit Lizenzkopf in der Datei und Nennung in `NOTICE.md` und im README.
+- `pruefung.ts` — der Kern: Verteidigungs-CR aus TP und RK,
+  Angriffs-CR aus Schaden pro Runde und Angriffsbonus, Ergebnis der
+  Mittelwert. Reine Funktion, kein Zufall, keine Dateien. `zieheNach` sagt
+  getrennt, was sie *rät* und was sie *berichtigt*.
+- `eichung.ts` — sieben Statblocks aus derselben CC-BY-Quelle als
+  Eichdaten. Wichtige Einschränkung, siehe unten.
+- `erzeuge.ts` — der Erzeuger. Ein Test fährt alle 7140 Kombinationen aus
+  Grad, Rolle und Saat durch und verlangt, dass jedes erzeugte Monster die
+  eigene Prüfung besteht.
+- `ablage.ts` — Markdown mit YAML-Kopf im Datenordner
+  (`<Datenordner>/monster/monster/`). Das ist die Schnittstelle zum
+  Encounter Creator, nicht ein Kanal zwischen zwei Werkzeugen.
+- `suche.ts` — ein Suchfeld für Name, Thema, Rolle und Grad, mit
+  UND-Bedeutung („untot 4" = untot **und** Grad 4).
+- `kiAufgaben.ts` — die KI schlägt vor, die Prüfung entscheidet. Ihre Zahlen
+  werden stillschweigend auf die Richtwerte gezogen; was sie ursprünglich
+  wollte, bleibt sichtbar. Ein Handeintrag wird nur gewarnt, nicht geändert.
+- Oberfläche mit Erzeugen, Prüfen von außen, Sammlung als Liste und als
+  Kacheln, Variante anlegen, Markdown-Export.
+
+**Zwei Lücken, die bewusst offen sind:**
+
+1. **Keine CR-XP-Tabelle.** Aus der CC-BY-Quelle sind nur sieben XP-Werte
+   belegt; die übrigen 27 aus dem Gedächtnis hinzuschreiben wäre geraten,
+   und geratene Zahlen in einer Datei, die „Richtwerte" heißt, sind
+   schlimmer als gar keine. Deshalb steht `xp` nicht im YAML-Kopf. Der
+   Encounter Creator braucht sie — vorher muss die Tabelle aus einer
+   belegten Quelle nachgetragen werden.
+2. **Die Eichung ist noch keine echte Eichung.** Die sieben Statblocks
+   stammen aus derselben Quelle wie die Richtwerte und liegen deshalb
+   bauartbedingt auf der Kurve; dass die Prüfung sie besteht, sagt wenig.
+   Eine belastbare Eichung braucht Monster aus dem SRD 5.2 (CC-BY),
+   quer über die Grade. Die entsprechenden Seiten waren aus der
+   Entwicklungsumgebung nicht erreichbar. Bis das nachgeholt ist, gilt die
+   Prüfung als plausibel, nicht als belegt.
+
+**Was aus dem Konzept nicht umgesetzt ist:** der Knopf „in die Begegnung"
+(es gibt den Encounter Creator noch nicht), der Weg in den Initiative
+Tracker, und die Mehrfachauswahl in der Sammlung. Alles drei hängt am
+Encounter Creator und wartet auf ihn.
