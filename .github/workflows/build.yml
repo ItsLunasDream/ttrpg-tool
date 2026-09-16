@@ -38,7 +38,10 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: sudo apt-get update && sudo apt-get install -y xvfb
+      # xdotool fuer den Maustasten-Rauchtest: er schickt echte
+      # X11-Tastenereignisse, weil ein nachgebautes Ereignis den Weg, um den
+      # es geht, gerade ueberspringt. Fehlt es, meldet der Test sich ab.
+      - run: sudo apt-get update && sudo apt-get install -y xvfb xdotool
       # Beide Tests fahren die gebaute Anwendung hoch. Die Tests oben laufen
       # gegen einzelne Module und sehen weder die Oberflaeche noch das Schema
       # des Editors.

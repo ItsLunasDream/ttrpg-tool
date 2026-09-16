@@ -19,7 +19,7 @@
  * Plattformfrei: kein node:*, kein electron. Hier steht nur Text und
  * Auswertung, damit sich beides pruefen laesst, ohne ein Modell zu fragen.
  */
-import type { Entwurf } from './erzeuge';
+import type { Baustein, Entwurf } from './erzeuge';
 import { MENGEN, type Sprache, type UmfangId } from './tabellen';
 import { ZEITMARKEN } from './zeitstrahl';
 
@@ -296,6 +296,35 @@ function umgebung(entwurf: Entwurf | null, sprache: Sprache): string[] {
   return zeilen;
 }
 
+/**
+ * Der Entwurf, auf die festgehaltenen Bausteine eingedampft.
+ *
+ * `null`, wenn nichts festgehalten ist — dann soll das Modell gar nichts vom
+ * Bisherigen sehen. Die leeren Listen sind kein Verlust: `umgebung` laesst
+ * weg, was leer ist.
+ */
+export function nurFestgehaltenes(
+  entwurf: Entwurf | null,
+  // Lose getippt wie das Feld in `Frage`: die Liste kommt ueber die Bruecke
+  // und ist dort nur noch eine Liste von Zeichenketten.
+  festgehalten: readonly string[] = []
+): Entwurf | null {
+  if (!entwurf || festgehalten.length === 0) return null;
+  const behalten = (baustein: Baustein) => festgehalten.includes(baustein);
+  return {
+    ...entwurf,
+    welt: behalten('aufhaenger') ? entwurf.welt : '',
+    aufhaenger: behalten('aufhaenger')
+      ? entwurf.aufhaenger
+      : { ausloeser: '', betroffene: '', komplikation: '', frist: '' },
+    fraktionen: behalten('fraktionen') ? entwurf.fraktionen : [],
+    figuren: behalten('figuren') ? entwurf.figuren : [],
+    orte: behalten('orte') ? entwurf.orte : [],
+    verbindungen: behalten('verbindungen') ? entwurf.verbindungen : [],
+    zeitstrahl: behalten('zeitstrahl') ? entwurf.zeitstrahl : []
+  };
+}
+
 /** Wonach genau gefragt wird. */
 export interface Frage {
   readonly aufgabe: KiAufgabe;
@@ -371,7 +400,22 @@ export function anweisung(frage: Frage, sprache: Sprache): string {
     );
   }
 
-  const bekannt = umgebung(frage.entwurf, sprache);
+  /*
+   * Was das Modell vom bisherigen Entwurf zu sehen bekommt.
+   *
+   * Bei einem einzelnen Baustein: alles. Ein Vorschlag, der nicht in die
+   * begonnene Welt passt, ist nutzlos — dafuer steht der Entwurf da.
+   *
+   * Beim ganzen Entwurf dagegen NUR, was festgehalten ist. Wer von Piraten
+   * auf Cyberpunk umstellt und dann „Alles von der KI" drueckt, will einen
+   * neuen Anfang; bekam aber den alten Entwurf als „Das steht schon" vorn in
+   * die Anfrage gelegt und darauf prompt weiter Piraten. Die Schloesser
+   * bleiben davon unberuehrt: was festgehalten ist, sieht das Modell weiter
+   * und baut darum herum.
+   */
+  const umriss =
+    frage.aufgabe === 'entwurf' ? nurFestgehaltenes(frage.entwurf, frage.festgehalten) : frage.entwurf;
+  const bekannt = umgebung(umriss, sprache);
   if (bekannt.length > 0) {
     teile.push('', de ? 'Das steht schon:' : 'What is already there:', ...bekannt);
   }

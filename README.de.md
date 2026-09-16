@@ -114,8 +114,12 @@ und links Platz für Titelleiste und Schiene lässt.
 - Beim Öffnen wächst das Symbol des Werkzeugs über den Schirm; dauert das
   Laden länger, kommt danach der Ladekreis.
 - **Zurück und vorwärts** wie im Browser, über die Daumentasten der Maus
-  (Windows) oder Alt und Pfeiltaste. Der Verlauf hält fünfzig Schritte und
-  merkt sich, *wo* man war — er hat mit Strg+Z nichts zu tun.
+  oder Alt und Pfeiltaste. Der Verlauf hält fünfzig Schritte und merkt sich,
+  *wo* man war — er hat mit Strg+Z nichts zu tun. Die Daumentasten kommen auf
+  zwei Wegen an: als `app-command` vom Fenster und aus dem Dokument der
+  vorn liegenden Ansicht (gemeldet vom Preload des Werkzeugs). Einer reicht
+  nicht — unter Windows greift Chromium sie in der Ansicht selbst ab, und
+  das Fenster erfährt nie davon.
 - Direkt in einem Werkzeug starten: `TTRPG_TOOLS_START_APP=backstory`.
 - **Einführung beim ersten Mal**: beim allerersten Start ein Willkommen, beim
   ersten Öffnen jedes Werkzeugs eine kurze Erklärung, was es tut. Danach nie
@@ -303,7 +307,8 @@ was passiert, wenn die Gruppe nichts tut.
   ins Geflecht eingehängt und bekommen beim Übernehmen keine zweite Notiz.
 - **Das Geflecht als Bild**: Figuren als Punkte, Verbindungen als Pfeile.
   Die Liste darunter sagt, was zwischen zweien liegt; das Bild sagt, wo die
-  Geschichte dicht ist und wer am Rand steht.
+  Geschichte dicht ist und wer am Rand steht. Ein Klick öffnet dasselbe
+  Geflecht über den ganzen Schirm — neu gerechnet, nicht gedehnt.
 - **„Karte anlegen"** an jedem Ort öffnet den Karteneditor und beginnt dort
   eine Karte unter diesem Namen — mit dem, was über den Ort bekannt ist, als
   Notiz-Pins darauf. Gezeichnet wird nichts: eine Karte aus Text zu erzeugen
@@ -412,7 +417,7 @@ nie überschrieben.
 | --- | --- |
 | `npm test` | Kernlogik aller Workspaces |
 | `npm run typecheck` | Typen aller Workspaces |
-| `npm run smoke` | Gebaute Hülle: Start, Wechsel, KI, Symbole, NPC-Export |
+| `npm run smoke` | Gebaute Hülle: Start, Wechsel, KI, Symbole, NPC-Export, Einführungen, Daumentasten |
 | `npm run smoke:backstory` | Kampagne, Notizen, Wiki-Link, Umbenennen, Rechtschreibung, Einlesen |
 | `npm run roundtrip` | Speichern verändert das Markdown nicht |
 | `npm run verify:package:suite -- <pfad>` | Gepacktes Paket kommt hoch |
@@ -451,7 +456,9 @@ Bekannte Grenzen:
 - Mehrdeutige Namen (gleicher Titel oder Alias) werden im Index erfasst, in
   der Oberfläche aber nicht gesondert angezeigt.
 
-Offene Aufgaben und geplante Phasen: [BACKLOG.md](BACKLOG.md).
+Offene Aufgaben und geplante Phasen: [BACKLOG.md](BACKLOG.md). Was vor
+einer Veröffentlichung von Hand durchzugehen ist — das, was die
+automatischen Prüfungen nicht sehen: [TESTLISTE.md](TESTLISTE.md).
 
 ## Marken
 

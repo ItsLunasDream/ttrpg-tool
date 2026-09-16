@@ -9,15 +9,9 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import type { MapDocument, MapNote, NoteIcon, WallType } from '@/model/types';
 import { dashPolyline } from '@/model/geometry';
+import { notenForm } from '@/model/noteShape';
 import type { Camera } from './camera';
 
-/**
- * Abstand der Pin-Spitze vom Kopfmittelpunkt, in Kopfradien.
- *
- * Kleiner heißt gedrungener Tropfen, größer heißt spitzer. 1,6 ergibt eine
- * Form, die auch bei kleinem Zoom noch als Pin zu erkennen ist.
- */
-const TIP_DISTANCE = 1.6;
 
 /** Kreis als Punktliste — für den gestrichelten Ring, den Graphics nicht kann. */
 function circlePoints(cx: number, cy: number, r: number, segments: number): number[] {
@@ -166,11 +160,11 @@ export class VttOverlay {
     for (const note of doc.vtt.notes) {
       lebend.add(note.id);
 
-      // `size` ist die Gesamthöhe des Pins in Tiles.
-      const hoehe = Math.max(8, note.size * doc.grid.tileSize);
-      const r = hoehe / (1 + TIP_DISTANCE);
-      const d = TIP_DISTANCE * r;
-      const cy = note.y - d;
+      // Form aus dem Modell, nicht hier gerechnet: dieselbe Rechnung braucht
+      // die Trefferprüfung (`pickNote`). Standen sie getrennt, liefen sie
+      // auseinander — und genau daran war der Pin einmal unanklickbar.
+      const { r, kopfY: cy } = notenForm(note, doc.grid.tileSize);
+      const d = note.y - cy;
       // Berührpunkte der Tangenten von der Spitze an den Kopf.
       const psi = Math.acos(Math.min(1, r / d));
       const start = Math.PI / 2 + psi;

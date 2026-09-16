@@ -211,3 +211,32 @@ const api = {
 export type ShellApi = typeof api;
 
 contextBridge.exposeInMainWorld('shell', api);
+
+/*
+ * Die Daumentasten der Maus, im Dokument der Huelle.
+ *
+ * Dasselbe wie in den Preloads der Werkzeuge, und aus demselben Grund: das
+ * Fenster erfaehrt von den Seitentasten nicht auf jedem System. Gemeldet
+ * wird an den Hauptprozess und nicht gleich an die Oberflaeche nebenan —
+ * dort laeuft die Sperrfrist, die aus einem Druck einen Schritt macht. Ein
+ * kurzer Weg an ihr vorbei sprang im Startmenue zwei Stellen auf einmal.
+ *
+ * Von Hand getippt statt ueber `window`: dieselbe Datei wird zweimal
+ * geprueft, einmal mit DOM-Typen und einmal ohne.
+ */
+const dokument = globalThis as unknown as {
+  addEventListener(
+    art: 'mouseup',
+    hoerer: (ereignis: { readonly button: number }) => void,
+    erfassen: boolean
+  ): void;
+};
+
+dokument.addEventListener(
+  'mouseup',
+  (ereignis) => {
+    if (ereignis.button === 3) ipcRenderer.send('huelle:verlauf-taste', 'zurueck');
+    else if (ereignis.button === 4) ipcRenderer.send('huelle:verlauf-taste', 'vorwaerts');
+  },
+  true
+);

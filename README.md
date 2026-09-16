@@ -112,9 +112,13 @@ for the title bar and the rail.
 - Language is wired through: a change applies everywhere at once.
 - On opening, the tool's icon grows across the screen; if loading takes
   longer, the spinner follows.
-- **Back and forward** like in a browser, via the mouse's thumb buttons
-  (Windows) or Alt and an arrow key. The history keeps fifty steps and
-  remembers *where* you were — it has nothing to do with Ctrl+Z.
+- **Back and forward** like in a browser, via the mouse's side buttons or
+  Alt and an arrow key. The history keeps fifty steps and remembers *where*
+  you were — it has nothing to do with Ctrl+Z. The side buttons arrive on two
+  paths: as `app-command` from the window, and from the document of whichever
+  view is in front (each tool's preload reports it). One is not enough —
+  Chromium takes the side buttons inside the view on Windows, and the window
+  never hears about them.
 - Start directly in one tool: `TTRPG_TOOLS_START_APP=backstory`.
 - **An introduction the first time**: a welcome on the very first start, and
   a short explanation the first time you open each tool. Never again after
@@ -301,7 +305,8 @@ happens if the party does nothing.
   the web right away and get no second note when taken over.
 - **The web as a picture**: characters as dots, connections as arrows. The
   list below says what lies between two of them; the picture says where the
-  story is dense and who stands at the edge.
+  story is dense and who stands at the edge. Click it and the same web opens
+  full screen, redrawn for the larger area rather than stretched.
 - **"Start a map"** on any place opens the Map Editor and begins a map under
   that name — with what is known about the place as note pins on it. Nothing
   is drawn: generating a map from text would mean driving the Map Editor's
@@ -409,7 +414,7 @@ overwritten.
 | --- | --- |
 | `npm test` | core logic of all workspaces |
 | `npm run typecheck` | types of all workspaces |
-| `npm run smoke` | the built shell: start, switching, AI, icons, NPC export, introductions |
+| `npm run smoke` | the built shell: start, switching, AI, icons, NPC export, introductions, mouse side buttons |
 | `npm run smoke:backstory` | campaign, notes, wiki link, renaming, spelling, reading back in |
 | `npm run roundtrip` | saving does not change the Markdown |
 | `npm run verify:package:suite -- <path>` | the packaged build comes up |
@@ -447,7 +452,9 @@ Known limits:
 - Ambiguous names (same title or alias) are recorded in the index but not
   called out in the interface.
 
-Open tasks and planned phases: [BACKLOG.md](BACKLOG.md) (German).
+Open tasks and planned phases: [BACKLOG.md](BACKLOG.md) (German). What to
+check by hand before a release — the things automated tests cannot see:
+[TESTLISTE.md](TESTLISTE.md) (German).
 
 ## Trademarks
 

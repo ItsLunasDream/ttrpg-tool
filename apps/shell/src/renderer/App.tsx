@@ -263,9 +263,13 @@ export function App() {
   /**
    * Zurueck und vorwaerts, wie im Browser.
    *
-   * Die Daumentasten der Maus kommen aus dem Hauptprozess: unter Windows als
-   * `app-command`, unabhaengig davon, welche Ansicht gerade den Fokus hat.
-   * Alt und Pfeil funktioniert hier zusaetzlich, solange die Huelle selbst
+   * Die Daumentasten der Maus kommen auf zwei Wegen herein — als
+   * `app-command` vom Fenster und aus dem Dokument der vorn liegenden
+   * Ansicht —, aber immer ueber den Hauptprozess. Der fuehrt beide zusammen
+   * und sperrt kurz nach, damit ein Druck ein Schritt bleibt. Genau darum
+   * hoert hier NICHT noch einmal jemand auf `mouseup`: dieser Weg liefe an
+   * der Sperre vorbei, und im Startmenue sprang der Verlauf dann zwei
+   * Stellen auf einmal. Alt und Pfeil geht zusaetzlich, solange die Huelle
    * den Fokus hat.
    */
   const geheZu = useCallback(

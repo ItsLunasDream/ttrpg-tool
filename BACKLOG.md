@@ -829,3 +829,62 @@ Der Rauchtest läuft zweimal als zwei Prozesse (`EINFUEHRUNG_LAUF=1`, dann
 zeigen: dass nach einem Neustart nichts mehr kommt. Zwei Electron-Sitzungen
 gleichzeitig auf einem Datenordner gehen dabei nicht — die zweite lädt kein
 Werkzeug mehr.
+
+### Verlauf: was in den restlichen Werkzeugen eine „Stelle" wäre
+
+Der Verlauf der Hülle merkt sich zwei Dinge: welches Werkzeug offen war, und
+*wo* man darin war. Das zweite kann bisher nur der Story Creator (die offene
+Notiz). Beim Durchgehen der übrigen fünf ist die Antwort ausgefallen wie
+folgt — und sie fällt gegen ein Nachrüsten aus:
+
+- **Würfel, NPC Creator, Inspirationshilfe** haben keine Stellen. Es gibt je
+  einen Arbeitsbereich, und den erreicht der Verlauf schon auf
+  Werkzeug-Ebene. Ein „Ort" wäre hier eine erfundene Größe.
+- **Initiative Tracker** hätte eine: die offene Begegnung. Ein Sprung dorthin
+  lädt aber eine andere Begegnung, und der *laufende* Kampf ist
+  Sitzungszustand, der dabei wegfiele. Genau davor steht heute eine
+  Rückfrage („Kampf beenden?"). Ein Verlaufssprung, der wortlos einen
+  laufenden Kampf verwirft, wäre schlechter als kein Verlaufssprung. Mit
+  Rückfrage wiederum wäre es kein Zurück mehr, sondern ein Dialog — und
+  Zurück soll billig sein.
+- **Karteneditor** hätte die offene Karte. Dasselbe Problem, eine Stufe
+  schärfer: ungesicherte Änderungen an einer Zeichnung wiegen mehr als eine
+  Runde Initiative.
+
+Bleibt also der Story Creator, und das ist kein Mangel: dort gibt es viele
+kleine Stellen, zwischen denen man wirklich hin und her springt. In den
+anderen Werkzeugen springt man zwischen *Werkzeugen*, und das kann der
+Verlauf längst.
+
+Offen bleibt davon nur das, was sich hier nicht prüfen lässt: ob die
+Daumentasten der Maus auf dem Windows-Gerät ankommen (siehe den Abschnitt
+darüber — zweiter Weg über die Preloads gebaut, Prüfung steht aus).
+
+## Zwei neue Werkzeuge: Konzepte
+
+Beides steht als Konzept, nicht als Plan zum Abarbeiten. Erst besprechen,
+dann bauen.
+
+- **Status Effect Creator** — [docs/statuseffekte.md](docs/statuseffekte.md).
+  Eigene Zustände mit Stufen und Regeltext, mit und ohne KI, optional mit
+  einer Umgebung, die sie auslöst („Freezing, jede Stunde in großer Kälte,
+  stapelt bis fünf"). Der Weg führt in den Initiative Tracker, der die
+  Zustände dann selbst mitzählt. Ohne KI kommen Stichpunkte heraus, keine
+  Prosa; Regler sind Art, Thema, Wirkrichtung (Schaden/Buff/Debuff), Härte
+  und Stufenzahl. Ein Punktesystem wiegt den Zustand und vergleicht ihn mit
+  bekannten — es behauptet aber ausdrücklich nicht, ihn zu balancieren:
+  dafür fehlt die Angabe, wie oft man ihn bekommt.
+- **Monster Creator** — [docs/monster.md](docs/monster.md). Homebrew-Monster
+  zu einem vorgegebenen CR. Der Kern ist nicht der Erzeuger, sondern die
+  **Prüfung**: eine reine Funktion, die aus den Zahlen einen CR rechnet und
+  jedes Ergebnis daran misst, auch das von der KI. Was bei einer Abweichung
+  passiert, hängt an der Herkunft der Zahlen: von der KI werden sie
+  automatisch nachgezogen (und es wird gesagt), von Hand gibt es nur einen
+  Warnhinweis mit den empfohlenen Werten.
+
+Ein Punkt am Monster Creator ist rechtlich und muss vor dem Bauen geklärt
+sein: die Richtwerttabellen aus dem Dungeon Master's Guide dürfen nicht ins
+Repository — das Kapitel zum Monsterbau steht nicht im SRD. Es gibt eine
+Quelle unter CC-BY-4.0, die dasselbe liefert (Lazy GM's 5e Monster Builder
+Resource Document); die Lizenz ist gelesen, sollte aber vor dem Übernehmen
+von Zahlen noch einmal selbst geprüft werden.

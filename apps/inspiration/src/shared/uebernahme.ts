@@ -59,11 +59,14 @@ export function baueEntwurf(
 
   /*
    * Die Weltbeschreibung haengt an keinem Baustein und hat kein Schloss: sie
-   * beschreibt den ganzen Entwurf. Liefert das Modell keine, bleibt die
-   * bisherige stehen — wegzuwerfen, was es nicht ersetzt hat, waere die
-   * schlechtere Wahl.
+   * beschreibt den ganzen Entwurf.
+   *
+   * Die bisherige bleibt nur stehen, wenn ueberhaupt etwas festgehalten ist.
+   * Sonst ist dies ein neuer Anfang — und ein Satz ueber Piratenbuchten ueber
+   * einem frisch gewuerfelten Cyberpunk-Entwurf war genau der Eindruck, die
+   * Vorgaben kaemen nicht an.
    */
-  const welt = roh.welt || vorlage?.welt || '';
+  const welt = roh.welt || (festgehalten.length > 0 ? (vorlage?.welt ?? '') : '');
 
   const aufhaenger = behalten('aufhaenger')
     ? vorlage!.aufhaenger

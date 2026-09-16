@@ -33,7 +33,7 @@ import { makeId } from '@/model/ids';
 import { emptyVttSelection, vttSelectionSize } from '@/model/store';
 import type { SelectFilter } from '@/model/toolSettings';
 import type { MapObject, ObjectId, Portal, Wall } from '@/model/types';
-import { pickVtt, pickVttInRect } from './vttPick';
+import { pickNote, pickVtt, pickVttInRect } from './vttPick';
 import { TextTool } from './text';
 import type { Tool, ToolContext, ToolPointerEvent } from './types';
 import { t } from '@/i18n';
@@ -315,7 +315,18 @@ export class SelectTool implements Tool {
     const hit = pickObject(ctx.doc, e.world, ctx.renderer.textMetrics, (o) =>
       objectAllowed(o, ctx.state.selectFilter),
     );
-    if (!hit) return;
+    /*
+     * Eine Notiz zählt hier mit, obwohl sie kein Objekt im Layer-Sinn ist.
+     *
+     * Sonst wäre das Notiz-Werkzeug der einzige Weg zum Text einer Notiz —
+     * und wer beim Auswählen einen Pin doppelt anklickt, meint ganz sicher
+     * nicht „neue Notiz daneben". Objekte gewinnen, wie beim einfachen Klick.
+     */
+    const notiz =
+      !hit && ctx.state.selectFilter.notes
+        ? pickNote(ctx.doc, e.world, 14 / ctx.renderer.camera.zoom)
+        : null;
+    if (!hit && !notiz) return;
     // Ein laufender Zug aus dem vorangegangenen Druck darf nicht offen bleiben.
     // Eine Hilfslinie, die außerhalb der Karte landet, ist weg — dieselbe
     // Geste wie in Zeichenprogrammen, und sie ist der einzige Weg, eine
@@ -339,6 +350,14 @@ export class SelectTool implements Tool {
       ctx.endTransaction();
     }
     this.mode = 'idle';
+
+    if (notiz) {
+      ctx.state.setSelection([]);
+      ctx.state.setVttSelection({ ...emptyVttSelection(), notes: [notiz.id] });
+      ctx.state.setEditingNoteId(notiz.id);
+      return;
+    }
+    if (!hit) return;
 
     if (hit.kind === 'text') {
       ctx.state.setSelection([hit.id]);

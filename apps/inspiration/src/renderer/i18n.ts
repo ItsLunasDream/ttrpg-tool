@@ -92,6 +92,8 @@ export const texte = {
     'Das Geflecht: Figuren als Punkte, Verbindungen als Pfeile.',
     'The web: characters as dots, connections as arrows.'
   ],
+  'geflecht.gross': ['Größer ansehen', 'View larger'],
+  'geflecht.zu': ['Schließen', 'Close'],
   'geflecht.leer': [
     'Zwei Figuren, dann steht hier ein Geflecht.',
     'Two characters, and a web appears here.'
