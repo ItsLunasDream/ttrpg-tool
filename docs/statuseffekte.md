@@ -278,11 +278,12 @@ Handwerkszeug, das über Kampagnen hinweg gilt.
 
 ## Offene Fragen
 
-- **Der Zähler außerhalb des Kampfes.** „Jede Stunde" braucht im Tracker
-  eine Uhr, die es dort noch nicht gibt. Ist das Teil dieses Werkzeugs, ein
-  Ausbau des Trackers, oder lassen wir es zunächst weg und der Auslöser ist
-  nur Text? Ich würde mit Text anfangen und den Zähler erst bauen, wenn der
-  Rest steht.
+- ~~Der Zähler außerhalb des Kampfes.~~ **Entschieden: der Auslöser ist
+  zunächst nur Text.** „Jede Stunde in großer Kälte" steht am Zustand und
+  wird von der Spielleitung angewendet; eine Uhr, die außerhalb des Kampfes
+  läuft, baut der Tracker erst, wenn der Rest steht. Das hält das Werkzeug
+  klein und die Abhängigkeit zum Tracker gering — er muss zunächst nur
+  Stufen anzeigen können, nicht mitzählen.
 - **Wie eng an 5e?** Erschöpfung, Rettungswürfe und SG sind 5e-Begriffe. Ganz
   neutral zu bleiben hieße, nur Prosa zu erzeugen; ganz bei 5e zu bleiben
   schließt andere Tische aus. Vorschlag: die Tabellen sind 5e-nah, die
