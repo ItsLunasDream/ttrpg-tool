@@ -1,0 +1,6 @@
+/** Sammelpunkt fuer alles, was die Tests brauchen. Siehe scripts/build-tests.mjs. */
+export * from '../src/shared/wirkungen';
+export * from '../src/shared/tabellen';
+export * from '../src/shared/gewicht';
+export * from '../src/shared/erzeuge';
+export * from '../src/shared/eichung';
