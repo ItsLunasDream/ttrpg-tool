@@ -125,6 +125,31 @@ zufällig gleich, deshalb fällt es nicht auf.
 
 ## Erledigt
 
+### Zustände: von sechs auf siebzehn Themen
+
+Gemeldet mit dem Eindruck, es gäbe nur Eiseffekte. Der Eindruck kam von mir:
+in allen Bildern stand das Thema auf „Kälte". Es waren sechs — aber das war
+trotzdem dünn. Gift war nur eine *Art* und kein Thema, und Feuer, Säure,
+Sturm, Stein, Blut, Schatten, Zeit, Klang, Traum und Tiefe fehlten ganz.
+
+Jetzt siebzehn, jedes mit eigenen Namensteilen, Einzelnamen, Bildern,
+Gegenmitteln, Orten und einem eigenen Zeichen für den Tracker.
+
+Drei Sprachfehler hat erst die Breite gezeigt — die alten sechs sahen gut
+aus, weil ihre Bausteine zufällig zusammenpassten:
+
+- Ein Bild wie „Etwas fehlt" ist ein Nebensatz und ergab „Etwas fehlt zieht
+  in deine Hände". Bilder sind jetzt Nominalgruppen.
+- Ein Gegenmittel wie „nach einer vollen Rast" ergab „Eine Stunde nach einer
+  vollen Rast senkt ihn um 1" — zwei Zeitangaben hintereinander.
+- Das Verb „sitzt" verlangt den Dativ, die Stellen stehen im Akkusativ:
+  „sitzt in deine Hände".
+
+Dazu „Lochloch" und „Fernferne" (ein Name darf seinen Wortstamm nicht
+wiederholen) und im Englischen „The embers draws" (Plural mit
+Singularverb). Für alle fünf gibt es jetzt Tests, die über alle Themen
+laufen.
+
 ### Status Effect Creator: das siebte Werkzeug
 
 Eigene Zustände mit Stufen — Kälte, die sich aufbaut, ein Fluch, der beim

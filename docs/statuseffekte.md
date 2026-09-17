@@ -402,8 +402,12 @@ in der Hülle.
 - `eichung.ts` — die bekannten Zustände, in unsere eigenen Bausteine
   zerlegt. Geprüft wird die Rangfolge, nicht die Punktzahl.
 - `stimmigkeit.ts` — siehe unten, das kam erst aus dem Gebrauch dazu.
-- `erzeuge.ts`, `tabellen.ts` — sieben Arten, sechs Themen, vier Härten,
-  Namensteile, Bilder und Satzmasken.
+- `erzeuge.ts`, `tabellen.ts` — sieben Arten, **siebzehn Themen**, vier
+  Härten, Namensteile, Bilder und Satzmasken. Die Themen decken die Elemente
+  ab (Feuer, Kälte, Hitze, Säure, Sturm, Stein, Tiefe) und dazu das, was
+  keins ist: Gift, Fäulnis, Blut, Schatten, Licht, Leere, Wahnsinn, Zeit,
+  Klang, Traum. Jedes bringt eigene Namensteile, Bilder, Gegenmittel und
+  Orte mit — und ein eigenes Zeichen für den Tracker.
 - `paket.ts` — mehrere Zustände in einem Wurf, mit verteilten Wirkungen.
 - `karte.ts` — Vorder- und Rückseite als HTML. Dasselbe HTML geht groß auf
   den Schirm und durch `printToPDF` aufs Papier; zwei Wege zu demselben Blatt
@@ -432,6 +436,26 @@ Im selben Beispiel steckte ein zweiter Fehler: der Auslöser eines Fluchs
 klebte an einem Ort aus der Umgebung („jedes Mal, wenn der Name auf dem
 Gletscher genannt wird"). Ein Ort steht jetzt nur noch an Zuständen, die aus
 der Umgebung kommen.
+
+**Drei Sprachfehler, die erst ein Blick auf alle Themen gezeigt hat**
+
+Die ersten sechs Themen sahen im Betrieb gut aus, weil ihre Bausteine
+zufällig zusammenpassten. Mit elf weiteren fiel auf, dass der Satzbau
+Annahmen macht, die nirgends standen:
+
+- Der Kurzsatz lautet „{Bild} {Verb} {Stelle}." Ein Bild wie „Etwas fehlt"
+  ist ein Nebensatz und ergab „Etwas fehlt zieht in deine Hände." Ein Bild
+  ist jetzt immer eine Nominalgruppe, und ein Test besteht darauf.
+- Die Linderung lautet „Eine Stunde {Gegenmittel} senkt ihn um 1." Ein
+  Gegenmittel wie „nach einer vollen Rast" ergab zwei Zeitangaben
+  hintereinander. Gegenmittel sind jetzt Präpositionalgruppen.
+- Die Stellen stehen im Akkusativ („dir in die Knochen"). Das Verb „sitzt"
+  verlangt den Dativ und ergab „sitzt in deine Hände". Es ist raus.
+
+Dazu zwei Kleinigkeiten: „Lochloch" und „Fernferne" — ein Name darf seinen
+eigenen Wortstamm nicht wiederholen. Und im Englischen stand „The embers
+draws behind your eyes", weil die Verben in der dritten Person Singular
+stehen und ein Bild im Plural war.
 
 **Was von den Punktwerten zu halten ist**
 

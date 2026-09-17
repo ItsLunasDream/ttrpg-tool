@@ -381,7 +381,9 @@ The baselines come from a CC-BY source, credited in [NOTICE.md](NOTICE.md).
 ## Status Effect Creator
 
 - **Custom conditions with levels** — cold that builds up, a curse that does
-  something else the third time. The levels are bullet points, not prose;
+  something else the third time. Seventeen themes: fire, cold, heat, venom,
+  acid, storm, stone, rot, blood, shadow, light, void, madness, time, sound,
+  dream and the depths. The levels are bullet points, not prose;
   nobody reads a paragraph at the table.
 - **Every condition gets weighed**, and the weight comes with a comparison:
   "about as much as Exhaustion 5". What it explicitly does not say is whether

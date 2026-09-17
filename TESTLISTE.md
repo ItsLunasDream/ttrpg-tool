@@ -166,6 +166,8 @@ Danach wieder abschalten: `setx TTRPG_TOOLS_TASTEN_LOG 0`
 - [ ] Dauer, „Schlimmer" und „Besser" passen zeitlich zusammen (keine Stunde bei einer Runde Dauer)
 - [ ] Ein Ort als Auslöser steht nur bei Zuständen aus der Umgebung
 - [ ] Zehnmal würfeln: die Namen und Kurzsätze wiederholen sich nicht
+- [ ] Alle siebzehn Themen einmal durchgehen: jedes hat sein eigenes Zeichen und eigene Namen
+- [ ] Die Sätze lesen sich sauber — „Besser: Eine Stunde …" passt grammatisch, auch auf Englisch
 - [ ] Reiter „Paket": mehrere Zustände auf einmal, und es steht „Abgestimmt" darunter
 - [ ] „Alle in die Sammlung" speichert wirklich alle
 - [ ] „Karte zum Vorlesen": vorn steht, was die Figur merkt, hinten die Regel

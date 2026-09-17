@@ -209,7 +209,7 @@ export const THEMEN: readonly Thema[] = [
     ],
     gegenmittel: [
       { de: 'im Schatten', en: 'in the shade' }, { de: 'mit frischem Wasser', en: 'with fresh water' },
-      { de: 'nach einer kühlen Nacht', en: 'after a cool night' }, { de: 'unter feuchtem Tuch', en: 'under a damp cloth' }
+      { de: 'in kühler Luft', en: 'in cool air' }, { de: 'unter feuchtem Tuch', en: 'under a damp cloth' }
     ],
     orte: [
       { de: 'in sengender Hitze', en: 'in searing heat' }, { de: 'in der Wüste', en: 'in the desert' },
@@ -237,10 +237,10 @@ export const THEMEN: readonly Thema[] = [
     ],
     bilder: [
       { de: 'Die Fäulnis', en: 'The rot' }, { de: 'Ein süßlicher Geruch', en: 'A sweetish reek' },
-      { de: 'Das Fieber', en: 'The fever' }, { de: 'Etwas unter der Haut', en: 'Something under the skin' }
+      { de: 'Das Fieber', en: 'The fever' }, { de: 'Ein Wühlen unter der Haut', en: 'A burrowing under the skin' }
     ],
     gegenmittel: [
-      { de: 'mit sauberem Verband', en: 'with a clean bandage' }, { de: 'nach einem Tag Pflege', en: 'after a day of care' },
+      { de: 'mit sauberem Verband', en: 'with a clean bandage' }, { de: 'unter kundiger Pflege', en: 'under proper care' },
       { de: 'mit gebranntem Kraut', en: 'with burnt herbs' }, { de: 'durch Ausbrennen', en: 'by cauterising' }
     ],
     orte: [
@@ -269,10 +269,10 @@ export const THEMEN: readonly Thema[] = [
     ],
     bilder: [
       { de: 'Ein Flüstern', en: 'A whisper' }, { de: 'Der Gedanke', en: 'The thought' },
-      { de: 'Etwas, das nicht da ist', en: 'Something that is not there' }, { de: 'Die Stimme', en: 'The voice' }
+      { de: 'Ein fremder Gedanke', en: 'A borrowed thought' }, { de: 'Die Stimme', en: 'The voice' }
     ],
     gegenmittel: [
-      { de: 'nach einer ruhigen Nacht', en: 'after a quiet night' }, { de: 'in Gesellschaft', en: 'in company' },
+      { de: 'an einem stillen Ort', en: 'in a quiet place' }, { de: 'in Gesellschaft', en: 'in company' },
       { de: 'mit einem vertrauten Lied', en: 'with a familiar song' }, { de: 'bei Tageslicht', en: 'in daylight' }
     ],
     orte: [
@@ -305,7 +305,7 @@ export const THEMEN: readonly Thema[] = [
     ],
     gegenmittel: [
       { de: 'im Dunkeln', en: 'in the dark' }, { de: 'mit verbundenen Augen', en: 'with your eyes bound' },
-      { de: 'nach einer Nacht Ruhe', en: 'after a night of rest' }, { de: 'unter einem Tuch', en: 'under a cloth' }
+      { de: 'bei geschlossenen Augen', en: 'with your eyes closed' }, { de: 'unter einem Tuch', en: 'under a cloth' }
     ],
     orte: [
       { de: 'im offenen Schnee', en: 'in open snow' }, { de: 'vor dem Altar', en: 'before the altar' },
@@ -333,17 +333,359 @@ export const THEMEN: readonly Thema[] = [
     ],
     bilder: [
       { de: 'Die Leere', en: 'The emptiness' }, { de: 'Ein Sog', en: 'A pull' },
-      { de: 'Die Ferne', en: 'The distance' }, { de: 'Etwas Weites', en: 'Something vast' }
+      { de: 'Die Ferne', en: 'The distance' }, { de: 'Eine Weite ohne Rand', en: 'A vastness without edge' }
     ],
     gegenmittel: [
       { de: 'mit festem Boden unter den Füßen', en: 'with solid ground underfoot' },
       { de: 'im Kreis von Vertrauten', en: 'among trusted company' },
       { de: 'an einem geweihten Ort', en: 'at a hallowed place' },
-      { de: 'nach einer vollen Rast', en: 'after a full rest' }
+      { de: 'in voller Ruhe', en: 'at full rest' }
     ],
     orte: [
       { de: 'unter dem leeren Himmel', en: 'under the empty sky' }, { de: 'an der Naht', en: 'at the seam' },
       { de: 'im Nichts dazwischen', en: 'in the nothing between' }, { de: 'am Rand des Grundes', en: 'at the edge of the abyss' }
+    ]
+  }
+,
+  {
+    id: 'feuer',
+    name: { de: 'Feuer', en: 'Fire' },
+    spuren: ['koerper', 'schaden', 'sinne'],
+    erstes: [
+      { de: 'Brand', en: 'Sear' }, { de: 'Glut', en: 'Ember' }, { de: 'Asche', en: 'Ash' },
+      { de: 'Funken', en: 'Spark' }, { de: 'Rauch', en: 'Smoke' }, { de: 'Zunder', en: 'Tinder' },
+      { de: 'Flammen', en: 'Flame' }, { de: 'Schwel', en: 'Smoulder' }
+    ],
+    zweites: [
+      { de: 'mal', en: 'brand' }, { de: 'zehrung', en: 'wasting' }, { de: 'hauch', en: 'breath' },
+      { de: 'kuss', en: 'kiss' }, { de: 'narbe', en: 'scar' }, { de: 'biss', en: 'bite' },
+      { de: 'atem', en: 'draught' }, { de: 'saat', en: 'seed' }
+    ],
+    einzeln: [
+      { de: 'Brandmal', en: 'Searing Brand' }, { de: 'Schwelfeuer', en: 'Smoulder' }, { de: 'Aschelunge', en: 'Ashlung' },
+      { de: 'Glutfieber', en: 'Ember Fever' }, { de: 'Rauchblind', en: 'Smokeblind' }, { de: 'Flammenhunger', en: 'Flame Hunger' }
+    ],
+    bilder: [
+      { de: 'Das Feuer', en: 'The fire' }, { de: 'Die Glut', en: 'The ember heat' }, { de: 'Ein Brennen', en: 'A burning' },
+      { de: 'Der Rauch', en: 'The smoke' }
+    ],
+    gegenmittel: [
+      { de: 'in kühlem Wasser', en: 'in cool water' }, { de: 'mit Salbe und Verband', en: 'with salve and bandage' }, { de: 'ohne jede Anstrengung', en: 'without any exertion' },
+      { de: 'im Schatten', en: 'in the shade' }
+    ],
+    orte: [
+      { de: 'in der brennenden Halle', en: 'in the burning hall' }, { de: 'nahe der Esse', en: 'near the forge' }, { de: 'im Ascheregen', en: 'in the ashfall' },
+      { de: 'über der Feuerstelle', en: 'over the firepit' }
+    ]
+  },
+  {
+    id: 'gift',
+    name: { de: 'Gift', en: 'Venom' },
+    spuren: ['koerper', 'schaden', 'geist'],
+    erstes: [
+      { de: 'Natter', en: 'Viper' }, { de: 'Schierling', en: 'Hemlock' }, { de: 'Galle', en: 'Bile' },
+      { de: 'Schwarz', en: 'Black' }, { de: 'Kriech', en: 'Creeping' }, { de: 'Faul', en: 'Foul' },
+      { de: 'Speichel', en: 'Spittle' }, { de: 'Dorn', en: 'Thorn' }
+    ],
+    zweites: [
+      { de: 'biss', en: 'bite' }, { de: 'saft', en: 'sap' }, { de: 'zehrung', en: 'wasting' },
+      { de: 'lähmung', en: 'palsy' }, { de: 'fieber', en: 'fever' }, { de: 'schlund', en: 'gullet' },
+      { de: 'blut', en: 'blood' }, { de: 'kuss', en: 'kiss' }
+    ],
+    einzeln: [
+      { de: 'Nattergift', en: 'Viper’s Gift' }, { de: 'Schierlingsschlaf', en: 'Hemlock Sleep' }, { de: 'Schwarzes Blut', en: 'Black Blood' },
+      { de: 'Kriechlähmung', en: 'Creeping Palsy' }, { de: 'Gallenfieber', en: 'Bile Fever' }, { de: 'Dornenschlaf', en: 'Thorn Sleep' }
+    ],
+    bilder: [
+      { de: 'Das Gift', en: 'The venom' }, { de: 'Eine Taubheit', en: 'A numbness' }, { de: 'Ein bitterer Geschmack', en: 'A bitter taste' },
+      { de: 'Die Lähmung', en: 'The palsy' }
+    ],
+    gegenmittel: [
+      { de: 'mit einem Gegenmittel', en: 'with an antidote' }, { de: 'in warme Decken gepackt', en: 'wrapped in warm blankets' }, { de: 'mit Kohle und Wasser', en: 'with charcoal and water' },
+      { de: 'unter der Hand eines Heilers', en: 'under a healer’s hand' }
+    ],
+    orte: [
+      { de: 'im Nest der Nattern', en: 'in the viper nest' }, { de: 'über dem offenen Kessel', en: 'over the open cauldron' }, { de: 'im Dunst der Sümpfe', en: 'in the marsh haze' },
+      { de: 'an der vergifteten Klinge', en: 'on the poisoned blade' }
+    ]
+  },
+  {
+    id: 'saeure',
+    name: { de: 'Säure', en: 'Acid' },
+    spuren: ['koerper', 'verteidigung', 'schaden'],
+    erstes: [
+      { de: 'Ätz', en: 'Etch' }, { de: 'Rost', en: 'Rust' }, { de: 'Zisch', en: 'Hiss' },
+      { de: 'Gruben', en: 'Pit' }, { de: 'Loch', en: 'Hole' }, { de: 'Schlamm', en: 'Sludge' },
+      { de: 'Grün', en: 'Green' }, { de: 'Tropf', en: 'Drip' }
+    ],
+    zweites: [
+      { de: 'brand', en: 'burn' }, { de: 'fraß', en: 'feed' }, { de: 'narbe', en: 'scar' },
+      { de: 'loch', en: 'pit' }, { de: 'haut', en: 'skin' }, { de: 'zehrung', en: 'wasting' },
+      { de: 'biss', en: 'bite' }, { de: 'nebel', en: 'haze' }
+    ],
+    einzeln: [
+      { de: 'Ätzbrand', en: 'Etchburn' }, { de: 'Rostfäule', en: 'Rustrot' }, { de: 'Lochhaut', en: 'Pitted Skin' },
+      { de: 'Grünnebel', en: 'Green Haze' }, { de: 'Zischwunde', en: 'Hissing Wound' }, { de: 'Grubenfraß', en: 'Pitfeed' }
+    ],
+    bilder: [
+      { de: 'Die Säure', en: 'The acid' }, { de: 'Ein Zischen', en: 'A hissing' }, { de: 'Ein Fressen', en: 'A gnawing' },
+      { de: 'Der Ätzgeruch', en: 'The acrid smell' }
+    ],
+    gegenmittel: [
+      { de: 'mit reichlich Wasser', en: 'with plenty of water' }, { de: 'mit Asche und Kalk', en: 'with ash and lime' }, { de: 'unter fließendem Wasser', en: 'under running water' },
+      { de: 'mit frischem Verband', en: 'with a fresh bandage' }
+    ],
+    orte: [
+      { de: 'in der Säurepfütze', en: 'in the acid pool' }, { de: 'unter dem tropfenden Gewölbe', en: 'under the dripping vault' }, { de: 'im Nest', en: 'in the nest' },
+      { de: 'über dem offenen Fass', en: 'over the open vat' }
+    ]
+  },
+  {
+    id: 'sturm',
+    name: { de: 'Sturm', en: 'Storm' },
+    spuren: ['bewegung', 'sinne', 'handlung'],
+    erstes: [
+      { de: 'Donner', en: 'Thunder' }, { de: 'Blitz', en: 'Bolt' }, { de: 'Böen', en: 'Gale' },
+      { de: 'Wetter', en: 'Weather' }, { de: 'Grollen', en: 'Rumble' }, { de: 'Schlag', en: 'Strike' },
+      { de: 'Hagel', en: 'Hail' }, { de: 'Wirbel', en: 'Whirl' }
+    ],
+    zweites: [
+      { de: 'schlag', en: 'strike' }, { de: 'hall', en: 'peal' }, { de: 'zucken', en: 'twitch' },
+      { de: 'taubheit', en: 'deafness' }, { de: 'sturz', en: 'fall' }, { de: 'riss', en: 'tear' },
+      { de: 'griff', en: 'grip' }, { de: 'leuchten', en: 'light' }
+    ],
+    einzeln: [
+      { de: 'Donnerhall', en: 'Thunderclap' }, { de: 'Blitzzucken', en: 'Twitching Bolt' }, { de: 'Hagelschlag', en: 'Hailstruck' },
+      { de: 'Wetterleuchten', en: 'Stormsight' }, { de: 'Böenriss', en: 'Galetorn' }, { de: 'Grollentaub', en: 'Thunderdeaf' }
+    ],
+    bilder: [
+      { de: 'Der Donner', en: 'The thunder' }, { de: 'Ein Zucken in den Gliedern', en: 'A twitching in the limbs' }, { de: 'Das Grollen', en: 'The rumble' },
+      { de: 'Der Schlag', en: 'The strike' }
+    ],
+    gegenmittel: [
+      { de: 'unter festem Dach', en: 'under a solid roof' }, { de: 'in einer ruhigen Stunde', en: 'through a quiet hour' }, { de: 'mit trockenem Boden unter den Füßen', en: 'with dry ground underfoot' },
+      { de: 'hinter dickem Stein', en: 'behind thick stone' }
+    ],
+    orte: [
+      { de: 'im offenen Feld', en: 'in the open field' }, { de: 'auf dem Grat', en: 'on the ridge' }, { de: 'unter dem Wetterhimmel', en: 'under the storm sky' },
+      { de: 'an der eingeschlagenen Stelle', en: 'at the strike site' }
+    ]
+  },
+  {
+    id: 'stein',
+    name: { de: 'Stein', en: 'Stone' },
+    spuren: ['bewegung', 'koerper', 'verteidigung'],
+    erstes: [
+      { de: 'Stein', en: 'Stone' }, { de: 'Grau', en: 'Grey' }, { de: 'Starr', en: 'Locked' },
+      { de: 'Kalk', en: 'Chalk' }, { de: 'Fels', en: 'Crag' }, { de: 'Last', en: 'Weight' },
+      { de: 'Grund', en: 'Bedrock' }, { de: 'Krust', en: 'Crust' }
+    ],
+    zweites: [
+      { de: 'haut', en: 'skin' }, { de: 'starre', en: 'stillness' }, { de: 'last', en: 'burden' },
+      { de: 'griff', en: 'grip' }, { de: 'glied', en: 'limb' }, { de: 'schlaf', en: 'sleep' },
+      { de: 'fessel', en: 'shackle' }, { de: 'mal', en: 'mark' }
+    ],
+    einzeln: [
+      { de: 'Graustarre', en: 'Grey Stillness' }, { de: 'Kalkhaut', en: 'Chalkskin' }, { de: 'Steinlast', en: 'Stoneweight' },
+      { de: 'Krustenfieber', en: 'Crustfever' }, { de: 'Grundschlaf', en: 'Bedrock Sleep' }, { de: 'Starrglied', en: 'Locked Limb' }
+    ],
+    bilder: [
+      { de: 'Der Stein', en: 'The stone' }, { de: 'Eine Schwere', en: 'A heaviness' }, { de: 'Die Starre', en: 'The stiffness' },
+      { de: 'Eine Härte unter der Haut', en: 'A hardness under the skin' }
+    ],
+    gegenmittel: [
+      { de: 'in anhaltender Wärme', en: 'in steady warmth' }, { de: 'mit Öl und kundigen Händen', en: 'with oil and skilled hands' }, { de: 'in voller Ruhe', en: 'at full rest' },
+      { de: 'in ständiger Bewegung', en: 'in constant motion' }
+    ],
+    orte: [
+      { de: 'vor der Statue', en: 'before the statue' }, { de: 'im alten Gewölbe', en: 'in the old vault' }, { de: 'am geborstenen Siegel', en: 'at the cracked seal' },
+      { de: 'in der Steinkammer', en: 'in the stone chamber' }
+    ]
+  },
+  {
+    id: 'blut',
+    name: { de: 'Blut', en: 'Blood' },
+    spuren: ['koerper', 'schaden', 'geist'],
+    erstes: [
+      { de: 'Blut', en: 'Blood' }, { de: 'Ader', en: 'Vein' }, { de: 'Rot', en: 'Red' },
+      { de: 'Zehr', en: 'Wither' }, { de: 'Puls', en: 'Pulse' }, { de: 'Wund', en: 'Wound' },
+      { de: 'Eisen', en: 'Iron' }, { de: 'Dünn', en: 'Thin' }
+    ],
+    zweites: [
+      { de: 'durst', en: 'thirst' }, { de: 'zehrung', en: 'wasting' }, { de: 'verlust', en: 'loss' },
+      { de: 'fluss', en: 'flow' }, { de: 'mal', en: 'mark' }, { de: 'ruf', en: 'calling' },
+      { de: 'hunger', en: 'hunger' }, { de: 'schuld', en: 'debt' }
+    ],
+    einzeln: [
+      { de: 'Blutdurst', en: 'Bloodthirst' }, { de: 'Dünnes Blut', en: 'Thin Blood' }, { de: 'Aderzehrung', en: 'Veinwither' },
+      { de: 'Roter Ruf', en: 'Red Calling' }, { de: 'Wundmal', en: 'Wound Mark' }, { de: 'Pulsfieber', en: 'Pulse Fever' }
+    ],
+    bilder: [
+      { de: 'Das Blut', en: 'The blood' }, { de: 'Ein Pochen', en: 'A throbbing' }, { de: 'Der Durst', en: 'The thirst' },
+      { de: 'Die Schwäche', en: 'The weakness' }
+    ],
+    gegenmittel: [
+      { de: 'bei Ruhe und warmer Kost', en: 'with rest and warm food' }, { de: 'mit festem Verband', en: 'with a tight bandage' }, { de: 'bei ruhigem Schlaf', en: 'in quiet sleep' },
+      { de: 'unter der Hand eines Heilers', en: 'under a healer’s hand' }
+    ],
+    orte: [
+      { de: 'am Altar', en: 'at the altar' }, { de: 'im Ring', en: 'in the ring' }, { de: 'nach der langen Jagd', en: 'after the long hunt' },
+      { de: 'über dem geöffneten Grab', en: 'over the opened grave' }
+    ]
+  },
+  {
+    id: 'schatten',
+    name: { de: 'Schatten', en: 'Shadow' },
+    spuren: ['sinne', 'geist', 'verteidigung'],
+    erstes: [
+      { de: 'Schatten', en: 'Shade' }, { de: 'Dunkel', en: 'Dark' }, { de: 'Zwie', en: 'Twi' },
+      { de: 'Ohne', en: 'Un' }, { de: 'Lösch', en: 'Snuff' }, { de: 'Grau', en: 'Grey' },
+      { de: 'Nacht', en: 'Night' }, { de: 'Rand', en: 'Edge' }
+    ],
+    zweites: [
+      { de: 'griff', en: 'grasp' }, { de: 'zehrung', en: 'wither' }, { de: 'wurf', en: 'cast' },
+      { de: 'fessel', en: 'binding' }, { de: 'rand', en: 'edge' }, { de: 'gast', en: 'guest' },
+      { de: 'blick', en: 'sight' }, { de: 'mantel', en: 'mantle' }
+    ],
+    einzeln: [
+      { de: 'Schattenzehrung', en: 'Shadewither' }, { de: 'Lichtlos', en: 'Lightless' }, { de: 'Zwielichtblick', en: 'Twilight Sight' },
+      { de: 'Randgänger', en: 'Edgewalker' }, { de: 'Löschgriff', en: 'Snuffing Grasp' }, { de: 'Ohne Schatten', en: 'Shadowless' }
+    ],
+    bilder: [
+      { de: 'Der Schatten', en: 'The shadow' }, { de: 'Das Dunkel', en: 'The dark' }, { de: 'Ein Schatten im Rücken', en: 'A shadow at your back' },
+      { de: 'Die Kälte im Rücken', en: 'The chill at your back' }
+    ],
+    gegenmittel: [
+      { de: 'im hellen Licht', en: 'in bright light' }, { de: 'an einem geweihten Ort', en: 'at a hallowed place' }, { de: 'in Gesellschaft', en: 'in company' },
+      { de: 'bei Sonnenaufgang', en: 'at sunrise' }
+    ],
+    orte: [
+      { de: 'im Schattenwald', en: 'in the shadewood' }, { de: 'unter der erloschenen Laterne', en: 'under the dead lantern' }, { de: 'im fensterlosen Raum', en: 'in the windowless room' },
+      { de: 'am Rand des Lichts', en: 'at the edge of the light' }
+    ]
+  },
+  {
+    id: 'zeit',
+    name: { de: 'Zeit', en: 'Time' },
+    spuren: ['geist', 'koerper', 'handlung'],
+    erstes: [
+      { de: 'Stunden', en: 'Hour' }, { de: 'Alter', en: 'Age' }, { de: 'Sand', en: 'Sand' },
+      { de: 'Uhr', en: 'Clock' }, { de: 'Spät', en: 'Late' }, { de: 'Rück', en: 'Back' },
+      { de: 'Vergess', en: 'Forget' }, { de: 'Gleich', en: 'Same' }
+    ],
+    zweites: [
+      { de: 'zehrung', en: 'wither' }, { de: 'schlaf', en: 'sleep' }, { de: 'lauf', en: 'course' },
+      { de: 'sucht', en: 'craving' }, { de: 'riss', en: 'tear' }, { de: 'last', en: 'burden' },
+      { de: 'blick', en: 'sight' }, { de: 'staub', en: 'dust' }
+    ],
+    einzeln: [
+      { de: 'Stundenzehrung', en: 'Hourwither' }, { de: 'Sandschlaf', en: 'Sandsleep' }, { de: 'Altersstaub', en: 'Agedust' },
+      { de: 'Gleichlauf', en: 'Same Hour' }, { de: 'Rückriss', en: 'Backtear' }, { de: 'Vergessensucht', en: 'The Forgetting' }
+    ],
+    bilder: [
+      { de: 'Die Zeit', en: 'Time' }, { de: 'Ein Nachhall', en: 'An echo' }, { de: 'Eine Lücke', en: 'A gap' },
+      { de: 'Die späte Stunde', en: 'The late hour' }
+    ],
+    gegenmittel: [
+      { de: 'in voller Ruhe', en: 'at full rest' }, { de: 'mit einem festen Anker', en: 'with a firm anchor' }, { de: 'in vertrauter Umgebung', en: 'in familiar surroundings' },
+      { de: 'in völliger Ruhe', en: 'in complete quiet' }
+    ],
+    orte: [
+      { de: 'in der stehenden Kammer', en: 'in the stilled chamber' }, { de: 'am gesprungenen Glas', en: 'at the cracked glass' }, { de: 'im Raum ohne Fenster', en: 'in the room without windows' },
+      { de: 'an der falschen Stelle', en: 'at the wrong place' }
+    ]
+  },
+  {
+    id: 'klang',
+    name: { de: 'Klang', en: 'Sound' },
+    spuren: ['sinne', 'geist', 'handlung'],
+    erstes: [
+      { de: 'Glocken', en: 'Bell' }, { de: 'Hall', en: 'Echo' }, { de: 'Schrill', en: 'Shrill' },
+      { de: 'Stumm', en: 'Mute' }, { de: 'Summ', en: 'Hum' }, { de: 'Dröhn', en: 'Drone' },
+      { de: 'Ton', en: 'Note' }, { de: 'Lärm', en: 'Din' }
+    ],
+    zweites: [
+      { de: 'hall', en: 'peal' }, { de: 'klang', en: 'tone' }, { de: 'taubheit', en: 'deafness' },
+      { de: 'ruf', en: 'call' }, { de: 'zwang', en: 'compulsion' }, { de: 'faden', en: 'thread' },
+      { de: 'sturm', en: 'storm' }, { de: 'kopf', en: 'head' }
+    ],
+    einzeln: [
+      { de: 'Glockenhall', en: 'Bellringing' }, { de: 'Ohrensturm', en: 'Earstorm' }, { de: 'Stummer Ton', en: 'Silent Note' },
+      { de: 'Summfieber', en: 'Humming Fever' }, { de: 'Dröhnkopf', en: 'Droning Head' }, { de: 'Schrillruf', en: 'Shrill Call' }
+    ],
+    bilder: [
+      { de: 'Der Ton', en: 'The note' }, { de: 'Ein Summen', en: 'A humming' }, { de: 'Der Hall', en: 'The echo' },
+      { de: 'Das Dröhnen', en: 'The drone' }
+    ],
+    gegenmittel: [
+      { de: 'in der Stille', en: 'in silence' }, { de: 'mit verstopften Ohren', en: 'with stopped ears' }, { de: 'an einem stillen Ort', en: 'in a quiet place' },
+      { de: 'tief unter der Erde', en: 'deep underground' }
+    ],
+    orte: [
+      { de: 'im Glockenturm', en: 'in the bell tower' }, { de: 'in der hallenden Halle', en: 'in the echoing hall' }, { de: 'am singenden Stein', en: 'at the singing stone' },
+      { de: 'mitten in der Schlacht', en: 'in the middle of the battle' }
+    ]
+  },
+  {
+    id: 'traum',
+    name: { de: 'Traum', en: 'Dream' },
+    spuren: ['geist', 'sinne', 'handlung'],
+    erstes: [
+      { de: 'Traum', en: 'Dream' }, { de: 'Schlaf', en: 'Sleep' }, { de: 'Wach', en: 'Waking' },
+      { de: 'Nacht', en: 'Night' }, { de: 'Mohn', en: 'Poppy' }, { de: 'Schleier', en: 'Veil' },
+      { de: 'Falsch', en: 'False' }, { de: 'Halb', en: 'Half' }
+    ],
+    zweites: [
+      { de: 'fessel', en: 'bind' }, { de: 'wandel', en: 'walk' }, { de: 'gast', en: 'guest' },
+      { de: 'sucht', en: 'craving' }, { de: 'faden', en: 'thread' }, { de: 'wache', en: 'vigil' },
+      { de: 'riss', en: 'tear' }, { de: 'blick', en: 'sight' }
+    ],
+    einzeln: [
+      { de: 'Traumfessel', en: 'Dreambind' }, { de: 'Wachschleier', en: 'Waking Veil' }, { de: 'Mohnsucht', en: 'Poppy Craving' },
+      { de: 'Halbwache', en: 'Half Vigil' }, { de: 'Falschnacht', en: 'False Night' }, { de: 'Schlafwandel', en: 'Sleepwalk' }
+    ],
+    bilder: [
+      { de: 'Der Traum', en: 'The dream' }, { de: 'Ein Schleier', en: 'A veil' }, { de: 'Die Müdigkeit', en: 'The weariness' },
+      { de: 'Ein Sog ins Dunkle', en: 'A pull into the dark' }
+    ],
+    gegenmittel: [
+      { de: 'in ungestörtem Schlaf', en: 'in undisturbed sleep' }, { de: 'mit kaltem Wasser', en: 'with cold water' }, { de: 'in hellem Tageslicht', en: 'in broad daylight' },
+      { de: 'mit starkem Tee', en: 'with strong tea' }
+    ],
+    orte: [
+      { de: 'im Mohnfeld', en: 'in the poppy field' }, { de: 'unter dem falschen Mond', en: 'under the false moon' }, { de: 'in der Kammer ohne Uhr', en: 'in the chamber without a clock' },
+      { de: 'am Bett des Schläfers', en: 'at the sleeper’s bed' }
+    ]
+  },
+  {
+    id: 'tiefe',
+    name: { de: 'Tiefe', en: 'Depths' },
+    spuren: ['koerper', 'bewegung', 'sinne'],
+    erstes: [
+      { de: 'Tief', en: 'Deep' }, { de: 'Druck', en: 'Pressure' }, { de: 'Salz', en: 'Salt' },
+      { de: 'Ertrink', en: 'Drowning' }, { de: 'Flut', en: 'Tide' }, { de: 'Schlund', en: 'Maw' },
+      { de: 'Grund', en: 'Bottom' }, { de: 'Nass', en: 'Sodden' }
+    ],
+    zweites: [
+      { de: 'last', en: 'weight' }, { de: 'atem', en: 'breath' }, { de: 'griff', en: 'grip' },
+      { de: 'zehrung', en: 'wasting' }, { de: 'ruf', en: 'call' }, { de: 'stille', en: 'silence' },
+      { de: 'fessel', en: 'shackle' }, { de: 'husten', en: 'cough' }
+    ],
+    einzeln: [
+      { de: 'Wasserlunge', en: 'Waterlung' }, { de: 'Druckstarre', en: 'Pressure Lock' }, { de: 'Salzhusten', en: 'Salt Cough' },
+      { de: 'Flutruf', en: 'Tidecall' }, { de: 'Grundstille', en: 'Deep Silence' }, { de: 'Ertrinkenslast', en: 'Drowning Weight' }
+    ],
+    bilder: [
+      { de: 'Das Wasser', en: 'The water' }, { de: 'Der Druck', en: 'The pressure' }, { de: 'Ein Husten', en: 'A cough' },
+      { de: 'Die Tiefe', en: 'The deep' }
+    ],
+    gegenmittel: [
+      { de: 'an frischer Luft', en: 'in fresh air' }, { de: 'an Land', en: 'ashore' }, { de: 'mit warmem Trank', en: 'with a warm draught' },
+      { de: 'unter kundigen Händen', en: 'under skilled hands' }
+    ],
+    orte: [
+      { de: 'unter Wasser', en: 'underwater' }, { de: 'im gefluteten Gang', en: 'in the flooded passage' }, { de: 'an der Küste im Sturm', en: 'on the coast in a storm' },
+      { de: 'am Grund', en: 'at the bottom' }
     ]
   }
 ];
@@ -414,11 +756,24 @@ export interface Sinnbild {
 
 export const SINNBILDER: readonly Sinnbild[] = [
   { zeichen: '❄', farbe: '#6aa9e9', themen: ['kaelte'] },
-  { zeichen: '☀', farbe: '#e0a33a', themen: ['hitze', 'licht'] },
-  { zeichen: '☣', farbe: '#7fa93a', themen: ['faeulnis'] },
-  { zeichen: '☾', farbe: '#9a7ad6', themen: ['wahnsinn', 'leere'] },
+  { zeichen: '✹', farbe: '#d9662f', themen: ['feuer'] },
+  { zeichen: '☀', farbe: '#e0a33a', themen: ['hitze'] },
+  { zeichen: '☠', farbe: '#7a9b4e', themen: ['gift'] },
+  { zeichen: '✳', farbe: '#8fbf4a', themen: ['saeure'] },
+  { zeichen: '☣', farbe: '#7f8a3a', themen: ['faeulnis'] },
+  { zeichen: '✶', farbe: '#7fb0e0', themen: ['sturm'] },
+  { zeichen: '◆', farbe: '#9a9086', themen: ['stein'] },
+  { zeichen: '✱', farbe: '#b8434a', themen: ['blut'] },
+  { zeichen: '◐', farbe: '#6f6a85', themen: ['schatten'] },
+  { zeichen: '☾', farbe: '#9a7ad6', themen: ['wahnsinn'] },
   { zeichen: '✦', farbe: '#d9c26a', themen: ['licht'] },
-  { zeichen: '✧', farbe: '#7a8ca8', themen: ['leere'] },
-  { zeichen: '☠', farbe: '#c05a53', themen: [] },
-  { zeichen: '◈', farbe: '#5aa5a0', themen: [] }
+  { zeichen: '◈', farbe: '#5aa5a0', themen: ['leere'] },
+  { zeichen: '⌛', farbe: '#c2a878', themen: ['zeit'] },
+  { zeichen: '♪', farbe: '#b07fc4', themen: ['klang'] },
+  { zeichen: '☁', farbe: '#8c9ec4', themen: ['traum'] },
+  { zeichen: '≈', farbe: '#4e8fa0', themen: ['tiefe'] },
+  // Zwei ohne festes Thema. Sie greifen, wenn jemand ein Thema hinzufuegt
+  // und das Sinnbild vergisst — besser ein neutrales Zeichen als keins.
+  { zeichen: '✧', farbe: '#7a8ca8', themen: [] },
+  { zeichen: '⌂', farbe: '#9a8f7a', themen: [] }
 ];

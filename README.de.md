@@ -386,7 +386,9 @@ Die Richtwerte stammen aus einer CC-BY-Quelle, genannt in
 ## Status Effect Creator
 
 - **Eigene Zustände mit Stufen** — Kälte, die sich aufbaut, ein Fluch, der
-  beim dritten Mal etwas anderes tut. Die Stufen sind Stichpunkte, keine
+  beim dritten Mal etwas anderes tut. Siebzehn Themen: Feuer, Kälte, Hitze,
+  Gift, Säure, Sturm, Stein, Fäulnis, Blut, Schatten, Licht, Leere,
+  Wahnsinn, Zeit, Klang, Traum und Tiefe. Die Stufen sind Stichpunkte, keine
   Prosa; einen Absatz liest am Tisch niemand.
 - **Jeder Zustand wird gewogen**, und das Gewicht steht nie ohne Vergleich
   da: „etwa so viel wie Erschöpfung 5". Was es ausdrücklich nicht sagt: ob er

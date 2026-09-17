@@ -203,8 +203,28 @@ function waehleWirkung(
 /** Der Name: zusammengesetzt oder einzeln, wie im Monster Creator. */
 export function baueNamen(thema: Thema, sprache: Sprache, rng: () => number): string {
   if (thema.einzeln.length > 0 && rng() < 0.4) return text(zieh(thema.einzeln, rng), sprache);
+
   const erstes = text(zieh(thema.erstes, rng), sprache);
-  const zweites = text(zieh(thema.zweites, rng), sprache);
+
+  /*
+   * Der zweite Teil darf nicht derselbe sein wie der erste.
+   *
+   * Sonst kommt „Lochloch" heraus — beide Listen enthalten „Loch", und im
+   * Deutschen wird zusammengeschrieben. Ein paar Versuche reichen; danach
+   * bleibt es, wie es ist, statt in einer Schleife zu haengen.
+   */
+  const doppelt = (a: string, b: string) => {
+    const x = a.toLowerCase();
+    const y = b.toLowerCase();
+    // Nicht nur wortgleich: „Fern" und „ferne" ergeben „Fernferne".
+    return x.startsWith(y) || y.startsWith(x);
+  };
+
+  let zweites = text(zieh(thema.zweites, rng), sprache);
+  for (let versuch = 0; versuch < 8 && doppelt(erstes, zweites); versuch += 1) {
+    zweites = text(zieh(thema.zweites, rng), sprache);
+  }
+
   return sprache === 'en'
     ? `${erstes} ${zweites.charAt(0).toUpperCase()}${zweites.slice(1)}`
     : `${erstes}${zweites}`;
@@ -222,7 +242,7 @@ const VERBEN: readonly { de: string; en: string }[] = [
   { de: 'frisst sich', en: 'eats its way' },
   { de: 'legt sich', en: 'settles' },
   { de: 'zieht', en: 'draws' },
-  { de: 'sitzt', en: 'sits' },
+  { de: 'drängt sich', en: 'presses' },
   { de: 'sinkt', en: 'sinks' }
 ];
 
