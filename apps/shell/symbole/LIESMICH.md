@@ -16,7 +16,9 @@ Der Name ist die Kennung des Werkzeugs:
 | `dice.png`        | Würfel             |
 | `npc.png`         | NPC Creator        |
 | `inspiration.png` | Inspirationshilfe  |
+| `monster.png`     | Monster Creator    |
 | `encounter.png`   | Begegnungen        |
+| `zustaende.png`   | Status Effect Creator (geplant) |
 
 Gelesen wird jede Bilddatei im Ordner, ohne feste Liste — der Dateiname ist
 die Kennung. Deshalb gilt ein Bild auch für ein Werkzeug, das es noch nicht

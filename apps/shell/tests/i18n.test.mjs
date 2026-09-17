@@ -39,6 +39,7 @@ const GLEICH_ERLAUBT = new Set([
   'app.initiative.name',
   'app.npc.name',
   'app.monster.name',
+  'app.zustaende.name',
   // Der Name des Anbieters und das Muster eines Anthropic-Schluessels: beides
   // ist keine Sprache, sondern eine Schreibweise.
   'settings.aiClaude',

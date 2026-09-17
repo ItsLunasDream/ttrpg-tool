@@ -45,12 +45,16 @@ test('Wuensche werden befolgt', () => {
   assert.equal(m.rolleId, 'schuetze');
 });
 
-test('der Name passt zum Thema und zur Sprache', () => {
-  const de = T.erzeugeMonster({ cr: '3', themaId: 'untot' }, 'de', wuerfelgeber(11));
-  const en = T.erzeugeMonster({ cr: '3', themaId: 'untot' }, 'en', wuerfelgeber(11));
-  // Deutsch zusammengeschrieben, Englisch getrennt.
-  assert.ok(!de.name.includes(' '), `„${de.name}" hat ein Leerzeichen`);
-  assert.ok(en.name.includes(' '), `„${en.name}" hat keins`);
+test('ein zusammengesetzter Name passt zur Sprache', () => {
+  // Fest gewuerfelt, damit wirklich die Zusammensetzung geprueft wird: seit
+  // es Einzelnamen gibt („Wiedergänger", „Revenant"), sagt ein Leerzeichen
+  // allein nichts mehr ueber die Sprache.
+  const immerZusammengesetzt = () => 0.5;
+  const untot = T.THEMEN.find((t) => t.id === 'untot');
+  const de = T.baueNamen(untot, 'de', immerZusammengesetzt);
+  const en = T.baueNamen(untot, 'en', immerZusammengesetzt);
+  assert.ok(!de.includes(' '), `„${de}" hat ein Leerzeichen`);
+  assert.ok(en.includes(' '), `„${en}" hat keins`);
 });
 
 test('die Rolle verschiebt gegenlaeufig, nicht nach oben', () => {
@@ -68,11 +72,14 @@ test('die Rolle verschiebt gegenlaeufig, nicht nach oben', () => {
   assert.ok(schuetze.schadenProRunde > brecher.schadenProRunde, 'und teilt nicht mehr aus');
 });
 
-test('die Anzahl der Faehigkeiten bleibt ueberschaubar', () => {
+test('die Anzahl der Faehigkeiten waechst mit dem Grad und bleibt lesbar', () => {
+  // Frueher war bei drei Schluss, auch auf Grad 30. Ein Endgegner mit drei
+  // Faehigkeiten ist keiner; acht liest am Tisch aber auch niemand.
+  const anzahl = (cr) => T.erzeugeMonster({ cr }, 'de', wuerfelgeber(17)).faehigkeiten.length;
   for (const cr of ['0', '1', '5', '12', '20', '30']) {
-    const m = T.erzeugeMonster({ cr }, 'de', wuerfelgeber(17));
-    assert.ok(m.faehigkeiten.length >= 1 && m.faehigkeiten.length <= 3, `CR ${cr}: ${m.faehigkeiten.length}`);
+    assert.ok(anzahl(cr) >= 1 && anzahl(cr) <= 8, `CR ${cr}: ${anzahl(cr)}`);
   }
+  assert.ok(anzahl('30') > anzahl('1'), 'Grad 30 hat nicht mehr als Grad 1');
 });
 
 test('keine Faehigkeit doppelt', () => {

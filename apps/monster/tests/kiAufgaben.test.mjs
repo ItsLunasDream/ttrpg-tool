@@ -41,7 +41,10 @@ test('beim ganzen Monster gehen die Richtwerte mit', () => {
   const ziel = T.richtwert('8');
   assert.ok(text.includes(String(ziel.tp)), 'Trefferpunkte fehlen');
   assert.ok(text.includes(String(ziel.schadenProRunde)), 'Schaden fehlt');
-  assert.ok(text.includes('drei'), 'die Obergrenze der Faehigkeiten fehlt');
+  // Die gewuenschte Zahl der Faehigkeiten haengt jetzt am Grad: auf Grad 8
+  // sind es vier, nicht pauschal drei.
+  assert.ok(/Liefere 4 Fähigkeiten/.test(text), 'die Zahl der Faehigkeiten fehlt');
+  assert.ok(text.includes('kategorie'), 'der Abschnitt je Faehigkeit fehlt');
 });
 
 test('eine kaputte Antwort liefert nichts, statt zu werfen', () => {
@@ -54,9 +57,42 @@ test('eine kaputte Antwort liefert nichts, statt zu werfen', () => {
 test('zu viele Faehigkeiten werden abgeschnitten', () => {
   const roh = T.uebernehmbar('monster', {
     name: 'Testbrocken',
-    faehigkeiten: Array.from({ length: 7 }, (_, i) => ({ name: `F${i}`, text: 'tut etwas' }))
+    faehigkeiten: Array.from({ length: 14 }, (_, i) => ({ name: `F${i}`, text: 'tut etwas' }))
   });
-  assert.equal(roh.faehigkeiten.length, 3);
+  // Acht ist die Obergrenze — so viele traegt auch ein Endgegner auf Grad 30.
+  assert.equal(roh.faehigkeiten.length, 8);
+});
+
+test('ein erfundener Abschnitt wird zu „passiv"', () => {
+  // Modelle schreiben hier gern „trait" oder „special".
+  const roh = T.uebernehmbar('monster', {
+    name: 'Testbrocken',
+    faehigkeiten: [
+      { name: 'A', text: 'x', kategorie: 'reaktion' },
+      { name: 'B', text: 'x', kategorie: 'special' },
+      { name: 'C', text: 'x' }
+    ]
+  });
+  assert.deepEqual(roh.faehigkeiten.map((f) => f.kategorie), ['reaktion', 'passiv', 'passiv']);
+});
+
+test('die KI darf keine legendaeren Aktionen vergeben', () => {
+  // Darueber entscheidet der Schalter, nicht das Modell.
+  const roh = T.uebernehmbar('monster', {
+    name: 'Testbrocken',
+    faehigkeiten: [{ name: 'A', text: 'x', kategorie: 'legendaer' }]
+  });
+  assert.equal(roh.faehigkeiten[0].kategorie, 'passiv');
+});
+
+test('der eigene Wunsch steht ganz oben in der Anweisung', () => {
+  const text = T.anweisung({ aufgabe: 'monster', cr: '5', wunsch: 'ein Sumpfhexer' }, 'de');
+  assert.ok(text.startsWith('Gewünscht ist: ein Sumpfhexer'), text.slice(0, 60));
+});
+
+test('ohne Wunsch steht nichts davon in der Anweisung', () => {
+  const text = T.anweisung({ aufgabe: 'monster', cr: '5' }, 'de');
+  assert.ok(!text.includes('Gewünscht'));
 });
 
 test('zu lange Texte werden gekuerzt', () => {

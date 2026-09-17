@@ -175,63 +175,6 @@ body {
 
 /* ---------- Steckbrief ---------- */
 
-.steckbrief {
-  background: var(--grund-hoch);
-  border: 1px solid var(--rand);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 12px;
-}
-
-.steckbrief h2 {
-  margin: 0;
-  font-size: 22px;
-}
-
-.steckbrief__zeile {
-  margin: 2px 0 8px;
-  color: var(--text-leise);
-  font-size: 12px;
-}
-
-.steckbrief__satz {
-  margin: 0 0 12px;
-}
-
-.steckbrief__werte {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-  margin: 0 0 12px;
-}
-
-.steckbrief__werte dt {
-  color: var(--text-leise);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.steckbrief__werte dd {
-  margin: 2px 0 0;
-  font-size: 18px;
-}
-
-.steckbrief__klein {
-  font-size: 12px;
-  color: var(--text-leise);
-}
-
-.steckbrief__faehigkeiten {
-  margin: 0;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* ---------- Der Befund ---------- */
-
 .befund {
   border: 1px solid var(--rand);
   border-left-width: 4px;
@@ -555,4 +498,197 @@ body {
 
 .alsLink:hover {
   text-decoration: underline;
+}
+
+/*
+ * Woher die Regeln kommen, und wie der Befund zustande kommt.
+ *
+ * Beides leise gesetzt: es ist beim ersten Mal wichtig und danach nie
+ * wieder, und es soll den Steckbrief nicht verdraengen.
+ */
+.kopf__regelwerk {
+  margin: 4px 0 0;
+  max-width: 62ch;
+  color: var(--text-leise);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.befund__erklaerung {
+  margin: 6px 0 10px;
+  color: var(--text-leise);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   Der Statblock
+   ==========================================================================
+
+   Aufbau und Aussehen an einem D&D-Statblock orientiert: heller Grund,
+   schmale Spalte, rotbraune Ueberschriften, waagerechte Linien als Trenner.
+
+   Das ist kein Selbstzweck. Wer seit Jahren leitet, liest einen Statblock
+   nicht, sondern springt darin — Ruestungsklasse oben, Aktionen unten. Ein
+   Block, der aussieht wie alles andere im Programm, zwingt zum Lesen, und
+   das kostet am Tisch jedes Mal ein paar Sekunden.
+
+   Der Block bleibt deshalb bewusst hell, auch wenn der Rest des Werkzeugs
+   dunkel ist: er ist das Blatt Papier, das man vor sich liegen hat.
+   ========================================================================== */
+
+.statblock {
+  --block-grund: #fdf6e8;
+  --block-text: #1c1a16;
+  --block-betont: #7a200d;
+  --block-linie: #9c6a3f;
+
+  background: var(--block-grund);
+  color: var(--block-text);
+  border: 1px solid var(--block-linie);
+  border-radius: 6px;
+  /* Oben und unten ein kraeftiger Balken, wie der Rahmen im Buch. */
+  border-top: 5px solid var(--block-betont);
+  border-bottom: 5px solid var(--block-betont);
+  padding: 14px 18px 16px;
+  max-width: 62ch;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  line-height: 1.4;
+}
+
+.statblock__kopf {
+  margin-bottom: 6px;
+}
+
+.statblock__name {
+  margin: 0;
+  font-size: 26px;
+  font-variant: small-caps;
+  letter-spacing: 0.01em;
+  color: var(--block-betont);
+  font-weight: 700;
+}
+
+.statblock__art {
+  margin: 0;
+  font-style: italic;
+  font-size: 13px;
+}
+
+/*
+ * Die Trennlinie.
+ *
+ * Im Buch ist sie eine spitz zulaufende Raute. Ein schmaler Keil aus
+ * zwei Dreiecken kommt dem nahe genug und braucht keine Bilddatei.
+ */
+.statblock__linie {
+  border: 0;
+  height: 5px;
+  margin: 8px 0;
+  background: var(--block-betont);
+  clip-path: polygon(0 0, 100% 2.5px, 0 5px);
+}
+
+.statblock__zeile {
+  margin: 1px 0;
+  font-size: 14px;
+}
+
+.statblock__zeile strong {
+  color: var(--block-betont);
+}
+
+.statblock__attribute {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  font-size: 14px;
+}
+
+.statblock__attribute th {
+  color: var(--block-betont);
+  font-variant: small-caps;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  padding-bottom: 2px;
+}
+
+.statblock__attribute td {
+  padding-bottom: 2px;
+}
+
+.statblock__mod {
+  opacity: 0.75;
+}
+
+/* Das Hauptattribut ist markiert: an ihm haengen Angriffsbonus und SG. */
+.statblock__haupt {
+  color: var(--block-linie);
+  font-size: 10px;
+  vertical-align: super;
+  margin-left: 2px;
+}
+
+.statblock__satz {
+  margin: 8px 0;
+  font-style: italic;
+  font-size: 14px;
+}
+
+.statblock__satz--klein {
+  font-size: 12.5px;
+  font-style: normal;
+  opacity: 0.85;
+}
+
+.statblock__ueberschrift {
+  margin: 14px 0 2px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--block-betont);
+  color: var(--block-betont);
+  font-variant: small-caps;
+  font-size: 19px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* Haengender Einzug, wie im Buch: die erste Zeile steht vor. */
+.statblock__eintrag {
+  margin: 6px 0;
+  padding-left: 14px;
+  text-indent: -14px;
+  font-size: 14px;
+}
+
+.statblock__summe {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* Das Wunschfeld fuer die KI. */
+.regler__wunsch {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.regler__wunsch textarea {
+  background: var(--grund-tisch);
+  border: 1px solid var(--rand);
+  border-radius: 7px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+
+.regler__wunsch textarea:focus {
+  outline: none;
+  border-color: var(--betont);
 }

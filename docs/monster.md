@@ -318,7 +318,7 @@ Der obere Teil dieser Datei ist das Konzept von vorher und bleibt so stehen.
 Hier steht, was davon tatsächlich gebaut ist, damit man beides
 auseinanderhalten kann.
 
-**Gebaut und geprüft** (`apps/monster`, 79 Tests plus ein Rauchtest in der
+**Gebaut und geprüft** (`apps/monster`, 117 Tests plus ein Rauchtest in der
 Hülle):
 
 - `richtwerte.ts` — die CC-BY-Tabelle von CR 0 bis 30, wörtlich übernommen,
@@ -340,8 +340,57 @@ Hülle):
 - `kiAufgaben.ts` — die KI schlägt vor, die Prüfung entscheidet. Ihre Zahlen
   werden stillschweigend auf die Richtwerte gezogen; was sie ursprünglich
   wollte, bleibt sichtbar. Ein Handeintrag wird nur gewarnt, nicht geändert.
+- `attribute.ts` — die sechs Attribute, mit einer harten Regel:
+  Übungsbonus plus Modifikator des Hauptattributs ergibt den Angriffsbonus.
+  Welches Attribut das ist, entscheiden Art und Rolle. Alles andere an den
+  Attributen ist Geschmack und wird nicht beurteilt.
+- `bewegung.ts` — 30 Fuß zu Fuß, dazu klettern, schwimmen, fliegen oder
+  graben, aber nur über eine Chance und höchstens zwei davon.
+- `angriffe.ts` — Waffen, Reichweiten, Schadensarten und Flächen. Der
+  Rundenschaden wird aufgeteilt, nicht erhöht.
+- `widerstaende.ts` — Resistenzen, Immunitäten, Verwundbarkeiten, alles über
+  Chancen.
 - Oberfläche mit Erzeugen, Prüfen von außen, Sammlung als Liste und als
-  Kacheln, Variante anlegen, Markdown-Export.
+  Kacheln, Variante anlegen, Markdown-Export — der Steckbrief sieht aus wie
+  ein Statblock im Buch.
+
+## Was aus dem Gebrauch dazukam
+
+Nach der ersten Runde am echten Werkzeug. Die Punkte stehen hier, weil sie
+das Konzept an mehreren Stellen korrigieren:
+
+- **Die Zahlen allein sind kein Statblock.** „Schaden pro Runde: 41" sagt
+  nicht, was passiert, wenn das Monster dran ist. Jetzt steht die Waffe da,
+  die Reichweite, der Trefferbonus, der Würfelausdruck und die Schadensart —
+  und die Summe darunter, klein, als das, was sie ist: die Zahl, mit der die
+  Prüfung rechnet.
+- **Die Schadensart hängt an der Waffe, die Waffe am Wesen.** Ein Bogen macht
+  Stich, eine Axt Hieb, ein Odem das, was zum Wesen passt. Eine Bestie führt
+  keine Hellebarde. Das ist die Stelle, an der ein Generator glaubwürdig wird
+  oder eben nicht.
+- **Zusatzattribute sind kein Pflichtprogramm.** Resistenzen, Immunitäten,
+  Flächenangriffe und zusätzliche Gangarten hängen alle an Chancen, und die
+  meisten Monster bekommen nichts davon. Ein Bestiarium, in dem jedes Wesen
+  alles hat, ist langweilig und nimmt den wenigen, bei denen es zählt, die
+  Wirkung.
+- **Die Fähigkeiten skalieren bis zum Schluss.** Vorher war bei drei
+  Schluss, auch auf Grad 30. Jetzt sind es dort sieben, mit einem Wurf von
+  plus/minus eins.
+- **Legendär an/aus muss man sehen.** Vorher änderte der Schalter nur eine
+  Zahl. Jetzt gibt es den Abschnitt „Legendäre Aktionen" mit eigenen
+  Einträgen, und die KI darf sie nicht selbst vergeben.
+- **Die KI bekommt einen freien Wunsch.** „Ein Sumpfhexer, der Ertrunkene
+  ruft" sagt mehr als jede Auswahlliste. An den Zahlen ändert das nichts.
+
+### Ein Fehler, den erst die Resistenzen sichtbar gemacht haben
+
+Die Prüfung verglich die Spannen gegen die **rohen** Trefferpunkte, zeigte
+aber die **wirksamen** an. Solange nur die Rüstungsklasse hineinspielte, war
+die Verschiebung klein genug, um in der Spanne unterzugehen. Mit Resistenzen
+nicht mehr: ein Konstrukt, das absichtlich weniger rohe Trefferpunkte
+bekommt, weil es länger durchhält, fiel durch die eigene Prüfung — und zwar
+dafür, dass es richtig gebaut war. Verglichen wird jetzt, was das Monster
+aushält.
 
 **Zwei Lücken, die bewusst offen sind:**
 

@@ -40,6 +40,15 @@ export interface Werte {
    */
   readonly resistenzen?: number;
   readonly immunitaeten?: number;
+  /**
+   * Verwundbarkeiten, in derselben Gewichtung wie die Resistenzen.
+   *
+   * Die Gegenrichtung: wer doppelten Schaden nimmt, haelt kuerzer durch als
+   * seine Trefferpunkte behaupten. Ohne diese Zeile waere eine
+   * Verwundbarkeit ein Nachteil, den der Grad nicht sieht — und damit ein
+   * Weg, ein Monster unter der Hand zu schwaechen.
+   */
+  readonly verwundbarkeiten?: number;
   /** Hat es legendaere Aktionen? Das ist kein Aufschlag, sondern ein Faktor. */
   readonly legendaer?: boolean;
 }
@@ -118,14 +127,26 @@ const DECKEL_WIDERSTAND = 0.5;
  */
 export const LEGENDAER_FAKTOR = 1.25;
 
+/**
+ * Wie viel die Widerstaende an wirksamen Trefferpunkten ausmachen.
+ *
+ * Als eigene Funktion, weil der Erzeuger sie GENAUSO braucht: er muss die
+ * rohen Trefferpunkte um denselben Anteil senken, den die Widerstaende
+ * hinzufuegen. Stuende die Rechnung zweimal da, liefe sie irgendwann
+ * auseinander, und dann waere ein Monster mit Resistenzen still zu stark.
+ */
+export function widerstandsAnteil(werte: Werte): number {
+  const roh =
+    (werte.resistenzen ?? 0) * JE_RESISTENZ +
+    (werte.immunitaeten ?? 0) * JE_IMMUNITAET -
+    (werte.verwundbarkeiten ?? 0) * JE_RESISTENZ;
+  return Math.max(-DECKEL_WIDERSTAND, Math.min(DECKEL_WIDERSTAND, roh));
+}
+
 /** Die wirksamen Trefferpunkte: was das Monster tatsaechlich aushaelt. */
 export function wirksameTp(werte: Werte, ziel: Richtwert): number {
-  const widerstand = Math.min(
-    DECKEL_WIDERSTAND,
-    (werte.resistenzen ?? 0) * JE_RESISTENZ + (werte.immunitaeten ?? 0) * JE_IMMUNITAET
-  );
   const ausRuestung = (werte.rk - ziel.rk) * RK_ZU_TP;
-  return werte.tp * (1 + widerstand + ausRuestung);
+  return werte.tp * (1 + widerstandsAnteil(werte) + ausRuestung);
 }
 
 /** Der wirksame Schaden: was es tatsaechlich austeilt. */
@@ -159,7 +180,18 @@ export function pruefe(werte: Werte, zielCr: string): Befund {
     wert: verteidigungWert,
     gemessen: Math.round(tpWirksam),
     erwartet: ziel.tp,
-    passt: werte.tp >= ziel.tpVon && werte.tp <= ziel.tpBis
+    /*
+     * Verglichen wird, was das Monster AUSHAELT, nicht was in der Zeile
+     * „Trefferpunkte" steht.
+     *
+     * Der Unterschied faellt erst auf, seit es Resistenzen gibt: ein
+     * Konstrukt mit Resistenz gegen Stich bekommt absichtlich weniger rohe
+     * Trefferpunkte, weil es laenger durchhaelt. Gegen die rohe Zahl
+     * geprueft fiel es durch — und zwar dafuer, dass es richtig gebaut war.
+     * Dieselbe Ueberlegung galt vorher schon fuer die Ruestungsklasse, nur
+     * war die Verschiebung dort klein genug, um in der Spanne unterzugehen.
+     */
+    passt: tpWirksam >= ziel.tpVon && tpWirksam <= ziel.tpBis
   };
 
   /*
@@ -181,7 +213,9 @@ export function pruefe(werte: Werte, zielCr: string): Befund {
     wert: angriffWert,
     gemessen: Math.round(schadenWirksam),
     erwartet: ziel.schadenProRunde,
-    passt: werte.schadenProRunde >= schadenVon && werte.schadenProRunde <= schadenBis
+    // Und ebenso beim Schaden: legendaere Aktionen senken den rohen
+    // Rundenschaden, weil das Monster oefter drankommt.
+    passt: schadenWirksam >= schadenVon && schadenWirksam <= schadenBis
   };
 
   const abweichung = grad.wert - ziel.wert;

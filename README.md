@@ -21,6 +21,8 @@ the provider you entered.
 - **Monster Creator** — homebrew monsters at a challenge rating you choose.
   Every number is checked against the baselines, whether it came from the
   tables, from your keyboard or from an AI.
+- **Status Effect Creator** — custom conditions with levels, weighed against
+  the ones everyone knows, with a card to read aloud at the table.
 - **TTRPG Map Editor** — draw battlemaps and world maps, export as Universal
   VTT.
 
@@ -88,6 +90,7 @@ apps/dice/         Dice
 apps/npc/          NPC Creator
 apps/inspiration/  Inspiration
 apps/monster/      Monster Creator
+apps/zustaende/    Status Effect Creator
 packages/dice/     Reading and rolling dice expressions
 packages/i18n/     Language choice and text substitution
 packages/motion/   Timings, curves and base animations
@@ -356,6 +359,13 @@ the generator.
   by the same percentage moves them by different numbers of ratings. A test
   generates every rating times every role and insists each result passes the
   tool's own check.
+- **A real stat block, not a column of numbers.** Ability scores, speed and
+  every attack spelled out: weapon, reach, to-hit, dice and damage type. The
+  weapon fits the creature — a beast does not wield a halberd.
+- **Resistances, immunities and vulnerabilities are optional.** They come up
+  by chance, more often at high ratings, and most monsters get none. What a
+  monster survives longer is taken off its raw hit points, so it stays on its
+  rating.
 - **Check an existing monster** without generating one: type in numbers from
   a book or from an older campaign and see what the rating says.
 - **The collection** holds what you built, as tiles or a list, with one
@@ -367,6 +377,26 @@ the generator.
   numbers in a file called "baselines" would be worse than none.
 
 The baselines come from a CC-BY source, credited in [NOTICE.md](NOTICE.md).
+
+## Status Effect Creator
+
+- **Custom conditions with levels** — cold that builds up, a curse that does
+  something else the third time. Seventeen themes: fire, cold, heat, venom,
+  acid, storm, stone, rot, blood, shadow, light, void, madness, time, sound,
+  dream and the depths. The levels are bullet points, not prose;
+  nobody reads a paragraph at the table.
+- **Every condition gets weighed**, and the weight comes with a comparison:
+  "about as much as Exhaustion 5". What it explicitly does not say is whether
+  the condition is too harsh for your table — that depends on how often you
+  get it, and only your table knows that.
+- **The parts have to fit each other.** A condition that ends on your next
+  turn cannot be eased by an hour at the fire. Duration, relief and worsening
+  all carry a timescale, and a mismatch is flagged.
+- **Packages**: several conditions in one roll, sharing a theme, with the
+  effects spread across all of them — so the same disadvantage does not hit
+  three times.
+- **A card to read aloud**: the front is what the character feels, the back
+  is the rule for you. Print it or hold it up on screen.
 
 ## Dice
 

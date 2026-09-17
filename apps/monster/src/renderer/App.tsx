@@ -11,13 +11,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import type { Eintrag } from '../shared/ablage';
 import { alsMarkdown, zuId } from '../shared/ablage';
-import {
-  alsVariante,
-  erzeugeMonster,
-  schadenJeAngriff,
-  wuerfleNeu,
-  type Monster
-} from '../shared/erzeuge';
+import { alsVariante, erzeugeMonster, wuerfleNeu, type Monster } from '../shared/erzeuge';
+import type { Kampfweite } from '../shared/angriffe';
 import { zieheKiNach, type RohMonster } from '../shared/kiAufgaben';
 import { pruefe, type Vorschlag, type Werte } from '../shared/pruefung';
 import { RICHTWERTE } from '../shared/richtwerte';
@@ -25,6 +20,7 @@ import { ROLLEN, THEMEN, text } from '../shared/tabellen';
 import { api } from './api';
 import { Befund } from './Befund';
 import { Sammlung } from './Sammlung';
+import { Statblock } from './Statblock';
 import { getLanguage, setLanguage, t, type TextKey } from './i18n';
 
 /** Der Zufall der Oberflaeche. Die reinen Funktionen bekommen ihn uebergeben. */
@@ -39,6 +35,9 @@ export function App() {
   const [themaId, setThemaId] = useState('');
   const [rolleId, setRolleId] = useState('');
   const [legendaer, setLegendaer] = useState(false);
+  const [kampfweite, setKampfweite] = useState<Kampfweite>('egal');
+  /** Was der KI thematisch gesagt wird. Leer heisst: nur die Regler zaehlen. */
+  const [kiWunsch, setKiWunsch] = useState('');
   const [monster, setMonster] = useState<Monster | null>(null);
   const [eintraege, setEintraege] = useState<Eintrag[]>([]);
   const [kiDa, setKiDa] = useState(false);
@@ -83,7 +82,7 @@ export function App() {
     setKiVorschlag(null);
     setMonster(
       erzeugeMonster(
-        { cr, themaId: themaId || undefined, rolleId: rolleId || undefined, legendaer },
+        { cr, themaId: themaId || undefined, rolleId: rolleId || undefined, legendaer, kampfweite },
         getLanguage(),
         wuerfel
       )
@@ -103,7 +102,13 @@ export function App() {
     setMeldung(null);
     try {
       const ergebnis = await api.ki.frage(
-        { aufgabe: 'monster', cr, themaId: themaId || undefined, rolleId: rolleId || undefined },
+        {
+          aufgabe: 'monster',
+          cr,
+          themaId: themaId || undefined,
+          rolleId: rolleId || undefined,
+          wunsch: kiWunsch.trim() || undefined
+        },
         getLanguage()
       );
       if (!ergebnis.ok || !ergebnis.wert) {
@@ -116,7 +121,7 @@ export function App() {
       // Das Geruest kommt aus den Tabellen, die Prosa von der KI: so ist
       // alles gefuellt, was das Modell auslaesst.
       const grundlage = erzeugeMonster(
-        { cr, themaId: themaId || undefined, rolleId: rolleId || undefined, legendaer },
+        { cr, themaId: themaId || undefined, rolleId: rolleId || undefined, legendaer, kampfweite },
         getLanguage(),
         wuerfel
       );
@@ -218,6 +223,9 @@ export function App() {
         <div>
           <h1>{t('titel')}</h1>
           <p className="kopf__satz">{t('untertitel')}</p>
+          {/* Woran sich das Werkzeug haelt, steht dort, wo man es beim
+              ersten Blick sieht — nicht erst im Ueber-Dialog. */}
+          <p className="kopf__regelwerk">{t('hinweis.dnd')}</p>
         </div>
         <nav className="reiter">
           {(['bauen', 'sammlung', 'pruefen'] as const).map((id) => (
@@ -270,6 +278,16 @@ export function App() {
                 ))}
               </select>
             </label>
+            <label>
+              {t('feld.kampfweite')}
+              <select value={kampfweite} onChange={(e) => setKampfweite(e.target.value as Kampfweite)}>
+                {(['egal', 'nah', 'fern', 'gemischt'] as const).map((id) => (
+                  <option key={id} value={id}>
+                    {t(`kampfweite.${id}` as TextKey)}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="regler__kaestchen">
               <input type="checkbox" checked={legendaer} onChange={(e) => setLegendaer(e.target.checked)} />
               {t('feld.legendaer')}
@@ -286,11 +304,29 @@ export function App() {
                 <span className="hinweis hinweis--klein">{t('ki.aus')}</span>
               )}
             </div>
+
+            {/*
+              Der freie Wunsch steht unter dem KI-Knopf und nicht zwischen den
+              Reglern: er wirkt nur auf die KI, und daneben zu stehen waere
+              ein Versprechen, das der Wuerfel nicht halten kann.
+            */}
+            {kiDa && (
+              <label className="regler__wunsch">
+                {t('feld.kiWunsch')}
+                <textarea
+                  value={kiWunsch}
+                  onChange={(e) => setKiWunsch(e.target.value)}
+                  placeholder={t('feld.kiWunschBeispiel')}
+                  rows={3}
+                />
+                <span className="hinweis hinweis--klein">{t('feld.kiWunschHinweis')}</span>
+              </label>
+            )}
           </section>
 
           {monster && befund && (
             <>
-              <Steckbrief monster={monster} />
+              <Statblock monster={monster} />
               <Befund befund={befund} onUebernehmen={uebernimmVorschlag} />
 
               {kiVorschlag && (
@@ -320,6 +356,12 @@ export function App() {
                 </button>
                 <button type="button" className="knopf knopf--klein" onClick={() => setMonster(wuerfleNeu(monster, 'faehigkeiten', getLanguage(), wuerfel))}>
                   {t('knopf.neueFaehigkeiten')}
+                </button>
+                <button type="button" className="knopf knopf--klein" onClick={() => setMonster(wuerfleNeu(monster, 'angriffe', getLanguage(), wuerfel))}>
+                  {t('knopf.neueAngriffe')}
+                </button>
+                <button type="button" className="knopf knopf--klein" onClick={() => setMonster(wuerfleNeu(monster, 'bewegung', getLanguage(), wuerfel))}>
+                  {t('knopf.neueBewegung')}
                 </button>
                 <button type="button" className="knopf knopf--klein" onClick={() => setMonster(wuerfleNeu(monster, 'werte', getLanguage(), wuerfel))}>
                   {t('knopf.neueWerte')}
@@ -389,49 +431,5 @@ export function App() {
         </main>
       )}
     </div>
-  );
-}
-
-function Steckbrief({ monster }: { readonly monster: Monster }) {
-  return (
-    <section className="steckbrief">
-      <h2>{monster.name}</h2>
-      <p className="steckbrief__zeile">
-        {monster.thema} · {monster.rolle} · {t('feld.cr')} {monster.cr}
-        {monster.werte.legendaer ? ' · ' + t('feld.legendaer') : ''}
-      </p>
-      <p className="steckbrief__satz">{monster.satz}</p>
-      <dl className="steckbrief__werte">
-        <div>
-          <dt>{t('werte.tp')}</dt>
-          <dd>{monster.werte.tp}</dd>
-        </div>
-        <div>
-          <dt>{t('werte.rk')}</dt>
-          <dd>{monster.werte.rk}</dd>
-        </div>
-        <div>
-          <dt>{t('werte.schaden')}</dt>
-          <dd>
-            {monster.werte.schadenProRunde}
-            <span className="steckbrief__klein">
-              {' '}
-              ({monster.angriffe} × {schadenJeAngriff(monster)} {monster.schadensart})
-            </span>
-          </dd>
-        </div>
-        <div>
-          <dt>{t('werte.bonus')}</dt>
-          <dd>+{monster.werte.angriffsbonus}</dd>
-        </div>
-      </dl>
-      <ul className="steckbrief__faehigkeiten">
-        {monster.faehigkeiten.map((f) => (
-          <li key={f.name}>
-            <strong>{f.name}.</strong> {f.text}
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }

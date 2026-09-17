@@ -233,6 +233,32 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
         en: 'What you save lives under “Collection”, as tiles or a list. One field searches name, type and rating at once.'
       }
     ]
+  },
+  {
+    id: 'zustaende',
+    titel: { de: 'Status Effect Creator', en: 'Status Effect Creator' },
+    satz: {
+      de: 'Eigene Zustände mit Stufen — Kälte, die sich aufbaut, ein Fluch, der beim dritten Mal etwas anderes tut.',
+      en: 'Custom conditions with levels — cold that builds up, a curse that does something else the third time.'
+    },
+    punkte: [
+      {
+        de: 'Art, Thema, Härte und Stufenzahl einstellen, würfeln. Jede Stufe ist schlimmer als die davor.',
+        en: 'Set kind, theme, severity and level count, then roll. Every level is worse than the one before.'
+      },
+      {
+        de: 'Die Stufen sind Stichpunkte, keine Prosa. Wer Sätze will, lässt sie von der KI ausformulieren.',
+        en: 'Levels are bullet points, not prose. If you want sentences, have the AI write them out.'
+      },
+      {
+        de: 'Unter dem Blatt steht das Gewicht — wie schwer der Zustand wiegt, und wie viel das im Vergleich zu bekannten ist.',
+        en: 'Below the sheet sits the weight — how much the condition weighs, and how that compares to familiar ones.'
+      },
+      {
+        de: 'Was es ausdrücklich NICHT sagt: ob er für deine Runde zu hart ist. Das hängt daran, wie oft man ihn bekommt.',
+        en: 'What it explicitly does NOT say: whether it is too harsh for your table. That depends on how often you get it.'
+      }
+    ]
   }
 ];
 

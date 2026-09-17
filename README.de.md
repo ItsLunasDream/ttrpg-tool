@@ -21,6 +21,8 @@ auch die spricht nur mit dem eingetragenen Anbieter.
 - **Monster Creator** — Homebrew-Monster zu einem Grad, den du vorgibst.
   Jede Zahl wird gegen die Richtwerte geprüft, egal ob sie aus den Tabellen,
   von der Tastatur oder von einer KI kam.
+- **Status Effect Creator** — eigene Zustände mit Stufen, gewogen an denen,
+  die jeder kennt, mit einer Karte zum Vorlesen am Tisch.
 - **TTRPG Map Editor** — Battlemaps und Weltkarten zeichnen, Export als
   Universal VTT.
 
@@ -89,6 +91,7 @@ apps/dice/         Würfel
 apps/npc/          NPC Creator
 apps/inspiration/  Inspirationshilfe
 apps/monster/      Monster Creator
+apps/zustaende/    Status Effect Creator
 packages/dice/     Würfelausdrücke lesen und werfen
 packages/i18n/     Sprachwahl und Textersetzung
 packages/motion/   Zeiten, Kurven und Grundanimationen
@@ -359,6 +362,14 @@ Prüfung, nicht der Erzeuger.
   dieselben Prozente verschieben also um verschieden viele Grade. Ein Test
   erzeugt alle Grade mal alle Rollen und besteht darauf, dass jedes Ergebnis
   die eigene Prüfung besteht.
+- **Ein echter Statblock, keine Zahlenkolonne.** Attribute, Bewegung und
+  jeder Angriff ausgeschrieben: Waffe, Reichweite, Trefferbonus, Würfel und
+  Schadensart. Die Waffe passt zum Wesen — eine Bestie führt keine
+  Hellebarde.
+- **Resistenzen, Immunitäten und Verwundbarkeiten sind keine Pflicht.** Sie
+  kommen über Chancen, mit dem Grad häufiger, und die meisten Monster
+  bekommen nichts. Was ein Monster länger aushalten lässt, wird von seinen
+  rohen Trefferpunkten abgezogen — so bleibt es auf seinem Grad.
 - **Ein vorhandenes Monster prüfen**, ohne eines zu bauen: Zahlen aus einem
   Buch oder aus einer alten Kampagne eintippen und sehen, was der Grad sagt.
 - **Die Sammlung** zeigt Gebautes als Kacheln oder Liste, mit einem Suchfeld
@@ -371,6 +382,26 @@ Prüfung, nicht der Erzeuger.
 
 Die Richtwerte stammen aus einer CC-BY-Quelle, genannt in
 [NOTICE.md](NOTICE.md).
+
+## Status Effect Creator
+
+- **Eigene Zustände mit Stufen** — Kälte, die sich aufbaut, ein Fluch, der
+  beim dritten Mal etwas anderes tut. Siebzehn Themen: Feuer, Kälte, Hitze,
+  Gift, Säure, Sturm, Stein, Fäulnis, Blut, Schatten, Licht, Leere,
+  Wahnsinn, Zeit, Klang, Traum und Tiefe. Die Stufen sind Stichpunkte, keine
+  Prosa; einen Absatz liest am Tisch niemand.
+- **Jeder Zustand wird gewogen**, und das Gewicht steht nie ohne Vergleich
+  da: „etwa so viel wie Erschöpfung 5". Was es ausdrücklich nicht sagt: ob er
+  für deine Runde zu hart ist. Das hängt daran, wie oft man ihn bekommt, und
+  das weiß nur dein Tisch.
+- **Die Teile müssen zueinander passen.** Ein Zustand, der bis zum nächsten
+  Zug anhält, lässt sich nicht durch eine Stunde am Feuer lindern. Dauer,
+  Linderung und Verschlimmerung tragen einen Takt, und ein Widerspruch wird
+  gemeldet.
+- **Pakete**: mehrere Zustände in einem Wurf, mit demselben Thema und über
+  alle verteilten Wirkungen — so greift nicht dreimal derselbe Nachteil an.
+- **Eine Karte zum Vorlesen**: vorn, was die Figur merkt, hinten die Regel
+  für dich. Zum Ausdrucken oder groß auf dem Schirm.
 
 ## Würfel
 

@@ -125,6 +125,119 @@ zufällig gleich, deshalb fällt es nicht auf.
 
 ## Erledigt
 
+### Zustände: von sechs auf siebzehn Themen
+
+Gemeldet mit dem Eindruck, es gäbe nur Eiseffekte. Der Eindruck kam von mir:
+in allen Bildern stand das Thema auf „Kälte". Es waren sechs — aber das war
+trotzdem dünn. Gift war nur eine *Art* und kein Thema, und Feuer, Säure,
+Sturm, Stein, Blut, Schatten, Zeit, Klang, Traum und Tiefe fehlten ganz.
+
+Jetzt siebzehn, jedes mit eigenen Namensteilen, Einzelnamen, Bildern,
+Gegenmitteln, Orten und einem eigenen Zeichen für den Tracker.
+
+Drei Sprachfehler hat erst die Breite gezeigt — die alten sechs sahen gut
+aus, weil ihre Bausteine zufällig zusammenpassten:
+
+- Ein Bild wie „Etwas fehlt" ist ein Nebensatz und ergab „Etwas fehlt zieht
+  in deine Hände". Bilder sind jetzt Nominalgruppen.
+- Ein Gegenmittel wie „nach einer vollen Rast" ergab „Eine Stunde nach einer
+  vollen Rast senkt ihn um 1" — zwei Zeitangaben hintereinander.
+- Das Verb „sitzt" verlangt den Dativ, die Stellen stehen im Akkusativ:
+  „sitzt in deine Hände".
+
+Dazu „Lochloch" und „Fernferne" (ein Name darf seinen Wortstamm nicht
+wiederholen) und im Englischen „The embers draws" (Plural mit
+Singularverb). Für alle fünf gibt es jetzt Tests, die über alle Themen
+laufen.
+
+### Status Effect Creator: das siebte Werkzeug
+
+Eigene Zustände mit Stufen — Kälte, die sich aufbaut, ein Fluch, der beim
+dritten Mal etwas anderes tut. Nach dem Konzept in
+[docs/statuseffekte.md](docs/statuseffekte.md), das dort unverändert stehen
+bleibt; was davon gebaut wurde, steht am Ende derselben Datei.
+
+Der Kern sind 40 Wirkungen nach Schwere, jede mit Punktwert. Eine Stufe ist
+eine Wirkung daraus — deshalb kommen die Tabellen ohne KI aus, und deshalb
+lässt sich ein Zustand überhaupt wiegen.
+
+**Die Waage ist bewusst keine Ampel.** Beim Monster gibt es ein Richtig, der
+Grad ist eine Rechnung. Hier nicht: ob ein Zustand zu hart ist, hängt daran,
+wie oft man ihn bekommt, und das weiß nur der Tisch. Was dasteht, ist eine
+Auskunft — so schwer wiegt er, so viel wie das da — und der einschränkende
+Satz steht dabei, in der Oberfläche und in der Datei.
+
+Dazu Pakete (mehrere Zustände in einem Wurf, mit über alle verteilten
+Wirkungen), die Karte zum Vorlesen (vorn, was die Figur merkt; hinten die
+Regel), Ablage als Markdown mit YAML-Kopf als spätere Schnittstelle zum
+Initiative Tracker, Sammlung mit Suche und die KI-Anbindung.
+
+Bei der KI wird **nicht nachgezogen, sondern zurückgewiesen**. Beim Monster
+gibt es einen richtigen Wert, auf den man ziehen kann; bei einem Zustand
+nicht. Geprüft wird nur, was sich nachzählen lässt.
+
+Fünf Fehler hat erst die eigene Prüfung gefunden: ein widerlegter Punktwert
+(„handlungsunfähig" wog weniger als „blind"), eine Rangfolge, die eine
+Behauptung war, ein Segen, der als kaputt galt, weil Buffs negativ wiegen,
+eine Umgebung ohne Auslöser im Kampftakt, und im Paket ein Ersatz, der sich
+an einer Wirkung bediente, die derselbe Zustand später noch brauchte.
+
+### Zustände: Dauer und Linderung passten nicht zusammen
+
+Gemeldet an einem Beispiel aus der Oberfläche: Dauer „bis zu deinem nächsten
+Zug", Linderung „eine Stunde in trockener Kleidung senkt ihn um 1". Beides
+für sich richtig, zusammen Unsinn. Und im selben Block klebte der Auslöser
+eines Fluchs an einem Ort aus der Umgebung.
+
+Neu ist deshalb die **Zeitskala** als eigener Begriff: `kampf`, `kurz`,
+`lang`. Dauern, Auslöser, Linderung und Verschlimmerung tragen sie alle,
+`stimmigkeit.ts` prüft ihr Verhältnis, und der Erzeuger baut solche Zustände
+gar nicht erst — die Dauer wird zuerst gewählt, und die anderen richten sich
+danach.
+
+### Monster Creator: aus Zahlen wurde ein Statblock
+
+Rückmeldung aus dem ersten richtigen Gebrauch, in einem Zug abgearbeitet.
+Der Kern des Werkzeugs war richtig, die Ausgabe war es nicht: ein Block mit
+Trefferpunkten, Rüstungsklasse und „Schaden pro Runde: 41" sagt nicht, was
+passiert, wenn das Monster dran ist.
+
+Neu am Modell: die sechs Attribute (mit einer harten Regel — Übungsbonus
+plus Modifikator des Hauptattributs ergibt den Angriffsbonus), die
+Bewegungsrate samt Klettern, Schwimmen, Fliegen und Graben, die Angriffe
+aufgeschlüsselt nach Waffe, Reichweite, Trefferbonus, Würfel und
+Schadensart, Flächenangriffe mit Rettungswurf, und Resistenzen,
+Immunitäten und Verwundbarkeiten.
+
+Der Grundsatz dabei, und er gilt für die nächsten Werkzeuge genauso: **die
+Zusätze sind keine Pflicht.** Alles davon hängt an einer Chance. Ein
+Bestiarium, in dem jedes Wesen resistent ist, fliegt und einen Odem hat, ist
+langweilig — und es nimmt den wenigen, bei denen es zählt, die Wirkung.
+
+Dabei ein echter Fehler in der Prüfung gefunden: die Spannen wurden gegen
+die **rohen** Trefferpunkte geprüft, angezeigt wurden die **wirksamen**.
+Solange nur die Rüstungsklasse hineinspielte, ging die Verschiebung in der
+Spanne unter. Mit Resistenzen nicht mehr — ein richtig gebautes Monster fiel
+durch die eigene Prüfung.
+
+Dazu 50 statt 12 Fähigkeiten mit Abschnitt im Statblock, eine Fähigkeitszahl
+die bis Grad 30 wächst, sechzehn statt acht Namensteile je Liste plus
+Einzelnamen, das klassische Statblock-Aussehen und ein freies Wunschfeld für
+die KI.
+
+### „In den Story Creator" tat gar nichts
+
+Der Monster Creator legte die Notiz unter dem Notiztyp `creature` an. Den
+gibt es in keiner Vorlage, der Story Creator wies das mit
+`error.unknownNoteType` ab.
+
+Aufgefallen ist es nur im Gebrauch, und das ist der eigentliche Punkt: der
+Rauchtest des Monster Creators fasste den Export gar nicht an. Er sah das
+Werkzeug für sich allein, und dort meldet ein Fehlschlag genauso ruhig wie
+ein Erfolg. Jetzt sucht sich jedes Werkzeug einen Notiztyp, den die Kampagne
+wirklich kennt, und der Rauchtest läuft den Weg bis zur Datei auf der Platte
+durch.
+
 ### Vorwärts im Verlauf war nach einem Schritt zurück sofort wieder tot
 
 Beim Nachziehen der Rauchtests aufgefallen, nicht gemeldet, aber echt: ein

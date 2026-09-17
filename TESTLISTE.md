@@ -4,7 +4,7 @@ Zum Durchgehen von Hand, auf dem Windows-Gerät. Hier steht nur, was die
 automatischen Prüfungen **nicht** sehen können: das Aussehen, das Gefühl,
 das Gerät und alles, was erst nach einem Neustart auffällt.
 
-Was schon geprüft ist, steht nicht drin. `npm test` (674 Modelltests),
+Was schon geprüft ist, steht nicht drin. `npm test` (801 Modelltests),
 `npm run smoke`, `npm run smoke:backstory` und `npm run roundtrip` laufen in
 der CI und decken die Logik ab.
 
@@ -147,4 +147,31 @@ Danach wieder abschalten: `setx TTRPG_TOOLS_TASTEN_LOG 0`
 - [ ] „Variante anlegen" auf einem anderen Grad: die Zahlen wandern, Name und Texte bleiben
 - [ ] Mit KI: die Meldung sagt, was nachgezogen wurde, und der Weg zurück zum Vorschlag geht
 - [ ] Ohne KI läuft alles; nur die KI-Knöpfe fehlen
+- [ ] „In den Story Creator" legt eine Notiz in der offenen Kampagne an
+- [ ] Der Steckbrief sieht aus wie ein Statblock: Kapitälchen, Attributreihe, Abschnitte
+- [ ] Bei jedem Angriff steht Waffe, Reichweite, Trefferbonus und Schadensart
+- [ ] Die Waffe passt zum Wesen (eine Bestie führt keine Hellebarde)
+- [ ] Zehnmal würfeln: nicht jedes Monster hat Resistenzen, und nicht jedes fliegt
+- [ ] Zehnmal würfeln: die Namen wiederholen sich nicht, es kommen auch Einzelnamen
+- [ ] Grad 30: deutlich mehr Fähigkeiten als auf Grad 1
+- [ ] Legendäre Aktionen an: der Abschnitt taucht wirklich auf
+- [ ] Kampfentfernung „Fernkampf": es kommt kein Nahkampfangriff heraus
+- [ ] Mit KI: der eigene Wunsch schlägt im Ergebnis durch
+
+## Status Effect Creator
+
+- [ ] Art, Thema, Härte und Stufenzahl einstellen, würfeln: jede Stufe ist schlimmer als die davor
+- [ ] Unter dem Blatt steht das Gewicht mit Vergleich und mit dem Satz, was es nicht bedeutet
+- [ ] Die Kurve zeigt jede Stufe; ein großer Sprung wird als Hinweis genannt
+- [ ] Dauer, „Schlimmer" und „Besser" passen zeitlich zusammen (keine Stunde bei einer Runde Dauer)
+- [ ] Ein Ort als Auslöser steht nur bei Zuständen aus der Umgebung
+- [ ] Zehnmal würfeln: die Namen und Kurzsätze wiederholen sich nicht
+- [ ] Alle siebzehn Themen einmal durchgehen: jedes hat sein eigenes Zeichen und eigene Namen
+- [ ] Die Sätze lesen sich sauber — „Besser: Eine Stunde …" passt grammatisch, auch auf Englisch
+- [ ] Reiter „Paket": mehrere Zustände auf einmal, und es steht „Abgestimmt" darunter
+- [ ] „Alle in die Sammlung" speichert wirklich alle
+- [ ] „Karte zum Vorlesen": vorn steht, was die Figur merkt, hinten die Regel
+- [ ] Die Karte als PDF speichern, ausdrucken und ansehen: passt sie auf die Seite?
+- [ ] Mit KI: unbrauchbare Antworten werden mit Begründung zurückgewiesen
+- [ ] „Ausformulieren lassen" macht Sätze aus den Stichpunkten, ohne die Regel zu ändern
 - [ ] „In den Story Creator" legt eine Notiz in der offenen Kampagne an

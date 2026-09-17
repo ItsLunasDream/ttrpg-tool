@@ -4,8 +4,10 @@ Ein siebtes Werkzeug für die Sammlung. Es baut eigene Zustände — „Freezing
 „Sandblind", „Marked by the Hunt" — mit Regeltext, Stufen und, wenn man
 will, einer Anbindung an die Umgebung, die sie von selbst auslöst.
 
-Dies ist ein Konzept, kein Plan zum Abarbeiten. Es steht hier, damit wir
-darüber reden, bevor gebaut wird.
+Dies war ein Konzept, kein Plan zum Abarbeiten. **Gebaut ist es
+inzwischen** — was davon umgesetzt wurde und was nicht, steht unten unter
+„Stand der Umsetzung". Der Text darüber bleibt unverändert stehen, damit man
+Plan und Ergebnis vergleichen kann.
 
 ## Wozu
 
@@ -148,9 +150,28 @@ schwer    Nachteil auf alle Angriffe | keine Bonusaktion | Erschöpfung +1
 tödlich   handlungsunfähig | bewusstlos | sterbend
 ```
 
-Der Erzeuger zieht je Stufe eine Wirkung, aufsteigend, ohne Wiederholung,
-passend zum Thema (Kälte greift eher Bewegung und Geschick an, Wahnsinn eher
-Konzentration und Rettungswürfe). Bei fünf Stufen und einigen Dutzend
+Dazu kommt je Thema ein **eigener Satz Wirkungen**, der nur dort vorkommt:
+
+```
+feuer     Du brennst: 1W4 Feuerschaden je Frist, bis du die Flammen löschst
+säure     Deine Rüstung ist zerfressen: −3 auf RK, bis sie geschmiedet wird
+gift      Konstitutionsrettung (SG 13) zu Beginn deines Zuges, sonst
+          verlierst du deine Aktion
+zeit      Du handelst immer zuletzt in der Runde, gleich was du würfelst
+```
+
+Die Texte nennen **Zahlen**. „Weniger Schaden" ist am Tisch eine Rückfrage
+und keine Wirkung; „1W4 weniger Schaden" ist eine. Ein Test hält die vagen
+Wörter aus der Liste heraus, ein zweiter verlangt zu jeder Schadenswirkung
+einen Würfel und zu jedem Rettungswurf einen Schwierigkeitsgrad.
+
+Der Erzeuger zieht je Stufe eine Wirkung, aufsteigend, ohne Wiederholung, in
+drei Anläufen: zuerst aus den Wirkungen, die dem Thema selbst gehören, dann
+aus den allgemeinen auf den Spuren des Themas (Kälte greift eher Bewegung
+und Geschick an, Wahnsinn eher Konzentration und Rettungswürfe), zuletzt aus
+den allgemeinen überhaupt. Eine themengebundene Wirkung landet **nie** in
+einem fremden Thema — auch nicht über den Ersatz, den die Paket-Abstimmung
+einsetzt. Bei fünf Stufen und einigen Dutzend
 Wirkungen je Schwere sind das Millionen Verläufe — dieselbe Rechnung wie bei
 der Inspirationshilfe, und sie steht wie dort in der Oberfläche.
 
@@ -383,3 +404,158 @@ Handwerkszeug, das über Kampagnen hinweg gilt.
 - **Gehört ein Zustand einer Kampagne?** Oben steht: nein. Dagegen spricht,
   dass man dann eine wachsende Liste ohne Ordnung bekommt. Vielleicht
   Schlagworte statt Zuordnung.
+
+## Stand der Umsetzung
+
+Das Werkzeug liegt in `apps/zustaende` und hat 124 Tests plus einen Rauchtest
+in der Hülle.
+
+**Gebaut:**
+
+- `wirkungen.ts` — 144 Bausteine nach Schwere sortiert, jeder mit Spur,
+  Richtung und Punktwert. Eine Stufe ist eine Wirkung aus dieser Liste;
+  genau deshalb kommen die Tabellen ohne KI aus und genau deshalb lässt sich
+  ein Zustand überhaupt wiegen. 53 davon sind allgemein und passen überall
+  hin, 91 gehören einem Thema und kommen nur dort vor — fünf bis sieben je
+  Thema, über die Schweren verteilt, damit ein Feuerzustand auf jeder Stufe
+  etwas Eigenes findet statt auf „Nachteil auf Wahrnehmung" zurückzufallen.
+- `gewicht.ts` — die Rechnung samt Kurve über die Stufen, und die Ansage
+  dazu: sie misst nicht, ob ein Zustand für eine Kampagne zu hart ist.
+- `eichung.ts` — die bekannten Zustände, in unsere eigenen Bausteine
+  zerlegt. Geprüft wird die Rangfolge, nicht die Punktzahl.
+- `stimmigkeit.ts` — siehe unten, das kam erst aus dem Gebrauch dazu.
+- `erzeuge.ts`, `tabellen.ts` — sieben Arten, **siebzehn Themen**, vier
+  Härten, Namensteile, Bilder und Satzmasken. Die Themen decken die Elemente
+  ab (Feuer, Kälte, Hitze, Säure, Sturm, Stein, Tiefe) und dazu das, was
+  keins ist: Gift, Fäulnis, Blut, Schatten, Licht, Leere, Wahnsinn, Zeit,
+  Klang, Traum. Jedes bringt eigene Namensteile, Bilder, Gegenmittel und
+  Orte mit — und ein eigenes Zeichen für den Tracker.
+- `paket.ts` — mehrere Zustände in einem Wurf, mit verteilten Wirkungen.
+- `karte.ts` — Vorder- und Rückseite als HTML. Dasselbe HTML geht groß auf
+  den Schirm und durch `printToPDF` aufs Papier; zwei Wege zu demselben Blatt
+  wären zwei Blätter, die irgendwann auseinanderlaufen.
+- Ablage als Markdown mit YAML-Kopf, Sammlung mit Suche, KI-Anbindung,
+  Export in den Story Creator, Einbau in die Hülle.
+
+**Was aus dem Gebrauch dazukam: die Punktskala bis 36**
+
+Ein Bild der Oberfläche zeigte einen Kältezustand mit fünf Stufen, und
+Stufe 5 war harmloser als Stufe 4: „festgehalten" (damals 4 Punkte), dann
+„taub" (3). Die Regel, die das verhindern sollte, verglich nur die
+**Schwere** — und beide sind „schwer".
+
+Die Punkte mitzuvergleichen half nicht, solange die Skala bis 12 reichte:
+je Schwere gab es ein oder zwei verschiedene Werte, und was gleich wiegt,
+lässt sich nicht ordnen. Eine reine Streckung hätte daran nichts geändert;
+unter einer Multiplikation ist die Rangfolge unverändert. Was half, war
+beides zusammen:
+
+```
+Skala bis 36, jede Schwere mit eigenem Bereich
+  leicht    2–5      mittel   6–10
+  schwer   11–16     tödlich 26–36
+```
+
+und danach alle 144 Werte **neu gegeneinander** vergeben: „taub" 11,
+„festgehalten" 15, „blind" 14. Die Härten-Spannen sind mit demselben Faktor
+mitgewandert (lästig 3–15, ernst 12–36, gefährlich 30–72, tödlich 60–180),
+damit die Urteile „passt / zu leicht / zu schwer" gleich verteilt bleiben
+wie vorher.
+
+Drei Dinge sind dabei aufgefallen und mitbehoben worden:
+
+- **Gierig ziehen geht schief.** Der Erzeuger filterte beim Ziehen — eine
+  Wirkung durfte nur auf eine Stufe, wenn sie nicht leichter war als die
+  davor. Bei knappem Vorrat lief das auf `3 → 4 → 5 → 4 → 3` hinaus. Jetzt
+  wird frei gezogen und **hinterher sortiert**; das löst die Reihenfolge
+  vollständig und verliert dabei keine Stufe.
+- **Der Härte-Regler war aushebelbar.** War eine Schwere leergezogen, stieg
+  der Erzeuger eine höher — ein Zustand auf „lästig" trug am Ende „+1 auf
+  Angriffswürfe" aus „mittel". Jetzt deckelt die Härte, und der Deckel wird
+  nur gehoben, wenn sonst eine Stufe ausfiele.
+- **Segen hatten zu wenig Bausteine.** Es gab drei leichte Buffs; ein
+  fünfstufiger Segen auf „lästig" konnte gar nicht passen. Jetzt sind es
+  sieben, dazu je zwei neue auf mittel und schwer.
+
+Die Warnung „der Sprung verdoppelt das Gewicht" hat eine absolute
+Untergrenze, die an der Skala hängt und beim Umstellen zunächst
+liegenblieb — sie erschien danach bei 66 statt 29 Prozent der Zustände.
+Mit der mitgezogenen Grenze sind es wieder 30.
+
+**Alte Dateien:** im YAML-Kopf steht ein `gewicht`, und die Sammlung zeigt
+es an, ohne die Datei zu öffnen. Der Kopf trägt deshalb jetzt
+`schemaVersion: 2`; was mit 1 gespeichert wurde, wird beim Lesen mit 3
+hochgerechnet. Das ist eine **Näherung** und keine exakte Umrechnung — die
+Neuvergabe war keine reine Verdreifachung. Genau wird die Zahl wieder,
+sobald der Zustand einmal geöffnet und gespeichert wird.
+
+**Was aus dem Gebrauch dazukam: die Zeitskala**
+
+Im Konzept steht sie nicht, und sie fehlte prompt. Ein Beispiel aus der
+ersten Fassung:
+
+```
+Dauer:     bis zu deinem nächsten Zug
+Besser:    eine Stunde in trockener Kleidung senkt ihn um 1
+```
+
+Beides für sich richtig, zusammen Unsinn. Seither trägt alles einen Takt —
+`kampf` (Runden und Züge), `kurz` (Stunden), `lang` (Tage und Rasten) —, und
+`stimmigkeit.ts` prüft, dass die Teile zueinander passen. Der Erzeuger wählt
+die Dauer zuerst und richtet Linderung und Verschlimmerung danach aus; eine
+Prüfung, die nur Fehler meldet, die das Werkzeug selbst gebaut hat, wäre eine
+Ausrede.
+
+Im selben Beispiel steckte ein zweiter Fehler: der Auslöser eines Fluchs
+klebte an einem Ort aus der Umgebung („jedes Mal, wenn der Name auf dem
+Gletscher genannt wird"). Ein Ort steht jetzt nur noch an Zuständen, die aus
+der Umgebung kommen.
+
+**Drei Sprachfehler, die erst ein Blick auf alle Themen gezeigt hat**
+
+Die ersten sechs Themen sahen im Betrieb gut aus, weil ihre Bausteine
+zufällig zusammenpassten. Mit elf weiteren fiel auf, dass der Satzbau
+Annahmen macht, die nirgends standen:
+
+- Der Kurzsatz lautet „{Bild} {Verb} {Stelle}." Ein Bild wie „Etwas fehlt"
+  ist ein Nebensatz und ergab „Etwas fehlt zieht in deine Hände." Ein Bild
+  ist jetzt immer eine Nominalgruppe, und ein Test besteht darauf.
+- Die Linderung lautet „Eine Stunde {Gegenmittel} senkt ihn um 1." Ein
+  Gegenmittel wie „nach einer vollen Rast" ergab zwei Zeitangaben
+  hintereinander. Gegenmittel sind jetzt Präpositionalgruppen.
+- Die Stellen stehen im Akkusativ („dir in die Knochen"). Das Verb „sitzt"
+  verlangt den Dativ und ergab „sitzt in deine Hände". Es ist raus.
+
+Dazu zwei Kleinigkeiten: „Lochloch" und „Fernferne" — ein Name darf seinen
+eigenen Wortstamm nicht wiederholen. Und im Englischen stand „The embers
+draws behind your eyes", weil die Verben in der dritten Person Singular
+stehen und ein Bild im Plural war.
+
+**Was von den Punktwerten zu halten ist**
+
+Sie sind geschätzt, und das bleibt so, bis jemand die Eichung gegenliest. Was
+die Eichung prüft, ist die **Rangfolge** — gelähmt schwerer als vergiftet,
+bewusstlos am schwersten —, nicht die Höhe der Zahlen. Zwei Fehler hat sie
+dabei schon gefunden:
+
+- „handlungsunfähig" wog weniger als „blind". Wer blind ist, kämpft
+  schlecht; wer handlungsunfähig ist, kämpft gar nicht.
+- Meine eigene Rangfolge war an einer Stelle eine Behauptung: „blind" und
+  „festgehalten" lassen sich nicht sinnvoll ordnen. Sie stehen jetzt auf
+  demselben Rang, damit die Eichung nicht über eine Meinung fällt.
+
+**Wichtige Einschränkung:** die Zerlegung der bekannten Zustände stammt aus
+dem Gedächtnis der Regelmechanik, nicht aus einer nachgeschlagenen Quelle.
+Sie ist ein Plausibilitätsmaßstab und kein Beleg. Wer das Werkzeug ernst
+nimmt, sollte sie einmal gegen das SRD gegenlesen. Dasselbe gilt für die
+Eichung des Monster Creators, und dort steht es ebenso dabei.
+
+**Nicht umgesetzt:**
+
+- **Der Weg in den Initiative Tracker.** Vorbereitet ist er: Zeichen, Farbe
+  und Stufenzahl stehen im YAML-Kopf, und der Tracker liest denselben Ordner.
+  Was fehlt, ist die Seite im Tracker, die Stufen anzeigen kann.
+- **Der Folgezustand** („Frostbite ab Freezing 3") als eigenes Feld. Im
+  Paket stehen die Zustände nebeneinander, nicht auseinander folgend.
+- **Ein Zähler außerhalb des Kampfes.** Wie im Konzept entschieden: der
+  Auslöser bleibt Text, und die Spielleitung wendet ihn an.
