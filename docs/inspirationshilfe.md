@@ -146,14 +146,33 @@ keinen Eingriff in fremdes Datenmodell.
 anlegen" in Stufe 5, zusammen mit dem Zeichnen des Geflechts. Das Beschreiben
 der Karte gehört zu den Orten und kostet nichts extra.
 
-**So gebaut.** Der Knopf steht an jedem Ort und schickt zwei Dinge hinüber:
-den Namen und das, was über den Ort bekannt ist — als Notiz-Pins auf der
-neuen Karte (die Kartenzeile zuerst, dann Art, Merkmal, Zustand). Der Weg führt über die Hülle und nicht direkt — die
+**So gebaut.** Der Knopf steht an jedem Ort und schickt den Namen und
+Notiz-Pins hinüber. Der Weg führt über die Hülle und nicht direkt — die
 beiden Anwendungen kennen einander nicht. Sie holt den Karteneditor nach
 vorn und stellt den Namen zu, sobald er montiert, geladen und sichtbar ist;
 dort entsteht daraus eine leere Karte, mit Rückfrage, falls auf der offenen
 schon etwas steht. Die Zeile „Auf der Karte" bleibt Text und wird nicht
 gezeichnet, wie hier vorgeschlagen.
+
+**Nachgezogen: auf die Karte geht nur, was man zeichnen kann.** Im ersten
+Anlauf gingen auch Merkmal und Zustand als Pins mit. Aus dem Gebrauch kam
+die Rückmeldung, dass das beim Kartenbau nichts hilft: „es riecht
+durchgehend nach etwas, das hier nicht verarbeitet wird" ist ein guter Satz
+für eine Notiz und auf einer Karte wertlos — einen Geruch zeichnet man
+nicht, eine Verpfändung auch nicht.
+
+Deshalb trägt ein Ort jetzt ein eigenes Feld **„Was dort steht"**: drei
+Dinge aus `ORT_AUSSTATTUNG`, jedes mit Größe oder Lage dabei, damit klar
+ist, wie viel Platz es braucht und was es blockiert — „ein Karren ohne Rad,
+quer im Durchgang", „Fässer, brusthoch gestapelt, zwei Reihen tief",
+„Stützbalken alle vier Schritt, einer geborsten". Auf die Karte gehen nur
+noch der Grundriss, die Art des Ortes und je ein Pin pro Ding; ein Pin je
+Ding, weil man ihn dorthin schiebt, wo das Ding steht. Merkmal und Zustand
+bleiben in der Ortsnotiz, wo sie hingehören.
+
+Zwei Tests halten die Regel fest: kein Eintrag darf etwas nennen, das man
+nur riechen oder hören kann, und jeder muss ein Maß oder eine Lage tragen.
+Der zweite hat beim Schreiben prompt neunzehn eigene Einträge verworfen.
 
 ## Weitere Vorschläge
 

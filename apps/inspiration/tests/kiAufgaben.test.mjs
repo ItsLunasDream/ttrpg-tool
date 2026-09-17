@@ -92,6 +92,7 @@ test('eine vollstaendige Antwort wird uebernommen und gekuerzt', () => {
     merkmal: 'Es gibt keinen Spiegel.',
     zustand: 'Sie steht still.',
     karte: lang,
+    ausstattung: 'ein Brunnen; ein Karren ohne Rad',
     unbekannt: 'weg damit'
   });
   assert.equal(gelesen.name, 'Rabenstein');

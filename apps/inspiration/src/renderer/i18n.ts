@@ -81,6 +81,7 @@ export const texte = {
   'feld.hat': ['Hat', 'Holds'],
   'feld.haken': ['Haken', 'Snag'],
   'feld.karte': ['Auf der Karte', 'On the map'],
+  'feld.ausstattung': ['Was dort steht', 'What stands there'],
 
   'knopf.karte': ['Karte anlegen', 'Start a map'],
   'karte.hinweis': [

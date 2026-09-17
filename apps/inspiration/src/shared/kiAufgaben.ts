@@ -112,7 +112,7 @@ export const FELDER: Record<KiAufgabe, readonly string[]> = {
   aufhaenger: ['ausloeser', 'betroffene', 'komplikation', 'frist'],
   fraktion: ['name', 'art', 'ziel', 'mittel', 'schwaeche'],
   figur: ['name', 'rolle', 'triebfeder', 'hebel', 'makel'],
-  ort: ['name', 'art', 'merkmal', 'zustand', 'karte'],
+  ort: ['name', 'art', 'merkmal', 'zustand', 'karte', 'ausstattung'],
   verbindung: ['muster', 'hin', 'zurueck'],
   zeitstrahl: ['schritte'],
   entwurf: ['welt', 'aufhaenger', 'fraktionen', 'figuren', 'orte', 'verbindungen', 'zeitstrahl']
@@ -172,14 +172,16 @@ const ERKLAERUNG: Record<KiAufgabe, Record<'de' | 'en', readonly string[]>> = {
       '"art": was der Ort ist',
       '"merkmal": was ihn von jedem anderen seiner Art unterscheidet',
       '"zustand": wie es gerade um ihn steht',
-      '"karte": was auf einer Karte davon stehen würde, z. B. „drei Zugänge, einer verschüttet"'
+      '"karte": was auf einer Karte davon stehen würde, z. B. „drei Zugänge, einer verschüttet"',
+      '"ausstattung": drei Dinge, die dort stehen, mit Semikolon getrennt — Gegenstände und Gelände mit Größe oder Lage, nichts, was man nur riechen oder hören kann'
     ],
     en: [
       '"name": the place’s name, one word',
       '"art": what the place is',
       '"merkmal": what sets it apart from every other of its kind',
       '"zustand": how things stand with it right now',
-      '"karte": what would be on a map of it, e.g. "three ways in, one collapsed"'
+      '"karte": what would be on a map of it, e.g. "three ways in, one collapsed"',
+      '"ausstattung": three things standing there, separated by semicolons — objects and terrain with a size or a position, nothing you can only smell or hear'
     ]
   },
   verbindung: {
@@ -204,7 +206,7 @@ const ERKLAERUNG: Record<KiAufgabe, Record<'de' | 'en', readonly string[]>> = {
       '"aufhaenger": { "ausloeser", "betroffene", "komplikation", "frist" }',
       '"fraktionen": Liste aus { "name", "art", "ziel", "mittel", "schwaeche" }',
       '"figuren": Liste aus { "name", "rolle", "triebfeder", "hebel", "makel" }',
-      '"orte": Liste aus { "name", "art", "merkmal", "zustand", "karte" }',
+      '"orte": Liste aus { "name", "art", "merkmal", "zustand", "karte", "ausstattung" }',
       '"verbindungen": Liste aus { "a", "b", "muster", "hin", "zurueck" } —',
       '  "a" und "b" sind Nummern von Figuren, gezählt ab 0 in der Reihenfolge',
       '  deiner Liste. "hin" ist, wie a die b sieht, "zurueck", wie b die a',
@@ -216,7 +218,7 @@ const ERKLAERUNG: Record<KiAufgabe, Record<'de' | 'en', readonly string[]>> = {
       '"aufhaenger": { "ausloeser", "betroffene", "komplikation", "frist" }',
       '"fraktionen": list of { "name", "art", "ziel", "mittel", "schwaeche" }',
       '"figuren": list of { "name", "rolle", "triebfeder", "hebel", "makel" }',
-      '"orte": list of { "name", "art", "merkmal", "zustand", "karte" }',
+      '"orte": list of { "name", "art", "merkmal", "zustand", "karte", "ausstattung" }',
       '"verbindungen": list of { "a", "b", "muster", "hin", "zurueck" } —',
       '  "a" and "b" are character numbers, counted from 0 in the order of',
       '  your own list. "hin" is how a sees b, "zurueck" how b sees a; both',

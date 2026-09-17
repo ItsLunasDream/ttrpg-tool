@@ -22,7 +22,15 @@ import {
   FRAKTION_ZUSATZ
 } from './fraktionen';
 import { HEBEL, MAKEL, ROLLEN, RUFNAMEN, TRIEBFEDERN } from './figuren';
-import { NAME_ERSTE, NAME_ZWEITE, ORT_ART, ORT_KARTE, ORT_MERKMAL, ORT_ZUSTAND } from './orte';
+import {
+  NAME_ERSTE,
+  NAME_ZWEITE,
+  ORT_ART,
+  ORT_AUSSTATTUNG,
+  ORT_KARTE,
+  ORT_MERKMAL,
+  ORT_ZUSTAND
+} from './orte';
 import { VERBINDUNGEN, fuelle } from './verbindungen';
 import { SCHRITTE, ZEITMARKEN, type Schritt } from './zeitstrahl';
 import {
@@ -86,6 +94,15 @@ export interface Ort {
   readonly zustand: string;
   /** Ein Satz darueber, was auf einer Karte davon stehen wuerde. */
   readonly karte: string;
+  /**
+   * Was in der Szene steht, als ein Feld mit Semikolon dazwischen.
+   *
+   * Eine Zeichenkette und keine Liste, damit sie sich wie jedes andere Feld
+   * bearbeiten und nachwuerfeln laesst — die Oberflaeche kennt nur Felder
+   * aus Text. Aufgetrennt wird erst dort, wo einzelne Stuecke gebraucht
+   * werden: als Pins auf einer Karte. Siehe `ausstattungsstuecke()`.
+   */
+  readonly ausstattung: string;
 }
 
 export interface Verbindung {
@@ -156,6 +173,35 @@ function ausPaaren(liste: readonly Paar[], sprache: Sprache, rng: () => number):
   return text(waehle(liste, rng), sprache);
 }
 
+/** Wie viele Dinge in einer Szene stehen. Drei fuellen eine Flaeche, ohne sie zuzustellen. */
+export const AUSSTATTUNGSSTUECKE = 3;
+
+/** Womit die Stuecke der Ausstattung aneinandergereiht werden. */
+export const AUSSTATTUNG_TRENNER = '; ';
+
+/**
+ * Mehrere verschiedene Eintraege aus einer Tabelle.
+ *
+ * Ohne Wiederholung: zweimal derselbe Brunnen auf einer Karte ist kein
+ * Ort, sondern ein Fehler. Ist die Tabelle nach dem Zuschnitt kuerzer als
+ * gewuenscht, kommt eben weniger heraus.
+ */
+function mehrereAus(
+  liste: readonly Eintrag[],
+  zuschnitt: Zuschnitt,
+  anzahl: number,
+  sprache: Sprache,
+  rng: () => number
+): string[] {
+  const vorrat = [...passend(liste, zuschnitt)];
+  const heraus: string[] = [];
+  while (heraus.length < anzahl && vorrat.length > 0) {
+    const stelle = Math.floor(rng() * vorrat.length);
+    heraus.push(text(vorrat.splice(stelle, 1)[0], sprache));
+  }
+  return heraus;
+}
+
 // --- Die einzelnen Bausteine ------------------------------------------------
 
 export function erzeugeAufhaenger(zuschnitt: Zuschnitt, sprache: Sprache, rng: () => number): Aufhaenger {
@@ -216,7 +262,14 @@ export function erzeugeOrt(zuschnitt: Zuschnitt, sprache: Sprache, rng: () => nu
     art: ausTabelle(ORT_ART, zuschnitt, sprache, rng),
     merkmal: ausTabelle(ORT_MERKMAL, zuschnitt, sprache, rng),
     zustand: ausTabelle(ORT_ZUSTAND, zuschnitt, sprache, rng),
-    karte: ausPaaren(ORT_KARTE, sprache, rng)
+    karte: ausPaaren(ORT_KARTE, sprache, rng),
+    ausstattung: mehrereAus(
+      ORT_AUSSTATTUNG,
+      zuschnitt,
+      AUSSTATTUNGSSTUECKE,
+      sprache,
+      rng
+    ).join(AUSSTATTUNG_TRENNER)
   };
 }
 
@@ -512,7 +565,8 @@ export function moeglichkeiten(): {
       ORT_ART.length *
       ORT_MERKMAL.length *
       ORT_ZUSTAND.length *
-      ORT_KARTE.length,
+      ORT_KARTE.length *
+      ORT_AUSSTATTUNG.length,
     verbindungen: VERBINDUNGEN.length
   };
 }

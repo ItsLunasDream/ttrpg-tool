@@ -145,20 +145,100 @@ test('ein Ort wird zu Pins fuer die Karte', () => {
   const ort = {
     name: 'Rabenstein',
     art: 'ein Turm ohne Tür',
-    merkmal: 'Es gibt keinen Spiegel.',
-    zustand: 'Steht leer.',
-    karte: 'Drei Zugänge, einer verschüttet.'
+    merkmal: 'Es riecht nach etwas, das hier keiner verarbeitet.',
+    zustand: 'Er ist verpfändet und wird versteigert.',
+    karte: 'Drei Zugänge, einer verschüttet.',
+    ausstattung: 'ein Brunnen mit Winde; ein Karren ohne Rad, quer im Durchgang; Fässer, brusthoch gestapelt'
   };
   const pins = T.alsKartennotizen(ort, 'de');
-  assert.equal(pins.length, 4);
+
+  // Grundriss, Art, und je ein Pin fuer jedes Ding.
+  assert.equal(pins.length, 5);
   assert.match(pins[0].text, /Drei Zugänge/);
   assert.ok(pins.every((pin) => pin.title && pin.text));
 
+  /*
+   * Und was NICHT mitgeht: Merkmal und Zustand.
+   *
+   * Beides sind gute Saetze fuer die Ortsnotiz und beim Kartenbau wertlos —
+   * einen Geruch zeichnet man nicht, eine Verpfaendung auch nicht.
+   */
+  const alles = pins.map((pin) => pin.text).join(' ');
+  assert.ok(!alles.includes('riecht'), 'das Merkmal steht auf der Karte');
+  assert.ok(!alles.includes('verpfändet'), 'der Zustand steht auf der Karte');
+
+  // Jedes Ding einzeln, nicht alle in einem Pin.
+  assert.match(alles, /Brunnen mit Winde/);
+  assert.match(alles, /Karren ohne Rad/);
+  assert.match(alles, /Fässer/);
+
   // Leere Felder ergeben keinen leeren Pin.
-  assert.deepEqual(T.alsKartennotizen({ name: '', art: '', merkmal: '', zustand: '', karte: '' }, 'de'), []);
+  assert.deepEqual(
+    T.alsKartennotizen({ name: '', art: '', merkmal: '', zustand: '', karte: '', ausstattung: '' }, 'de'),
+    []
+  );
+});
+
+test('die Ausstattung wird an den Semikola getrennt', () => {
+  assert.deepEqual(T.ausstattungsstuecke({ ausstattung: 'a; b;  c ' }), ['a', 'b', 'c']);
+  assert.deepEqual(T.ausstattungsstuecke({ ausstattung: '' }), []);
+  // Ein leeres Stueck zwischen zwei Semikola faellt weg statt leer zu bleiben.
+  assert.deepEqual(T.ausstattungsstuecke({ ausstattung: 'a;; b' }), ['a', 'b']);
 });
 
 test('die Pins sprechen die eingestellte Sprache', () => {
-  const pins = T.alsKartennotizen({ name: 'X', art: 'a mill', merkmal: '', zustand: '', karte: 'One way in.' }, 'en');
-  assert.equal(pins[0].title, 'On the map');
+  const pins = T.alsKartennotizen(
+    { name: 'X', art: 'a mill', merkmal: '', zustand: '', karte: 'One way in.', ausstattung: 'a well' },
+    'en'
+  );
+  assert.equal(pins[0].title, 'Layout');
+  assert.equal(pins[2].title, 'Standing here');
+});
+
+/* ---------- Die Tabelle selbst ---------- */
+
+test('was dort steht, kann man auch hinstellen', () => {
+  /*
+   * Die Regel, an der sich die Tabelle von `ORT_MERKMAL` unterscheidet:
+   * hier darf nichts stehen, was man nur riechen, hoeren oder ahnen kann.
+   * Ein Geruch ist auf einer Karte kein Element.
+   */
+  const nichtZeichenbar = [
+    /riecht|geruch|smell/i,
+    /hört man|zu hören|you hear/i,
+    /stimmung|atmosph/i,
+    /niemand weiß|nobody knows/i
+  ];
+  for (const eintrag of T.ORT_AUSSTATTUNG) {
+    for (const muster of nichtZeichenbar) {
+      assert.doesNotMatch(eintrag.de, muster, `${eintrag.de} (${muster})`);
+      assert.doesNotMatch(eintrag.en, muster, `${eintrag.en} (${muster})`);
+    }
+  }
+});
+
+test('jedes Stueck sagt, wie gross es ist oder wo es liegt', () => {
+  /*
+   * Ohne Groesse oder Lage ist ein Ding keine Hilfe beim Zeichnen: „ein
+   * Karren" laesst offen, ob er im Weg steht. „Ein Karren ohne Rad, quer im
+   * Durchgang" nicht.
+   */
+  const masse =
+    /hoch|tief|breit|lang|Schritt|mannsh|knieh|hüfth|kopfh|brusth|schulterh|groß|Reihen|Stufen|Ebenen|\bzwei\b|\bdrei\b|\bvier\b|\bacht\b|\bzwanzig\b|quer|über|unter|neben|mitten|ringsum|im Weg|davor|dahinter/i;
+  const ohne = T.ORT_AUSSTATTUNG.filter((eintrag) => !masse.test(eintrag.de));
+  assert.deepEqual(ohne.map((eintrag) => eintrag.de), []);
+});
+
+test('jeder erzeugte Ort bringt Dinge mit', () => {
+  for (let saat = 1; saat <= 12; saat += 1) {
+    const ort = T.erzeugeOrt(
+      { umfang: 'abend', region: '', thema: '', tonfall: '', eigenes: '' },
+      'de',
+      wuerfelgeber(saat)
+    );
+    const stuecke = T.ausstattungsstuecke(ort);
+    assert.equal(stuecke.length, T.AUSSTATTUNGSSTUECKE, `Saat ${saat}: ${ort.ausstattung}`);
+    // Ohne Wiederholung: zweimal derselbe Brunnen ist ein Fehler.
+    assert.equal(new Set(stuecke).size, stuecke.length, ort.ausstattung);
+  }
 });

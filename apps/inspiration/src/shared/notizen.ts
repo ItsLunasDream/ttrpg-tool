@@ -85,8 +85,24 @@ export function ortText(ort: Ort, sprache: Sprache): string {
     `*${ort.art}*`,
     ort.merkmal,
     ort.zustand,
-    `**${w(sprache, 'Auf der Karte', 'On the map')}:** ${ort.karte}`
+    `**${w(sprache, 'Auf der Karte', 'On the map')}:** ${ort.karte}`,
+    ort.ausstattung && `**${w(sprache, 'Was dort steht', 'What stands there')}:** ${ort.ausstattung}`
   );
+}
+
+/**
+ * Die Ausstattung in ihre einzelnen Stuecke.
+ *
+ * Gespeichert ist sie als ein Feld mit Semikolon dazwischen, damit sie sich
+ * wie jedes andere Feld bearbeiten laesst. Gebraucht werden die Stuecke
+ * einzeln, sobald daraus Pins auf einer Karte werden — je Ding ein Pin, den
+ * man an die Stelle schiebt, an die er gehoert.
+ */
+export function ausstattungsstuecke(ort: Ort): string[] {
+  return ort.ausstattung
+    .split(';')
+    .map((stueck) => stueck.trim())
+    .filter((stueck) => stueck !== '');
 }
 
 /** Die Verbindungen einer Figur, als Saetze mit Verweis auf die Gegenseite. */
@@ -113,19 +129,31 @@ export function verbindungenVon(
 /**
  * Was von einem Ort auf die Karte gehoert.
  *
- * Kurze Pins, keine Abhandlung: am Tisch liest man sie im Vorbeigehen. Die
- * Kartenzeile zuerst, weil sie sagt, wie der Ort aussieht — sie ist der
- * Grund, ueberhaupt eine Karte anzufangen.
+ * NUR, WAS MAN ZEICHNEN KANN — und das ist der ganze Unterschied zur Notiz
+ * im Story Creator.
+ *
+ * Vorher gingen auch Merkmal und Zustand als Pins mit: „es riecht
+ * durchgehend nach etwas, das hier nicht verarbeitet wird", „er ist
+ * verpfaendet und wird in drei Monaten versteigert". Beides sind gute
+ * Saetze, und beim Kartenbau ist keiner davon zu gebrauchen: einen Geruch
+ * zeichnet man nicht, eine Verpfaendung auch nicht. Sie stehen weiterhin in
+ * der Ortsnotiz, wo sie hingehoeren.
+ *
+ * Auf die Karte geht deshalb nur zweierlei: der Grundriss — die Zeile, die
+ * sagt, wie der Ort geschnitten ist — und die Dinge, die darin stehen, je
+ * eines als eigener Pin. Ein Pin je Ding, weil man ihn dorthin schiebt, wo
+ * das Ding steht; alles in einem Pin waere wieder eine Notiz.
  */
 export function alsKartennotizen(
   ort: Ort,
   sprache: Sprache
 ): { title: string; text: string }[] {
   const heraus: { title: string; text: string }[] = [];
-  if (ort.karte) heraus.push({ title: w(sprache, 'Auf der Karte', 'On the map'), text: ort.karte });
+  if (ort.karte) heraus.push({ title: w(sprache, 'Grundriss', 'Layout'), text: ort.karte });
   if (ort.art) heraus.push({ title: ort.name || w(sprache, 'Der Ort', 'The place'), text: ort.art });
-  if (ort.merkmal) heraus.push({ title: w(sprache, 'Merkmal', 'What sets it apart'), text: ort.merkmal });
-  if (ort.zustand) heraus.push({ title: w(sprache, 'Zustand', 'How it stands'), text: ort.zustand });
+  for (const stueck of ausstattungsstuecke(ort)) {
+    heraus.push({ title: w(sprache, 'Hier steht', 'Standing here'), text: stueck });
+  }
   return heraus;
 }
 
