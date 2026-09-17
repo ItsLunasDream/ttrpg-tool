@@ -23,7 +23,7 @@
  */
 
 import { modifikator, type AttributId, type Attribute } from './attribute';
-import { schadensartName, type SchadensartId } from './schadensarten';
+import { schadensart, schadensartName, type SchadensartId } from './schadensarten';
 import { text, type Paar, type Sprache } from './tabellen';
 
 export type Angriffsart = 'nah' | 'fern' | 'flaeche';
@@ -231,9 +231,14 @@ export function alsWuerfel(durchschnitt: number, wuerfelseiten: number, bonus: n
   return `${anzahl}d${wuerfelseiten}${zeichen}`;
 }
 
-/** Die Reichweite als Text, wie sie im Statblock steht. */
+/**
+ * Die Reichweite als Text, wie sie im Statblock steht.
+ *
+ * Ohne Schlusspunkt: der Satz drumherum setzt seinen eigenen, und „5 ft.."
+ * mit zwei Punkten stand prompt im ersten Bild der Oberflaeche.
+ */
 export function reichweiteText(waffe: Waffe, sprache: Sprache): string {
-  const fuss = sprache === 'en' ? 'ft.' : 'Fuß';
+  const fuss = sprache === 'en' ? 'ft' : 'Fuß';
   if (waffe.art === 'nah') return `${waffe.reichweite ?? 5} ${fuss}`;
   if (waffe.art === 'fern') {
     const [nah, weit] = waffe.weite ?? [30, 120];
@@ -350,8 +355,22 @@ function baueAngriff(
   schaden: number,
   hauptMod: number
 ): Angriff {
+  /*
+   * Die Schadensart einer Flaeche kommt vom Wesen — aber nur, wenn zum
+   * Wesen ueberhaupt etwas passt.
+   *
+   * Der Fall, der das aufgedeckt hat: ein Humanoider hat als Schadensarten
+   * Hieb, Stich und Wucht, und der „Strahl" nahm die erste davon. Im
+   * Statblock stand dann ein Strahl, der Hiebschaden macht. Ein Strahl
+   * schneidet nicht, und genau solche Zeilen werfen am Tisch jeden aus der
+   * Geschichte.
+   *
+   * Deshalb: eine Flaeche nimmt nur eine NICHT koerperliche Art des Wesens.
+   * Gibt es keine, bleibt es bei dem, was die Waffe selbst mitbringt.
+   */
+  const vomWesen = wunsch.themenschaden.find((id) => !schadensart(id)?.koerperlich);
   const schadensartId = waffe.schadenVomWesen
-    ? (wunsch.themenschaden[0] ?? waffe.schaden[0])
+    ? (vomWesen ?? waffe.schaden[0])
     : waffe.schaden[0];
 
   if (waffe.art === 'flaeche') {

@@ -381,3 +381,52 @@ test('hundert Wuerfe geben nicht dauernd denselben Namen', () => {
     assert.ok(namen.size >= 55, `${thema.id}: nur ${namen.size} verschiedene aus 100`);
   }
 });
+
+test('eine Flaeche nimmt vom Wesen nie eine koerperliche Schadensart', () => {
+  /*
+   * Aufgefallen auf einem Bild der Oberflaeche: ein „Strahl", der
+   * Hiebschaden macht. Ein Humanoider hat als Schadensarten nur Hieb, Stich
+   * und Wucht, und die Flaeche nahm die erste davon.
+   *
+   * Erlaubt bleibt, was die WAFFE selbst mitbringt: ein „Schwall", der
+   * Wucht macht, ist eine Welle und kein Fehler. Verboten ist nur, dass eine
+   * koerperliche Art des Wesens auf eine Flaeche durchschlaegt.
+   */
+  const daneben = [];
+  for (const thema of T.THEMEN) {
+    for (let saat = 1; saat <= 40; saat += 1) {
+      const monster = T.erzeugeMonster({ cr: '12', themaId: thema.id }, 'de', wuerfelgeber(saat));
+      for (const angriff of monster.angriffe.filter((a) => a.art === 'flaeche')) {
+        const waffe = T.WAFFEN.find((w) => w.id === angriff.waffeId);
+        if (!waffe?.schadenVomWesen) continue;
+        const eigen = angriff.schadensartId === waffe.schaden[0];
+        const koerperlich = T.schadensart(angriff.schadensartId)?.koerperlich;
+        if (koerperlich && !eigen) {
+          daneben.push(`${thema.id} Saat ${saat}: ${waffe.id} macht ${angriff.schadensartId}`);
+        }
+      }
+    }
+  }
+  assert.deepEqual(daneben.slice(0, 5), [], `${daneben.length} daneben`);
+});
+
+test('der Strahl eines Humanoiden schneidet nicht', () => {
+  // Der gemeldete Fall, fest nachgestellt.
+  const humanoid = T.THEMEN.find((t) => t.id === 'humanoid');
+  const strahl = T.WAFFEN.find((w) => w.id === 'strahl');
+  assert.ok(humanoid.schaden.every((id) => T.schadensart(id).koerperlich), 'Vorbedingung');
+  // Ohne passende Art des Wesens bleibt es bei dem, was die Waffe mitbringt.
+  assert.equal(strahl.schaden[0], 'blitz');
+});
+
+test('die Reichweite bringt keinen zweiten Satzpunkt mit', () => {
+  // „reach 5 ft.." stand im ersten Bild der Oberflaeche.
+  const langschwert = T.WAFFEN.find((w) => w.id === 'langschwert');
+  assert.equal(T.reichweiteText(langschwert, 'en'), '5 ft');
+  assert.equal(T.reichweiteText(langschwert, 'de'), '5 Fuß');
+  for (const waffe of T.WAFFEN) {
+    for (const sprache of ['de', 'en']) {
+      assert.ok(!T.reichweiteText(waffe, sprache).endsWith('.'), `${waffe.id} ${sprache}`);
+    }
+  }
+});
