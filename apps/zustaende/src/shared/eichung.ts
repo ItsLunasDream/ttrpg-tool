@@ -173,7 +173,7 @@ export function eichgewicht(zustand: Eichzustand): number {
 /**
  * Der Vergleich, den die Oberflaeche zeigt.
  *
- * „Wiegt 14" sagt niemandem etwas. „Wiegt so viel wie fuenf Stufen
+ * „Wiegt 43" sagt niemandem etwas. „Wiegt so viel wie fuenf Stufen
  * Erschoepfung" sagt jedem alles. Gesucht wird der Eichzustand mit dem
  * kleinsten Abstand.
  */

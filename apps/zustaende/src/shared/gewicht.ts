@@ -16,7 +16,7 @@
  * GEWICHT: wie schwer der Zustand wiegt, solange er anliegt. Damit sagt das
  * Werkzeug drei Dinge, die alle stimmen:
  *
- *   1. „Wiegt 14 — so viel wie fuenf Stufen Erschoepfung."
+ *   1. „Wiegt 43 — so viel wie fuenf Stufen Erschoepfung."
  *   2. „Der Sprung von Stufe 3 auf 4 verdoppelt das Gewicht."
  *   3. „Das passt nicht zu deinem Regler."
  *
@@ -100,6 +100,17 @@ export interface Befund {
  */
 const SPRUNG_FAKTOR = 2;
 
+/**
+ * Und wie gross er mindestens sein muss, damit es sich lohnt, ihn zu sagen.
+ *
+ * Die Verdopplung allein reicht nicht: von 3 auf 7 ist rechnerisch mehr als
+ * das Doppelte, am Tisch aber nichts. Diese Schwelle haengt an der
+ * Punktskala und ist beim Umstellen von 12 auf 36 prompt liegengeblieben —
+ * sie stand weiter auf 3, und der Hinweis erschien danach bei fast jedem
+ * zweiten Zustand. Ein Hinweis, der immer kommt, wird nicht gelesen.
+ */
+const SPRUNG_MINDESTENS = 9;
+
 export function pruefe(stufen: readonly Stufe[], haerteId: string): Befund {
   const haerte: Haerte = HAERTEN.find((h) => h.id === haerteId) ?? HAERTEN[1];
   const sortiert = [...stufen].sort((a, b) => a.nummer - b.nummer);
@@ -138,7 +149,7 @@ export function pruefe(stufen: readonly Stufe[], haerteId: string): Befund {
     const zuwachs = betraege[i] - betraege[i - 1];
     if (zuwachs <= 0) flacheStufen.push(sortiert[i].nummer);
     const vorher = betraege[i - 1] - (i >= 2 ? betraege[i - 2] : 0);
-    if (vorher > 0 && zuwachs >= vorher * SPRUNG_FAKTOR && zuwachs - vorher >= 3) {
+    if (vorher > 0 && zuwachs >= vorher * SPRUNG_FAKTOR && zuwachs - vorher >= SPRUNG_MINDESTENS) {
       spruenge.push(sortiert[i].nummer);
     }
   }
@@ -196,9 +207,35 @@ export function pruefe(stufen: readonly Stufe[], haerteId: string): Befund {
  * Wirkung tragen, die leichter ist als die der Stufe davor. Sonst wird ein
  * Zustand auf Stufe 4 harmloser als auf Stufe 2, und das merkt man am Tisch
  * sofort.
+ *
+ * ZWEI SCHRANKEN, und die zweite kam aus einem Bild der Oberflaeche:
+ *
+ *   1. die SCHWERE darf nicht sinken.
+ *   2. die PUNKTE duerfen nicht sinken.
+ *
+ * Die erste allein reichte nicht. „Festgehalten" und „taub" sind beide
+ * schwer, wiegen aber 15 und 11 — ein Zustand konnte auf Stufe 4
+ * festgehalten und auf Stufe 5 nur noch taub sein. Das ist genau der
+ * Rueckschritt, den die Regel verhindern sollte, nur eine Ebene tiefer.
+ * Erst die feinere Punktskala macht die zweite Schranke ueberhaupt
+ * brauchbar; auf der alten gab es je Schwere nur zwei verschiedene Werte.
+ *
+ * Gemessen wird der BETRAG, wie ueberall hier: ein Segen wiegt negativ, und
+ * ein staerkerer Segen ist ein kleinerer Wert.
+ *
+ * `streng` schaltet die zweite Schranke ab. Der Erzeuger braucht das als
+ * Rueckfall — lieber eine Stufe, die gleich schwer bleibt, als gar keine.
+ * Siehe `waehleWirkung` in `erzeuge.ts`.
  */
-export function darfAufStufe(neu: Wirkung, vorher: readonly Wirkung[]): boolean {
+export function darfAufStufe(
+  neu: Wirkung,
+  vorher: readonly Wirkung[],
+  streng = true
+): boolean {
   if (vorher.length === 0) return true;
-  const hoechste = Math.max(...vorher.map((w) => schwereWert(w.schwere)));
-  return schwereWert(neu.schwere) >= hoechste;
+  const hoechsteSchwere = Math.max(...vorher.map((w) => schwereWert(w.schwere)));
+  if (schwereWert(neu.schwere) < hoechsteSchwere) return false;
+  if (!streng) return true;
+  const hoechstePunkte = Math.max(...vorher.map((w) => Math.abs(w.punkte)));
+  return Math.abs(neu.punkte) >= hoechstePunkte;
 }

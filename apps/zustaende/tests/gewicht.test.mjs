@@ -145,7 +145,17 @@ test('die Kurve zeigt das Gewicht je Stufe, kumulativ', () => {
     ],
     'ernst'
   );
-  assert.deepEqual(befund.kurve, [1, 3]);
+  /*
+   * Abgeleitet, nicht eingetragen.
+   *
+   * Hier standen vorher die Zahlen [1, 3]. Beim Umstellen der Punktskala
+   * war das der einzige Ort, der stillschweigend die alte Skala festhielt —
+   * ein Test, der eine Konstante wiederholt, prueft die Konstante und nicht
+   * die Rechnung.
+   */
+  const a = T.wirkung('nachteil-wahrnehmung').punkte;
+  const b = T.wirkung('bewegung-halbiert').punkte;
+  assert.deepEqual(befund.kurve, [a, a + b]);
 });
 
 test('ein Buff senkt das Gewicht', () => {

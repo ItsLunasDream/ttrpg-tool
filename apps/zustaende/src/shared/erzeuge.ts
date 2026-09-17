@@ -125,16 +125,39 @@ export function baueStufen(
   const richtungen = richtungenFuer(wirkrichtung);
   const vergeben = new Set<string>();
   const bisher: Wirkung[] = [];
-  const stufen: Stufe[] = [];
+  const gezogen: Wirkung[] = [];
 
   for (let nummer = 1; nummer <= anzahl; nummer += 1) {
     const gewuenscht = schwereFuerStufe(nummer, anzahl, haerte);
-    const gewaehlt = waehleWirkung(gewuenscht, richtungen, thema, vergeben, bisher, rng);
+    const gewaehlt = waehleWirkung(gewuenscht, richtungen, thema, vergeben, bisher, rng, haerte);
     if (!gewaehlt) continue;
     vergeben.add(gewaehlt.id);
     bisher.push(gewaehlt);
-    stufen.push({ nummer, wirkungen: [gewaehlt.id] });
+    gezogen.push(gewaehlt);
   }
+
+  /*
+   * ERST ZIEHEN, DANN SORTIEREN.
+   *
+   * Der erste Anlauf hat beim Ziehen gefiltert: eine Wirkung durfte nur auf
+   * eine Stufe, wenn sie nicht leichter war als die davor. Das ist gierig
+   * und geht schief, sobald der Vorrat einer Schwere knapp wird. Ein
+   * Zustand auf „laestig" mit fuenf Stufen zog auf Stufe 3 die schwerste
+   * leichte Wirkung — danach gab es keine schwerere leichte mehr, und der
+   * Verlauf fiel zurueck: 3 → 4 → 5 → 4 → 3.
+   *
+   * Sortieren loest das vollstaendig, und ohne etwas zu verlieren: gezogen
+   * wird frei, die Reihenfolge entsteht danach. Sortiert wird nach Schwere
+   * und, innerhalb davon, nach Betrag — erst die feinere Punktskala macht
+   * den zweiten Schluessel ueberhaupt aussagekraeftig.
+   */
+  gezogen.sort(
+    (a, b) =>
+      schwereWert(a.schwere) - schwereWert(b.schwere) ||
+      Math.abs(a.punkte) - Math.abs(b.punkte)
+  );
+
+  const stufen: Stufe[] = gezogen.map((w, i) => ({ nummer: i + 1, wirkungen: [w.id] }));
 
   /*
    * „Gemischt" bekommt auf der letzten Stufe den Gegenpol dazu.
@@ -154,9 +177,19 @@ export function baueStufen(
       thema,
       vergeben,
       [],
-      rng
+      rng,
+      haerte
     );
-    if (gegenpol) {
+    /*
+     * Der Gegenpol ist freiwillig — der Deckel der Haerte ist es nicht.
+     *
+     * `waehleWirkung` hebt den Deckel im Notfall, damit keine Stufe
+     * ausfaellt. Fuer den Gegenpol gilt das nicht: er ist eine Zugabe, und
+     * eine Zugabe darf den Regler nicht sprengen. Auf „laestig" gibt es nur
+     * drei leichte Buffs; waren die vergeben, landete prompt „+1 auf
+     * Angriffswuerfe" aus „mittel" in einem laestigen Zustand.
+     */
+    if (gegenpol && schwereWert(gegenpol.schwere) <= schwereWert(haerte.bis as Schwere)) {
       vergeben.add(gegenpol.id);
       stufen[stufen.length - 1] = {
         nummer: letzte.nummer,
@@ -190,26 +223,64 @@ function waehleWirkung(
   thema: Thema,
   vergeben: ReadonlySet<string>,
   bisher: readonly Wirkung[],
-  rng: () => number
+  rng: () => number,
+  haerte?: Haerte
 ): Wirkung | null {
+  /*
+   * Zwei Durchgaenge: erst mit der strengen Regel, dann ohne.
+   *
+   * Streng heisst, dass die Punkte nicht sinken duerfen (siehe
+   * `darfAufStufe`). Das kann den Vorrat leerraeumen — wer auf Stufe 3 eine
+   * 15 gezogen hat, findet auf Stufe 4 vielleicht nichts Schwereres mehr.
+   * Frueher fiel die Stufe dann stillschweigend aus: `baueStufen`
+   * uebersprang sie, und man bekam einen Zustand mit vier Stufen, obwohl
+   * fuenf eingestellt waren, ohne Hinweis.
+   *
+   * Der zweite Durchgang laesst gleich schwere Wirkungen wieder zu. Eine
+   * Stufe, die nicht schlimmer wird, faellt in `pruefe()` als „flach" auf
+   * und ist damit sichtbar — anders als eine Stufe, die gar nicht da ist.
+   */
+  /*
+   * Gezogen wird OHNE die Punktschranke — die Reihenfolge stellt
+   * `baueStufen` hinterher durch Sortieren her. Hier greift nur die
+   * Schwere, damit eine Stufe nicht unter die Stufe davor faellt, bevor
+   * ueberhaupt sortiert wird.
+   */
   const frei = (liste: readonly Wirkung[]) =>
-    liste.filter((w) => !vergeben.has(w.id) && darfAufStufe(w, bisher));
+    liste.filter((w) => !vergeben.has(w.id) && darfAufStufe(w, bisher, false));
 
-  for (let stufe = schwereWert(schwere); stufe < SCHWEREN.length; stufe += 1) {
-    const hier = SCHWEREN[stufe];
+  const versuche = (bis: number): Wirkung | null => {
+    for (let stufe = schwereWert(schwere); stufe <= bis; stufe += 1) {
+      const hier = SCHWEREN[stufe];
 
-    const eigene = frei(
-      wirkungenFuer(hier, richtungen, undefined, thema.id).filter((w) => w.themen !== undefined)
-    );
-    if (eigene.length > 0) return zieh(eigene, rng);
+      const eigene = frei(
+        wirkungenFuer(hier, richtungen, undefined, thema.id).filter((w) => w.themen !== undefined)
+      );
+      if (eigene.length > 0) return zieh(eigene, rng);
 
-    const aufSpur = frei(wirkungenFuer(hier, richtungen, thema.spuren));
-    if (aufSpur.length > 0) return zieh(aufSpur, rng);
+      const aufSpur = frei(wirkungenFuer(hier, richtungen, thema.spuren));
+      if (aufSpur.length > 0) return zieh(aufSpur, rng);
 
-    const allgemein = frei(wirkungenFuer(hier, richtungen));
-    if (allgemein.length > 0) return zieh(allgemein, rng);
-  }
-  return null;
+      const allgemein = frei(wirkungenFuer(hier, richtungen));
+      if (allgemein.length > 0) return zieh(allgemein, rng);
+    }
+    return null;
+  };
+
+  /*
+   * Der Deckel der Haerte kommt zuerst.
+   *
+   * Ohne ihn stieg der Erzeuger, wenn eine Schwere leer war, einfach eine
+   * hoeher — und ein Zustand auf „laestig" trug am Ende „+1 auf
+   * Angriffswuerfe" aus der Stufe „mittel". Damit war der Regler
+   * ausgehebelt, den der Mensch gestellt hat, und zwar unsichtbar.
+   *
+   * Erst wenn unter dem Deckel wirklich nichts mehr frei ist, wird er
+   * gehoben. Eine Stufe zu verlieren waere schlimmer als eine Wirkung, die
+   * eine Schwere zu hoch liegt — die faellt wenigstens in der Waage auf.
+   */
+  const deckel = haerte ? schwereWert(haerte.bis as Schwere) : SCHWEREN.length - 1;
+  return versuche(Math.min(deckel, SCHWEREN.length - 1)) ?? versuche(SCHWEREN.length - 1);
 }
 
 /** Der Name: zusammengesetzt oder einzeln, wie im Monster Creator. */

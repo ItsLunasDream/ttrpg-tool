@@ -703,10 +703,10 @@ export interface Haerte {
 }
 
 export const HAERTEN: readonly Haerte[] = [
-  { id: 'laestig', name: { de: 'lästig', en: 'Nuisance' }, bis: 'leicht', gewichtVon: 1, gewichtBis: 5 },
-  { id: 'ernst', name: { de: 'ernst', en: 'Serious' }, bis: 'mittel', gewichtVon: 4, gewichtBis: 12 },
-  { id: 'gefaehrlich', name: { de: 'gefährlich', en: 'Dangerous' }, bis: 'schwer', gewichtVon: 10, gewichtBis: 24 },
-  { id: 'toedlich', name: { de: 'tödlich', en: 'Deadly' }, bis: 'toedlich', gewichtVon: 20, gewichtBis: 60 }
+  { id: 'laestig', name: { de: 'lästig', en: 'Nuisance' }, bis: 'leicht', gewichtVon: 3, gewichtBis: 15 },
+  { id: 'ernst', name: { de: 'ernst', en: 'Serious' }, bis: 'mittel', gewichtVon: 12, gewichtBis: 36 },
+  { id: 'gefaehrlich', name: { de: 'gefährlich', en: 'Dangerous' }, bis: 'schwer', gewichtVon: 30, gewichtBis: 72 },
+  { id: 'toedlich', name: { de: 'tödlich', en: 'Deadly' }, bis: 'toedlich', gewichtVon: 60, gewichtBis: 180 }
 ];
 
 /* ---------- Wirkrichtung: wohin der Zustand zieht ---------- */

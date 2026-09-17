@@ -407,18 +407,18 @@ Handwerkszeug, das über Kampagnen hinweg gilt.
 
 ## Stand der Umsetzung
 
-Das Werkzeug liegt in `apps/zustaende` und hat 115 Tests plus einen Rauchtest
+Das Werkzeug liegt in `apps/zustaende` und hat 124 Tests plus einen Rauchtest
 in der Hülle.
 
 **Gebaut:**
 
-- `wirkungen.ts` — 115 Bausteine nach Schwere sortiert, jeder mit Spur,
+- `wirkungen.ts` — 144 Bausteine nach Schwere sortiert, jeder mit Spur,
   Richtung und Punktwert. Eine Stufe ist eine Wirkung aus dieser Liste;
   genau deshalb kommen die Tabellen ohne KI aus und genau deshalb lässt sich
-  ein Zustand überhaupt wiegen. 45 davon sind allgemein und passen überall
-  hin, 70 gehören einem Thema und kommen nur dort vor — vier je Thema, über
-  die Schweren verteilt, damit ein Feuerzustand auf jeder Stufe etwas
-  Eigenes findet statt auf „Nachteil auf Wahrnehmung" zurückzufallen.
+  ein Zustand überhaupt wiegen. 53 davon sind allgemein und passen überall
+  hin, 91 gehören einem Thema und kommen nur dort vor — fünf bis sieben je
+  Thema, über die Schweren verteilt, damit ein Feuerzustand auf jeder Stufe
+  etwas Eigenes findet statt auf „Nachteil auf Wahrnehmung" zurückzufallen.
 - `gewicht.ts` — die Rechnung samt Kurve über die Stufen, und die Ansage
   dazu: sie misst nicht, ob ein Zustand für eine Kampagne zu hart ist.
 - `eichung.ts` — die bekannten Zustände, in unsere eigenen Bausteine
@@ -436,6 +436,58 @@ in der Hülle.
   wären zwei Blätter, die irgendwann auseinanderlaufen.
 - Ablage als Markdown mit YAML-Kopf, Sammlung mit Suche, KI-Anbindung,
   Export in den Story Creator, Einbau in die Hülle.
+
+**Was aus dem Gebrauch dazukam: die Punktskala bis 36**
+
+Ein Bild der Oberfläche zeigte einen Kältezustand mit fünf Stufen, und
+Stufe 5 war harmloser als Stufe 4: „festgehalten" (damals 4 Punkte), dann
+„taub" (3). Die Regel, die das verhindern sollte, verglich nur die
+**Schwere** — und beide sind „schwer".
+
+Die Punkte mitzuvergleichen half nicht, solange die Skala bis 12 reichte:
+je Schwere gab es ein oder zwei verschiedene Werte, und was gleich wiegt,
+lässt sich nicht ordnen. Eine reine Streckung hätte daran nichts geändert;
+unter einer Multiplikation ist die Rangfolge unverändert. Was half, war
+beides zusammen:
+
+```
+Skala bis 36, jede Schwere mit eigenem Bereich
+  leicht    2–5      mittel   6–10
+  schwer   11–16     tödlich 26–36
+```
+
+und danach alle 144 Werte **neu gegeneinander** vergeben: „taub" 11,
+„festgehalten" 15, „blind" 14. Die Härten-Spannen sind mit demselben Faktor
+mitgewandert (lästig 3–15, ernst 12–36, gefährlich 30–72, tödlich 60–180),
+damit die Urteile „passt / zu leicht / zu schwer" gleich verteilt bleiben
+wie vorher.
+
+Drei Dinge sind dabei aufgefallen und mitbehoben worden:
+
+- **Gierig ziehen geht schief.** Der Erzeuger filterte beim Ziehen — eine
+  Wirkung durfte nur auf eine Stufe, wenn sie nicht leichter war als die
+  davor. Bei knappem Vorrat lief das auf `3 → 4 → 5 → 4 → 3` hinaus. Jetzt
+  wird frei gezogen und **hinterher sortiert**; das löst die Reihenfolge
+  vollständig und verliert dabei keine Stufe.
+- **Der Härte-Regler war aushebelbar.** War eine Schwere leergezogen, stieg
+  der Erzeuger eine höher — ein Zustand auf „lästig" trug am Ende „+1 auf
+  Angriffswürfe" aus „mittel". Jetzt deckelt die Härte, und der Deckel wird
+  nur gehoben, wenn sonst eine Stufe ausfiele.
+- **Segen hatten zu wenig Bausteine.** Es gab drei leichte Buffs; ein
+  fünfstufiger Segen auf „lästig" konnte gar nicht passen. Jetzt sind es
+  sieben, dazu je zwei neue auf mittel und schwer.
+
+Die Warnung „der Sprung verdoppelt das Gewicht" hat eine absolute
+Untergrenze, die an der Skala hängt und beim Umstellen zunächst
+liegenblieb — sie erschien danach bei 66 statt 29 Prozent der Zustände.
+Mit der mitgezogenen Grenze sind es wieder 30.
+
+**Alte Dateien:** im YAML-Kopf steht ein `gewicht`, und die Sammlung zeigt
+es an, ohne die Datei zu öffnen. Der Kopf trägt deshalb jetzt
+`schemaVersion: 2`; was mit 1 gespeichert wurde, wird beim Lesen mit 3
+hochgerechnet. Das ist eine **Näherung** und keine exakte Umrechnung — die
+Neuvergabe war keine reine Verdreifachung. Genau wird die Zahl wieder,
+sobald der Zustand einmal geöffnet und gespeichert wird.
 
 **Was aus dem Gebrauch dazukam: die Zeitskala**
 

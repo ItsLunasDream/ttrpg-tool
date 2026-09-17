@@ -64,6 +64,36 @@ function alsYaml(wert: string): string {
     : JSON.stringify(wert);
 }
 
+/**
+ * Die Fassung des Kopfes.
+ *
+ * 1 = Punktskala bis 12. 2 = Punktskala bis 36 (siehe `wirkungen.ts`).
+ *
+ * Die Zahl steht hier, weil im Kopf ein GEWICHT gespeichert wird und die
+ * Sammlung es anzeigt und danach sortiert, ohne die Datei aufzumachen. Ohne
+ * die Fassung staenden nach der Umstellung alte und neue Zahlen
+ * nebeneinander in derselben Liste, und 14 saehe leichter aus als 15,
+ * obwohl es dreimal so schwer ist.
+ */
+export const SCHEMA_VERSION = 2;
+
+/**
+ * Wie eine alte Zahl auf die neue Skala kommt.
+ *
+ * EHRLICH DAZU: das ist eine Naeherung. Die Umstellung war keine reine
+ * Verdreifachung — innerhalb jeder Schwere wurden die Wirkungen neu
+ * gegeneinander gewichtet, damit „festgehalten" schwerer wiegt als „taub".
+ * Der Faktor trifft also den Mittelwert und nicht jede Datei. Genau wird die
+ * Zahl erst wieder, wenn der Zustand einmal geoeffnet und gespeichert wird;
+ * die Wirkungskennungen stehen im Leib, nicht im Kopf, und nur aus ihnen
+ * laesst sich exakt rechnen.
+ */
+const SKALENFAKTOR = 3;
+
+export function skaliertesGewicht(gewicht: number, fassung: number): number {
+  return fassung >= SCHEMA_VERSION ? gewicht : gewicht * SKALENFAKTOR;
+}
+
 export function alsMarkdown(zustand: Abgelegt, sprache: Sprache): string {
   const de = sprache !== 'en';
   const gewicht = gesamtgewicht(zustand.stufen);
@@ -88,7 +118,7 @@ export function alsMarkdown(zustand: Abgelegt, sprache: Sprache): string {
     // Linderung und Verschlimmerung zusammenpassen.
     `dauer_id: ${alsYaml(zustand.dauerId)}`,
     `geaendert: ${zustand.geaendert}`,
-    'schemaVersion: 1',
+    `schemaVersion: ${SCHEMA_VERSION}`,
     '---',
     ''
   ];
@@ -140,7 +170,7 @@ export function alsMarkdown(zustand: Abgelegt, sprache: Sprache): string {
   /*
    * Das Gewicht steht mit seinem Vergleich da, nie allein.
    *
-   * „Wiegt 14" sagt niemandem etwas. „Wiegt so viel wie Erschoepfung 5"
+   * „Wiegt 43" sagt niemandem etwas. „Wiegt so viel wie Erschoepfung 5"
    * sagt jedem alles. Und der Satz darunter sagt, was die Zahl NICHT
    * bedeutet — sonst liest sie jemand als Balance-Urteil.
    */
@@ -209,7 +239,9 @@ export function alsEintrag(inhalt: string, rueckfallId: string): Eintrag {
     themaId: kopf.thema || '',
     haerteId: kopf.haerte || '',
     stufen: zahl('stufen'),
-    gewicht: zahl('gewicht'),
+    // Alte Dateien tragen die alte Skala. Ohne die Umrechnung stuenden in
+    // der Sammlung zwei Massstaebe untereinander.
+    gewicht: skaliertesGewicht(zahl('gewicht'), zahl('schemaVersion')),
     zeichen: kopf.zeichen || '◈',
     farbe: kopf.farbe || '#7a8ca8',
     geaendert: kopf.geaendert || ''
