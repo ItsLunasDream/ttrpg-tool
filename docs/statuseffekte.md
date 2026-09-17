@@ -4,8 +4,10 @@ Ein siebtes Werkzeug für die Sammlung. Es baut eigene Zustände — „Freezing
 „Sandblind", „Marked by the Hunt" — mit Regeltext, Stufen und, wenn man
 will, einer Anbindung an die Umgebung, die sie von selbst auslöst.
 
-Dies ist ein Konzept, kein Plan zum Abarbeiten. Es steht hier, damit wir
-darüber reden, bevor gebaut wird.
+Dies war ein Konzept, kein Plan zum Abarbeiten. **Gebaut ist es
+inzwischen** — was davon umgesetzt wurde und was nicht, steht unten unter
+„Stand der Umsetzung". Der Text darüber bleibt unverändert stehen, damit man
+Plan und Ergebnis vergleichen kann.
 
 ## Wozu
 
@@ -383,3 +385,79 @@ Handwerkszeug, das über Kampagnen hinweg gilt.
 - **Gehört ein Zustand einer Kampagne?** Oben steht: nein. Dagegen spricht,
   dass man dann eine wachsende Liste ohne Ordnung bekommt. Vielleicht
   Schlagworte statt Zuordnung.
+
+## Stand der Umsetzung
+
+Das Werkzeug liegt in `apps/zustaende` und hat 86 Tests plus einen Rauchtest
+in der Hülle.
+
+**Gebaut:**
+
+- `wirkungen.ts` — 40 Bausteine nach Schwere sortiert, jeder mit Spur,
+  Richtung und Punktwert. Eine Stufe ist eine Wirkung aus dieser Liste;
+  genau deshalb kommen die Tabellen ohne KI aus und genau deshalb lässt sich
+  ein Zustand überhaupt wiegen.
+- `gewicht.ts` — die Rechnung samt Kurve über die Stufen, und die Ansage
+  dazu: sie misst nicht, ob ein Zustand für eine Kampagne zu hart ist.
+- `eichung.ts` — die bekannten Zustände, in unsere eigenen Bausteine
+  zerlegt. Geprüft wird die Rangfolge, nicht die Punktzahl.
+- `stimmigkeit.ts` — siehe unten, das kam erst aus dem Gebrauch dazu.
+- `erzeuge.ts`, `tabellen.ts` — sieben Arten, sechs Themen, vier Härten,
+  Namensteile, Bilder und Satzmasken.
+- `paket.ts` — mehrere Zustände in einem Wurf, mit verteilten Wirkungen.
+- `karte.ts` — Vorder- und Rückseite als HTML. Dasselbe HTML geht groß auf
+  den Schirm und durch `printToPDF` aufs Papier; zwei Wege zu demselben Blatt
+  wären zwei Blätter, die irgendwann auseinanderlaufen.
+- Ablage als Markdown mit YAML-Kopf, Sammlung mit Suche, KI-Anbindung,
+  Export in den Story Creator, Einbau in die Hülle.
+
+**Was aus dem Gebrauch dazukam: die Zeitskala**
+
+Im Konzept steht sie nicht, und sie fehlte prompt. Ein Beispiel aus der
+ersten Fassung:
+
+```
+Dauer:     bis zu deinem nächsten Zug
+Besser:    eine Stunde in trockener Kleidung senkt ihn um 1
+```
+
+Beides für sich richtig, zusammen Unsinn. Seither trägt alles einen Takt —
+`kampf` (Runden und Züge), `kurz` (Stunden), `lang` (Tage und Rasten) —, und
+`stimmigkeit.ts` prüft, dass die Teile zueinander passen. Der Erzeuger wählt
+die Dauer zuerst und richtet Linderung und Verschlimmerung danach aus; eine
+Prüfung, die nur Fehler meldet, die das Werkzeug selbst gebaut hat, wäre eine
+Ausrede.
+
+Im selben Beispiel steckte ein zweiter Fehler: der Auslöser eines Fluchs
+klebte an einem Ort aus der Umgebung („jedes Mal, wenn der Name auf dem
+Gletscher genannt wird"). Ein Ort steht jetzt nur noch an Zuständen, die aus
+der Umgebung kommen.
+
+**Was von den Punktwerten zu halten ist**
+
+Sie sind geschätzt, und das bleibt so, bis jemand die Eichung gegenliest. Was
+die Eichung prüft, ist die **Rangfolge** — gelähmt schwerer als vergiftet,
+bewusstlos am schwersten —, nicht die Höhe der Zahlen. Zwei Fehler hat sie
+dabei schon gefunden:
+
+- „handlungsunfähig" wog weniger als „blind". Wer blind ist, kämpft
+  schlecht; wer handlungsunfähig ist, kämpft gar nicht.
+- Meine eigene Rangfolge war an einer Stelle eine Behauptung: „blind" und
+  „festgehalten" lassen sich nicht sinnvoll ordnen. Sie stehen jetzt auf
+  demselben Rang, damit die Eichung nicht über eine Meinung fällt.
+
+**Wichtige Einschränkung:** die Zerlegung der bekannten Zustände stammt aus
+dem Gedächtnis der Regelmechanik, nicht aus einer nachgeschlagenen Quelle.
+Sie ist ein Plausibilitätsmaßstab und kein Beleg. Wer das Werkzeug ernst
+nimmt, sollte sie einmal gegen das SRD gegenlesen. Dasselbe gilt für die
+Eichung des Monster Creators, und dort steht es ebenso dabei.
+
+**Nicht umgesetzt:**
+
+- **Der Weg in den Initiative Tracker.** Vorbereitet ist er: Zeichen, Farbe
+  und Stufenzahl stehen im YAML-Kopf, und der Tracker liest denselben Ordner.
+  Was fehlt, ist die Seite im Tracker, die Stufen anzeigen kann.
+- **Der Folgezustand** („Frostbite ab Freezing 3") als eigenes Feld. Im
+  Paket stehen die Zustände nebeneinander, nicht auseinander folgend.
+- **Ein Zähler außerhalb des Kampfes.** Wie im Konzept entschieden: der
+  Auslöser bleibt Text, und die Spielleitung wendet ihn an.

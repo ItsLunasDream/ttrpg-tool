@@ -21,6 +21,8 @@ auch die spricht nur mit dem eingetragenen Anbieter.
 - **Monster Creator** — Homebrew-Monster zu einem Grad, den du vorgibst.
   Jede Zahl wird gegen die Richtwerte geprüft, egal ob sie aus den Tabellen,
   von der Tastatur oder von einer KI kam.
+- **Status Effect Creator** — eigene Zustände mit Stufen, gewogen an denen,
+  die jeder kennt, mit einer Karte zum Vorlesen am Tisch.
 - **TTRPG Map Editor** — Battlemaps und Weltkarten zeichnen, Export als
   Universal VTT.
 
@@ -89,6 +91,7 @@ apps/dice/         Würfel
 apps/npc/          NPC Creator
 apps/inspiration/  Inspirationshilfe
 apps/monster/      Monster Creator
+apps/zustaende/    Status Effect Creator
 packages/dice/     Würfelausdrücke lesen und werfen
 packages/i18n/     Sprachwahl und Textersetzung
 packages/motion/   Zeiten, Kurven und Grundanimationen
@@ -379,6 +382,24 @@ Prüfung, nicht der Erzeuger.
 
 Die Richtwerte stammen aus einer CC-BY-Quelle, genannt in
 [NOTICE.md](NOTICE.md).
+
+## Status Effect Creator
+
+- **Eigene Zustände mit Stufen** — Kälte, die sich aufbaut, ein Fluch, der
+  beim dritten Mal etwas anderes tut. Die Stufen sind Stichpunkte, keine
+  Prosa; einen Absatz liest am Tisch niemand.
+- **Jeder Zustand wird gewogen**, und das Gewicht steht nie ohne Vergleich
+  da: „etwa so viel wie Erschöpfung 5". Was es ausdrücklich nicht sagt: ob er
+  für deine Runde zu hart ist. Das hängt daran, wie oft man ihn bekommt, und
+  das weiß nur dein Tisch.
+- **Die Teile müssen zueinander passen.** Ein Zustand, der bis zum nächsten
+  Zug anhält, lässt sich nicht durch eine Stunde am Feuer lindern. Dauer,
+  Linderung und Verschlimmerung tragen einen Takt, und ein Widerspruch wird
+  gemeldet.
+- **Pakete**: mehrere Zustände in einem Wurf, mit demselben Thema und über
+  alle verteilten Wirkungen — so greift nicht dreimal derselbe Nachteil an.
+- **Eine Karte zum Vorlesen**: vorn, was die Figur merkt, hinten die Regel
+  für dich. Zum Ausdrucken oder groß auf dem Schirm.
 
 ## Würfel
 

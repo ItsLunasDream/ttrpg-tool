@@ -767,3 +767,64 @@ body {
   padding-left: 18px;
   font-size: 13px;
 }
+
+/* ==========================================================================
+   Pakete
+   ========================================================================== */
+
+.paket__name {
+  margin: 4px 0 2px;
+  font-size: 20px;
+}
+
+.paket__liste {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.paket__eintrag {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.regler__satz {
+  grid-column: 1 / -1;
+  margin: 0 0 4px;
+  max-width: 62ch;
+}
+
+/* ==========================================================================
+   Die Karte gross auf dem Schirm
+   ==========================================================================
+
+   Der Inhalt steckt in einem iframe mit dem Karten-Stylesheet: was man hier
+   sieht, ist genau das, was gedruckt wird. Der Rahmen drumherum gehoert dem
+   Werkzeug, das Blatt darin nicht.
+   ========================================================================== */
+
+.kartenschirm {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: #0b0d13ee;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+.kartenschirm__leiste {
+  display: flex;
+  gap: 8px;
+}
+
+.kartenschirm__blatt {
+  flex: 1;
+  width: min(100%, 900px);
+  border: 0;
+  border-radius: var(--radius);
+  background: #fff;
+}

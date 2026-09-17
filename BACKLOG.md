@@ -125,6 +125,51 @@ zufällig gleich, deshalb fällt es nicht auf.
 
 ## Erledigt
 
+### Status Effect Creator: das siebte Werkzeug
+
+Eigene Zustände mit Stufen — Kälte, die sich aufbaut, ein Fluch, der beim
+dritten Mal etwas anderes tut. Nach dem Konzept in
+[docs/statuseffekte.md](docs/statuseffekte.md), das dort unverändert stehen
+bleibt; was davon gebaut wurde, steht am Ende derselben Datei.
+
+Der Kern sind 40 Wirkungen nach Schwere, jede mit Punktwert. Eine Stufe ist
+eine Wirkung daraus — deshalb kommen die Tabellen ohne KI aus, und deshalb
+lässt sich ein Zustand überhaupt wiegen.
+
+**Die Waage ist bewusst keine Ampel.** Beim Monster gibt es ein Richtig, der
+Grad ist eine Rechnung. Hier nicht: ob ein Zustand zu hart ist, hängt daran,
+wie oft man ihn bekommt, und das weiß nur der Tisch. Was dasteht, ist eine
+Auskunft — so schwer wiegt er, so viel wie das da — und der einschränkende
+Satz steht dabei, in der Oberfläche und in der Datei.
+
+Dazu Pakete (mehrere Zustände in einem Wurf, mit über alle verteilten
+Wirkungen), die Karte zum Vorlesen (vorn, was die Figur merkt; hinten die
+Regel), Ablage als Markdown mit YAML-Kopf als spätere Schnittstelle zum
+Initiative Tracker, Sammlung mit Suche und die KI-Anbindung.
+
+Bei der KI wird **nicht nachgezogen, sondern zurückgewiesen**. Beim Monster
+gibt es einen richtigen Wert, auf den man ziehen kann; bei einem Zustand
+nicht. Geprüft wird nur, was sich nachzählen lässt.
+
+Fünf Fehler hat erst die eigene Prüfung gefunden: ein widerlegter Punktwert
+(„handlungsunfähig" wog weniger als „blind"), eine Rangfolge, die eine
+Behauptung war, ein Segen, der als kaputt galt, weil Buffs negativ wiegen,
+eine Umgebung ohne Auslöser im Kampftakt, und im Paket ein Ersatz, der sich
+an einer Wirkung bediente, die derselbe Zustand später noch brauchte.
+
+### Zustände: Dauer und Linderung passten nicht zusammen
+
+Gemeldet an einem Beispiel aus der Oberfläche: Dauer „bis zu deinem nächsten
+Zug", Linderung „eine Stunde in trockener Kleidung senkt ihn um 1". Beides
+für sich richtig, zusammen Unsinn. Und im selben Block klebte der Auslöser
+eines Fluchs an einem Ort aus der Umgebung.
+
+Neu ist deshalb die **Zeitskala** als eigener Begriff: `kampf`, `kurz`,
+`lang`. Dauern, Auslöser, Linderung und Verschlimmerung tragen sie alle,
+`stimmigkeit.ts` prüft ihr Verhältnis, und der Erzeuger baut solche Zustände
+gar nicht erst — die Dauer wird zuerst gewählt, und die anderen richten sich
+danach.
+
 ### Monster Creator: aus Zahlen wurde ein Statblock
 
 Rückmeldung aus dem ersten richtigen Gebrauch, in einem Zug abgearbeitet.

@@ -20,6 +20,15 @@ const api = {
       }>,
     loeschen: (id: string) => ipcRenderer.invoke(kanal('loeschen'), id) as Promise<boolean>
   },
+  /** Die Karte als PDF. Das HTML baut der Renderer, gedruckt wird im Hauptprozess. */
+  karte: (html: string, vorschlag: string) =>
+    ipcRenderer.invoke(kanal('karte'), html, vorschlag) as Promise<{
+      ok: boolean;
+      pfad: string;
+      text: string;
+    }>,
+  karteZeigen: (pfad: string) => ipcRenderer.invoke(kanal('karte:zeigen'), pfad) as Promise<boolean>,
+
   export: (titel: string, markdown: string) =>
     ipcRenderer.invoke(kanal('export'), titel, markdown) as Promise<{ ok: boolean; text: string }>,
   ki: {

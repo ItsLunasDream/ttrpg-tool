@@ -14,8 +14,9 @@
  * Kampagnen hinweg gilt.
  */
 import path from 'node:path';
-import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
-import { ipcMain } from 'electron';
+import os from 'node:os';
+import { mkdir, mkdtemp, readFile, readdir, rm, unlink, writeFile } from 'node:fs/promises';
+import { BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import type { WebContents } from 'electron';
 import { baueAnbieter, KiFehler, leseJsonAntwort } from '@suite/ki';
 import type { KiEinstellungen } from '@suite/ki/einstellungen';
@@ -149,6 +150,68 @@ export async function mountZustaende(options: ZustaendeEmbedOptions): Promise<Zu
     } catch {
       return false;
     }
+  });
+
+  /* ---------- Die Karte zum Vorlesen ---------- */
+
+  /**
+   * Aus dem HTML der Karte wird ein PDF.
+   *
+   * Derselbe Weg wie beim PDF-Export des Story Creators: ein unsichtbares
+   * Fenster laedt eine temporaere Datei und druckt sie. Eine temporaere
+   * Datei und keine `data:`-Adresse, weil letztere bei laengeren Dokumenten
+   * abgeschnitten wird.
+   *
+   * Der Renderer schickt nur das HTML — er baut es aus `karte.ts`, und
+   * derselbe Text steht auf dem Schirm. Zwei Wege zu demselben Blatt waeren
+   * zwei Blaetter, die irgendwann auseinanderlaufen.
+   */
+  ipcMain.removeHandler(kanal('karte'));
+  ipcMain.handle(
+    kanal('karte'),
+    async (_e, html: string, vorschlag: string): Promise<{ ok: boolean; pfad: string; text: string }> => {
+      const ziel = await dialog.showSaveDialog({
+        defaultPath: `${vorschlag || 'karte'}.pdf`,
+        filters: [{ name: 'PDF', extensions: ['pdf'] }]
+      });
+      if (ziel.canceled || !ziel.filePath) return { ok: false, pfad: '', text: '' };
+
+      const ordner = await mkdtemp(path.join(os.tmpdir(), 'zustand-karte-'));
+      const quelle = path.join(ordner, 'karte.html');
+      const fenster = new BrowserWindow({
+        show: false,
+        webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true }
+      });
+
+      try {
+        await writeFile(quelle, html, 'utf8');
+        await fenster.loadFile(quelle);
+        const daten = await fenster.webContents.printToPDF({
+          printBackground: true,
+          pageSize: 'A4',
+          margins: { top: 0, bottom: 0, left: 0, right: 0 }
+        });
+        await writeFile(ziel.filePath, daten);
+        return { ok: true, pfad: ziel.filePath, text: '' };
+      } catch (fehler) {
+        return {
+          ok: false,
+          pfad: '',
+          text: String(fehler instanceof Error ? fehler.message : fehler)
+        };
+      } finally {
+        fenster.destroy();
+        await rm(ordner, { recursive: true, force: true });
+      }
+    }
+  );
+
+  /** Die fertige Karte im System oeffnen. Ein PDF, das niemand findet, ist keins. */
+  ipcMain.removeHandler(kanal('karte:zeigen'));
+  ipcMain.handle(kanal('karte:zeigen'), async (_e, pfad: string): Promise<boolean> => {
+    if (!pfad) return false;
+    shell.showItemInFolder(pfad);
+    return true;
   });
 
   /* ---------- Export in den Story Creator ---------- */

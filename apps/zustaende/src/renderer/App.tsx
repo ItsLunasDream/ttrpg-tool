@@ -36,8 +36,12 @@ import {
   text,
   type Wirkrichtung
 } from '../shared/tabellen';
+import { bogen } from '../shared/karte';
+import { erzeugePaket, ueberschneidung, type Paket } from '../shared/paket';
+import { zuId as kennung } from '../shared/ablage';
 import { api } from './api';
 import { Blatt } from './Blatt';
+import { Karte } from './Karte';
 import { Sammlung } from './Sammlung';
 import { Waage } from './Waage';
 import { getLanguage, setLanguage, t, type TextKey } from './i18n';
@@ -45,7 +49,7 @@ import { getLanguage, setLanguage, t, type TextKey } from './i18n';
 /** Der Zufall der Oberflaeche. Die reinen Funktionen bekommen ihn uebergeben. */
 const wuerfel = () => Math.random();
 
-type Reiter = 'bauen' | 'sammlung';
+type Reiter = 'bauen' | 'paket' | 'sammlung';
 
 export function App() {
   const [sprache, setSpracheState] = useState<Language>(DEFAULT_LANGUAGE);
@@ -74,6 +78,11 @@ export function App() {
   /** Bei KI-Stufen ist das Gewicht geschaetzt, nicht gerechnet. */
   const [geschaetzt, setGeschaetzt] = useState(false);
   const [kiGewicht, setKiGewicht] = useState<number | null>(null);
+  /** Das zuletzt gewuerfelte Paket. */
+  const [paket, setPaket] = useState<Paket | null>(null);
+  const [paketAnzahl, setPaketAnzahl] = useState(4);
+  /** Welche Zustaende gerade als Karte auf dem Schirm liegen. Leer heisst: keine. */
+  const [karte, setKarte] = useState<readonly Zustand[] | null>(null);
 
   useEffect(() => {
     void api.ki.da().then(setKiDa);
@@ -254,6 +263,53 @@ export function App() {
     );
   };
 
+  /**
+   * Die Karte als PDF.
+   *
+   * Das HTML entsteht hier, gedruckt wird im Hauptprozess — der Renderer
+   * hat keinen Zugriff auf die Platte, und das soll so bleiben.
+   */
+  const druckeKarte = async (zustaende: readonly Zustand[]) => {
+    const html = bogen(zustaende, getLanguage() === 'en' ? 'en' : 'de', ausformuliert);
+    const vorschlag = kennung(zustaende.length === 1 ? zustaende[0].name : (paket?.name ?? 'karten'));
+    const ergebnis = await api.karte(html, vorschlag);
+    if (!ergebnis.ok && ergebnis.text === '') {
+      setMeldung(t('karte.abgebrochen'));
+      return;
+    }
+    setMeldung(
+      ergebnis.ok
+        ? t('karte.gespeichert', { pfad: ergebnis.pfad })
+        : t('meldung.fehler', { detail: ergebnis.text })
+    );
+    if (ergebnis.ok) void api.karteZeigen(ergebnis.pfad);
+  };
+
+  const wuerflePaket = () => {
+    setPaket(
+      erzeugePaket(
+        { themaId: themaId || undefined, haerteId, anzahl: paketAnzahl },
+        getLanguage() === 'en' ? 'en' : 'de',
+        wuerfel
+      )
+    );
+  };
+
+  /** Ein ganzes Paket in die Sammlung. */
+  const speicherePaket = async () => {
+    if (!paket) return;
+    let gespeichert = 0;
+    for (const einzelner of paket.zustaende) {
+      const ergebnis = await api.sammlung.speichern(
+        { ...einzelner, id: zuId(einzelner.name), geaendert: new Date().toISOString() },
+        getLanguage()
+      );
+      if (ergebnis.ok) gespeichert += 1;
+    }
+    setMeldung(t('paket.gespeichert', { anzahl: gespeichert }));
+    await ladeSammlung();
+  };
+
   const oeffnen = async (id: string) => {
     const eintrag = eintraege.find((e) => e.id === id);
     if (!eintrag) return;
@@ -314,7 +370,7 @@ export function App() {
           <p className="kopf__regelwerk">{t('hinweis.regeln')}</p>
         </div>
         <nav className="reiter">
-          {(['bauen', 'sammlung'] as const).map((id) => (
+          {(['bauen', 'paket', 'sammlung'] as const).map((id) => (
             <button
               key={id}
               type="button"
@@ -488,6 +544,94 @@ export function App() {
                 <button type="button" className="knopf" onClick={() => void exportieren()}>
                   {t('knopf.export')}
                 </button>
+                <button type="button" className="knopf" onClick={() => setKarte([zustand])}>
+                  {t('knopf.karte')}
+                </button>
+              </section>
+            </>
+          )}
+        </main>
+      )}
+
+      {reiter === 'paket' && (
+        <main className="bauen">
+          <section className="regler">
+            <p className="hinweis hinweis--klein regler__satz">{t('paket.satz')}</p>
+            <label>
+              {t('feld.thema')}
+              <select value={themaId} onChange={(e) => setThemaId(e.target.value)}>
+                <option value="">{t('feld.beliebig')}</option>
+                {THEMEN.map((thema) => (
+                  <option key={thema.id} value={thema.id}>
+                    {text(thema.name, sprache === 'en' ? 'en' : 'de')}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t('feld.haerte')}
+              <select value={haerteId} onChange={(e) => setHaerteId(e.target.value)}>
+                {HAERTEN.map((haerte) => (
+                  <option key={haerte.id} value={haerte.id}>
+                    {text(haerte.name, sprache === 'en' ? 'en' : 'de')}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t('paket.anzahl')}
+              <select value={paketAnzahl} onChange={(e) => setPaketAnzahl(Number(e.target.value))}>
+                {[2, 3, 4, 5, 6].map((zahl) => (
+                  <option key={zahl} value={zahl}>
+                    {zahl}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="regler__knoepfe">
+              <button type="button" className="knopf knopf--haupt" onClick={wuerflePaket}>
+                {t('paket.wuerfeln')}
+              </button>
+            </div>
+          </section>
+
+          {paket === null ? (
+            <p className="hinweis">{t('paket.leer')}</p>
+          ) : (
+            <>
+              <h2 className="paket__name">{paket.name}</h2>
+              <p className="hinweis hinweis--klein">
+                {ueberschneidung(paket) === 0
+                  ? t('paket.abgestimmt')
+                  : t('paket.ueberschneidung', { anzahl: ueberschneidung(paket) })}
+              </p>
+
+              <div className="paket__liste">
+                {paket.zustaende.map((einzelner, stelle) => (
+                  <div className="paket__eintrag" key={`${einzelner.name}-${stelle}`}>
+                    <Blatt zustand={einzelner} />
+                    <button
+                      type="button"
+                      className="knopf knopf--klein"
+                      onClick={() => {
+                        setZustand(einzelner);
+                        zuruecksetzen();
+                        setReiter('bauen');
+                      }}
+                    >
+                      {t('paket.oeffnen')}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <section className="abgang">
+                <button type="button" className="knopf knopf--haupt" onClick={() => void speicherePaket()}>
+                  {t('paket.alleSpeichern')}
+                </button>
+                <button type="button" className="knopf" onClick={() => setKarte(paket.zustaende)}>
+                  {t('paket.alleKarten')}
+                </button>
               </section>
             </>
           )}
@@ -498,6 +642,15 @@ export function App() {
         <main className="sammlungSeite">
           <Sammlung eintraege={eintraege} onOeffnen={(id) => void oeffnen(id)} onLoeschen={(e) => void loeschen(e)} />
         </main>
+      )}
+
+      {karte && (
+        <Karte
+          zustaende={karte}
+          ausformuliert={ausformuliert}
+          onSchliessen={() => setKarte(null)}
+          onDrucken={() => void druckeKarte(karte)}
+        />
       )}
     </div>
   );

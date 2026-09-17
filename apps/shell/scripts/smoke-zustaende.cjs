@@ -188,6 +188,64 @@ app.whenReady().then(async () => {
     'die Liste zeigt denselben Zustand'
   );
 
+  // --- Pakete --------------------------------------------------------------
+  console.log('\nEin Paket:');
+  await js("[...document.querySelectorAll('.reiter__knopf')].find(k => /Package|Paket/.test(k.textContent)).click(); true");
+  await warte(400);
+  await js("[...document.querySelectorAll('.knopf')].find(k => /Roll a package|Paket würfeln/.test(k.textContent)).click(); true");
+  await warte(700);
+
+  pruefe(
+    (await js("document.querySelectorAll('.paket__eintrag').length")) >= 2,
+    'das Paket enthaelt mehrere Zustaende'
+  );
+  const paketname = await js("document.querySelector('.paket__name')?.textContent ?? ''");
+  pruefe(paketname.length > 3, `das Paket hat einen Namen (${paketname})`);
+
+  /*
+   * Der eigentliche Zweck des Pakets: die Abstimmung. Steht dort etwas von
+   * Wiederholungen, hat der Vorrat nicht gereicht — bei vier Zustaenden darf
+   * das nicht passieren.
+   */
+  const abgestimmt = await js(
+    "[...document.querySelectorAll('.hinweis--klein')].map(h => h.textContent).join(' ')"
+  );
+  pruefe(
+    /Coordinated|Abgestimmt/.test(abgestimmt),
+    `die Wirkungen sind ueber das Paket verteilt (${abgestimmt.slice(0, 60)})`
+  );
+
+  // --- Die Karte zum Vorlesen ----------------------------------------------
+  console.log('\nDie Karte:');
+  await js("[...document.querySelectorAll('.reiter__knopf')].find(k => /Build|Bauen/.test(k.textContent)).click(); true");
+  await warte(400);
+  await js("[...document.querySelectorAll('.knopf')].find(k => /card|Karte/i.test(k.textContent)).click(); true");
+  await warte(600);
+
+  pruefe(await js("Boolean(document.querySelector('.kartenschirm'))"), 'die Karte liegt auf dem Schirm');
+
+  /*
+   * Auf der Vorderseite steht, was die Figur merkt — keine Regelwirkungen.
+   * Das ist die Seite, die man der Gruppe hinhaelt.
+   */
+  const karteninhalt = await js(`(() => {
+    const rahmen = document.querySelector('.kartenschirm__blatt');
+    return rahmen ? rahmen.getAttribute('srcdoc') ?? '' : '';
+  })()`);
+  pruefe(karteninhalt.includes('karte--vorn'), 'sie hat eine Vorderseite');
+  pruefe(karteninhalt.includes('karte--rueck'), 'und eine Rueckseite');
+  pruefe(karteninhalt.includes('@page'), 'und eine Seitengroesse zum Drucken');
+
+  await js(`(() => {
+    const knopf = [...document.querySelectorAll('.kartenschirm .knopf')].find((k) =>
+      /Close|Schließen/.test(k.textContent)
+    );
+    if (knopf) knopf.click();
+    return true;
+  })()`);
+  await warte(300);
+  pruefe(!(await js("Boolean(document.querySelector('.kartenschirm'))")), 'und sie geht wieder zu');
+
   // --- In den Story Creator ----------------------------------------------
   console.log('\nIn den Story Creator:');
   await mjs(`(() => {

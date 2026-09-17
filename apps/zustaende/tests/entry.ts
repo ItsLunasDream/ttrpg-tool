@@ -8,3 +8,5 @@ export * from '../src/shared/ablage';
 export * from '../src/shared/suche';
 export * from '../src/shared/kiAufgaben';
 export * from '../src/shared/stimmigkeit';
+export * from '../src/shared/paket';
+export * from '../src/shared/karte';

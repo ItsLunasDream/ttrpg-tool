@@ -19,6 +19,36 @@ const TEXTE = {
 
   'reiter.bauen': ['Bauen', 'Build'],
   'reiter.sammlung': ['Sammlung', 'Collection'],
+  'reiter.paket': ['Paket', 'Package'],
+
+  'paket.satz': [
+    'Mehrere Zustände in einem Wurf, mit demselben Thema und abgestimmten Wirkungen — für einen ganzen Abschnitt der Kampagne.',
+    'Several conditions in one roll, sharing a theme with coordinated effects — for a whole stretch of the campaign.'
+  ],
+  'paket.anzahl': ['Wie viele', 'How many'],
+  'paket.wuerfeln': ['Paket würfeln', 'Roll a package'],
+  'paket.leer': [
+    'Noch kein Paket. Thema und Härte einstellen, dann würfeln.',
+    'No package yet. Set theme and severity, then roll.'
+  ],
+  'paket.abgestimmt': [
+    'Abgestimmt: keine Wirkung kommt zweimal vor.',
+    'Coordinated: no effect appears twice.'
+  ],
+  'paket.ueberschneidung': [
+    '{anzahl} Wirkungen kommen mehrfach vor — der Vorrat an passenden war erschöpft.',
+    '{anzahl} effects appear more than once — the pool of fitting ones ran out.'
+  ],
+  'paket.alleSpeichern': ['Alle in die Sammlung', 'All to the collection'],
+  'paket.alleKarten': ['Alle Karten drucken', 'Print all cards'],
+  'paket.oeffnen': ['Einzeln öffnen', 'Open on its own'],
+  'paket.gespeichert': ['{anzahl} Zustände liegen in der Sammlung.', '{anzahl} conditions are in the collection.'],
+
+  'karte.gespeichert': ['Die Karte liegt als PDF: {pfad}', 'The card is saved as a PDF: {pfad}'],
+  'karte.abgebrochen': ['Abgebrochen.', 'Cancelled.'],
+  'karte.vorschau': ['Karte ansehen', 'View card'],
+  'karte.schliessen': ['Schließen', 'Close'],
+  'karte.drucken': ['Als PDF speichern', 'Save as PDF'],
 
   'feld.art': ['Art', 'Kind'],
   'feld.thema': ['Thema', 'Theme'],
