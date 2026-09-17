@@ -11,18 +11,22 @@
  */
 
 import { darfAufStufe, pruefe, type Befund, type Stufe } from './gewicht';
+import { pruefeStimmigkeit, skalenFuerStufen, type Stimmigkeitsbefund } from './stimmigkeit';
 import {
   ARTEN,
   DAUERN,
   HAERTEN,
   SINNBILDER,
   THEMEN,
+  dauer as dauerMit,
+  skalaWert,
   text,
   type Art,
   type Haerte,
   type Sprache,
   type Thema,
-  type Wirkrichtung
+  type Wirkrichtung,
+  type Zeitskala
 } from './tabellen';
 import {
   SCHWEREN,
@@ -48,8 +52,18 @@ export interface Zustand {
   readonly farbe: string;
   readonly stufen: readonly Stufe[];
   readonly dauer: string;
+  /**
+   * Die Kennung der Dauer, nicht nur ihr Text.
+   *
+   * Daran haengt die Zeitskala, und an der haengt, ob Linderung und
+   * Verschlimmerung ueberhaupt Sinn ergeben. Siehe `stimmigkeit.ts`.
+   */
+  readonly dauerId: string;
   readonly verschlimmerung: string;
   readonly linderung: string;
+  /** In welchem Takt die beiden wirken. Fuer die Stimmigkeitspruefung. */
+  readonly verschlimmerungSkala: Zeitskala;
+  readonly linderungSkala: Zeitskala;
   /** Optional: eine Umgebung, die ihn von selbst gibt. Leer heisst: keine. */
   readonly ausloeser: string;
 }
@@ -228,18 +242,71 @@ export function baueKurzsatz(thema: Thema, sprache: Sprache, rng: () => number):
   return `${bild} ${verb} ${stelle}.`;
 }
 
-/** Wodurch es schlimmer wird. */
-export function baueVerschlimmerung(art: Art, thema: Thema, sprache: Sprache, rng: () => number): string {
-  const wann = text(zieh(art.ausloeser, rng), sprache);
+/**
+ * Wodurch es schlimmer wird — und in welchem Takt.
+ *
+ * Der Ort kommt NUR bei der Art „Umgebung" dazu. Vorher wurde er immer
+ * angehaengt, und dann stand an einem Fluch „jedes Mal, wenn der Name auf
+ * dem Gletscher genannt wird". Ein Fluch braucht keinen Gletscher.
+ *
+ * `hoechstens` deckelt den Takt: laenger als die Dauer darf die
+ * Verschlimmerung nicht brauchen, sonst kaeme sie nie zum Zug.
+ */
+export function baueVerschlimmerung(
+  art: Art,
+  thema: Thema,
+  hoechstens: Zeitskala,
+  sprache: Sprache,
+  rng: () => number
+): { text: string; zeitskala: Zeitskala } {
+  const moeglich = art.ausloeser.filter((a) => skalaWert(a.zeitskala) <= skalaWert(hoechstens));
+  // Bleibt nichts uebrig, wird der schnellste genommen: er passt immer.
+  const gewaehlt =
+    moeglich.length > 0
+      ? zieh(moeglich, rng)
+      : [...art.ausloeser].sort((a, b) => skalaWert(a.zeitskala) - skalaWert(b.zeitskala))[0];
+
+  const wann = text(gewaehlt.text, sprache);
+  if (art.id !== 'umgebung') return { text: wann, zeitskala: gewaehlt.zeitskala };
+
   const wo = text(zieh(thema.orte, rng), sprache);
-  return sprache === 'en' ? `${wann} ${wo}` : `${wann} ${wo}`;
+  return { text: `${wann} ${wo}`, zeitskala: gewaehlt.zeitskala };
 }
 
-/** Wodurch es besser wird. */
-export function baueLinderung(thema: Thema, sprache: Sprache, rng: () => number): string {
+/**
+ * Wodurch es besser wird — im Takt der Dauer.
+ *
+ * Der Fall, um den es geht: „bis zu deinem naechsten Zug" und „eine Stunde
+ * am Feuer senkt ihn um 1" ist ein Widerspruch. Im Kampf hilft keine
+ * Stunde, dort hilft eine Rettung; ueber Tage hilft keine Runde.
+ */
+export function baueLinderung(
+  thema: Thema,
+  skala: Zeitskala,
+  sprache: Sprache,
+  rng: () => number
+): { text: string; zeitskala: Zeitskala } {
+  const de = sprache !== 'en';
   const mittel = text(zieh(thema.gegenmittel, rng), sprache);
-  const dauer = sprache === 'en' ? 'An hour' : 'Eine Stunde';
-  return sprache === 'en' ? `${dauer} ${mittel} lowers it by 1` : `${dauer} ${mittel} senkt ihn um 1`;
+
+  if (skala === 'kampf') {
+    return {
+      text: de
+        ? 'Eine bestandene Konstitutionsrettung am Ende deines Zuges beendet ihn'
+        : 'A successful Constitution save at the end of your turn ends it',
+      zeitskala: 'kampf'
+    };
+  }
+  if (skala === 'kurz') {
+    return {
+      text: de ? `Eine Stunde ${mittel} senkt ihn um 1` : `An hour ${mittel} lowers it by 1`,
+      zeitskala: 'kurz'
+    };
+  }
+  return {
+    text: de ? `Ein Tag ${mittel} senkt ihn um 1` : `A day ${mittel} lowers it by 1`,
+    zeitskala: 'lang'
+  };
 }
 
 export function erzeugeZustand(wunsch: Wuensche, sprache: Sprache, rng: () => number): Zustand {
@@ -254,13 +321,55 @@ export function erzeugeZustand(wunsch: Wuensche, sprache: Sprache, rng: () => nu
   const sinnbild = passende.length > 0 ? zieh(passende, rng) : zieh(SINNBILDER, rng);
 
   /*
+   * Die Dauer kommt VOR der Linderung, und sie richtet sich nach den Stufen.
+   *
+   * Ein Zustand mit fuenf Stufen, der bis zum naechsten Zug anhaelt, kommt
+   * nie ueber Stufe 1 — die vier anderen sind dann Zierrat. Deshalb sind
+   * Kampfdauern bei mehreren Stufen gar nicht erst im Topf.
+   */
+  const erlaubteSkalen = skalenFuerStufen(anzahl);
+
+  /*
+   * Und die Dauer muss auch zur ART passen.
+   *
+   * Eine Umgebung schlaegt fruehestens stuendlich zu — „jede Stunde ohne
+   * Schutz". Ein Zustand aus der Umgebung, der bis zum naechsten Zug
+   * anhaelt, koennte sich deshalb nie verschlimmern: der schnellste
+   * Ausloeser, den es fuer ihn gibt, kommt zu spaet. Ein Gift dagegen wirkt
+   * rundenweise und darf kurz sein.
+   */
+  const schnellsterAusloeser = art.ausloeser.reduce(
+    (schnellster, kandidat) =>
+      skalaWert(kandidat.zeitskala) < skalaWert(schnellster.zeitskala) ? kandidat : schnellster,
+    art.ausloeser[0]
+  );
+
+  const moeglicheDauern = DAUERN.filter(
+    (d) =>
+      erlaubteSkalen.includes(d.zeitskala) &&
+      skalaWert(d.zeitskala) >= skalaWert(schnellsterAusloeser.zeitskala)
+  );
+  const gewaehlteDauer = zieh(
+    moeglicheDauern.length > 0
+      ? moeglicheDauern
+      : // Bleibt nichts uebrig, entscheidet der Ausloeser: lieber die Dauer
+        // dehnen als einen Zustand bauen, der sich nie verschlimmert.
+        DAUERN.filter((d) => d.zeitskala === schnellsterAusloeser.zeitskala),
+    rng
+  );
+
+  const linderung = baueLinderung(thema, gewaehlteDauer.zeitskala, sprache, rng);
+  const verschlimmerung = baueVerschlimmerung(art, thema, gewaehlteDauer.zeitskala, sprache, rng);
+
+  /*
    * Ein Ausloeser ist die Ausnahme, nicht die Regel.
    *
    * „Marked by the Hunt" kommt von einer Figur, nicht vom Wetter. Nur bei
    * der Art „Umgebung" ist er der Normalfall — dort ist er praktisch die
-   * Daseinsberechtigung des Zustands.
+   * Daseinsberechtigung des Zustands. Bei allen anderen Arten bleibt er
+   * leer, sonst stuende ein Ort an einem Fluch.
    */
-  const mitAusloeser = wunsch.mitAusloeser ?? (art.id === 'umgebung' ? rng() < 0.85 : rng() < 0.25);
+  const mitAusloeser = art.id === 'umgebung' && (wunsch.mitAusloeser ?? rng() < 0.85);
 
   return {
     name: baueNamen(thema, sprache, rng),
@@ -275,11 +384,31 @@ export function erzeugeZustand(wunsch: Wuensche, sprache: Sprache, rng: () => nu
     zeichen: sinnbild.zeichen,
     farbe: sinnbild.farbe,
     stufen: baueStufen(anzahl, haerte, wirkrichtung, thema, rng),
-    dauer: text(zieh(DAUERN, rng), sprache),
-    verschlimmerung: baueVerschlimmerung(art, thema, sprache, rng),
-    linderung: baueLinderung(thema, sprache, rng),
+    dauer: text(gewaehlteDauer.name, sprache),
+    dauerId: gewaehlteDauer.id,
+    verschlimmerung: verschlimmerung.text,
+    verschlimmerungSkala: verschlimmerung.zeitskala,
+    linderung: linderung.text,
+    linderungSkala: linderung.zeitskala,
     ausloeser: mitAusloeser ? text(zieh(thema.orte, rng), sprache) : ''
   };
+}
+
+/**
+ * Die Stimmigkeit eines fertigen Zustands.
+ *
+ * Bequemlichkeit fuer Oberflaeche und Tests: sammelt die Angaben zusammen
+ * und fragt `stimmigkeit.ts`.
+ */
+export function pruefeZustandsStimmigkeit(zustand: Zustand): Stimmigkeitsbefund {
+  return pruefeStimmigkeit({
+    dauerSkala: dauerMit(zustand.dauerId)?.zeitskala ?? 'lang',
+    linderungSkala: zustand.linderungSkala,
+    verschlimmerungSkala: zustand.verschlimmerungSkala,
+    stufen: zustand.stufen.length,
+    artId: zustand.artId,
+    mitOrt: zustand.ausloeser !== ''
+  });
 }
 
 /** Ein einzelnes Feld neu wuerfeln, der Rest bleibt stehen. */
@@ -303,10 +432,16 @@ export function wuerfleNeu(
         ...zustand,
         stufen: baueStufen(zustand.stufen.length, haerte, zustand.wirkrichtung, thema, rng)
       };
-    case 'verschlimmerung':
-      return { ...zustand, verschlimmerung: baueVerschlimmerung(art, thema, sprache, rng) };
-    case 'linderung':
-      return { ...zustand, linderung: baueLinderung(thema, sprache, rng) };
+    case 'verschlimmerung': {
+      const skala = dauerMit(zustand.dauerId)?.zeitskala ?? 'lang';
+      const neu = baueVerschlimmerung(art, thema, skala, sprache, rng);
+      return { ...zustand, verschlimmerung: neu.text, verschlimmerungSkala: neu.zeitskala };
+    }
+    case 'linderung': {
+      const skala = dauerMit(zustand.dauerId)?.zeitskala ?? 'lang';
+      const neu = baueLinderung(thema, skala, sprache, rng);
+      return { ...zustand, linderung: neu.text, linderungSkala: neu.zeitskala };
+    }
     case 'zeichen': {
       const sinnbild = zieh(SINNBILDER, rng);
       return { ...zustand, zeichen: sinnbild.zeichen, farbe: sinnbild.farbe };

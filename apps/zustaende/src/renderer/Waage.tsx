@@ -12,24 +12,41 @@
  */
 import { eichname, naechsterVergleich } from '../shared/eichung';
 import { betragVon, type Befund } from '../shared/gewicht';
+import type { Stimmigkeitsbefund } from '../shared/stimmigkeit';
 import { HAERTEN, text } from '../shared/tabellen';
-import { getLanguage, t } from './i18n';
+import { getLanguage, t, type TextKey } from './i18n';
 
 interface Props {
   readonly befund: Befund;
   readonly haerteId: string;
   /** Bei KI-Stufen ist das Gewicht geschaetzt. Dann steht ein Ungefaehr davor. */
   readonly geschaetzt?: boolean;
+  /**
+   * Ob die Teile des Zustands zueinander passen.
+   *
+   * Steht hier und nicht in einem eigenen Kasten: wer eine Zahl liest, soll
+   * im selben Blick sehen, ob die Angaben darueber ueberhaupt zusammengehen.
+   */
+  readonly stimmig?: Stimmigkeitsbefund;
 }
 
-export function Waage({ befund, haerteId, geschaetzt }: Props) {
+export function Waage({ befund, haerteId, geschaetzt, stimmig }: Props) {
   const sprache = getLanguage() === 'en' ? 'en' : 'de';
   const betrag = betragVon(befund.gewicht);
   const vergleich = naechsterVergleich(befund.gewicht);
   const haerte = HAERTEN.find((h) => h.id === haerteId) ?? HAERTEN[1];
 
+  /*
+   * Eine Unstimmigkeit ist schwerer als ein Gewicht, das neben dem Regler
+   * liegt: die Zahl ist Geschmack, ein Widerspruch ist ein Fehler.
+   */
+  const unstimmig = stimmig !== undefined && !stimmig.ok;
   const stimmung =
-    befund.urteil === 'passt' ? 'gut' : befund.urteil === 'kaputt' ? 'kaputt' : 'schief';
+    unstimmig || befund.urteil === 'kaputt'
+      ? 'kaputt'
+      : befund.urteil === 'passt'
+        ? 'gut'
+        : 'schief';
   const urteilText =
     befund.urteil === 'passt'
       ? t('urteil.passt')
@@ -78,6 +95,17 @@ export function Waage({ befund, haerteId, geschaetzt }: Props) {
           bis: haerte.gewichtBis
         })}
       </p>
+
+      {unstimmig && stimmig && (
+        <div className="waage__stimmig">
+          <p className="waage__stimmigTitel">{t('stimmig.titel')}</p>
+          <ul>
+            {stimmig.gruende.map((grund) => (
+              <li key={grund}>{t(`stimmig.${grund}` as TextKey)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <ul className="waage__hinweise">
         {befund.flacheStufen.length > 0 && (

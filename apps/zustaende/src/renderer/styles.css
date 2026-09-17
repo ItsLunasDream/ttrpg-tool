@@ -740,3 +740,30 @@ body {
   font-size: 11px;
   line-height: 1.45;
 }
+
+/*
+ * Eine Unstimmigkeit steht ueber den Hinweisen und ist deutlicher gesetzt.
+ *
+ * Der Unterschied ist wichtig: ein Gewicht neben dem Regler ist Geschmack,
+ * ein Widerspruch zwischen Dauer und Linderung ist ein Fehler.
+ */
+.waage__stimmig {
+  margin: 10px 0 4px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--hoch);
+  background: #d1635c14;
+  border-radius: 0 6px 6px 0;
+}
+
+.waage__stimmigTitel {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hoch);
+}
+
+.waage__stimmig ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}

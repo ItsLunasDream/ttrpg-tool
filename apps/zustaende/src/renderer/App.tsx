@@ -13,7 +13,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import type { Eintrag } from '../shared/ablage';
 import { alsMarkdown, zuId } from '../shared/ablage';
-import { erzeugeZustand, pruefeZustand, wuerfleNeu, type Zustand } from '../shared/erzeuge';
+import {
+  erzeugeZustand,
+  pruefeZustand,
+  pruefeZustandsStimmigkeit,
+  wuerfleNeu,
+  type Zustand
+} from '../shared/erzeuge';
 import {
   geschaetztesGewicht,
   zieheKiNach,
@@ -21,7 +27,15 @@ import {
   type RohStufe,
   type RohZustand
 } from '../shared/kiAufgaben';
-import { ARTEN, HAERTEN, THEMEN, WIRKRICHTUNGEN, text, type Wirkrichtung } from '../shared/tabellen';
+import {
+  ARTEN,
+  HAERTEN,
+  THEMEN,
+  WIRKRICHTUNGEN,
+  dauer as dauerVon,
+  text,
+  type Wirkrichtung
+} from '../shared/tabellen';
 import { api } from './api';
 import { Blatt } from './Blatt';
 import { Sammlung } from './Sammlung';
@@ -83,6 +97,7 @@ export function App() {
   }, [ladeSammlung]);
 
   const befund = useMemo(() => (zustand ? pruefeZustand(zustand) : null), [zustand]);
+  const stimmig = useMemo(() => (zustand ? pruefeZustandsStimmigkeit(zustand) : null), [zustand]);
 
   /** Der Befund, wie er angezeigt wird — mit geschaetztem Gewicht, wenn die KI die Stufen schrieb. */
   const angezeigt = useMemo(() => {
@@ -260,7 +275,22 @@ export function App() {
       getLanguage() === 'en' ? 'en' : 'de',
       wuerfel
     );
-    setZustand({ ...grundlage, name: eintrag.name, zeichen: eintrag.zeichen, farbe: eintrag.farbe });
+    /*
+     * Die Dauer kommt aus der Datei, wenn sie darin steht.
+     *
+     * Sonst wuerfelte das Oeffnen eine neue — und ein Zustand, den man
+     * zweimal oeffnet, haette zweimal eine andere Dauer. Die Takte werden
+     * dabei mitgezogen, damit die Stimmigkeit erhalten bleibt.
+     */
+    const gespeicherte = eintrag.dauerId ? dauerVon(eintrag.dauerId) : undefined;
+    const mitDauer = gespeicherte
+      ? {
+          ...grundlage,
+          dauer: text(gespeicherte.name, getLanguage() === 'en' ? 'en' : 'de'),
+          dauerId: gespeicherte.id
+        }
+      : grundlage;
+    setZustand({ ...mitDauer, name: eintrag.name, zeichen: eintrag.zeichen, farbe: eintrag.farbe });
     setArtId(eintrag.artId);
     setThemaId(eintrag.themaId);
     setHaerteId(eintrag.haerteId || 'ernst');
@@ -389,7 +419,12 @@ export function App() {
           {zustand && angezeigt && (
             <>
               <Blatt zustand={zustand} ausformuliert={ausformuliert} />
-              <Waage befund={angezeigt} haerteId={zustand.haerteId} geschaetzt={geschaetzt} />
+              <Waage
+                befund={angezeigt}
+                haerteId={zustand.haerteId}
+                geschaetzt={geschaetzt}
+                stimmig={stimmig ?? undefined}
+              />
 
               {kiBefund && !kiBefund.ok && (
                 <section className="kiHinweis">

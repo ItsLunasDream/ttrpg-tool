@@ -92,6 +92,24 @@ const TEXTE = {
     'Dieselbe Wirkung kommt mehrfach vor.',
     'The same effect appears more than once.'
   ],
+  'stimmig.titel': ['Das passt nicht zusammen:', 'These do not go together:'],
+  'stimmig.linderungZuLangsam': [
+    'Die Linderung braucht länger, als der Zustand anhält — er ist vorbei, bevor sie wirkt.',
+    'The relief takes longer than the condition lasts — it is over before the relief works.'
+  ],
+  'stimmig.verschlimmerungZuLangsam': [
+    'Die Verschlimmerung käme nie zum Zug: sie braucht länger als die Dauer.',
+    'The worsening would never happen: it takes longer than the duration.'
+  ],
+  'stimmig.stufenOhneZeit': [
+    'Mehrere Stufen, aber der Zustand ist vorbei, bevor die zweite kommt.',
+    'Several levels, but the condition ends before the second one arrives.'
+  ],
+  'stimmig.ausloeserOhneUmgebung': [
+    'Ein Ort als Auslöser, obwohl der Zustand nicht von der Umgebung kommt.',
+    'A place as the trigger, though the condition does not come from the environment.'
+  ],
+
   'hinweis.sprung': [
     'Von Stufe {stufen} an verdoppelt sich das Gewicht. Gewollt?',
     'From level {stufen} on the weight doubles. Intended?'

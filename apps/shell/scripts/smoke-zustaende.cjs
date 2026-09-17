@@ -99,6 +99,26 @@ app.whenReady().then(async () => {
   pruefe(vergleich.length > 5, `das Gewicht steht mit einem Vergleich da (${vergleich})`);
 
   /*
+   * Und die Teile passen zueinander.
+   *
+   * Der gemeldete Fall: Dauer „bis zu deinem naechsten Zug" und Linderung
+   * „eine Stunde in trockener Kleidung". Der Kasten taucht nur auf, wenn
+   * etwas nicht zusammengeht — er darf hier also nicht da sein.
+   */
+  pruefe(
+    !(await js("Boolean(document.querySelector('.waage__stimmig'))")),
+    'ein frisch gewuerfelter Zustand ist in sich stimmig'
+  );
+
+  const blatt = await js(
+    "[...document.querySelectorAll('.blatt__zeile')].map(z => z.textContent).join(' | ')"
+  );
+  pruefe(
+    !/until the end of the round|until your next turn|Rundenende|nächsten Zug/.test(blatt),
+    `fuenf Stufen bekommen keine Kampfdauer (${blatt.slice(0, 80)})`
+  );
+
+  /*
    * Der einschraenkende Satz MUSS dabeistehen.
    *
    * Eine Zahl ohne ihn liest sich wie ein Balance-Urteil, und genau das ist
@@ -125,7 +145,7 @@ app.whenReady().then(async () => {
 
   if (dateien.length > 0) {
     const inhalt = fs.readFileSync(path.join(ordner, dateien[0]), 'utf8');
-    for (const feld of ['name:', 'art:', 'thema:', 'haerte:', 'stufen:', 'gewicht:', 'zeichen:', 'farbe:']) {
+    for (const feld of ['name:', 'art:', 'thema:', 'haerte:', 'stufen:', 'gewicht:', 'zeichen:', 'farbe:', 'dauer_id:']) {
       pruefe(inhalt.includes(feld), `der Kopf traegt ${feld}`);
     }
     pruefe(/^\d\. /m.test(inhalt), 'und der Leib nennt die Stufen mit Nummer');

@@ -34,6 +34,7 @@ export interface Abgelegt extends Zustand {
 export interface Eintrag {
   readonly id: string;
   readonly name: string;
+  readonly dauerId: string;
   readonly artId: string;
   readonly themaId: string;
   readonly haerteId: string;
@@ -83,6 +84,9 @@ export function alsMarkdown(zustand: Abgelegt, sprache: Sprache): string {
     `zeichen: ${alsYaml(zustand.zeichen)}`,
     `farbe: ${alsYaml(zustand.farbe)}`,
     `dauer: ${alsYaml(zustand.dauer)}`,
+    // Die Kennung dazu: an ihr haengt die Zeitskala, und an der haengt, ob
+    // Linderung und Verschlimmerung zusammenpassen.
+    `dauer_id: ${alsYaml(zustand.dauerId)}`,
     `geaendert: ${zustand.geaendert}`,
     'schemaVersion: 1',
     '---',
@@ -200,6 +204,7 @@ export function alsEintrag(inhalt: string, rueckfallId: string): Eintrag {
   return {
     id: kopf.id || rueckfallId,
     name: kopf.name || rueckfallId,
+    dauerId: kopf.dauer_id || '',
     artId: kopf.art || '',
     themaId: kopf.thema || '',
     haerteId: kopf.haerte || '',

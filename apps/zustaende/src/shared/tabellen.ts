@@ -23,13 +23,44 @@ export function text(paar: Paar, sprache: Sprache): string {
   return sprache === 'en' ? paar.en : paar.de;
 }
 
+/* ---------- Zeitskala: in welchem Takt etwas passiert ---------- */
+
+/**
+ * Der Takt, in dem ein Zustand laeuft.
+ *
+ * Klingt nach Kleinigkeit und ist der Grund, warum selbstgebaute Zustaende
+ * sich am Tisch falsch anfuehlen: ein Zustand, der bis zum naechsten Zug
+ * anhaelt, laesst sich nicht durch eine Stunde am Feuer lindern — er ist
+ * laengst vorbei. Wer das aufschreibt, merkt es beim Schreiben nicht und am
+ * Tisch sofort.
+ *
+ *   kampf  Runden und Zuege. Ein Kampf dauert Sekunden.
+ *   kurz   Stunden. Die Reisezeit zwischen zwei Orten.
+ *   lang   Tage, Rasten, „bis es geheilt wird".
+ *
+ * Verglichen wird ueber `skalaWert`: was laenger dauert, hat die groessere
+ * Zahl.
+ */
+export const ZEITSKALEN = ['kampf', 'kurz', 'lang'] as const;
+export type Zeitskala = (typeof ZEITSKALEN)[number];
+
+export function skalaWert(skala: Zeitskala): number {
+  return ZEITSKALEN.indexOf(skala);
+}
+
 /* ---------- Art: woher der Zustand kommt ---------- */
+
+/** Ein Ausloeser mit dem Takt, in dem er zuschlaegt. */
+export interface Ausloeser {
+  readonly text: Paar;
+  readonly zeitskala: Zeitskala;
+}
 
 export interface Art {
   readonly id: string;
   readonly name: Paar;
-  /** Wie eine Verschlimmerung bei dieser Art klingt. */
-  readonly ausloeser: readonly Paar[];
+  /** Wie eine Verschlimmerung bei dieser Art klingt, samt Takt. */
+  readonly ausloeser: readonly Ausloeser[];
 }
 
 export const ARTEN: readonly Art[] = [
@@ -37,64 +68,64 @@ export const ARTEN: readonly Art[] = [
     id: 'umgebung',
     name: { de: 'Umgebung', en: 'Environment' },
     ausloeser: [
-      { de: 'jede Stunde ohne Schutz', en: 'each hour without protection' },
-      { de: 'jeder Tag im Freien', en: 'each day in the open' },
-      { de: 'jede Rast ohne Feuer', en: 'each rest without a fire' },
-      { de: 'jede Stunde in Bewegung', en: 'each hour on the move' }
+      { text: { de: 'jede Stunde ohne Schutz', en: 'each hour without protection' }, zeitskala: 'kurz' },
+      { text: { de: 'jeder Tag im Freien', en: 'each day in the open' }, zeitskala: 'lang' },
+      { text: { de: 'jede Rast ohne Feuer', en: 'each rest without a fire' }, zeitskala: 'lang' },
+      { text: { de: 'jede Stunde in Bewegung', en: 'each hour on the move' }, zeitskala: 'kurz' }
     ]
   },
   {
     id: 'gift',
     name: { de: 'Gift', en: 'Poison' },
     ausloeser: [
-      { de: 'jede weitere Dosis', en: 'each further dose' },
-      { de: 'jede Runde ohne Gegenmittel', en: 'each round without an antidote' },
-      { de: 'jede Anstrengung', en: 'each strenuous action' }
+      { text: { de: 'jede weitere Dosis', en: 'each further dose' }, zeitskala: 'kurz' },
+      { text: { de: 'jede Runde ohne Gegenmittel', en: 'each round without an antidote' }, zeitskala: 'kampf' },
+      { text: { de: 'jede Anstrengung', en: 'each strenuous action' }, zeitskala: 'kampf' }
     ]
   },
   {
     id: 'fluch',
     name: { de: 'Fluch', en: 'Curse' },
     ausloeser: [
-      { de: 'jede Nacht bis zum Vollmond', en: 'each night until the full moon' },
-      { de: 'jedes gebrochene Versprechen', en: 'each broken promise' },
-      { de: 'jeder Blick in den Spiegel', en: 'each look into a mirror' },
-      { de: 'jede genannte Nennung des Namens', en: 'each time the name is spoken' }
+      { text: { de: 'jede Nacht bis zum Vollmond', en: 'each night until the full moon' }, zeitskala: 'lang' },
+      { text: { de: 'jedes gebrochene Versprechen', en: 'each broken promise' }, zeitskala: 'lang' },
+      { text: { de: 'jeder Blick in den Spiegel', en: 'each look into a mirror' }, zeitskala: 'kurz' },
+      { text: { de: 'jede genannte Nennung des Namens', en: 'each time the name is spoken' }, zeitskala: 'kurz' }
     ]
   },
   {
     id: 'krankheit',
     name: { de: 'Krankheit', en: 'Disease' },
     ausloeser: [
-      { de: 'jeder Tag ohne Pflege', en: 'each day without care' },
-      { de: 'jede misslungene Konstitutionsrettung', en: 'each failed Constitution save' },
-      { de: 'jeder Kontakt mit einem Erkrankten', en: 'each contact with the afflicted' }
+      { text: { de: 'jeder Tag ohne Pflege', en: 'each day without care' }, zeitskala: 'lang' },
+      { text: { de: 'jede misslungene Konstitutionsrettung', en: 'each failed Constitution save' }, zeitskala: 'kampf' },
+      { text: { de: 'jeder Kontakt mit einem Erkrankten', en: 'each contact with the afflicted' }, zeitskala: 'lang' }
     ]
   },
   {
     id: 'verletzung',
     name: { de: 'Verletzung', en: 'Injury' },
     ausloeser: [
-      { de: 'jeder weitere Treffer auf dieselbe Stelle', en: 'each further hit in the same place' },
-      { de: 'jede Anstrengung ohne Verband', en: 'each exertion without a bandage' }
+      { text: { de: 'jeder weitere Treffer auf dieselbe Stelle', en: 'each further hit in the same place' }, zeitskala: 'kampf' },
+      { text: { de: 'jede Anstrengung ohne Verband', en: 'each exertion without a bandage' }, zeitskala: 'kurz' }
     ]
   },
   {
     id: 'magie',
     name: { de: 'Magie', en: 'Magic' },
     ausloeser: [
-      { de: 'jede Runde im Wirkungsbereich', en: 'each round inside the area' },
-      { de: 'jeder gewirkte Zauber', en: 'each spell you cast' },
-      { de: 'jede Berührung des Siegels', en: 'each touch of the seal' }
+      { text: { de: 'jede Runde im Wirkungsbereich', en: 'each round inside the area' }, zeitskala: 'kampf' },
+      { text: { de: 'jeder gewirkte Zauber', en: 'each spell you cast' }, zeitskala: 'kampf' },
+      { text: { de: 'jede Berührung des Siegels', en: 'each touch of the seal' }, zeitskala: 'kurz' }
     ]
   },
   {
     id: 'segen',
     name: { de: 'Segen', en: 'Blessing' },
     ausloeser: [
-      { de: 'jedes eingelöste Gelübde', en: 'each vow kept' },
-      { de: 'jede Nacht am Schrein', en: 'each night at the shrine' },
-      { de: 'jeder Sieg im Namen des Gebers', en: 'each victory in the giver’s name' }
+      { text: { de: 'jedes eingelöste Gelübde', en: 'each vow kept' }, zeitskala: 'lang' },
+      { text: { de: 'jede Nacht am Schrein', en: 'each night at the shrine' }, zeitskala: 'lang' },
+      { text: { de: 'jeder Sieg im Namen des Gebers', en: 'each victory in the giver’s name' }, zeitskala: 'lang' }
     ]
   }
 ];
@@ -343,14 +374,35 @@ export type Wirkrichtung = (typeof WIRKRICHTUNGEN)[number];
 
 /* ---------- Dauer ---------- */
 
-export const DAUERN: readonly Paar[] = [
-  { de: 'offen', en: 'open-ended' },
-  { de: 'bis zum Rundenende', en: 'until the end of the round' },
-  { de: 'bis zu deinem nächsten Zug', en: 'until your next turn' },
-  { de: 'eine Stunde', en: 'one hour' },
-  { de: 'bis zur nächsten langen Rast', en: 'until the next long rest' },
-  { de: 'bis es geheilt wird', en: 'until cured' }
+export interface Dauer {
+  readonly id: string;
+  readonly name: Paar;
+  readonly zeitskala: Zeitskala;
+}
+
+/**
+ * Wie lange ein Zustand anhaelt.
+ *
+ * Die Zeitskala ist hier kein Beiwerk: an ihr haengt, ob die Linderung
+ * ueberhaupt Sinn ergibt. „Bis zu deinem naechsten Zug" und „eine Stunde am
+ * Feuer senkt ihn um 1" ist ein Widerspruch — der Zustand ist laengst
+ * vorbei, wenn die Stunde anfaengt.
+ */
+export const DAUERN: readonly Dauer[] = [
+  { id: 'rundenende', name: { de: 'bis zum Rundenende', en: 'until the end of the round' }, zeitskala: 'kampf' },
+  { id: 'naechsterZug', name: { de: 'bis zu deinem nächsten Zug', en: 'until your next turn' }, zeitskala: 'kampf' },
+  { id: 'kampfende', name: { de: 'bis zum Ende des Kampfes', en: 'until the end of the fight' }, zeitskala: 'kampf' },
+  { id: 'stunde', name: { de: 'eine Stunde', en: 'one hour' }, zeitskala: 'kurz' },
+  { id: 'stunden', name: { de: 'mehrere Stunden', en: 'several hours' }, zeitskala: 'kurz' },
+  { id: 'kurzeRast', name: { de: 'bis zur nächsten kurzen Rast', en: 'until the next short rest' }, zeitskala: 'kurz' },
+  { id: 'langeRast', name: { de: 'bis zur nächsten langen Rast', en: 'until the next long rest' }, zeitskala: 'lang' },
+  { id: 'geheilt', name: { de: 'bis es geheilt wird', en: 'until cured' }, zeitskala: 'lang' },
+  { id: 'offen', name: { de: 'offen', en: 'open-ended' }, zeitskala: 'lang' }
 ];
+
+export function dauer(id: string): Dauer | undefined {
+  return DAUERN.find((d) => d.id === id);
+}
 
 /* ---------- Symbole fuer den Tracker ---------- */
 
