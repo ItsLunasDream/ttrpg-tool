@@ -150,9 +150,28 @@ schwer    Nachteil auf alle Angriffe | keine Bonusaktion | Erschöpfung +1
 tödlich   handlungsunfähig | bewusstlos | sterbend
 ```
 
-Der Erzeuger zieht je Stufe eine Wirkung, aufsteigend, ohne Wiederholung,
-passend zum Thema (Kälte greift eher Bewegung und Geschick an, Wahnsinn eher
-Konzentration und Rettungswürfe). Bei fünf Stufen und einigen Dutzend
+Dazu kommt je Thema ein **eigener Satz Wirkungen**, der nur dort vorkommt:
+
+```
+feuer     Du brennst: 1W4 Feuerschaden je Frist, bis du die Flammen löschst
+säure     Deine Rüstung ist zerfressen: −3 auf RK, bis sie geschmiedet wird
+gift      Konstitutionsrettung (SG 13) zu Beginn deines Zuges, sonst
+          verlierst du deine Aktion
+zeit      Du handelst immer zuletzt in der Runde, gleich was du würfelst
+```
+
+Die Texte nennen **Zahlen**. „Weniger Schaden" ist am Tisch eine Rückfrage
+und keine Wirkung; „1W4 weniger Schaden" ist eine. Ein Test hält die vagen
+Wörter aus der Liste heraus, ein zweiter verlangt zu jeder Schadenswirkung
+einen Würfel und zu jedem Rettungswurf einen Schwierigkeitsgrad.
+
+Der Erzeuger zieht je Stufe eine Wirkung, aufsteigend, ohne Wiederholung, in
+drei Anläufen: zuerst aus den Wirkungen, die dem Thema selbst gehören, dann
+aus den allgemeinen auf den Spuren des Themas (Kälte greift eher Bewegung
+und Geschick an, Wahnsinn eher Konzentration und Rettungswürfe), zuletzt aus
+den allgemeinen überhaupt. Eine themengebundene Wirkung landet **nie** in
+einem fremden Thema — auch nicht über den Ersatz, den die Paket-Abstimmung
+einsetzt. Bei fünf Stufen und einigen Dutzend
 Wirkungen je Schwere sind das Millionen Verläufe — dieselbe Rechnung wie bei
 der Inspirationshilfe, und sie steht wie dort in der Oberfläche.
 
@@ -388,15 +407,18 @@ Handwerkszeug, das über Kampagnen hinweg gilt.
 
 ## Stand der Umsetzung
 
-Das Werkzeug liegt in `apps/zustaende` und hat 86 Tests plus einen Rauchtest
+Das Werkzeug liegt in `apps/zustaende` und hat 115 Tests plus einen Rauchtest
 in der Hülle.
 
 **Gebaut:**
 
-- `wirkungen.ts` — 40 Bausteine nach Schwere sortiert, jeder mit Spur,
+- `wirkungen.ts` — 115 Bausteine nach Schwere sortiert, jeder mit Spur,
   Richtung und Punktwert. Eine Stufe ist eine Wirkung aus dieser Liste;
   genau deshalb kommen die Tabellen ohne KI aus und genau deshalb lässt sich
-  ein Zustand überhaupt wiegen.
+  ein Zustand überhaupt wiegen. 45 davon sind allgemein und passen überall
+  hin, 70 gehören einem Thema und kommen nur dort vor — vier je Thema, über
+  die Schweren verteilt, damit ein Feuerzustand auf jeder Stufe etwas
+  Eigenes findet statt auf „Nachteil auf Wahrnehmung" zurückzufallen.
 - `gewicht.ts` — die Rechnung samt Kurve über die Stufen, und die Ansage
   dazu: sie misst nicht, ob ein Zustand für eine Kampagne zu hart ist.
 - `eichung.ts` — die bekannten Zustände, in unsere eigenen Bausteine

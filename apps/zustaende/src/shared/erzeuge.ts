@@ -171,10 +171,17 @@ export function baueStufen(
 /**
  * Eine Wirkung zur gewuenschten Schwere.
  *
- * Zuerst nach Thema: Kaelte greift eher Bewegung und Koerper an, Wahnsinn
- * eher den Geist. Findet sich dort nichts Freies, wird das Thema fallen
- * gelassen, und erst danach die Schwere erhoeht. Die Reihenfolge ist
- * Absicht — lieber eine unthematische Wirkung als eine, die den Verlauf
+ * Drei Anlaeufe je Schwere, in dieser Reihenfolge:
+ *
+ *   1. die Wirkungen, die dem Thema SELBST gehoeren — „du brennst weiter,
+ *      bis du die Flammen loeschst". Die sind der Grund, warum sich zwei
+ *      Zustaende aus verschiedenen Themen ueberhaupt unterscheiden.
+ *   2. die allgemeinen Wirkungen auf den Spuren des Themas: Kaelte greift
+ *      eher Bewegung und Koerper an, Wahnsinn eher den Geist.
+ *   3. die allgemeinen Wirkungen ueberhaupt.
+ *
+ * Erst wenn alle drei leer sind, wird die Schwere erhoeht. Die Reihenfolge
+ * ist Absicht — lieber eine unthematische Wirkung als eine, die den Verlauf
  * kaputt macht.
  */
 function waehleWirkung(
@@ -185,17 +192,22 @@ function waehleWirkung(
   bisher: readonly Wirkung[],
   rng: () => number
 ): Wirkung | null {
+  const frei = (liste: readonly Wirkung[]) =>
+    liste.filter((w) => !vergeben.has(w.id) && darfAufStufe(w, bisher));
+
   for (let stufe = schwereWert(schwere); stufe < SCHWEREN.length; stufe += 1) {
     const hier = SCHWEREN[stufe];
-    const mitThema = wirkungenFuer(hier, richtungen, thema.spuren).filter(
-      (w) => !vergeben.has(w.id) && darfAufStufe(w, bisher)
-    );
-    if (mitThema.length > 0) return zieh(mitThema, rng);
 
-    const ohneThema = wirkungenFuer(hier, richtungen).filter(
-      (w) => !vergeben.has(w.id) && darfAufStufe(w, bisher)
+    const eigene = frei(
+      wirkungenFuer(hier, richtungen, undefined, thema.id).filter((w) => w.themen !== undefined)
     );
-    if (ohneThema.length > 0) return zieh(ohneThema, rng);
+    if (eigene.length > 0) return zieh(eigene, rng);
+
+    const aufSpur = frei(wirkungenFuer(hier, richtungen, thema.spuren));
+    if (aufSpur.length > 0) return zieh(aufSpur, rng);
+
+    const allgemein = frei(wirkungenFuer(hier, richtungen));
+    if (allgemein.length > 0) return zieh(allgemein, rng);
   }
   return null;
 }

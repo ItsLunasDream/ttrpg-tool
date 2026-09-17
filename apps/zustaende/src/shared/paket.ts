@@ -19,7 +19,7 @@
 
 import { baueNamen, erzeugeZustand, type Zustand } from './erzeuge';
 import { ARTEN, HAERTEN, THEMEN, text, type Sprache } from './tabellen';
-import { WIRKUNGEN, schwereWert, wirkung, type Wirkung } from './wirkungen';
+import { WIRKUNGEN, passtZumThema, schwereWert, wirkung, type Wirkung } from './wirkungen';
 
 export interface Paket {
   readonly name: string;
@@ -175,7 +175,7 @@ function ohneWiederholung(zustand: Zustand, vergeben: Set<string>, rng: () => nu
         eigene.delete(id);
         return id;
       }
-      const ersatz = freierErsatz(id, vergeben, eigene, rng);
+      const ersatz = freierErsatz(id, zustand.themaId, vergeben, eigene, rng);
       if (ersatz) {
         vergeben.add(ersatz);
         return ersatz;
@@ -202,6 +202,7 @@ function ohneWiederholung(zustand: Zustand, vergeben: Set<string>, rng: () => nu
  */
 function freierErsatz(
   id: string,
+  themaId: string,
   vergeben: ReadonlySet<string>,
   gesperrt: ReadonlySet<string>,
   rng: () => number
@@ -209,8 +210,18 @@ function freierErsatz(
   const vorlage = wirkung(id);
   if (!vorlage) return null;
 
+  /*
+   * Das Thema gehoert in die Bedingung, nicht nur in die Erzeugung.
+   *
+   * Sonst holt sich ein Zustand aus Kaelte hier „du brennst weiter" als
+   * Ersatz, und die Abstimmung des Pakets macht genau das kaputt, was die
+   * themeneigenen Wirkungen herstellen sollen.
+   */
   const frei = (w: Wirkung) =>
-    w.richtung === vorlage.richtung && !vergeben.has(w.id) && !gesperrt.has(w.id);
+    w.richtung === vorlage.richtung &&
+    !vergeben.has(w.id) &&
+    !gesperrt.has(w.id) &&
+    passtZumThema(w, themaId);
 
   const gleicheSchwere = WIRKUNGEN.filter((w) => w.schwere === vorlage.schwere && frei(w));
   if (gleicheSchwere.length > 0) {

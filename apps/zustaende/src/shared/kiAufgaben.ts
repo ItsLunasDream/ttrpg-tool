@@ -19,7 +19,7 @@
 
 import { pruefe, type Stufe } from './gewicht';
 import type { Zustand } from './erzeuge';
-import { WIRKUNGEN, wirkung } from './wirkungen';
+import { WIRKUNGEN, eigeneWirkungen, wirkung } from './wirkungen';
 import { ARTEN, HAERTEN, THEMEN, text, type Sprache } from './tabellen';
 
 export const KI_AUFGABEN = ['name', 'kurzsatz', 'stufe', 'zustand', 'ausformulieren'] as const;
@@ -109,14 +109,24 @@ export function anweisung(frage: Frage, sprache: Sprache): string {
      * sondern als Massstab fuer die Tonlage und die Laenge. Ohne sie kommen
      * Absaetze zurueck, wo Stichpunkte hingehoeren.
      */
-    const beispiele = WIRKUNGEN.filter((w) => w.richtung !== 'buff')
-      .slice(0, 8)
-      .map((w) => `- ${text(w.text, sprache)}`);
+    /*
+     * Die Beispiele kommen, wenn moeglich, aus dem gewaehlten Thema.
+     *
+     * Ein Modell, dem man acht allgemeine Wirkungen zeigt, liefert acht
+     * allgemeine zurueck. Zeigt man ihm „du brennst weiter, bis du die
+     * Flammen loeschst", liefert es Feuer.
+     */
+    const ausThema = thema ? eigeneWirkungen(thema.id).filter((w) => w.richtung !== 'buff') : [];
+    const rest = WIRKUNGEN.filter((w) => w.richtung !== 'buff' && w.themen === undefined);
+    const beispiele = [...ausThema, ...rest].slice(0, 8).map((w) => `- ${text(w.text, sprache)}`);
     teile.push(
       '',
       de ? 'So kurz sollen die Stufen sein:' : 'Levels should be this short:',
       ...beispiele,
       '',
+      de
+        ? 'Nenne konkrete Zahlen: 1W6 Feuerschaden, −2 auf Angriffswürfe, Rettungswurf SG 13. "Weniger Schaden" ist am Tisch eine Rückfrage, keine Wirkung.'
+        : 'Name concrete numbers: 1d6 fire damage, −2 to attack rolls, DC 13 saving throw. "Less damage" is a question at the table, not an effect.',
       de
         ? 'Liefere "stufen" als Liste von Objekten mit "nummer" und "text". Jede Stufe ist schlimmer als die davor und wiederholt keine frühere Wirkung.'
         : 'Deliver "stufen" as a list of objects with "nummer" and "text". Each level is worse than the one before and repeats no earlier effect.'
