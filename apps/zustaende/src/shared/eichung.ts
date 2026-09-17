@@ -30,10 +30,18 @@
 
 import type { Stufe } from './gewicht';
 import { gesamtgewicht } from './gewicht';
+import { text, type Paar, type Sprache } from './tabellen';
 
 export interface Eichzustand {
   readonly id: string;
-  readonly name: string;
+  /**
+   * Zweisprachig, wie alles in der Sammlung.
+   *
+   * Der Name taucht in der Oberflaeche auf („wiegt so viel wie …"), und ein
+   * deutscher Name mitten in einem englischen Satz stand prompt im ersten
+   * Bild der Oberflaeche.
+   */
+  readonly name: Paar;
   /** Die Stufen, in unseren eigenen Bausteinen. */
   readonly stufen: readonly Stufe[];
   /**
@@ -51,20 +59,20 @@ export interface Eichzustand {
 export const EICHZUSTAENDE: readonly Eichzustand[] = [
   {
     id: 'vergiftet',
-    name: 'Vergiftet',
+    name: { de: 'Vergiftet', en: 'Poisoned' },
     rang: 1,
     // Nachteil auf Angriffe und Faehigkeitswuerfe.
     stufen: [{ nummer: 1, wirkungen: ['nachteil-angriffe', 'nachteil-eine-fertigkeit'] }]
   },
   {
     id: 'taub',
-    name: 'Taub',
+    name: { de: 'Taub', en: 'Deafened' },
     rang: 0,
     stufen: [{ nummer: 1, wirkungen: ['taub'] }]
   },
   {
     id: 'blind',
-    name: 'Blind',
+    name: { de: 'Blind', en: 'Blinded' },
     rang: 2,
     // Sieht nichts, Angriffe im Nachteil, Angriffe dagegen im Vorteil.
     stufen: [{ nummer: 1, wirkungen: ['blind', 'nachteil-angriffe', 'angriffe-gegen-dich-vorteil'] }]
@@ -81,7 +89,7 @@ export const EICHZUSTAENDE: readonly Eichzustand[] = [
      * eine Behauptung statt ueber eine Zahl.
      */
     id: 'festgehalten',
-    name: 'Festgehalten',
+    name: { de: 'Festgehalten', en: 'Restrained' },
     rang: 2,
     stufen: [
       { nummer: 1, wirkungen: ['festgehalten', 'nachteil-angriffe', 'angriffe-gegen-dich-vorteil'] }
@@ -89,13 +97,13 @@ export const EICHZUSTAENDE: readonly Eichzustand[] = [
   },
   {
     id: 'handlungsunfaehig',
-    name: 'Handlungsunfähig',
+    name: { de: 'Handlungsunfähig', en: 'Incapacitated' },
     rang: 3,
     stufen: [{ nummer: 1, wirkungen: ['handlungsunfaehig', 'keine-reaktion'] }]
   },
   {
     id: 'gelaehmt',
-    name: 'Gelähmt',
+    name: { de: 'Gelähmt', en: 'Paralysed' },
     rang: 4,
     // Handlungsunfaehig, bewegungslos, Angriffe dagegen im Vorteil.
     stufen: [
@@ -107,7 +115,7 @@ export const EICHZUSTAENDE: readonly Eichzustand[] = [
   },
   {
     id: 'bewusstlos',
-    name: 'Bewusstlos',
+    name: { de: 'Bewusstlos', en: 'Unconscious' },
     rang: 5,
     stufen: [
       {
@@ -124,13 +132,13 @@ export const EICHZUSTAENDE: readonly Eichzustand[] = [
   },
   {
     id: 'erschoepfung-1',
-    name: 'Erschöpfung 1',
+    name: { de: 'Erschöpfung 1', en: 'Exhaustion 1' },
     rang: 0,
     stufen: [{ nummer: 1, wirkungen: ['nachteil-eine-fertigkeit'] }]
   },
   {
     id: 'erschoepfung-3',
-    name: 'Erschöpfung 3',
+    name: { de: 'Erschöpfung 3', en: 'Exhaustion 3' },
     rang: 2,
     stufen: [
       { nummer: 1, wirkungen: ['nachteil-eine-fertigkeit'] },
@@ -140,7 +148,7 @@ export const EICHZUSTAENDE: readonly Eichzustand[] = [
   },
   {
     id: 'erschoepfung-5',
-    name: 'Erschöpfung 5',
+    name: { de: 'Erschöpfung 5', en: 'Exhaustion 5' },
     rang: 3,
     stufen: [
       { nummer: 1, wirkungen: ['nachteil-eine-fertigkeit'] },
@@ -151,6 +159,11 @@ export const EICHZUSTAENDE: readonly Eichzustand[] = [
     ]
   }
 ];
+
+/** Der Name eines Eichzustands in der eingestellten Sprache. */
+export function eichname(zustand: Eichzustand, sprache: Sprache): string {
+  return text(zustand.name, sprache);
+}
 
 /** Das Gewicht eines Eichzustands. */
 export function eichgewicht(zustand: Eichzustand): number {

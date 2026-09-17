@@ -1,0 +1,197 @@
+/**
+ * Die Sammlung: was schon gebaut wurde.
+ *
+ * Dieselbe Handhabung wie im Monster Creator, damit man sie nicht zweimal
+ * lernen muss: ein Suchfeld fuer alles, zwei Auswahlfelder daneben, Kacheln
+ * oder Liste.
+ *
+ * Auf der Kachel steht das Zeichen gross und in der Farbe des Zustands —
+ * genau so steht es spaeter im Initiative Tracker neben dem Namen, und wer
+ * es hier wiedererkennt, findet es dort sofort.
+ */
+import { useMemo, useState } from 'react';
+import type { Eintrag } from '../shared/ablage';
+import { betragVon } from '../shared/gewicht';
+import { finde, type Sortierung } from '../shared/suche';
+import { ARTEN, HAERTEN, THEMEN, text } from '../shared/tabellen';
+import { getLanguage, t } from './i18n';
+
+interface Props {
+  readonly eintraege: readonly Eintrag[];
+  readonly onOeffnen: (id: string) => void;
+  readonly onLoeschen: (eintrag: Eintrag) => void;
+}
+
+export function Sammlung({ eintraege, onOeffnen, onLoeschen }: Props) {
+  const [suche, setSuche] = useState('');
+  const [artId, setArtId] = useState('');
+  const [themaId, setThemaId] = useState('');
+  const [sortierung, setSortierung] = useState<Sortierung>('gewicht');
+  const [alsKacheln, setAlsKacheln] = useState(true);
+
+  const sprache = getLanguage() === 'en' ? 'en' : 'de';
+  const gefunden = useMemo(
+    () =>
+      finde(
+        eintraege,
+        { text: suche, artId: artId || undefined, themaId: themaId || undefined },
+        sortierung,
+        sprache
+      ),
+    [eintraege, suche, artId, themaId, sortierung, sprache]
+  );
+
+  const name = (liste: readonly { id: string; name: { de: string; en: string } }[], id: string) => {
+    const gefundene = liste.find((x) => x.id === id);
+    return gefundene ? text(gefundene.name, sprache) : id;
+  };
+
+  if (eintraege.length === 0) {
+    return <p className="hinweis">{t('sammlung.leer')}</p>;
+  }
+
+  return (
+    <div className="sammlung">
+      <div className="sammlung__leiste">
+        <input
+          className="sammlung__suche"
+          type="search"
+          value={suche}
+          placeholder={t('sammlung.suche')}
+          aria-label={t('sammlung.suche')}
+          onChange={(ereignis) => setSuche(ereignis.target.value)}
+        />
+        <select value={artId} onChange={(e) => setArtId(e.target.value)} aria-label={t('feld.art')}>
+          <option value="">
+            {t('feld.art')}: {t('feld.beliebig')}
+          </option>
+          {ARTEN.map((art) => (
+            <option key={art.id} value={art.id}>
+              {text(art.name, sprache)}
+            </option>
+          ))}
+        </select>
+        <select value={themaId} onChange={(e) => setThemaId(e.target.value)} aria-label={t('feld.thema')}>
+          <option value="">
+            {t('feld.thema')}: {t('feld.beliebig')}
+          </option>
+          {THEMEN.map((thema) => (
+            <option key={thema.id} value={thema.id}>
+              {text(thema.name, sprache)}
+            </option>
+          ))}
+        </select>
+        <select
+          value={sortierung}
+          onChange={(e) => setSortierung(e.target.value as Sortierung)}
+          aria-label={t('sammlung.sortieren')}
+        >
+          <option value="gewicht">{t('sammlung.nachGewicht')}</option>
+          <option value="name">{t('sammlung.nachName')}</option>
+          <option value="geaendert">{t('sammlung.nachDatum')}</option>
+        </select>
+        <div className="sammlung__ansicht">
+          <button
+            type="button"
+            className={alsKacheln ? 'knopf knopf--klein knopf--an' : 'knopf knopf--klein'}
+            onClick={() => setAlsKacheln(true)}
+          >
+            {t('sammlung.kacheln')}
+          </button>
+          <button
+            type="button"
+            className={alsKacheln ? 'knopf knopf--klein' : 'knopf knopf--klein knopf--an'}
+            onClick={() => setAlsKacheln(false)}
+          >
+            {t('sammlung.liste')}
+          </button>
+        </div>
+      </div>
+
+      <p className="sammlung__zahl">{t('sammlung.anzahl', { anzahl: gefunden.length })}</p>
+      <p className="hinweis hinweis--klein">{t('sammlung.sucheHinweis')}</p>
+
+      {gefunden.length === 0 ? (
+        <p className="hinweis">{t('sammlung.nichts')}</p>
+      ) : alsKacheln ? (
+        <ul className="kacheln">
+          {gefunden.map((eintrag) => (
+            <li key={eintrag.id}>
+              <button
+                type="button"
+                className="zustandskachel"
+                style={{ ['--marke' as string]: eintrag.farbe }}
+                onClick={() => onOeffnen(eintrag.id)}
+              >
+                <span className="zustandskachel__zeichen" aria-hidden="true">
+                  {eintrag.zeichen}
+                </span>
+                <span className="zustandskachel__name">{eintrag.name}</span>
+                <span className="zustandskachel__unten">
+                  {name(THEMEN, eintrag.themaId)} ·{' '}
+                  {eintrag.stufen > 1
+                    ? t('sammlung.stufen', { anzahl: eintrag.stufen })
+                    : t('sammlung.eineStufe')}{' '}
+                  · {t('gewicht.titel')} {betragVon(eintrag.gewicht)}
+                </span>
+              </button>
+              <button
+                type="button"
+                className="zustandskachel__weg"
+                aria-label={t('knopf.loeschen')}
+                title={t('knopf.loeschen')}
+                onClick={() => onLoeschen(eintrag)}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <table className="zustandsliste">
+          <thead>
+            <tr>
+              <th aria-label={t('feld.thema')} />
+              <th>{t('titel')}</th>
+              <th>{t('feld.art')}</th>
+              <th>{t('feld.thema')}</th>
+              <th>{t('feld.haerte')}</th>
+              <th>{t('feld.stufen')}</th>
+              <th>{t('gewicht.titel')}</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {gefunden.map((eintrag) => (
+              <tr key={eintrag.id}>
+                <td style={{ color: eintrag.farbe }} aria-hidden="true">
+                  {eintrag.zeichen}
+                </td>
+                <td>
+                  <button type="button" className="alsLink" onClick={() => onOeffnen(eintrag.id)}>
+                    {eintrag.name}
+                  </button>
+                </td>
+                <td>{name(ARTEN, eintrag.artId)}</td>
+                <td>{name(THEMEN, eintrag.themaId)}</td>
+                <td>{name(HAERTEN, eintrag.haerteId)}</td>
+                <td>{eintrag.stufen}</td>
+                <td>{betragVon(eintrag.gewicht)}</td>
+                <td>
+                  <button
+                    type="button"
+                    className="zustandskachel__weg"
+                    aria-label={t('knopf.loeschen')}
+                    onClick={() => onLoeschen(eintrag)}
+                  >
+                    ×
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}

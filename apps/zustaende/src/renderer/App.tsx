@@ -1,0 +1,469 @@
+/**
+ * Der Status Effect Creator.
+ *
+ * Zwei Reiter: bauen und die Sammlung. Einen Reiter „Pruefen" wie beim
+ * Monster Creator gibt es bewusst nicht — es gibt hier nichts zu pruefen,
+ * was man eintippen koennte. Ein Zustand aus einem Buch hat kein Gewicht,
+ * das man ausrechnen wollte; er hat Wirkungen, und die stehen in der Liste.
+ *
+ * Die Waage steht direkt unter dem Blatt und nicht in einer Ecke: sie ist
+ * der Teil, der beim Bauen tatsaechlich hilft.
+ */
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
+import type { Eintrag } from '../shared/ablage';
+import { alsMarkdown, zuId } from '../shared/ablage';
+import { erzeugeZustand, pruefeZustand, wuerfleNeu, type Zustand } from '../shared/erzeuge';
+import {
+  geschaetztesGewicht,
+  zieheKiNach,
+  type KiBefund,
+  type RohStufe,
+  type RohZustand
+} from '../shared/kiAufgaben';
+import { ARTEN, HAERTEN, THEMEN, WIRKRICHTUNGEN, text, type Wirkrichtung } from '../shared/tabellen';
+import { api } from './api';
+import { Blatt } from './Blatt';
+import { Sammlung } from './Sammlung';
+import { Waage } from './Waage';
+import { getLanguage, setLanguage, t, type TextKey } from './i18n';
+
+/** Der Zufall der Oberflaeche. Die reinen Funktionen bekommen ihn uebergeben. */
+const wuerfel = () => Math.random();
+
+type Reiter = 'bauen' | 'sammlung';
+
+export function App() {
+  const [sprache, setSpracheState] = useState<Language>(DEFAULT_LANGUAGE);
+  const [reiter, setReiter] = useState<Reiter>('bauen');
+  const [artId, setArtId] = useState('');
+  const [themaId, setThemaId] = useState('');
+  const [haerteId, setHaerteId] = useState('ernst');
+  const [wirkrichtung, setWirkrichtung] = useState<Wirkrichtung>('debuff');
+  const [stufen, setStufen] = useState(3);
+  const [zustand, setZustand] = useState<Zustand | null>(null);
+  const [eintraege, setEintraege] = useState<Eintrag[]>([]);
+  const [kiDa, setKiDa] = useState(false);
+  const [kiLaeuft, setKiLaeuft] = useState(false);
+  const [kiWunsch, setKiWunsch] = useState('');
+  const [meldung, setMeldung] = useState<string | null>(null);
+  /** Warum eine KI-Antwort zurueckgewiesen wurde. Leer heisst: alles gut. */
+  const [kiBefund, setKiBefund] = useState<KiBefund | null>(null);
+  /**
+   * Stufentexte, die die KI geschrieben hat.
+   *
+   * Sie ersetzen die Stichpunkte nur in der ANZEIGE. Die Wirkungen darunter
+   * bleiben stehen, sonst verloere der Zustand sein Gewicht — und damit
+   * genau das, was ihn von einer Textdatei unterscheidet.
+   */
+  const [ausformuliert, setAusformuliert] = useState<Record<number, string>>({});
+  /** Bei KI-Stufen ist das Gewicht geschaetzt, nicht gerechnet. */
+  const [geschaetzt, setGeschaetzt] = useState(false);
+  const [kiGewicht, setKiGewicht] = useState<number | null>(null);
+
+  useEffect(() => {
+    void api.ki.da().then(setKiDa);
+    const ab = api.ki.beiWechsel(() => void api.ki.da().then(setKiDa));
+    const abSprache = api.sprache.beiWechsel((neu) => {
+      setLanguage(neu as Language);
+      setSpracheState(neu as Language);
+    });
+    return () => {
+      ab();
+      abSprache();
+    };
+  }, []);
+
+  const ladeSammlung = useCallback(async () => {
+    setEintraege(await api.sammlung.liste());
+  }, []);
+
+  useEffect(() => {
+    void ladeSammlung();
+  }, [ladeSammlung]);
+
+  const befund = useMemo(() => (zustand ? pruefeZustand(zustand) : null), [zustand]);
+
+  /** Der Befund, wie er angezeigt wird — mit geschaetztem Gewicht, wenn die KI die Stufen schrieb. */
+  const angezeigt = useMemo(() => {
+    if (!befund) return null;
+    if (kiGewicht === null) return befund;
+    return { ...befund, gewicht: kiGewicht };
+  }, [befund, kiGewicht]);
+
+  const zuruecksetzen = () => {
+    setKiBefund(null);
+    setAusformuliert({});
+    setGeschaetzt(false);
+    setKiGewicht(null);
+  };
+
+  const wuerfeln = () => {
+    zuruecksetzen();
+    setZustand(
+      erzeugeZustand(
+        {
+          artId: artId || undefined,
+          themaId: themaId || undefined,
+          haerteId,
+          wirkrichtung,
+          stufen
+        },
+        getLanguage() === 'en' ? 'en' : 'de',
+        wuerfel
+      )
+    );
+  };
+
+  /**
+   * Den ganzen Zustand von der KI.
+   *
+   * Und danach die Bremse: was zurueckkommt, wird geprueft. Anders als beim
+   * Monster Creator wird nicht nachgezogen, sondern die Tabellen uebernehmen
+   * — mit Ansage, welcher Teil unbrauchbar war.
+   */
+  const frageKi = async () => {
+    if (kiLaeuft) return;
+    setKiLaeuft(true);
+    setMeldung(null);
+    try {
+      const entwurf = erzeugeZustand(
+        { artId: artId || undefined, themaId: themaId || undefined, haerteId, wirkrichtung, stufen },
+        getLanguage() === 'en' ? 'en' : 'de',
+        wuerfel
+      );
+      const ergebnis = await api.ki.frage(
+        {
+          aufgabe: 'zustand',
+          artId: artId || undefined,
+          themaId: themaId || undefined,
+          haerteId,
+          stufen,
+          wunsch: kiWunsch.trim() || undefined
+        },
+        getLanguage()
+      );
+      if (!ergebnis.ok || !ergebnis.wert) {
+        setMeldung(t((ergebnis.grund || 'error.aiOther') as TextKey));
+        setZustand(entwurf);
+        return;
+      }
+
+      const roh = ergebnis.wert as RohZustand;
+      const { zustand: gemischt, befund: kiUrteil } = zieheKiNach(roh, entwurf);
+      zuruecksetzen();
+      setZustand(gemischt);
+
+      if (kiUrteil.ok) {
+        // Die Stufen der KI ersetzen die Anzeige, nicht die Wirkungen.
+        uebernimmStufen(roh.stufen, gemischt);
+      } else {
+        setKiBefund(kiUrteil);
+      }
+    } catch (fehler) {
+      setMeldung(String(fehler));
+    } finally {
+      setKiLaeuft(false);
+    }
+  };
+
+  /** Stufentexte der KI uebernehmen und das Gewicht dazu schaetzen. */
+  const uebernimmStufen = (roh: readonly RohStufe[], grundlage: Zustand) => {
+    const texte: Record<number, string> = {};
+    for (const stufe of roh) texte[stufe.nummer] = stufe.text;
+    setAusformuliert(texte);
+    setGeschaetzt(true);
+    setKiGewicht(geschaetztesGewicht(roh, getLanguage() === 'en' ? 'en' : 'de'));
+    // Die Zahl der Stufen richtet sich nach dem, was die KI geliefert hat.
+    if (roh.length !== grundlage.stufen.length) {
+      setZustand({
+        ...grundlage,
+        stufen: roh.map((stufe, stelle) => grundlage.stufen[stelle] ?? { nummer: stufe.nummer, wirkungen: [] })
+      });
+    }
+  };
+
+  /** Die Stichpunkte von der KI ausformulieren lassen. */
+  const ausformulierenLassen = async () => {
+    if (!zustand || kiLaeuft) return;
+    setKiLaeuft(true);
+    try {
+      const ergebnis = await api.ki.frage(
+        { aufgabe: 'ausformulieren', zustand, stufen: zustand.stufen.length },
+        getLanguage()
+      );
+      if (!ergebnis.ok || !ergebnis.wert) {
+        setMeldung(t((ergebnis.grund || 'error.aiOther') as TextKey));
+        return;
+      }
+      const roh = ergebnis.wert as RohStufe[];
+      const texte: Record<number, string> = {};
+      for (const stufe of roh) texte[stufe.nummer] = stufe.text;
+      /*
+       * Nur die Anzeige. Das Gewicht bleibt das gerechnete, weil die
+       * Wirkungen dieselben sind — es wurde nur anders aufgeschrieben.
+       */
+      setAusformuliert(texte);
+    } catch (fehler) {
+      setMeldung(String(fehler));
+    } finally {
+      setKiLaeuft(false);
+    }
+  };
+
+  const speichern = async () => {
+    if (!zustand) return;
+    const ergebnis = await api.sammlung.speichern(
+      { ...zustand, id: zuId(zustand.name), geaendert: new Date().toISOString() },
+      getLanguage()
+    );
+    setMeldung(
+      ergebnis.ok
+        ? t('meldung.gespeichert', { name: zustand.name })
+        : t('meldung.fehler', { detail: ergebnis.text })
+    );
+    if (ergebnis.ok) await ladeSammlung();
+  };
+
+  const exportieren = async () => {
+    if (!zustand) return;
+    const markdown = alsMarkdown(
+      { ...zustand, id: zuId(zustand.name), geaendert: new Date().toISOString() },
+      getLanguage() === 'en' ? 'en' : 'de'
+    );
+    const ergebnis = await api.export(zustand.name, markdown);
+    setMeldung(
+      ergebnis.ok
+        ? t('meldung.exportiert', { name: zustand.name })
+        : t('meldung.fehler', { detail: ergebnis.text })
+    );
+  };
+
+  const oeffnen = async (id: string) => {
+    const eintrag = eintraege.find((e) => e.id === id);
+    if (!eintrag) return;
+    /*
+     * Geoeffnet wird ueber die Kopfzahlen, nicht ueber den Leib.
+     *
+     * Die Stufentexte gehen dabei verloren und werden neu gewuerfelt — das
+     * ist der Preis dafuer, dass die Dateien von Hand aenderbar bleiben. Wie
+     * beim Monster Creator, und aus demselben Grund.
+     */
+    zuruecksetzen();
+    const grundlage = erzeugeZustand(
+      {
+        artId: eintrag.artId || undefined,
+        themaId: eintrag.themaId || undefined,
+        haerteId: eintrag.haerteId || undefined,
+        stufen: Math.max(1, eintrag.stufen)
+      },
+      getLanguage() === 'en' ? 'en' : 'de',
+      wuerfel
+    );
+    setZustand({ ...grundlage, name: eintrag.name, zeichen: eintrag.zeichen, farbe: eintrag.farbe });
+    setArtId(eintrag.artId);
+    setThemaId(eintrag.themaId);
+    setHaerteId(eintrag.haerteId || 'ernst');
+    setStufen(Math.max(1, eintrag.stufen));
+    setReiter('bauen');
+  };
+
+  const loeschen = async (eintrag: Eintrag) => {
+    if (!window.confirm(`${eintrag.name}?`)) return;
+    await api.sammlung.loeschen(eintrag.id);
+    setMeldung(t('meldung.geloescht', { name: eintrag.name }));
+    await ladeSammlung();
+  };
+
+  return (
+    <div className="app" lang={sprache}>
+      <header className="kopf">
+        <div>
+          <h1>{t('titel')}</h1>
+          <p className="kopf__satz">{t('untertitel')}</p>
+          <p className="kopf__regelwerk">{t('hinweis.regeln')}</p>
+        </div>
+        <nav className="reiter">
+          {(['bauen', 'sammlung'] as const).map((id) => (
+            <button
+              key={id}
+              type="button"
+              className={reiter === id ? 'reiter__knopf reiter__knopf--an' : 'reiter__knopf'}
+              onClick={() => setReiter(id)}
+            >
+              {t(`reiter.${id}` as TextKey)}
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      {meldung && <p className="meldung">{meldung}</p>}
+
+      {reiter === 'bauen' && (
+        <main className="bauen">
+          <section className="regler">
+            <label>
+              {t('feld.art')}
+              <select value={artId} onChange={(e) => setArtId(e.target.value)}>
+                <option value="">{t('feld.beliebig')}</option>
+                {ARTEN.map((art) => (
+                  <option key={art.id} value={art.id}>
+                    {text(art.name, sprache === 'en' ? 'en' : 'de')}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t('feld.thema')}
+              <select value={themaId} onChange={(e) => setThemaId(e.target.value)}>
+                <option value="">{t('feld.beliebig')}</option>
+                {THEMEN.map((thema) => (
+                  <option key={thema.id} value={thema.id}>
+                    {text(thema.name, sprache === 'en' ? 'en' : 'de')}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t('feld.wirkrichtung')}
+              <select
+                value={wirkrichtung}
+                onChange={(e) => setWirkrichtung(e.target.value as Wirkrichtung)}
+              >
+                {WIRKRICHTUNGEN.map((id) => (
+                  <option key={id} value={id}>
+                    {t(`richtung.${id}` as TextKey)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t('feld.haerte')}
+              <select value={haerteId} onChange={(e) => setHaerteId(e.target.value)}>
+                {HAERTEN.map((haerte) => (
+                  <option key={haerte.id} value={haerte.id}>
+                    {text(haerte.name, sprache === 'en' ? 'en' : 'de')}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t('feld.stufen')}
+              <select value={stufen} onChange={(e) => setStufen(Number(e.target.value))}>
+                <option value={1}>{t('feld.ohneStufen')}</option>
+                {[2, 3, 4, 5, 6].map((zahl) => (
+                  <option key={zahl} value={zahl}>
+                    {zahl}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="regler__knoepfe">
+              <button type="button" className="knopf knopf--haupt" onClick={wuerfeln}>
+                {t('knopf.wuerfeln')}
+              </button>
+              {kiDa ? (
+                <button type="button" className="knopf" disabled={kiLaeuft} onClick={() => void frageKi()}>
+                  {kiLaeuft ? t('knopf.kiLaeuft') : t('knopf.ki')}
+                </button>
+              ) : (
+                <span className="hinweis hinweis--klein">{t('ki.aus')}</span>
+              )}
+            </div>
+
+            {kiDa && (
+              <label className="regler__wunsch">
+                {t('feld.kiWunsch')}
+                <textarea
+                  value={kiWunsch}
+                  onChange={(e) => setKiWunsch(e.target.value)}
+                  placeholder={t('feld.kiWunschBeispiel')}
+                  rows={3}
+                />
+                <span className="hinweis hinweis--klein">{t('feld.kiWunschHinweis')}</span>
+              </label>
+            )}
+          </section>
+
+          {zustand && angezeigt && (
+            <>
+              <Blatt zustand={zustand} ausformuliert={ausformuliert} />
+              <Waage befund={angezeigt} haerteId={zustand.haerteId} geschaetzt={geschaetzt} />
+
+              {kiBefund && !kiBefund.ok && (
+                <section className="kiHinweis">
+                  <p>{t('ki.zurueckgewiesen')}</p>
+                  <ul>
+                    {kiBefund.gruende.map((grund) => (
+                      <li key={grund}>{t(grund as TextKey)}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              <section className="werkzeuge">
+                <button
+                  type="button"
+                  className="knopf knopf--klein"
+                  onClick={() => setZustand(wuerfleNeu(zustand, 'name', getLanguage() === 'en' ? 'en' : 'de', wuerfel))}
+                >
+                  {t('knopf.neuerName')}
+                </button>
+                <button
+                  type="button"
+                  className="knopf knopf--klein"
+                  onClick={() => setZustand(wuerfleNeu(zustand, 'kurzsatz', getLanguage() === 'en' ? 'en' : 'de', wuerfel))}
+                >
+                  {t('knopf.neuerSatz')}
+                </button>
+                <button
+                  type="button"
+                  className="knopf knopf--klein"
+                  onClick={() => {
+                    zuruecksetzen();
+                    setZustand(wuerfleNeu(zustand, 'stufen', getLanguage() === 'en' ? 'en' : 'de', wuerfel));
+                  }}
+                >
+                  {t('knopf.neueStufen')}
+                </button>
+                <button
+                  type="button"
+                  className="knopf knopf--klein"
+                  onClick={() => setZustand(wuerfleNeu(zustand, 'zeichen', getLanguage() === 'en' ? 'en' : 'de', wuerfel))}
+                >
+                  {t('knopf.neuesZeichen')}
+                </button>
+                {kiDa && (
+                  <button
+                    type="button"
+                    className="knopf knopf--klein"
+                    disabled={kiLaeuft}
+                    onClick={() => void ausformulierenLassen()}
+                  >
+                    {t('knopf.ausformulieren')}
+                  </button>
+                )}
+              </section>
+
+              <section className="abgang">
+                <button type="button" className="knopf knopf--haupt" onClick={() => void speichern()}>
+                  {t('knopf.speichern')}
+                </button>
+                <button type="button" className="knopf" onClick={() => void exportieren()}>
+                  {t('knopf.export')}
+                </button>
+              </section>
+            </>
+          )}
+        </main>
+      )}
+
+      {reiter === 'sammlung' && (
+        <main className="sammlungSeite">
+          <Sammlung eintraege={eintraege} onOeffnen={(id) => void oeffnen(id)} onLoeschen={(e) => void loeschen(e)} />
+        </main>
+      )}
+    </div>
+  );
+}

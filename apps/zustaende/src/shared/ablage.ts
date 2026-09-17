@@ -19,7 +19,7 @@
  */
 
 import { gesamtgewicht, betragVon } from './gewicht';
-import { naechsterVergleich } from './eichung';
+import { eichname, naechsterVergleich } from './eichung';
 import type { Zustand } from './erzeuge';
 import { wirkung } from './wirkungen';
 import { text, type Sprache } from './tabellen';
@@ -143,7 +143,7 @@ export function alsMarkdown(zustand: Abgelegt, sprache: Sprache): string {
   leib.push(
     `*${de ? 'Gewicht' : 'Weight'}: ${betragVon(gewicht)} — ${
       de ? 'etwa so viel wie' : 'about as much as'
-    } ${vergleich.name}.*`,
+    } ${eichname(vergleich, sprache)}.*`,
     '',
     `*${
       de

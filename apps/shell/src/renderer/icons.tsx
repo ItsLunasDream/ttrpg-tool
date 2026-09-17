@@ -165,6 +165,23 @@ function InspirationIcon({ size = 26 }: IconProps): ReactElement {
   );
 }
 
+/**
+ * Der Status Effect Creator: eine Figur mit einer Marke darauf.
+ *
+ * Nicht das Zeichen eines einzelnen Zustands — die sind je Thema
+ * verschieden. Was alle gemeinsam haben, ist die Stufenleiter daneben: ein
+ * Zustand, der schlimmer wird.
+ */
+function ZustaendeIcon({ size = 26 }: IconProps): ReactElement {
+  return (
+    <Rahmen size={size}>
+      <circle cx="17" cy="13" r="5" />
+      <path d="M17 18v14M11 23h12M13 40l4-8M21 40l-4-8" />
+      <path d="M32 36h10M32 28h8M32 20h6" />
+    </Rahmen>
+  );
+}
+
 const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
   backstory: BackstoryIcon,
   mapmaker: MapmakerIcon,
@@ -173,6 +190,7 @@ const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
   npc: NpcIcon,
   inspiration: InspirationIcon,
   monster: MonsterIcon,
+  zustaende: ZustaendeIcon,
   encounter: EncounterIcon
 };
 

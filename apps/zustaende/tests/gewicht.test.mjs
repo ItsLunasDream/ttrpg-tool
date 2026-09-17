@@ -52,7 +52,7 @@ test('die bekannten Zustaende kommen in der richtigen Reihenfolge heraus', () =>
    * Tisch.
    */
   const gewogen = T.EICHZUSTAENDE.map((z) => ({
-    name: z.name,
+    name: z.name.de,
     rang: z.rang,
     gewicht: T.eichgewicht(z)
   }));
@@ -71,6 +71,15 @@ test('die bekannten Zustaende kommen in der richtigen Reihenfolge heraus', () =>
 test('bewusstlos ist der schwerste bekannte Zustand', () => {
   const schwerster = [...T.EICHZUSTAENDE].sort((a, b) => T.eichgewicht(b) - T.eichgewicht(a))[0];
   assert.equal(schwerster.id, 'bewusstlos');
+});
+
+test('jeder Eichzustand hat einen Namen in beiden Sprachen', () => {
+  // Ein deutscher Name mitten in einem englischen Satz stand im ersten Bild
+  // der Oberflaeche: „about as much as Erschöpfung 5".
+  for (const z of T.EICHZUSTAENDE) {
+    assert.ok(z.name.de && z.name.en, z.id);
+    assert.notEqual(T.eichname(z, 'de'), T.eichname(z, 'en'), z.id);
+  }
 });
 
 test('der Vergleich findet den naechstgelegenen bekannten Zustand', () => {

@@ -37,6 +37,7 @@ import { mountDice } from '../../../dice/src/main/embed';
 import { mountNpc } from '../../../npc/src/main/embed';
 import { mountInspiration } from '../../../inspiration/src/main/embed';
 import { mountMonster } from '../../../monster/src/main/embed';
+import { mountZustaende } from '../../../zustaende/src/main/embed';
 import type { KiQuelle } from './ki';
 import type { Language } from '../shared/i18n';
 
@@ -303,6 +304,7 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'npc') return montiereNpc(id, haken);
   if (id === 'inspiration') return montiereInspiration(id, haken);
   if (id === 'monster') return montiereMonster(id, haken);
+  if (id === 'zustaende') return montiereZustaende(id, haken);
   return null;
 }
 
@@ -774,6 +776,71 @@ async function montiereMonster(id: string, haken: MontageHaken): Promise<Montier
       // „creature" gibt es in keiner Vorlage — ein Monster ist hier eine
       // Figur, und notfalls eine freie Notiz.
       const typ = passenderNotiztyp(kampagne, ['creature', 'character', 'note']);
+      const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
+      await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+
+      // Dem Story Creator sagen, dass etwas dazugekommen ist — sonst liegt
+      // die Notiz auf der Platte und seine offene Liste zeigt sie nicht.
+      if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
+        backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
+      }
+      haken.onEreignis?.('backstory');
+      return { ok: true, text: `${titel} → ${kampagne.name}` };
+    }
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
+  };
+}
+
+async function montiereZustaende(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountZustaende({
+    distDir: appDistDir(id, 'main'),
+    devServerUrl: process.env.ZUSTAENDE_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    datenordner: datenordner(id),
+    // Die KI der Sammlung, wie ueberall. Ein eigener Zugang je Werkzeug waere
+    // eine zweite Stelle, an der derselbe Schluessel liegt.
+    kiQuelle: haken.kiQuelle,
+    anlegen: async (titel, markdown) => {
+      if (!backstoryEmbed) {
+        return { ok: false, text: 'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.' };
+      }
+      const kampagnen = await backstoryEmbed.vault.listCampaigns();
+      if (kampagnen.length === 0) {
+        return { ok: false, text: 'Es gibt noch keine Kampagne, in die das passt.' };
+      }
+      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
+      // Ein Zustand ist keine Figur und kein Ort — er ist eine Notiz.
+      const typ = passenderNotiztyp(kampagne, ['note', 'event']);
       const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
       await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
 

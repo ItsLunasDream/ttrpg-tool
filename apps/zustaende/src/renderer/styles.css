@@ -1,0 +1,742 @@
+/*
+ * Aussehen des Status Effect Creators.
+ *
+ * Das Blatt ist der Inhalt und bekommt die Farbe des Zustands als schmalen
+ * Streifen — dieselbe Farbe, die spaeter im Initiative Tracker neben dem
+ * Namen steht. Alles andere bleibt ruhig und dunkel wie in den anderen
+ * Werkzeugen der Sammlung.
+ */
+
+:root {
+  --grund: #14161c;
+  --grund-hoch: #1b1e26;
+  --grund-tisch: #10121a;
+  --rand: #2a2e39;
+  --text: #e6e8ee;
+  --text-leise: #939aab;
+  --betont: #7aa2f7;
+  --gut: #4a9d5f;
+  --hoch: #d1635c;
+  --niedrig: #5c8fd1;
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--grund);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+}
+
+.app {
+  height: 100%;
+  overflow-y: auto;
+  padding: 18px 22px 40px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ---------- Kopf und Reiter ---------- */
+
+.kopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.kopf h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.kopf__satz {
+  margin: 4px 0 0;
+  color: var(--text-leise);
+  max-width: 52ch;
+}
+
+.reiter {
+  display: flex;
+  gap: 4px;
+}
+
+.reiter__knopf {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-leise);
+  font: inherit;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.reiter__knopf--an {
+  background: var(--grund-hoch);
+  border-color: var(--rand);
+  color: var(--text);
+}
+
+/* ---------- Regler ---------- */
+
+.regler {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.regler label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.regler__kaestchen {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px;
+}
+
+.regler select,
+.regler input[type='number'] {
+  background: var(--grund-tisch);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  padding: 6px 8px;
+  min-width: 110px;
+}
+
+.regler__knoepfe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.knopf {
+  background: #2b3140;
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  padding: 7px 16px;
+  cursor: pointer;
+}
+
+.knopf:hover:not(:disabled) {
+  background: #343b4d;
+}
+
+.knopf:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.knopf--haupt {
+  background: var(--betont);
+  border-color: var(--betont);
+  color: #10121a;
+  font-weight: 600;
+}
+
+.knopf--klein {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.knopf--an {
+  background: var(--betont);
+  border-color: var(--betont);
+  color: #10121a;
+}
+
+/* ---------- Steckbrief ---------- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ---------- KI-Hinweis ---------- */
+
+.kiHinweis {
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  background: var(--grund-tisch);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.kiHinweis p {
+  margin: 0 0 6px;
+}
+
+.kiHinweis ul {
+  margin: 0 0 8px;
+  padding-left: 18px;
+  color: var(--text-leise);
+}
+
+/* ---------- Werkzeuge und Abgang ---------- */
+
+.werkzeuge,
+.abgang {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.abgang {
+  margin-top: 4px;
+}
+
+.meldung {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-left: 4px solid var(--betont);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 0 0 12px;
+}
+
+.hinweis {
+  color: var(--text-leise);
+  margin: 0 0 10px;
+}
+
+.hinweis--klein {
+  font-size: 12px;
+}
+
+/* ---------- Sammlung ---------- */
+
+.sammlung__leiste {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.sammlung__suche {
+  flex: 1 1 260px;
+  background: var(--grund-tisch);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  padding: 8px 10px;
+}
+
+.sammlung__leiste select {
+  background: var(--grund-tisch);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  padding: 7px 8px;
+}
+
+.sammlung__ansicht {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.sammlung__zahl {
+  margin: 0 0 2px;
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.kacheln {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.kacheln li {
+  position: relative;
+}
+
+
+
+
+
+
+
+.kacheln li:hover .monsterkachel__weg,
+
+
+
+
+.alsLink {
+  background: none;
+  border: 0;
+  color: var(--betont);
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.alsLink:hover {
+  text-decoration: underline;
+}
+
+/*
+ * Woher die Regeln kommen, und wie der Befund zustande kommt.
+ *
+ * Beides leise gesetzt: es ist beim ersten Mal wichtig und danach nie
+ * wieder, und es soll den Steckbrief nicht verdraengen.
+ */
+.kopf__regelwerk {
+  margin: 4px 0 0;
+  max-width: 62ch;
+  color: var(--text-leise);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+
+/* ==========================================================================
+   Der Statblock
+   ==========================================================================
+
+   Aufbau und Aussehen an einem D&D-Statblock orientiert: heller Grund,
+   schmale Spalte, rotbraune Ueberschriften, waagerechte Linien als Trenner.
+
+   Das ist kein Selbstzweck. Wer seit Jahren leitet, liest einen Statblock
+   nicht, sondern springt darin — Ruestungsklasse oben, Aktionen unten. Ein
+   Block, der aussieht wie alles andere im Programm, zwingt zum Lesen, und
+   das kostet am Tisch jedes Mal ein paar Sekunden.
+
+   Der Block bleibt deshalb bewusst hell, auch wenn der Rest des Werkzeugs
+   dunkel ist: er ist das Blatt Papier, das man vor sich liegen hat.
+   ========================================================================== */
+
+
+
+
+
+/*
+ * Die Trennlinie.
+ *
+ * Im Buch ist sie eine spitz zulaufende Raute. Ein schmaler Keil aus
+ * zwei Dreiecken kommt dem nahe genug und braucht keine Bilddatei.
+ */
+
+
+
+
+
+
+
+/* Das Hauptattribut ist markiert: an ihm haengen Angriffsbonus und SG. */
+
+
+
+
+/* Haengender Einzug, wie im Buch: die erste Zeile steht vor. */
+
+
+/* Das Wunschfeld fuer die KI. */
+.regler__wunsch {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.regler__wunsch textarea {
+  background: var(--grund-tisch);
+  border: 1px solid var(--rand);
+  border-radius: 7px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+
+.regler__wunsch textarea:focus {
+  outline: none;
+  border-color: var(--betont);
+}
+
+/* ==========================================================================
+   Das Zustandsblatt
+   ========================================================================== */
+
+.blatt {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  /* Der Streifen in der Farbe des Zustands. Dieselbe Farbe steht spaeter im
+     Tracker neben dem Namen — wer sie hier sieht, erkennt sie dort wieder. */
+  border-left: 5px solid var(--marke, var(--betont));
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  max-width: 62ch;
+}
+
+.blatt__kopf {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.blatt__zeichen {
+  font-size: 34px;
+  line-height: 1;
+  color: var(--marke, var(--betont));
+}
+
+.blatt__name {
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+
+.blatt__art {
+  margin: 2px 0 0;
+  color: var(--text-leise);
+  font-size: 13px;
+}
+
+.blatt__satz {
+  margin: 12px 0;
+  font-style: italic;
+  color: var(--text);
+}
+
+.blatt__ueberschrift {
+  margin: 16px 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-leise);
+  font-weight: 600;
+}
+
+/*
+ * Die Stufen untereinander, mit der Nummer in einer eigenen Spalte.
+ *
+ * Am Tisch sucht man „Stufe 3" und nicht den dritten Halbsatz in einem
+ * Absatz. Die Nummer steht deshalb links und faellt auf.
+ */
+.blatt__stufen {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.blatt__stufen li {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.blatt__nummer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--marke, var(--betont));
+  color: #10121a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.blatt__fuss {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rand);
+}
+
+.blatt__zeile {
+  margin: 3px 0;
+  font-size: 13px;
+}
+
+.blatt__zeile strong {
+  color: var(--text-leise);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Die Waage
+   ==========================================================================
+
+   Keine Ampel: beim Monster gibt es ein Richtig, hier nicht. Was hier steht,
+   ist eine Auskunft — so schwer wiegt er, so viel wie das da. Farbe bekommt
+   nur der Fall „da stimmt etwas nicht", und der ist ein Fehler und kein
+   Geschmack.
+   ========================================================================== */
+
+.waage {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  max-width: 62ch;
+}
+
+.waage--kaputt {
+  border-color: var(--hoch);
+}
+
+.waage--schief {
+  border-color: var(--niedrig);
+}
+
+.waage__kopf {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.waage__zahl {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 2.2em;
+  text-align: right;
+}
+
+.waage__ungefaehr {
+  font-size: 20px;
+  opacity: 0.6;
+  margin-right: 2px;
+}
+
+.waage__urteil {
+  margin: 0;
+  font-weight: 600;
+}
+
+.waage__vergleich {
+  margin: 2px 0 0;
+  color: var(--text-leise);
+  font-size: 13px;
+}
+
+/* Die Kurve: ungleiche Stufen sieht man hier, im Text nicht. */
+.waage__kurve {
+  list-style: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin: 14px 0 6px;
+  padding: 0;
+  height: 52px;
+}
+
+.waage__kurve li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.waage__balken {
+  display: block;
+  width: 18px;
+  border-radius: 3px 3px 0 0;
+  background: var(--betont);
+}
+
+.waage__stufe {
+  font-size: 10px;
+  color: var(--text-leise);
+}
+
+.waage__spanne {
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.waage__hinweise {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.waage__hinweise:empty {
+  display: none;
+}
+
+.waage__fussnote {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-leise);
+  opacity: 0.85;
+}
+
+/* ==========================================================================
+   Die Sammlung
+   ========================================================================== */
+
+.zustandskachel {
+  width: 100%;
+  text-align: left;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-left: 4px solid var(--marke, var(--betont));
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  cursor: pointer;
+}
+
+.zustandskachel:hover {
+  border-color: var(--text-leise);
+}
+
+.zustandskachel__zeichen {
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--marke, var(--betont));
+}
+
+.zustandskachel__name {
+  font-weight: 600;
+}
+
+.zustandskachel__unten {
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.zustandskachel__weg {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: 0;
+  color: var(--text-leise);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.zustandskachel__weg:hover {
+  color: var(--hoch);
+}
+
+.zustandsliste {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.zustandsliste th {
+  text-align: left;
+  color: var(--text-leise);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--rand);
+}
+
+.zustandsliste td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--grund-hoch);
+}
+
+/* Das Wunschfeld fuer die KI. */
+.regler__wunsch {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.regler__wunsch textarea {
+  background: var(--grund-tisch);
+  border: 1px solid var(--rand);
+  border-radius: 7px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+
+.regler__wunsch textarea:focus {
+  outline: none;
+  border-color: var(--betont);
+}
+
+/* Woher die Vorlagen kommen. Leise gesetzt: einmal wichtig, danach nie. */
+.kopf__regelwerk {
+  margin: 4px 0 0;
+  max-width: 62ch;
+  color: var(--text-leise);
+  font-size: 11px;
+  line-height: 1.45;
+}
