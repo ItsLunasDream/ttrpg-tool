@@ -1,9 +1,13 @@
 /**
  * Ein Bild der Oberflaeche des Status Effect Creators.
  *
- * Kein Test, nur ein Schnappschuss: Huelle starten, Monster Creator oeffnen,
- * ein Monster auf Grad 12 mit legendaeren Aktionen wuerfeln und die Ansicht
- * als PNG ablegen.
+ * Kein Test, nur ein Schnappschuss: Huelle starten, den Status Effect
+ * Creator oeffnen, einen Zustand auf „gefaehrlich" mit fuenf Stufen
+ * wuerfeln und die Ansicht als PNG ablegen.
+ *
+ * Das Ziel kommt aus BILD_ZIEL und ist PFLICHT. Ohne die Variable schreibt
+ * das Skript nach `undefined`, der Fehler landet in einem async-Handler,
+ * und der Prozess haengt statt abzubrechen — deshalb der Abbruch oben.
  */
 const { app, BaseWindow } = require('electron');
 const path = require('node:path');
@@ -17,6 +21,10 @@ require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
 
 const warte = (ms) => new Promise((r) => setTimeout(r, ms));
 const ziel = process.env.BILD_ZIEL;
+if (!ziel) {
+  console.error('BILD_ZIEL fehlt: BILD_ZIEL=/pfad/zum/bild.png electron scripts/bild-zustaende.cjs');
+  process.exit(2);
+}
 
 app.whenReady().then(async () => {
   await warte(5000);
