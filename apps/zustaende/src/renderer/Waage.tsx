@@ -33,6 +33,21 @@ interface Props {
 export function Waage({ befund, haerteId, geschaetzt, stimmig }: Props) {
   const sprache = getLanguage() === 'en' ? 'en' : 'de';
   const betrag = betragVon(befund.gewicht);
+
+  /*
+   * Ein Segen wird NICHT verglichen.
+   *
+   * „Wiegt so viel wie Erschoepfung 1" sagt bei einem Zustand, der nimmt,
+   * genau das Richtige — und bei einem, der gibt, gar nichts: der Vergleich
+   * setzt +2 auf Angriffswuerfe neben eine Stufe Erschoepfung, und die
+   * beiden haben nichts miteinander zu tun.
+   *
+   * Der ehrliche Grund dafuer steht dann auch da: die Eichzustaende in
+   * `eichung.ts` sind samt und sonders Fluesche. Es gibt keinen bekannten
+   * Segen, gegen den sich eichen liesse, und einen zu erfinden waere eine
+   * Behauptung statt eines Massstabs.
+   */
+  const gibtMehrAlsEsNimmt = befund.gewicht < 0;
   const vergleich = naechsterVergleich(befund.gewicht);
   const haerte = HAERTEN.find((h) => h.id === haerteId) ?? HAERTEN[1];
 
@@ -65,7 +80,11 @@ export function Waage({ befund, haerteId, geschaetzt, stimmig }: Props) {
         </div>
         <div>
           <p className="waage__urteil">{urteilText}</p>
-          <p className="waage__vergleich">{t('gewicht.vergleich', { name: eichname(vergleich, sprache) })}</p>
+          <p className="waage__vergleich">
+            {gibtMehrAlsEsNimmt
+              ? t('gewicht.keinVergleich')
+              : t('gewicht.vergleich', { name: eichname(vergleich, sprache) })}
+          </p>
         </div>
       </header>
 

@@ -174,10 +174,22 @@ export function alsMarkdown(zustand: Abgelegt, sprache: Sprache): string {
    * sagt jedem alles. Und der Satz darunter sagt, was die Zahl NICHT
    * bedeutet — sonst liest sie jemand als Balance-Urteil.
    */
+  /*
+   * Ein Segen bekommt keinen Vergleich — wie in der Waage.
+   *
+   * Die Eichzustaende sind samt und sonders Fluesche; „so viel wie
+   * Erschoepfung 1" neben einem Zustand, der gibt, vergleicht zwei Dinge,
+   * die nichts miteinander zu tun haben.
+   */
+  const vergleichstext =
+    gewicht < 0
+      ? de
+        ? 'kein Vergleich — die Eichung kennt nur Zustände, die nehmen'
+        : 'no comparison — the calibration only knows conditions that take'
+      : `${de ? 'etwa so viel wie' : 'about as much as'} ${eichname(vergleich, sprache)}`;
+
   leib.push(
-    `*${de ? 'Gewicht' : 'Weight'}: ${betragVon(gewicht)} — ${
-      de ? 'etwa so viel wie' : 'about as much as'
-    } ${eichname(vergleich, sprache)}.*`,
+    `*${de ? 'Gewicht' : 'Weight'}: ${betragVon(gewicht)} — ${vergleichstext}.*`,
     '',
     `*${
       de
