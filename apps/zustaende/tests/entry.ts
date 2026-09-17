@@ -4,3 +4,6 @@ export * from '../src/shared/tabellen';
 export * from '../src/shared/gewicht';
 export * from '../src/shared/erzeuge';
 export * from '../src/shared/eichung';
+export * from '../src/shared/ablage';
+export * from '../src/shared/suche';
+export * from '../src/shared/kiAufgaben';
