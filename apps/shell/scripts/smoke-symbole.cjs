@@ -159,6 +159,41 @@ app.whenReady().then(async () => {
     `nur die brauchbaren Bilder bleiben stehen (${nachFehler})`
   );
 
+  /*
+   * Eine reparierte Datei kommt nach „Symbole neu laden" auch wirklich an.
+   *
+   * Der Fall, den ein Nutzer gemeldet hat: Datei ersetzt, Knopf gedrueckt,
+   * nichts passiert. Grund war ein Schalter in `AppSymbol`, der sich merkte
+   * DASS ein Bild nicht ging, aber nicht WELCHES — einmal zurueckgefallen,
+   * blieb die Kachel beim eingebauten Symbol, bis die Oberflaeche neu startete.
+   */
+  fs.writeFileSync(path.join(ordner, 'initiative.png'), MAGENTA_PNG);
+  // Einstellungen auf, „Symbole neu laden" druecken, Dialog wieder zu.
+  await js("[...document.querySelectorAll('.titelleiste__knopf')][0].click()");
+  await warte(700);
+  const gedrueckt = await js(`
+    (() => {
+      const knopf = [...document.querySelectorAll('.dialog button')].find(
+        (k) => /Symbole neu laden|Reload icons/i.test(k.textContent)
+      );
+      if (!knopf) return false;
+      knopf.click();
+      return true;
+    })()
+  `);
+  pruefe(gedrueckt, 'der Knopf „Symbole neu laden" ist da');
+  await warte(1200);
+  await js("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))");
+  await warte(600);
+
+  const nachReparatur = await js(
+    "[...document.querySelectorAll('.kachel__icon')].map(e => e.firstElementChild.tagName).join(',')"
+  );
+  pruefe(
+    (nachReparatur.match(/IMG/g) ?? []).length === 4,
+    `die reparierte Datei wird ohne Neustart benutzt (${nachReparatur})`
+  );
+
   // --- Der Ordner wird beim Start angelegt, samt Liesmich ------------------
   pruefe(fs.existsSync(path.join(ordner, 'LIESMICH.txt')), 'eine Liesmich liegt im Ordner');
   const liesmich = fs.readFileSync(path.join(ordner, 'LIESMICH.txt'), 'utf8');
