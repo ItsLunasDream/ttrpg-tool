@@ -49,27 +49,23 @@ fs.writeFileSync(path.join(ordner, 'encounter.png'), MAGENTA_PNG);
 /*
  * Ein mitgeliefertes Symbol, wie es aus dem Repository kaeme.
  *
- * Der Ordner liegt im Arbeitsverzeichnis neben dem Quelltext der Huelle;
- * gepackt legt electron-builder ihn nach resources/symbole. Hier wird die
- * erste Lage benutzt, weil der Test aus dem Arbeitsverzeichnis laeuft.
+ * NICHT im Repository selbst, sondern in einem eigenen Ordner, auf den
+ * `TTRPG_TOOLS_SYMBOLE` zeigt. Der erste Anlauf schrieb in
+ * `apps/shell/symbole` und raeumte hinterher auf — das ging, solange dort
+ * nichts lag. Seit die echten Symbole eingecheckt sind, faellt kein Werkzeug
+ * mehr auf sein eingebautes zurueck, und drei Pruefungen dieses Tests waren
+ * schlicht nicht mehr wahr.
  *
  * `backstory.png` liegt NUR hier und `dice.png` in beiden Ordnern: so laesst
  * sich beides pruefen — dass ein mitgeliefertes ankommt, und dass ein
  * eigenes es sticht.
  */
-const mitgeliefert = path.join(__dirname, '..', 'symbole');
-const vorhandene = fs.existsSync(mitgeliefert) ? fs.readdirSync(mitgeliefert) : [];
+const mitgeliefert = path.join(tmp, 'mitgeliefert');
 fs.mkdirSync(mitgeliefert, { recursive: true });
 fs.writeFileSync(path.join(mitgeliefert, 'backstory.png'), MAGENTA_PNG);
 // Ein anderes Bild als das eigene, damit sich die beiden unterscheiden lassen.
 fs.writeFileSync(path.join(mitgeliefert, 'dice.png'), Buffer.concat([MAGENTA_PNG, Buffer.alloc(4)]));
-
-/** Raeumt die Testdateien wieder weg — der Ordner gehoert ins Repository. */
-function raeumeAuf() {
-  for (const datei of fs.readdirSync(mitgeliefert)) {
-    if (!vorhandene.includes(datei)) fs.rmSync(path.join(mitgeliefert, datei), { force: true });
-  }
-}
+process.env.TTRPG_TOOLS_SYMBOLE = mitgeliefert;
 
 app.setPath('userData', userData);
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
@@ -80,12 +76,6 @@ const pruefe = (b, t) => {
   console.log(`  ${b ? 'ok  ' : 'FEHL'} ${t}`);
   if (!b) fehler.push(t);
 };
-
-// Das Aufraeumen haengt am Ende des Prozesses und nicht nur am Ende des
-// Ablaufs: bricht der Test irgendwo ab, sollen trotzdem keine Testdateien im
-// Repository liegen bleiben.
-app.on('will-quit', raeumeAuf);
-process.on('exit', raeumeAuf);
 
 app.whenReady().then(async () => {
   await warte(4000);
@@ -176,7 +166,6 @@ app.whenReady().then(async () => {
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
 
-  raeumeAuf();
   console.log(fehler.length === 0 ? '\nSymbole bestanden.' : `\n${fehler.length} Fehler.`);
   app.exit(fehler.length === 0 ? 0 : 1);
 });

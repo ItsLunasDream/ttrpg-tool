@@ -18,6 +18,7 @@
  */
 
 import { pruefe, zieheNach, type Befund, type Werte } from './pruefung';
+import { rettungsSg } from './attribute';
 import { richtwert } from './richtwerte';
 import type { Monster } from './erzeuge';
 import { ROLLEN, THEMEN, text, type Kategorie, type Sprache } from './tabellen';
@@ -147,6 +148,26 @@ export function anweisung(frage: Frage, sprache: Sprache): string {
       de
         ? `Liefere ${anzahlWunsch(ziel.wert)} Fähigkeiten. Jede bekommt ein Feld "kategorie" mit genau einem dieser Werte: passiv, aktion, bonusaktion, reaktion.`
         : `Deliver ${anzahlWunsch(ziel.wert)} features. Each gets a "kategorie" field with exactly one of: passiv, aktion, bonusaktion, reaktion.`
+    );
+  }
+
+  /*
+   * Was eine Faehigkeit sein muss, damit sie eine ist.
+   *
+   * Beide Saetze kommen aus der Oberflaeche: ein Modell lieferte „alle in 10
+   * Fuss nehmen Schaden" ohne Zahl und „es macht eine Wahrnehmungsprobe"
+   * ohne Folge. Das erste ist eine Aufgabe fuer die Spielleitung, das
+   * zweite ein Lueckenfueller.
+   */
+  if (frage.aufgabe === 'faehigkeit' || frage.aufgabe === 'monster') {
+    teile.push(
+      '',
+      de
+        ? `Nenne Zahlen: Schaden als Würfel (2W8), Rettungswürfe mit Schwierigkeitsgrad (SG ${rettungsSg(ziel.bonus)}), Reichweiten in Fuß.`
+        : `Name numbers: damage as dice (2d8), saving throws with a DC (DC ${rettungsSg(ziel.bonus)}), ranges in feet.`,
+      de
+        ? 'Jede Fähigkeit hat eine Folge. Eine Probe oder ein Wurf ohne etwas, das danach passiert, ist keine Fähigkeit.'
+        : 'Every feature has a consequence. A check or a roll with nothing following it is not a feature.'
     );
   }
 
