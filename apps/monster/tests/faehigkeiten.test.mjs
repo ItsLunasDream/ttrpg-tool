@@ -181,3 +181,62 @@ test('die Schadensart steht im Satz, wie sie im Statblock steht', () => {
     assert.doesNotMatch(T.schadensartMitWort(art.id, 'de'), /er Schaden$/, art.id);
   }
 });
+
+/* ---------- Die Umgebung passt zum Wesen ---------- */
+
+test('jedes Thema hat mehrere Umgebungen zur Auswahl', () => {
+  for (const thema of T.THEMEN) {
+    const passend = T.UMGEBUNGEN.filter((u) => T.passtZumThema(u, thema.id));
+    assert.ok(passend.length >= 4, `${thema.id}: nur ${passend.length}`);
+  }
+});
+
+test('wer schwimmt, lebt nicht in der Wueste', () => {
+  /*
+   * Der Fall aus dem Bild: ein Elementar mit Schwimmbewegung und
+   * „Amphibisch", eingetragen in der Wueste. Beides fuer sich stimmte.
+   */
+  const daneben = [];
+  for (const cr of ['1/4', '2', '5', '11', '17', '24']) {
+    for (let saat = 1; saat <= 25; saat += 1) {
+      const monster = T.erzeugeMonster({ cr }, 'de', wuerfelgeber(saat));
+      const umgebung = T.UMGEBUNGEN.find((u) => T.umgebungName(u, 'de') === monster.umgebung);
+      assert.ok(umgebung, `unbekannte Umgebung: ${monster.umgebung}`);
+
+      const arten = monster.bewegung.gangarten.map((g) => g.art);
+      if (arten.includes('schwimmen') && !umgebung.wasser) {
+        daneben.push(`${cr}/${saat}: schwimmt in ${monster.umgebung}`);
+      }
+      if (arten.includes('graben') && !umgebung.grabbar) {
+        daneben.push(`${cr}/${saat}: gräbt in ${monster.umgebung}`);
+      }
+      if (!T.passtZumThema(umgebung, monster.themaId)) {
+        daneben.push(`${cr}/${saat}: ${monster.themaId} in ${monster.umgebung}`);
+      }
+    }
+  }
+  assert.deepEqual(daneben.slice(0, 5), [], `${daneben.length} Widersprüche`);
+});
+
+test('das Nachwuerfeln der Bewegung zieht die Umgebung mit', () => {
+  /*
+   * Sonst bleibt der Widerspruch an genau der Stelle zurueck, an der man
+   * ihn gerade beheben wollte.
+   */
+  for (let saat = 1; saat <= 20; saat += 1) {
+    const rng = wuerfelgeber(saat);
+    let monster = T.erzeugeMonster({ cr: '5' }, 'de', rng);
+    monster = T.wuerfleNeu(monster, 'bewegung', 'de', rng);
+    const umgebung = T.UMGEBUNGEN.find((u) => T.umgebungName(u, 'de') === monster.umgebung);
+    assert.ok(T.passtZurBewegung(umgebung, monster.bewegung), `${saat}: ${monster.umgebung}`);
+  }
+});
+
+test('die Umgebung bleibt in beiden Sprachen dieselbe Liste', () => {
+  for (const u of T.UMGEBUNGEN) {
+    assert.ok(T.umgebungName(u, 'de').trim().length > 0, u.id);
+    assert.ok(T.umgebungName(u, 'en').trim().length > 0, u.id);
+  }
+  const kennungen = T.UMGEBUNGEN.map((u) => u.id);
+  assert.equal(new Set(kennungen).size, kennungen.length);
+});

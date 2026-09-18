@@ -428,12 +428,14 @@ export const ROLLEN: readonly Rolle[] = [
 
 /* ---------- Umgebungen: wo es lebt ---------- */
 
-export const UMGEBUNGEN: readonly Paar[] = [
-  { de: 'Wald', en: 'forest' }, { de: 'Unterreich', en: 'underdark' }, { de: 'Stadt', en: 'city' },
-  { de: 'Tiefsee', en: 'deep sea' }, { de: 'Wüste', en: 'desert' }, { de: 'Gebirge', en: 'mountains' },
-  { de: 'Sumpf', en: 'swamp' }, { de: 'Ruinen', en: 'ruins' }, { de: 'Eiswüste', en: 'ice waste' },
-  { de: 'Grabmal', en: 'tomb' }, { de: 'Küste', en: 'coast' }, { de: 'Ebene', en: 'plains' }
-];
+/*
+ * Die Umgebungen sind umgezogen: `umgebungen.ts`.
+ *
+ * Sie sind dort keine blosse Liste mehr, sondern tragen, zu welchen Themen
+ * sie passen und ob es dort Wasser und grabbaren Boden gibt. Eine Liste von
+ * Paaren konnte das nicht, und deshalb stand ein Elementar mit
+ * Schwimmbewegung in der Wueste.
+ */
 
 /* ---------- Faehigkeiten ---------- */
 

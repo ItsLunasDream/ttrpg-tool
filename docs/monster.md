@@ -318,7 +318,7 @@ Der obere Teil dieser Datei ist das Konzept von vorher und bleibt so stehen.
 Hier steht, was davon tatsächlich gebaut ist, damit man beides
 auseinanderhalten kann.
 
-**Gebaut und geprüft** (`apps/monster`, 131 Tests plus ein Rauchtest in der
+**Gebaut und geprüft** (`apps/monster`, 135 Tests plus ein Rauchtest in der
 Hülle):
 
 - `richtwerte.ts` — die CC-BY-Tabelle von CR 0 bis 30, wörtlich übernommen,
@@ -350,6 +350,10 @@ Hülle):
   Rundenschaden wird aufgeteilt, nicht erhöht.
 - `widerstaende.ts` — Resistenzen, Immunitäten, Verwundbarkeiten, alles über
   Chancen.
+- `umgebungen.ts` — sechzehn Umgebungen, jede mit den Themen, zu denen sie
+  passt, und mit zwei Angaben zum Gelände: gibt es Wasser, lässt sich der
+  Boden durchgraben. Die Umgebung wird zuletzt entschieden und richtet sich
+  nach Thema und Bewegung.
 - `platzhalter.ts` — die Zahlen in den Fähigkeitstexten. Die Tabellen sind
   für jeden Grad dieselben, die Zahlen nicht; die Texte tragen deshalb
   `{sg}`, `{schaden}`, `{kleinerSchaden}` und `{schadensart}`, gefüllt aus
@@ -358,6 +362,31 @@ Hülle):
 - Oberfläche mit Erzeugen, Prüfen von außen, Sammlung als Liste und als
   Kacheln, Variante anlegen, Markdown-Export — der Steckbrief sieht aus wie
   ein Statblock im Buch.
+
+## Was aus dem Gebrauch dazukam: die Umgebung gehört zum Wesen
+
+Im selben Bild stand ein Elementar mit Schwimmbewegung und „Amphibisch",
+eingetragen in der **Wüste**. Jede Angabe für sich war richtig; zusammen
+ergaben sie kein Wesen. Grund: die Umgebung wurde frei gezogen, unabhängig
+von Thema und Bewegung.
+
+Jetzt wird sie **zuletzt** entschieden und richtet sich nach dem, was schon
+feststeht:
+
+1. **Thema** — ein Konstrukt gehört nicht in einen Feenhain, ein Drache
+   nicht in einen Zauberturm. Bewusst großzügig: ausgeschlossen wird nur,
+   was am Tisch stutzig macht, nicht alles, was ungewöhnlich ist.
+2. **Bewegung** — wer schwimmt, braucht Wasser; wer gräbt, braucht Boden,
+   in den das geht. Fliegen bleibt ungeprüft, auch unter der Erde fliegt
+   allerhand.
+
+Aus zwölf Umgebungen sind sechzehn geworden, damit jedes Thema nach dem
+Filtern noch genug Auswahl hat — dazugekommen sind Feenhain, Zauberturm,
+Vulkanland und Aschewüste. Ein Test verlangt mindestens vier je Thema und
+fährt 150 Monster durch, ohne einen einzigen Widerspruch zu finden.
+
+Das Nachwürfeln der Bewegung zieht die Umgebung mit. Sonst bliebe der
+Widerspruch genau an der Stelle zurück, an der man ihn gerade beheben wollte.
 
 ## Was aus dem Gebrauch dazukam: Fähigkeiten ohne Zahlen und ohne Folge
 

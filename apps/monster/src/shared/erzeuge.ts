@@ -20,6 +20,7 @@ import {
 } from './richtwerte';
 import { LEGENDAER_FAKTOR, RK_ZU_TP, pruefe, widerstandsAnteil, type Werte } from './pruefung';
 import { kampfzahlen, setzeZahlen, type Kampfzahlen } from './platzhalter';
+import { umgebungFuer, umgebungName } from './umgebungen';
 import { attributeFuer, profilFuer, type AttributId, type Attribute } from './attribute';
 import { bewegungFuer, type Bewegung } from './bewegung';
 import { baueAngriffe, type Angriff, type Kampfweite } from './angriffe';
@@ -28,7 +29,6 @@ import {
   FAEHIGKEITEN,
   ROLLEN,
   THEMEN,
-  UMGEBUNGEN,
   text,
   type Faehigkeit,
   type Rolle,
@@ -308,6 +308,7 @@ export function erzeugeMonster(wunsch: Wuensche, sprache: Sprache, rng: () => nu
 
   const profil = profilFuer(thema, rolle);
   const attribute = attributeFuer(ziel, profil, rng);
+  const bewegung = bewegungFuer(thema, rng);
 
   const angriffe = baueAngriffe(
     {
@@ -331,11 +332,17 @@ export function erzeugeMonster(wunsch: Wuensche, sprache: Sprache, rng: () => nu
     thema: text(thema.name, sprache),
     rolleId: rolle.id,
     rolle: text(rolle.name, sprache),
-    umgebung: text(zieh(UMGEBUNGEN, rng), sprache),
+    /*
+     * Die Umgebung kommt NACH der Bewegung und richtet sich nach ihr.
+     *
+     * Vorher wurde sie frei gezogen, und im Bild der Oberflaeche stand ein
+     * Elementar mit Schwimmbewegung in der Wueste. Siehe `umgebungen.ts`.
+     */
+    umgebung: umgebungName(umgebungFuer(thema.id, bewegung, rng), sprache),
     werte,
     attribute,
     hauptattribut: profil.haupt,
-    bewegung: bewegungFuer(thema, rng),
+    bewegung,
     angriffe,
     widerstaende,
     faehigkeiten: alsEintraege(
@@ -392,9 +399,25 @@ export function wuerfleNeu(
     case 'name':
       return { ...monster, name: baueNamen(thema, sprache, rng) };
     case 'umgebung':
-      return { ...monster, umgebung: text(zieh(UMGEBUNGEN, rng), sprache) };
-    case 'bewegung':
-      return { ...monster, bewegung: bewegungFuer(thema, rng) };
+      return {
+        ...monster,
+        umgebung: umgebungName(umgebungFuer(thema.id, monster.bewegung, rng), sprache)
+      };
+    case 'bewegung': {
+      /*
+       * Wer die Bewegung neu wuerfelt, wuerfelt die Umgebung mit.
+       *
+       * Sonst bekommt ein Monster aus der Wueste eine Schwimmbewegung, und
+       * genau der Widerspruch sollte hier verschwinden. Die Umgebung ist
+       * vom Wesen abhaengig, nicht umgekehrt.
+       */
+      const bewegung = bewegungFuer(thema, rng);
+      return {
+        ...monster,
+        bewegung,
+        umgebung: umgebungName(umgebungFuer(thema.id, bewegung, rng), sprache)
+      };
+    }
     case 'angriffe':
       // Nur die Angriffe neu, die Werte bleiben: der Rundenschaden ist
       // vorgegeben und wird nur anders aufgeteilt. Wer den Biss nicht mag,
