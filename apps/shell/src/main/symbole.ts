@@ -62,6 +62,8 @@ const LIESMICH = [
   '  dice.png          Würfel',
   '  npc.png           NPC Creator',
   '  inspiration.png   Inspirationshilfe',
+  '  monster.png       Monster Creator',
+  '  zustaende.png     Status Effect Creator',
   '  encounter.png     Begegnungen (noch nicht gebaut, Symbol gilt trotzdem)',
   '',
   'Erlaubt sind .png, .jpg, .webp und .gif, höchstens 2 MB je Datei.',
@@ -92,6 +94,22 @@ export function symbolOrdner(datenordner: string): string {
  * Quelltext der Huelle.
  */
 export function mitgelieferterOrdner(gepackt: boolean, resourcesPath: string): string {
+  /*
+   * Fuer den Rauchtest umlenkbar.
+   *
+   * Der Test der Symbole braucht beide Lagen unter Kontrolle: die
+   * mitgelieferte und die eigene. Solange der ausgelieferte Ordner leer war,
+   * ging das, indem er hineinschrieb und hinterher aufraeumte — mit echten
+   * Bildern darin geht es nicht mehr, und der Test ist genau an dem Tag
+   * umgekippt, an dem die Symbole dazukamen.
+   *
+   * Eine Umgebungsvariable statt Schreiben ins Repository: sie fasst nichts
+   * an, was dort liegt, und sie kann auch nicht liegenbleiben, wenn der
+   * Test abbricht. Dasselbe Mittel wie bei TTRPG_TOOLS_START_APP.
+   */
+  const umgelenkt = process.env.TTRPG_TOOLS_SYMBOLE;
+  if (umgelenkt) return umgelenkt;
+
   return gepackt
     ? join(resourcesPath, SYMBOL_ORDNER)
     : join(__dirname, '..', '..', SYMBOL_ORDNER);

@@ -98,9 +98,20 @@ app.whenReady().then(async () => {
   pruefe(await js("Boolean(document.querySelector('.titelleiste'))"), 'Titelleiste gerendert');
   pruefe(await js("Boolean(document.querySelector('.menue'))"), 'Startmenue gerendert');
   pruefe((await js("document.querySelectorAll('.kachel').length")) >= 5, 'mindestens fuenf Kacheln');
+  /*
+   * Ein Symbol ist ein SVG ODER ein Bild.
+   *
+   * Hier stand vorher nur „`.kachel svg` so oft wie `.kachel`". Das war
+   * richtig, solange es keine eigenen Symbole gab — sobald eine PNG-Datei im
+   * mitgelieferten Ordner liegt, rendert `AppSymbol` ein `img` statt des
+   * eingebauten Vektors, und die Zahlen gehen auseinander. Die Pruefung ist
+   * deshalb genau an dem Tag umgekippt, an dem die Symbole dazukamen — und
+   * zwar in `main`, waehrend die Verzweigung ohne die Bilder gruen blieb.
+   */
   pruefe(
-    (await js("document.querySelectorAll('.kachel svg').length")) ===
-      (await js("document.querySelectorAll('.kachel').length")),
+    await js(
+      "[...document.querySelectorAll('.kachel')].every((k) => k.querySelector('svg, img.app-symbol'))"
+    ),
     'jede Kachel hat ein Symbol'
   );
   pruefe((await js("document.querySelectorAll('.fensterknopf').length")) === 3, 'drei Fensterknoepfe');
