@@ -128,8 +128,24 @@ export function anweisung(frage: Frage, sprache: Sprache): string {
         ? 'Nenne konkrete Zahlen: 1W6 Feuerschaden, −2 auf Angriffswürfe, Rettungswurf SG 13. "Weniger Schaden" ist am Tisch eine Rückfrage, keine Wirkung.'
         : 'Name concrete numbers: 1d6 fire damage, −2 to attack rolls, DC 13 saving throw. "Less damage" is a question at the table, not an effect.',
       de
+        ? 'Die Beispiele oben zeigen nur Ton und Länge. Übernimm sie nicht — jede Stufe muss zum Thema und zum Wunsch passen.'
+        : 'The examples above only show tone and length. Do not reuse them — every level must fit the theme and the wish.',
+      de
+        ? 'Der "kurzsatz" ist ein einziger Satz Stimmung, ohne Zahlen, Würfel, Schwierigkeitsgrade oder Vorteil/Nachteil. Die Regeln stehen ausschließlich in den Stufen.'
+        : 'The "kurzsatz" is one sentence of atmosphere, with no numbers, dice, DCs or advantage/disadvantage. The rules live in the levels only.',
+      de
         ? 'Liefere "stufen" als Liste von Objekten mit "nummer" und "text". Jede Stufe ist schlimmer als die davor und wiederholt keine frühere Wirkung.'
         : 'Deliver "stufen" as a list of objects with "nummer" and "text". Each level is worse than the one before and repeats no earlier effect.'
+    );
+  }
+
+  if (frage.aufgabe === 'kurzsatz') {
+    teile.push(
+      '',
+      de
+        ? 'Ein einziger Satz Stimmung: was man spürt, sieht oder riecht. Keine Zahlen, keine Würfel, keine Schwierigkeitsgrade, kein Vorteil/Nachteil — die Regeln stehen in den Stufen.'
+        : 'One single sentence of atmosphere: what you feel, see or smell. No numbers, no dice, no DCs, no advantage/disadvantage — the rules live in the levels.',
+      de ? 'Beispiel: „Die Kälte presst sich in deine Knochen."' : 'Example: “The cold presses into your bones.”'
     );
   }
 
@@ -193,7 +209,16 @@ export function uebernehmbar(aufgabe: KiAufgabe, gelesen: unknown): unknown {
   const o = gelesen as Record<string, unknown>;
 
   if (aufgabe === 'name') return alsText(o.name) || null;
-  if (aufgabe === 'kurzsatz') return alsText(o.kurzsatz) || null;
+  /*
+   * Ein Kurzsatz mit Regeln gilt als keine Antwort.
+   *
+   * Lieber eine sichtbare Fehlanzeige als ein Satz, der etwas anderes
+   * verspricht als die Stufen darunter. Siehe `nenntRegeln`.
+   */
+  if (aufgabe === 'kurzsatz') {
+    const satz = alsText(o.kurzsatz);
+    return satz && !nenntRegeln(satz) ? satz : null;
+  }
   if (aufgabe === 'stufe') return alsText(o.text) || null;
 
   const stufen = leseStufen(o.stufen);
@@ -278,6 +303,31 @@ export function pruefeKiAntwort(roh: RohZustand): KiBefund {
  * Die Stufen der KI ersetzen dabei die gewuerfelten nur, wenn sie die
  * Pruefung bestehen.
  */
+/**
+ * Nennt dieser Text Regeln?
+ *
+ * Der Kurzsatz ist STIMMUNG: „Die Kaelte presst sich in deine Knochen."
+ * Die Regeln stehen in den Stufen, und nur dort. Ein Modell haelt sich nicht
+ * daran, wenn man es nicht sagt — auf den Wunsch „ein Feuer, das die
+ * Lebensenergie aus dir brennt" kam als Kurzsatz „Deals 1d6 fire damage, -2
+ * to attack rolls, DC 13 Con save" zurueck, waehrend in den Stufen etwas
+ * voellig anderes stand. Zwei Regelwerke in einem Zustand, und keines davon
+ * gewogen.
+ *
+ * Erkannt wird, was am Tisch als Regel gelesen wird: Wuerfel, Boni mit
+ * Vorzeichen, Schwierigkeitsgrade, Vorteil und Nachteil.
+ */
+export function nenntRegeln(text_: string): boolean {
+  const muster = [
+    /\d+\s*[WwDd]\s*\d+/, // 1W6, 2d8
+    /[+−-]\s*\d+\s+(auf|to)\b/i, // −2 auf Angriffswuerfe, +1 to AC
+    /\b(SG|DC)\s*\d+/i,
+    /\b(vorteil|nachteil|advantage|disadvantage)\b/i,
+    /\b(trefferpunkte|hit points?|rüstungsklasse|armou?r class)\b/i
+  ];
+  return muster.some((m) => m.test(text_));
+}
+
 export function zieheKiNach(
   roh: RohZustand,
   entwurf: Zustand
@@ -286,7 +336,16 @@ export function zieheKiNach(
   const zustand: Zustand = {
     ...entwurf,
     name: roh.name || entwurf.name,
-    kurzsatz: roh.kurzsatz || entwurf.kurzsatz,
+    /*
+     * Ein Kurzsatz mit Regeln wird VERWORFEN, nicht uebernommen.
+     *
+     * „Entweder oder": entweder der Satz sagt, was der Zustand tut, oder
+     * die Stufen tun es. Beides nebeneinander widerspricht sich, sobald die
+     * KI zwei verschiedene Sachen schreibt — und das tut sie zuverlaessig.
+     * Verworfen wird der Satz und nicht die Stufen, denn die Stufen sind
+     * das, was am Tisch gilt.
+     */
+    kurzsatz: roh.kurzsatz && !nenntRegeln(roh.kurzsatz) ? roh.kurzsatz : entwurf.kurzsatz,
     verschlimmerung: roh.verschlimmerung || entwurf.verschlimmerung,
     linderung: roh.linderung || entwurf.linderung
   };

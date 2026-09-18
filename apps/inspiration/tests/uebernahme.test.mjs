@@ -38,8 +38,8 @@ function volleAntwort() {
       { name: 'Edda Aschbrücke', rolle: 'Hat es gesehen', triebfeder: 'Will weg.', hebel: 'War dabei.', makel: 'Aber: schweigt.' }
     ],
     orte: [
-      { name: 'Rabenstein', art: 'ein Turm', merkmal: 'Keine Tür.', zustand: 'Leer.', karte: 'Ein Eingang.' },
-      { name: 'Salzfurt', art: 'eine Furt', merkmal: 'Tief.', zustand: 'Gesperrt.', karte: 'Zwei Ufer.' }
+      { name: 'Rabenstein', art: 'ein Turm', merkmal: 'Keine Tür.', zustand: 'Leer.', karte: 'Ein Eingang.', ausstattung: 'ein Brunnen; ein Karren ohne Rad' },
+      { name: 'Salzfurt', art: 'eine Furt', merkmal: 'Tief.', zustand: 'Gesperrt.', karte: 'Zwei Ufer.', ausstattung: 'ein Brunnen; ein Karren ohne Rad' }
     ],
     verbindungen: [
       { a: 0, b: 1, muster: 'Alte Rechnung', hin: 'Mara wartet.', zurueck: 'Halvard hat es vergessen.' },

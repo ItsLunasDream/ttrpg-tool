@@ -339,3 +339,81 @@ test('ein alter Kopf wird auf die neue Skala gehoben', () => {
   // Ohne Angabe gilt „alt": neue Dateien schreiben die Fassung immer mit.
   assert.equal(T.skaliertesGewicht(14, 0), 42);
 });
+
+/* ---------- Der Kurzsatz traegt keine Regeln ---------- */
+
+test('ein Kurzsatz mit Regeln wird als Regeltext erkannt', () => {
+  const regeln = [
+    'Deals 1d6 fire damage, -2 to attack rolls, DC 13 Con save.',
+    'Du nimmst 1W6 Feuerschaden je Runde.',
+    'Nachteil auf alles, was du versuchst.',
+    'Konstitutionsrettung SG 13 oder du fällst.',
+    '−2 auf Angriffswürfe, solange es brennt.'
+  ];
+  for (const satz of regeln) assert.ok(T.nenntRegeln(satz), satz);
+
+  const stimmung = [
+    'Die Kälte presst sich in deine Knochen.',
+    'The cold presses into your bones.',
+    'Etwas in dir zählt die Stunden mit.',
+    'Der Rauch kriecht dir auf die Brust.'
+  ];
+  for (const satz of stimmung) assert.ok(!T.nenntRegeln(satz), satz);
+});
+
+test('jeder gewuerfelte Kurzsatz bleibt Stimmung', () => {
+  // Die Tabellen selbst duerfen an der eigenen Regel nicht scheitern.
+  for (const thema of T.THEMEN) {
+    for (let saat = 1; saat <= 8; saat += 1) {
+      for (const sprache of ['de', 'en']) {
+        const satz = T.baueKurzsatz(thema, sprache, wuerfelgeber(saat * 3 + thema.id.length));
+        assert.ok(!T.nenntRegeln(satz), `${thema.id}/${sprache}: ${satz}`);
+      }
+    }
+  }
+});
+
+test('die KI-Antwort verliert einen Kurzsatz, der Regeln nennt', () => {
+  /*
+   * Der Fall aus der Oberflaeche: auf den Wunsch „ein Feuer, das die
+   * Lebensenergie aus dir brennt" kam als Kurzsatz eine Regelzusammen-
+   * fassung zurueck, waehrend in den Stufen etwas voellig anderes stand.
+   */
+  const entwurf = T.erzeugeZustand({ themaId: 'feuer', stufen: 3 }, 'de', wuerfelgeber(4));
+  const mitRegeln = T.zieheKiNach(
+    {
+      name: 'Life-Energy Burning Fire',
+      kurzsatz: 'Deals 1d6 fire damage, -2 to attack rolls, DC 13 Con save.',
+      stufen: [{ nummer: 1, text: 'Du hustest Asche' }],
+      verschlimmerung: '',
+      linderung: ''
+    },
+    entwurf
+  );
+  assert.equal(mitRegeln.zustand.name, 'Life-Energy Burning Fire');
+  assert.equal(mitRegeln.zustand.kurzsatz, entwurf.kurzsatz, 'der Regelsatz haette fallen muessen');
+
+  // Ein Stimmungssatz kommt dagegen durch.
+  const ohne = T.zieheKiNach(
+    {
+      name: 'Zehrbrand',
+      kurzsatz: 'Etwas in dir brennt langsamer, als es sollte.',
+      stufen: [{ nummer: 1, text: 'Du hustest Asche' }],
+      verschlimmerung: '',
+      linderung: ''
+    },
+    entwurf
+  );
+  assert.equal(ohne.zustand.kurzsatz, 'Etwas in dir brennt langsamer, als es sollte.');
+});
+
+test('die Anweisung sagt der KI, dass der Kurzsatz keine Regeln traegt', () => {
+  for (const sprache of ['de', 'en']) {
+    const kurz = T.anweisung({ aufgabe: 'kurzsatz', themaId: 'feuer' }, sprache);
+    assert.match(kurz, /Stimmung|atmosphere/);
+    const ganz = T.anweisung({ aufgabe: 'zustand', themaId: 'feuer', stufen: 3 }, sprache);
+    assert.match(ganz, /Stimmung|atmosphere/);
+    // Und dass die Beispiele Beispiele sind und keine Vorlage.
+    assert.match(ganz, /Übernimm sie nicht|Do not reuse them/);
+  }
+});

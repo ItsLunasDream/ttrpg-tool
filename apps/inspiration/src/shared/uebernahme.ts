@@ -115,7 +115,8 @@ export function baueEntwurf(
           art: eintrag.art,
           merkmal: eintrag.merkmal,
           zustand: eintrag.zustand,
-          karte: eintrag.karte
+          karte: eintrag.karte,
+          ausstattung: eintrag.ausstattung ?? ''
         })),
         menge.orte,
         () => erzeugeOrt(zuschnitt, sprache, rng)

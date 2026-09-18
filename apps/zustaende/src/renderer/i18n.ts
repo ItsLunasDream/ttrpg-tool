@@ -99,6 +99,10 @@ const TEXTE = {
     'etwa so viel wie {name}',
     'about as much as {name}'
   ],
+  'gewicht.keinVergleich': [
+    'kein Vergleich — die Eichung kennt nur Zustände, die nehmen',
+    'no comparison — the calibration only knows conditions that take'
+  ],
   'gewicht.geschaetzt': [
     'geschätzt — der Text kommt von der KI und hat keine Punktwerte',
     'estimated — the text comes from the AI and carries no point values'

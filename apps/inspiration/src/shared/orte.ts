@@ -282,3 +282,95 @@ export const ORT_KARTE: readonly Paar[] = [
   { de: 'Ein Platz, groß genug für vierhundert Leute.', en: 'A square big enough for four hundred people.' },
   { de: 'Viel Gerümpel, wenig Sicht, gute Deckung.', en: 'Plenty of clutter, poor sight, good cover.' }
 ];
+
+/**
+ * Was in der Szene steht.
+ *
+ * Der Unterschied zu `ORT_MERKMAL` und `ORT_ZUSTAND` ist der Zweck. Jene
+ * beiden sagen, wie es um einen Ort bestellt ist — „es riecht durchgehend
+ * nach etwas, das hier nicht verarbeitet wird", „er ist verpfaendet". Das
+ * gehoert in eine Notiz und ist beim Kartenzeichnen wertlos: man kann einen
+ * Geruch nicht einzeichnen.
+ *
+ * Hier steht deshalb nur, was man HINSTELLEN kann. Jeder Eintrag ist ein
+ * Gegenstand oder ein Stueck Geleande mit Groesse, Lage oder Zustand dabei,
+ * damit klar ist, wie viel Platz er braucht und was er blockiert. Drei davon
+ * gehen als Pins auf eine neue Karte, und drei Dinge sind genug, um eine
+ * leere Flaeche in eine Szene zu verwandeln.
+ *
+ * Die Regionen sind Vorlieben, keine Vorschriften — dieselbe Mechanik wie
+ * bei den anderen Tabellen: ohne Zuschnitt zaehlen alle Eintraege.
+ */
+export const ORT_AUSSTATTUNG: readonly Eintrag[] = [
+  /* Ueberall brauchbar */
+  { de: 'ein Brunnen mit Winde, zwei Schritt weit, der Rand geborsten', en: 'a well with a windlass, two paces across, its rim broken' },
+  { de: 'ein Karren ohne Rad, quer im Durchgang', en: 'a cart missing a wheel, across the passage' },
+  { de: 'Fässer, brusthoch gestapelt, zwei Reihen tief', en: 'barrels stacked chest-high, two rows deep' },
+  { de: 'eine Feuerstelle, drei Schritt breit, kalter Rost und frische Asche', en: 'a fire pit three paces wide, cold grate and fresh ash' },
+  { de: 'eine Treppe ohne Geländer, acht Stufen', en: 'a stair with no rail, eight steps' },
+  { de: 'ein Tisch, lang genug für zwölf Leute, festgeschraubt', en: 'a table long enough for twelve, bolted down' },
+  { de: 'Kisten in zwei Haufen, einer davon aufgebrochen', en: 'crates in two heaps, one of them broken open' },
+  { de: 'ein Zaun aus ungleichen Latten, an drei Stellen durchbrochen', en: 'a fence of mismatched slats, broken through in three places' },
+  { de: 'eine Grube, mannstief, mit einer Bohle darüber', en: 'a pit, man-deep, with a plank across it' },
+  { de: 'ein Stapel Bauholz, hüfthoch, gute Deckung', en: 'a stack of timber, hip-high, decent cover' },
+  { de: 'zwei Wagen, hintereinander abgestellt, die Deichseln verkeilt', en: 'two wagons parked nose to tail, shafts jammed together' },
+  { de: 'ein Tor, breit genug für einen Wagen, eine Hälfte ausgehängt', en: 'a gate wide enough for a wagon, one leaf off its hinges' },
+  { de: 'ein Schuppen ohne Vorderwand, drei Schritt tief', en: 'a shed with no front wall, three paces deep' },
+  { de: 'Seile und Flaschenzüge an einem Ausleger über der Tür', en: 'ropes and pulleys on a jib above the door' },
+  { de: 'ein Trog, vier Schritt lang, halb voll Wasser', en: 'a trough, four paces long, half full of water' },
+  { de: 'eine Mauer, brusthoch, mit Lücken zum Durchsehen', en: 'a wall, chest-high, with gaps to see through' },
+  { de: 'ein Altar, hüfthoch, Kerzen frisch abgebrannt', en: 'an altar, hip-high, candles freshly burned down' },
+  { de: 'eine Leiter mit zwölf Sprossen, hoch zu einer Luke im Dach', en: 'a ladder of twelve rungs up to a hatch in the roof' },
+  { de: 'ein Haufen Schutt, kniehoch, schlecht zu begehen', en: 'a heap of rubble, knee-high, hard to cross' },
+  { de: 'ein Käfig oder Verschlag, groß genug für einen Menschen', en: 'a cage or pen, big enough to hold a person' },
+  { de: 'eine Rinne, handbreit, quer durch den ganzen Raum', en: 'a channel, a hand wide, running the width of the room' },
+  { de: 'ein Regal, kopfhoch, an der Wand, halb leergeräumt', en: 'shelving, head-high, along the wall, half cleared out' },
+  { de: 'ein umgestürzter Baum, acht Schritt lang, als Sitzbank benutzt', en: 'a fallen tree, eight paces long, used as a bench' },
+  { de: 'Pfähle in unregelmäßigen Abständen, mannshoch', en: 'posts at uneven spacing, man-high' },
+  { de: 'ein Schlagbaum, vier Schritt lang, oben festgebunden', en: 'a barrier pole, four paces long, tied up in the raised position' },
+
+  /* Stadt und Hafen */
+  { de: 'ein Marktstand mit Plane, die Hälfte der Ware noch darunter', en: 'a market stall under canvas, half the goods still beneath it', regionen: ['stadt', 'hafen'] },
+  { de: 'eine offene Rinne, einen Schritt breit, mitten durch die Straße', en: 'an open gutter, a pace wide, down the middle of the street', regionen: ['stadt', 'hafen'] },
+  { de: 'ein Anschlagbrett, mannshoch, dick mit Papier beklebt', en: 'a notice board, man-high, thick with pasted paper', regionen: ['stadt', 'hafen'] },
+  { de: 'ein Poller, hüfthoch, mit einem Tau dick wie ein Arm', en: 'a bollard, hip-high, with a hawser as thick as an arm', regionen: ['stadt', 'hafen'] },
+  { de: 'ein Landungssteg, zwanzig Schritt weit ins Wasser', en: 'a landing pier twenty paces into the water', regionen: ['stadt', 'hafen'] },
+  { de: 'ein Holzkran, drei Mann hoch, das Rad noch begehbar', en: 'a wooden crane, three men high, its treadwheel still walkable', regionen: ['stadt', 'hafen'] },
+  { de: 'Netze zum Trocknen aufgespannt, kopfhoch', en: 'nets hung out to dry at head height', regionen: ['stadt', 'hafen'] },
+  { de: 'ein Ruderboot, vier Schritt lang, kieloben an Land gezogen', en: 'a rowing boat, four paces long, hauled ashore keel up', regionen: ['stadt', 'hafen'] },
+
+  /* Wald, Berge, Steppe */
+  { de: 'ein Hochsitz auf vier Beinen, Leiter abgenommen', en: 'a hunting stand on four legs, its ladder removed', regionen: ['wald', 'berge', 'steppe'] },
+  { de: 'ein Kohlenmeiler, noch warm, mannshoch', en: 'a charcoal mound, still warm, man-high', regionen: ['wald', 'berge', 'steppe'] },
+  { de: 'ein Bachlauf, drei Schritt breit, mit einem Steg', en: 'a stream three paces wide with a footbridge', regionen: ['wald', 'berge', 'steppe'] },
+  { de: 'Felsblöcke, drei Stück, größer als ein Wagen', en: 'boulders, three of them, bigger than a wagon', regionen: ['wald', 'berge', 'steppe'] },
+  { de: 'eine Geröllhalde, zwanzig Schritt breit, die bei Belastung rutscht', en: 'a scree slope twenty paces wide that slides when weighted', regionen: ['wald', 'berge', 'steppe'] },
+  { de: 'ein Seil über eine Schlucht, mit Holzgriffen', en: 'a rope across a gorge with wooden grips', regionen: ['wald', 'berge', 'steppe'] },
+  { de: 'ein Steinhaufen als Wegmarke, schulterhoch', en: 'a cairn as a waymark, shoulder-high', regionen: ['wald', 'berge', 'steppe'] },
+  { de: 'ein Pferch aus Flechtwerk, für zwanzig Tiere', en: 'a wattle pen for twenty animals', regionen: ['wald', 'berge', 'steppe'] },
+  { de: 'ein Filzzelt, mannshoch, Rauchloch offen', en: 'a felt tent, man-high, smoke hole open', regionen: ['wald', 'berge', 'steppe'] },
+
+  /* Sumpf, See, Eis */
+  { de: 'Bohlenwege über nassen Grund, an zwei Stellen fehlend', en: 'plank walkways over wet ground, missing in two places', regionen: ['sumpf', 'see', 'eis'] },
+  { de: 'ein Kahn, drei Schritt lang, angebunden, ohne Stange', en: 'a punt, three paces long, tied up, with no pole', regionen: ['sumpf', 'see', 'eis'] },
+  { de: 'Schilfgürtel, kopfhoch, undurchsichtig', en: 'a belt of reeds, head-high, opaque', regionen: ['sumpf', 'see', 'eis'] },
+  { de: 'eine Eisfläche, dreißig Schritt weit, dunkel in der Mitte', en: 'a sheet of ice thirty paces across, dark at its centre', regionen: ['sumpf', 'see', 'eis'] },
+  { de: 'Eiszapfen an einem Vordach, armlang', en: 'icicles along an eave, an arm in length', regionen: ['sumpf', 'see', 'eis'] },
+  { de: 'ein Schneewall, brusthoch, von Hand aufgeworfen', en: 'a snow bank, chest-high, thrown up by hand', regionen: ['sumpf', 'see', 'eis'] },
+
+  /* Unterreich und Vulkan */
+  { de: 'Tropfsteine, dicht wie ein Wald, mannshoch', en: 'dripstones as dense as a wood, man-high', regionen: ['unterreich', 'vulkan', 'berge'] },
+  { de: 'ein Schacht im Boden, zwei Schritt weit, mit morschen Brettern abgedeckt', en: 'a shaft in the floor two paces across, covered with rotten boards', regionen: ['unterreich', 'vulkan', 'berge'] },
+  { de: 'eine Loren-Spur, zwei Wagen darauf stehengeblieben', en: 'a mine-cart track with two carts left standing on it', regionen: ['unterreich', 'vulkan', 'berge'] },
+  { de: 'Stützbalken alle vier Schritt, einer geborsten', en: 'support beams every four paces, one of them split', regionen: ['unterreich', 'vulkan', 'berge'] },
+  { de: 'ein Wasserbecken, knietief, klar und kalt', en: 'a pool, knee-deep, clear and cold', regionen: ['unterreich', 'vulkan', 'berge'] },
+  { de: 'eine Spalte, aus der Dampf steht, zwei Schritt breit', en: 'a fissure venting steam, two paces across', regionen: ['unterreich', 'vulkan', 'berge'] },
+  { de: 'erkaltete Lava in Wülsten, kniehoch, schlecht zu begehen', en: 'cooled lava in ridges, knee-high, bad footing', regionen: ['unterreich', 'vulkan', 'berge'] },
+
+  /* Wueste und Oedland */
+  { de: 'eine Zisterne, drei Schritt weit, Steindeckel halb verweht', en: 'a cistern three paces across, its stone lid half buried in sand', regionen: ['wueste', 'oedland'] },
+  { de: 'Mauerreste, kniehoch, im Karree', en: 'the remains of walls, knee-high, in a square', regionen: ['wueste', 'oedland'] },
+  { de: 'ein Wrack, so groß, dass man darin steht', en: 'a wreck large enough to stand inside', regionen: ['wueste', 'oedland'] },
+  { de: 'Pfahlreihen eines alten Lagers, die meisten umgekippt', en: 'the post rows of an old camp, most of them toppled', regionen: ['wueste', 'oedland'] },
+  { de: 'ein Brunnenschacht ohne Seil, tiefer als der Blick reicht', en: 'a well shaft with no rope, deeper than the eye follows', regionen: ['wueste', 'oedland'] }
+];

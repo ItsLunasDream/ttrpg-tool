@@ -407,7 +407,7 @@ Handwerkszeug, das über Kampagnen hinweg gilt.
 
 ## Stand der Umsetzung
 
-Das Werkzeug liegt in `apps/zustaende` und hat 124 Tests plus einen Rauchtest
+Das Werkzeug liegt in `apps/zustaende` und hat 129 Tests plus einen Rauchtest
 in der Hülle.
 
 **Gebaut:**
@@ -436,6 +436,44 @@ in der Hülle.
   wären zwei Blätter, die irgendwann auseinanderlaufen.
 - Ablage als Markdown mit YAML-Kopf, Sammlung mit Suche, KI-Anbindung,
   Export in den Story Creator, Einbau in die Hülle.
+
+**Was aus dem Gebrauch dazukam: der Kurzsatz trägt keine Regeln**
+
+Auf den Wunsch „ein Feuer, das die Lebensenergie aus dir brennt" kam als
+Kurzsatz zurück: *„Deals 1d6 fire damage, −2 to attack rolls, DC 13 Con
+save."* In den Stufen darunter stand etwas völlig anderes — Nachteil auf
+Wahrnehmung, Bewegungsrate −5. Zwei Regelwerke in einem Zustand, und keines
+davon gewogen.
+
+Entweder oder, und die Entscheidung fällt zugunsten der Stufen: **der
+Kurzsatz ist Stimmung**, die Regeln stehen ausschließlich in den Stufen. Das
+ist das, was die Tabellen ohnehin tun („Die Kälte presst sich in deine
+Knochen."), und es war nur der KI nie gesagt worden.
+
+Drei Stellen:
+
+- Die Anweisung sagt es jetzt ausdrücklich, für die Aufgabe „Kurzsatz" wie
+  für den ganzen Zustand.
+- `nenntRegeln()` erkennt Würfel, Boni mit Vorzeichen, Schwierigkeitsgrade,
+  Vorteil/Nachteil und Trefferpunkte. Ein Kurzsatz, der so etwas trägt, wird
+  **verworfen** — nicht die Stufen, denn die Stufen sind das, was am Tisch
+  gilt.
+- Die Beispielwirkungen im Auftrag sind jetzt als Beispiele markiert
+  („Übernimm sie nicht"). Vorher hat das Modell sie schlicht abgeschrieben,
+  statt sich am Thema zu orientieren.
+
+**Was aus dem Gebrauch dazukam: Segen werden nicht verglichen**
+
+Die Waage sagte auch bei einem Segen „etwa so viel wie Erschöpfung 1". Das
+vergleicht +2 auf Angriffswürfe mit einer Stufe Erschöpfung, und die beiden
+haben nichts miteinander zu tun. Der Grund liegt in `eichung.ts`: die zehn
+Eichzustände sind samt und sonders Flüche. Es gibt keinen bekannten Segen,
+gegen den sich eichen ließe, und einen zu erfinden wäre eine Behauptung
+statt eines Maßstabs.
+
+Ein Zustand mit negativem Gewicht bekommt deshalb statt des Vergleichs den
+Grund: *„kein Vergleich — die Eichung kennt nur Zustände, die nehmen."* In
+der Waage wie in der gespeicherten Datei.
 
 **Was aus dem Gebrauch dazukam: die Punktskala bis 36**
 

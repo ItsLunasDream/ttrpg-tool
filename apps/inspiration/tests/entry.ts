@@ -9,6 +9,7 @@ export {
   erzeugeFraktion,
   erzeugeName,
   erzeugeOrt,
+  AUSSTATTUNGSSTUECKE,
   erzeugeFrist,
   erzeugeVerbindung,
   erzeugeVerbindungen,
@@ -46,10 +47,25 @@ export {
   FRAKTION_ZUSATZ
 } from '../src/shared/fraktionen';
 export { HEBEL, MAKEL, ROLLEN, RUFNAMEN, TRIEBFEDERN } from '../src/shared/figuren';
-export { NAME_ERSTE, NAME_ZWEITE, ORT_ART, ORT_KARTE, ORT_MERKMAL, ORT_ZUSTAND } from '../src/shared/orte';
+export {
+  NAME_ERSTE,
+  NAME_ZWEITE,
+  ORT_ART,
+  ORT_AUSSTATTUNG,
+  ORT_KARTE,
+  ORT_MERKMAL,
+  ORT_ZUSTAND
+} from '../src/shared/orte';
 export { VERBINDUNGEN, fuelle } from '../src/shared/verbindungen';
 export { SCHRITTE, ZEITMARKEN } from '../src/shared/zeitstrahl';
-export { alsKartennotizen, alsMarkdown, alsNotizen, verbindungenVon, verweis } from '../src/shared/notizen';
+export {
+  alsKartennotizen,
+  alsMarkdown,
+  alsNotizen,
+  ausstattungsstuecke,
+  verbindungenVon,
+  verweis
+} from '../src/shared/notizen';
 export { kanal, PRAEFIX } from '../src/shared/kanaele';
 export { baueEntwurf } from '../src/shared/uebernahme';
 export {

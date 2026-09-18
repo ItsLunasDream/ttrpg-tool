@@ -476,7 +476,8 @@ export function App() {
                       art: feld('art'),
                       merkmal: feld('merkmal'),
                       zustand: feld('zustand'),
-                      karte: feld('karte')
+                      karte: feld('karte'),
+                      ausstattung: feld('ausstattung')
                     }
                   : eintrag
               )
@@ -991,6 +992,13 @@ export function App() {
                     name={t('feld.karte')}
                     wert={ort.karte}
                     aendere={(wert) => setzeOrt(stelle, 'karte', wert)}
+                  />
+                  {/* Was dort steht — die Zeile, aus der die Pins auf einer
+                      neuen Karte werden. */}
+                  <Feld
+                    name={t('feld.ausstattung')}
+                    wert={ort.ausstattung}
+                    aendere={(wert) => setzeOrt(stelle, 'ausstattung', wert)}
                   />
                   {karteDa && (
                     <button

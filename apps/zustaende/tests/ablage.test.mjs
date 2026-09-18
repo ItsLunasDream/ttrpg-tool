@@ -44,9 +44,31 @@ test('der Leib nennt jede Stufe mit ihrer Nummer', () => {
 });
 
 test('das Gewicht steht nie ohne seinen Vergleich da', () => {
-  // „Wiegt 14" sagt niemandem etwas.
+  // „Wiegt 43" sagt niemandem etwas.
   const md = T.alsMarkdown(beispiel(), 'de');
   assert.match(md, /Gewicht: \d+ — etwa so viel wie .+\./);
+});
+
+test('ein Segen bekommt keinen Eichvergleich', () => {
+  /*
+   * Die Eichzustaende sind samt und sonders Fluesche. „So viel wie
+   * Erschoepfung 1" neben einem Zustand, der GIBT, vergleicht zwei Dinge,
+   * die nichts miteinander zu tun haben — und genau so stand es in der
+   * Oberflaeche.
+   */
+  const segen = T.erzeugeZustand(
+    { themaId: 'licht', artId: 'segen', wirkrichtung: 'buff', stufen: 3 },
+    'de',
+    wuerfelgeber(9)
+  );
+  assert.ok(T.gesamtgewicht(segen.stufen) < 0, 'der Testzustand ist gar kein Segen');
+
+  const md = T.alsMarkdown({ ...segen, id: 'segen', geaendert: '2026-09-17T10:00:00.000Z' }, 'de');
+  assert.match(md, /kein Vergleich/);
+  assert.doesNotMatch(md, /etwa so viel wie/);
+
+  // Ein Fluch behaelt seinen Vergleich.
+  assert.match(T.alsMarkdown(beispiel(), 'de'), /etwa so viel wie/);
 });
 
 test('und mit dem Satz, was es NICHT bedeutet', () => {
