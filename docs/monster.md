@@ -318,7 +318,7 @@ Der obere Teil dieser Datei ist das Konzept von vorher und bleibt so stehen.
 Hier steht, was davon tatsächlich gebaut ist, damit man beides
 auseinanderhalten kann.
 
-**Gebaut und geprüft** (`apps/monster`, 117 Tests plus ein Rauchtest in der
+**Gebaut und geprüft** (`apps/monster`, 131 Tests plus ein Rauchtest in der
 Hülle):
 
 - `richtwerte.ts` — die CC-BY-Tabelle von CR 0 bis 30, wörtlich übernommen,
@@ -350,9 +350,48 @@ Hülle):
   Rundenschaden wird aufgeteilt, nicht erhöht.
 - `widerstaende.ts` — Resistenzen, Immunitäten, Verwundbarkeiten, alles über
   Chancen.
+- `platzhalter.ts` — die Zahlen in den Fähigkeitstexten. Die Tabellen sind
+  für jeden Grad dieselben, die Zahlen nicht; die Texte tragen deshalb
+  `{sg}`, `{schaden}`, `{kleinerSchaden}` und `{schadensart}`, gefüllt aus
+  den Richtwerten. Damit bleibt die Regel des Werkzeugs gewahrt: die
+  Tabellen liefern die Form, die Zahlen kommen aus der Eichung.
 - Oberfläche mit Erzeugen, Prüfen von außen, Sammlung als Liste und als
   Kacheln, Variante anlegen, Markdown-Export — der Steckbrief sieht aus wie
   ein Statblock im Buch.
+
+## Was aus dem Gebrauch dazukam: Fähigkeiten ohne Zahlen und ohne Folge
+
+Aus einem Bild der Oberfläche, wörtlich: *„Bei Devastating Surge steht nur
+‚damage' aber nicht wie viel. Und das Feature ‚Detect' ergibt gar kein Sinn.
+Was soll denn ein Perception check machen? Solche leeren Features sind nur
+Lückenfüller."* Dazu die Beobachtung, dass die legendären Aktionen immer
+demselben Muster folgen: Bonusattacke, Rettungswurf mit Statuseffekt, oder
+10 Fuß Flächenschaden.
+
+Drei Sachen waren daran kaputt:
+
+**Keine Zahlen.** Elf Fähigkeiten verlangten einen Rettungswurf, ohne einen
+Schwierigkeitsgrad zu nennen, und mehrere machten Schaden ohne Würfel. Beides
+ist am Tisch keine Fähigkeit, sondern eine Rückfrage. Die Texte tragen jetzt
+Platzhalter (siehe `platzhalter.ts`), und der SG kommt aus derselben harten
+Regel wie der Angriffsbonus.
+
+**Eine Fähigkeit ohne Folge.** „Es macht eine Wahrnehmungsprobe." ist
+gestrichen. Ein Test hält fest, dass kein Text nur aus einer Probe bestehen
+darf.
+
+**Zu wenig Auswahl.** Es gab sechs legendäre Aktionen, jetzt achtzehn, und
+sieben davon fallen bewusst aus dem Dreierraster: Platz mit einem
+Verbündeten tauschen, den Boden zu schwierigem Gelände machen, sich selbst
+heilen, ein Ziel markieren, sich verhüllen, einen Rettungswurf gegen eine
+laufende Wirkung wiederholen, einen Verbündeten anfeuern. Ein Test zählt
+das nach, damit die Vielfalt nicht beim nächsten Ausbau wieder verloren
+geht.
+
+Dabei aufgefallen und mitbehoben: zwei Fähigkeiten hießen „Antreiben", und
+es gab bereits ein `rettungsSg()` in `attribute.ts` — der zweite, gleich
+heißende Ausdruck in `platzhalter.ts` hat die Sammelstelle der Tests still
+leergeräumt, bis der Test darüber fiel.
 
 ## Was aus dem Gebrauch dazukam
 

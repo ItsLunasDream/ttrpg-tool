@@ -19,6 +19,7 @@ import {
   type Richtwert
 } from './richtwerte';
 import { LEGENDAER_FAKTOR, RK_ZU_TP, pruefe, widerstandsAnteil, type Werte } from './pruefung';
+import { kampfzahlen, setzeZahlen, type Kampfzahlen } from './platzhalter';
 import { attributeFuer, profilFuer, type AttributId, type Attribute } from './attribute';
 import { bewegungFuer, type Bewegung } from './bewegung';
 import { baueAngriffe, type Angriff, type Kampfweite } from './angriffe';
@@ -339,17 +340,34 @@ export function erzeugeMonster(wunsch: Wuensche, sprache: Sprache, rng: () => nu
     widerstaende,
     faehigkeiten: alsEintraege(
       waehleFaehigkeiten(rolle, anzahlFaehigkeiten(ziel.wert, rng), rng, wunsch.legendaer ?? false),
-      sprache
+      sprache,
+      /*
+       * Die Zahlen kommen aus den Richtwerten, nicht aus der Tabelle.
+       *
+       * „Ein Ziel muss eine Staerkerettung bestehen" ohne SG und „alle in 10
+       * Fuss nehmen Schaden" ohne Wuerfel sind keine Faehigkeiten, sondern
+       * Aufgaben fuer die Spielleitung. Siehe `platzhalter.ts`.
+       */
+      kampfzahlen(
+        werte.angriffsbonus,
+        werte.schadenProRunde,
+        thema.schaden,
+        sprache
+      )
     ),
     satz: text(rolle.satz, sprache)
   };
 }
 
 /** Faehigkeiten in die Form bringen, in der sie im Statblock stehen. */
-function alsEintraege(faehigkeiten: readonly Faehigkeit[], sprache: Sprache): Faehigkeitseintrag[] {
+function alsEintraege(
+  faehigkeiten: readonly Faehigkeit[],
+  sprache: Sprache,
+  zahlen: Kampfzahlen
+): Faehigkeitseintrag[] {
   return faehigkeiten.map((f) => ({
     name: text(f.name, sprache),
-    text: text(f.text, sprache),
+    text: setzeZahlen(text(f.text, sprache), zahlen),
     kategorie: f.kategorie
   }));
 }
@@ -392,7 +410,15 @@ export function wuerfleNeu(
             rng,
             monster.werte.legendaer ?? false
           ),
-          sprache
+          sprache,
+          // Dasselbe Monster, dieselben Zahlen: beim Nachwuerfeln der
+          // Faehigkeiten aendert sich die Auswahl, nicht der Grad.
+          kampfzahlen(
+            monster.werte.angriffsbonus,
+            monster.werte.schadenProRunde,
+            thema.schaden,
+            sprache
+          )
         )
       };
     case 'werte': {

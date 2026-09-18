@@ -475,8 +475,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Umwerfen', en: 'Knockdown' },
     kategorie: 'passiv',
     text: {
-      de: 'Trifft es im Nahkampf, muss das Ziel eine Stärkerettung bestehen oder fällt hin.',
-      en: 'On a melee hit the target makes a Strength save or falls prone.'
+      de: 'Trifft es im Nahkampf, muss das Ziel eine Stärkerettung (SG {sg}) bestehen oder fällt hin.',
+      en: 'On a melee hit the target must succeed on a DC {sg} Strength save or falls prone.'
     },
     rollen: ['brecher', 'verteidiger']
   },
@@ -493,8 +493,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Aus dem Nichts', en: 'Out of Nowhere' },
     kategorie: 'passiv',
     text: {
-      de: 'Greift es aus dem Verborgenen an, richtet der Treffer die Hälfte mehr Schaden an.',
-      en: 'Attacking from hiding, its hit deals half again as much damage.'
+      de: 'Greift es aus dem Verborgenen an, richtet der Treffer {kleinerSchaden} Schaden mehr an.',
+      en: 'Attacking from hiding, its hit deals {kleinerSchaden} extra damage.'
     },
     rollen: ['lauerer']
   },
@@ -502,16 +502,16 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Zehrende Nähe', en: 'Draining Presence' },
     kategorie: 'passiv',
     text: {
-      de: 'Wer seinen Zug in 10 Fuß Nähe beginnt, nimmt Schaden. Dafür hat es einen Angriff weniger.',
-      en: 'Anyone starting their turn within 10 feet takes damage. In exchange it has one attack fewer.'
+      de: 'Wer seinen Zug in 10 Fuß Nähe beginnt, nimmt {kleinerSchaden} {schadensart}. Dafür hat es einen Angriff weniger.',
+      en: 'Anyone starting their turn within 10 feet takes {kleinerSchaden} {schadensart}. In exchange it has one attack fewer.'
     }
   },
   {
     name: { de: 'Ausbruch', en: 'Burst' },
     kategorie: 'aktion',
     text: {
-      de: 'Als Aktion ein Ausbruch im Umkreis von 10 Fuß: halber Rundenschaden, bei bestandener Rettung die Hälfte davon.',
-      en: 'As an action, a burst in a 10-foot radius: half its round damage, halved again on a successful save.'
+      de: 'Als Aktion ein Ausbruch im Umkreis von 10 Fuß: {schaden} {schadensart}, bei bestandener Geschicklichkeitsrettung (SG {sg}) die Hälfte.',
+      en: 'As an action, a burst in a 10-foot radius: {schaden} {schadensart}, or half on a successful DC {sg} Dexterity save.'
     },
     rollen: ['schuetze', 'kontrolleur', 'anfuehrer']
   },
@@ -537,8 +537,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Schmerzhafte Rüstung', en: 'Spiteful Hide' },
     kategorie: 'reaktion',
     text: {
-      de: 'Wer es im Nahkampf trifft, nimmt selbst Schaden. Dafür hat es einen Angriff weniger.',
-      en: 'Whoever hits it in melee takes damage in return. In exchange it has one attack fewer.'
+      de: 'Wer es im Nahkampf trifft, nimmt selbst {kleinerSchaden} {schadensart}. Dafür hat es einen Angriff weniger.',
+      en: 'Whoever hits it in melee takes {kleinerSchaden} {schadensart} in return. In exchange it has one attack fewer.'
     },
     rollen: ['verteidiger', 'brecher']
   },
@@ -555,8 +555,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Lähmender Blick', en: 'Binding Gaze' },
     kategorie: 'aktion',
     text: {
-      de: 'Als Aktion: ein sichtbares Ziel muss eine Weisheitsrettung bestehen oder kann sich eine Runde nicht bewegen.',
-      en: 'As an action, one visible target makes a Wisdom save or cannot move for a round.'
+      de: 'Als Aktion: ein sichtbares Ziel muss eine Weisheitsrettung (SG {sg}) bestehen oder kann sich eine Runde nicht bewegen.',
+      en: 'As an action, one visible target must succeed on a DC {sg} Wisdom save or cannot move for a round.'
     },
     rollen: ['kontrolleur', 'anfuehrer']
   },
@@ -639,8 +639,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Regeneration', en: 'Regeneration' },
     kategorie: 'passiv',
     text: {
-      de: 'Zu Beginn seines Zuges heilt es, solange es nicht seit der letzten Runde Feuer- oder Säureschaden genommen hat.',
-      en: 'At the start of its turn it regains hit points unless it took fire or acid damage since its last turn.'
+      de: 'Zu Beginn seines Zuges heilt es {kleinerSchaden} Trefferpunkte, solange es seit der letzten Runde keinen Feuer- oder Säureschaden genommen hat.',
+      en: 'At the start of its turn it regains {kleinerSchaden} hit points unless it took fire or acid damage since its last turn.'
     },
     rollen: ['verteidiger', 'brecher']
   },
@@ -657,8 +657,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Furchtbare Erscheinung', en: 'Dreadful Presence' },
     kategorie: 'passiv',
     text: {
-      de: 'Wer seinen Zug in 30 Fuß Nähe beginnt und es sehen kann, muss eine Weisheitsrettung bestehen oder ist eine Runde lang verängstigt.',
-      en: 'Anyone starting their turn within 30 feet who can see it makes a Wisdom save or is frightened for a round.'
+      de: 'Wer seinen Zug in 30 Fuß Nähe beginnt und es sehen kann, muss eine Weisheitsrettung (SG {sg}) bestehen oder ist eine Runde lang verängstigt.',
+      en: 'Anyone starting their turn within 30 feet who can see it must succeed on a DC {sg} Wisdom save or is frightened for a round.'
     },
     rollen: ['anfuehrer', 'brecher']
   },
@@ -666,8 +666,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Blutgeruch', en: 'Scent of Blood' },
     kategorie: 'passiv',
     text: {
-      de: 'Gegen verwundete Ziele richten seine Angriffe mehr Schaden an.',
-      en: 'Its attacks deal extra damage against wounded targets.'
+      de: 'Gegen Ziele unter der Hälfte ihrer Trefferpunkte richten seine Angriffe {kleinerSchaden} Schaden mehr an.',
+      en: 'Its attacks deal {kleinerSchaden} extra damage against targets below half their hit points.'
     },
     rollen: ['brecher', 'plaenkler', 'lauerer']
   },
@@ -738,8 +738,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Erschütternder Schlag', en: 'Staggering Blow' },
     kategorie: 'aktion',
     text: {
-      de: 'Ein Ziel in Reichweite muss eine Konstitutionsrettung bestehen oder verliert seine Reaktion bis zu seinem nächsten Zug.',
-      en: 'One target in reach makes a Constitution save or loses its reaction until its next turn.'
+      de: 'Ein Ziel in Reichweite muss eine Konstitutionsrettung (SG {sg}) bestehen oder verliert seine Reaktion bis zu seinem nächsten Zug.',
+      en: 'One target in reach must succeed on a DC {sg} Constitution save or loses its reaction until its next turn.'
     },
     rollen: ['brecher', 'verteidiger']
   },
@@ -747,8 +747,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Fesselndes Netz', en: 'Entangling Web' },
     kategorie: 'aktion',
     text: {
-      de: 'Ein Ziel in 30 Fuß muss eine Geschicklichkeitsrettung bestehen oder ist festgehalten, bis es sich befreit.',
-      en: 'A target within 30 feet makes a Dexterity save or is restrained until it breaks free.'
+      de: 'Ein Ziel in 30 Fuß muss eine Geschicklichkeitsrettung (SG {sg}) bestehen oder ist festgehalten, bis es sich befreit.',
+      en: 'A target within 30 feet must succeed on a DC {sg} Dexterity save or is restrained until it breaks free.'
     },
     rollen: ['kontrolleur', 'lauerer']
   },
@@ -756,8 +756,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Verderbtes Wort', en: 'Word of Ruin' },
     kategorie: 'aktion',
     text: {
-      de: 'Ein hörendes Ziel in 60 Fuß muss eine Charismarettung bestehen oder nimmt psychischen Schaden und hat Nachteil auf seinen nächsten Wurf.',
-      en: 'A target within 60 feet that can hear it makes a Charisma save or takes psychic damage and has disadvantage on its next roll.'
+      de: 'Ein hörendes Ziel in 60 Fuß muss eine Charismarettung (SG {sg}) bestehen oder nimmt {kleinerSchaden} psychischen Schaden und hat Nachteil auf seinen nächsten Wurf.',
+      en: 'A target within 60 feet that can hear it must succeed on a DC {sg} Charisma save or takes {kleinerSchaden} psychic damage and has disadvantage on its next roll.'
     },
     rollen: ['anfuehrer', 'kontrolleur']
   },
@@ -774,8 +774,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Boden aufreißen', en: 'Rend the Ground' },
     kategorie: 'aktion',
     text: {
-      de: 'Ein Bereich von 10 Fuß wird zu schwierigem Gelände. Wer darin steht, fällt bei misslungener Geschicklichkeitsrettung hin.',
-      en: 'A 10-foot area becomes difficult terrain. Creatures in it fall prone on a failed Dexterity save.'
+      de: 'Ein Bereich von 10 Fuß wird zu schwierigem Gelände. Wer darin steht, fällt bei misslungener Geschicklichkeitsrettung (SG {sg}) hin.',
+      en: 'A 10-foot area becomes difficult terrain. Creatures in it fall prone on a failed DC {sg} Dexterity save.'
     },
     rollen: ['kontrolleur', 'brecher']
   },
@@ -783,8 +783,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Blendender Staub', en: 'Blinding Dust' },
     kategorie: 'aktion',
     text: {
-      de: 'Ein Ziel in 15 Fuß muss eine Konstitutionsrettung bestehen oder ist bis zum Ende seines nächsten Zuges blind.',
-      en: 'A target within 15 feet makes a Constitution save or is blinded until the end of its next turn.'
+      de: 'Ein Ziel in 15 Fuß muss eine Konstitutionsrettung (SG {sg}) bestehen oder ist bis zum Ende seines nächsten Zuges blind.',
+      en: 'A target within 15 feet must succeed on a DC {sg} Constitution save or is blinded until the end of its next turn.'
     },
     rollen: ['lauerer', 'kontrolleur', 'plaenkler']
   },
@@ -792,8 +792,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Lebenszehrung', en: 'Life Drain' },
     kategorie: 'aktion',
     text: {
-      de: 'Ein Ziel in Reichweite nimmt nekrotischen Schaden, und das Monster heilt um denselben Betrag.',
-      en: 'A target in reach takes necrotic damage and the monster regains that many hit points.'
+      de: 'Ein Ziel in Reichweite nimmt {kleinerSchaden} nekrotischen Schaden, und das Monster heilt um denselben Betrag.',
+      en: 'A target in reach takes {kleinerSchaden} necrotic damage and the monster regains that many hit points.'
     },
     rollen: ['brecher', 'kontrolleur']
   },
@@ -828,8 +828,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Rachedornen', en: 'Retributive Spines' },
     kategorie: 'reaktion',
     text: {
-      de: 'Wer es aus der Nähe trifft, nimmt Stichschaden.',
-      en: 'A creature that hits it from close range takes piercing damage.'
+      de: 'Wer es aus der Nähe trifft, nimmt {kleinerSchaden} Stichschaden.',
+      en: 'A creature that hits it from close range takes {kleinerSchaden} piercing damage.'
     },
     rollen: ['verteidiger', 'brecher']
   },
@@ -852,11 +852,6 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     rollen: ['anfuehrer', 'schuetze']
   },
   {
-    name: { de: 'Erspähen', en: 'Detect' },
-    kategorie: 'legendaer',
-    text: { de: 'Es macht eine Wahrnehmungsprobe.', en: 'It makes a Perception check.' }
-  },
-  {
     name: { de: 'Streifen', en: 'Move' },
     kategorie: 'legendaer',
     text: {
@@ -868,16 +863,16 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Niederwerfen', en: 'Bear Down' },
     kategorie: 'legendaer',
     text: {
-      de: 'Kostet 2 Aktionen. Ein Ziel in Reichweite muss eine Stärkerettung bestehen oder fällt hin und ist festgehalten.',
-      en: 'Costs 2 actions. A target in reach makes a Strength save or falls prone and is restrained.'
+      de: 'Kostet 2 Aktionen. Ein Ziel in Reichweite muss eine Stärkerettung (SG {sg}) bestehen oder fällt hin und ist festgehalten, bis es sich befreit.',
+      en: 'Costs 2 actions. A target in reach must succeed on a DC {sg} Strength save or falls prone and is restrained until it breaks free.'
     }
   },
   {
     name: { de: 'Verheerender Ausbruch', en: 'Devastating Surge' },
     kategorie: 'legendaer',
     text: {
-      de: 'Kostet 2 Aktionen. Alle in 10 Fuß Umkreis nehmen Schaden, bei bestandener Geschicklichkeitsrettung die Hälfte.',
-      en: 'Costs 2 actions. Everyone within 10 feet takes damage, or half on a successful Dexterity save.'
+      de: 'Kostet 2 Aktionen. Alle in 10 Fuß Umkreis nehmen {schaden} {schadensart}, bei bestandener Geschicklichkeitsrettung (SG {sg}) die Hälfte.',
+      en: 'Costs 2 actions. Everyone within 10 feet takes {schaden} {schadensart}, or half on a successful DC {sg} Dexterity save.'
     }
   },
   {
@@ -893,8 +888,120 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Zermürbender Blick', en: 'Withering Glare' },
     kategorie: 'legendaer',
     text: {
-      de: 'Ein Ziel in Sichtweite muss eine Weisheitsrettung bestehen oder hat Nachteil auf seinen nächsten Angriff.',
-      en: 'A target it can see makes a Wisdom save or has disadvantage on its next attack.'
+      de: 'Ein Ziel in Sichtweite muss eine Weisheitsrettung (SG {sg}) bestehen oder hat Nachteil auf seinen nächsten Angriff.',
+      en: 'A target it can see must succeed on a DC {sg} Wisdom save or has disadvantage on its next attack.'
     }
+  },
+  {
+    name: { de: 'Platzwechsel', en: 'Change Places' },
+    kategorie: 'legendaer',
+    text: {
+      de: 'Es tauscht den Platz mit einem Verbündeten in 30 Fuß. Beide lösen dabei keine Gelegenheitsangriffe aus.',
+      en: 'It swaps places with an ally within 30 feet. Neither provokes opportunity attacks.'
+    },
+    rollen: ['anfuehrer', 'kontrolleur', 'plaenkler']
+  },
+  {
+    name: { de: 'Boden aufreißen', en: 'Break the Ground' },
+    kategorie: 'legendaer',
+    text: {
+      de: 'Kostet 2 Aktionen. Ein Bereich von 20 Fuß wird bis zum Ende seines nächsten Zuges zu schwierigem Gelände.',
+      en: 'Costs 2 actions. A 20-foot area becomes difficult terrain until the end of its next turn.'
+    }
+  },
+  {
+    name: { de: 'Wunden schließen', en: 'Knit Shut' },
+    kategorie: 'legendaer',
+    text: {
+      de: 'Kostet 2 Aktionen. Es heilt {kleinerSchaden} Trefferpunkte.',
+      en: 'Costs 2 actions. It regains {kleinerSchaden} hit points.'
+    },
+    rollen: ['brocken', 'lauerer', 'schlaeger']
+  },
+  {
+    name: { de: 'Heranziehen', en: 'Reel In' },
+    kategorie: 'legendaer',
+    text: {
+      de: 'Ein Ziel in 30 Fuß muss eine Stärkerettung (SG {sg}) bestehen oder wird 20 Fuß zu ihm gezogen.',
+      en: 'A target within 30 feet must succeed on a DC {sg} Strength save or is pulled 20 feet towards it.'
+    }
+  },
+  {
+    name: { de: 'Entwaffnen', en: 'Strip Away' },
+    kategorie: 'legendaer',
+    text: {
+      de: 'Ein Ziel in Reichweite muss eine Stärkerettung (SG {sg}) bestehen oder lässt fallen, was es in einer Hand hält.',
+      en: 'A target in reach must succeed on a DC {sg} Strength save or drops what it holds in one hand.'
+    },
+    rollen: ['plaenkler', 'lauerer', 'schlaeger']
+  },
+  {
+    name: { de: 'Ins Auge fassen', en: 'Single Out' },
+    kategorie: 'legendaer',
+    text: {
+      de: 'Es fasst ein Ziel ins Auge. Bis zum Ende seines nächsten Zuges haben seine Angriffe dagegen Vorteil.',
+      en: 'It singles out a target. Until the end of its next turn its attacks against that target have advantage.'
+    }
+  },
+  {
+    name: { de: 'Schneise', en: 'Cut a Swathe' },
+    kategorie: 'legendaer',
+    text: {
+      de: 'Kostet 2 Aktionen. Eine Linie von 30 Fuß Länge und 5 Fuß Breite: {schaden} {schadensart}, bei bestandener Geschicklichkeitsrettung (SG {sg}) die Hälfte.',
+      en: 'Costs 2 actions. A line 30 feet long and 5 feet wide: {schaden} {schadensart}, or half on a successful DC {sg} Dexterity save.'
+    }
+  },
+  {
+    name: { de: 'Überspringen', en: 'Arc Across' },
+    kategorie: 'legendaer',
+    text: {
+      de: 'Kostet 2 Aktionen. Bis zu drei Ziele in 30 Fuß, keines weiter als 15 Fuß vom vorigen: je {kleinerSchaden} {schadensart}.',
+      en: 'Costs 2 actions. Up to three targets within 30 feet, none more than 15 feet from the last: {kleinerSchaden} {schadensart} each.'
+    },
+    rollen: ['schuetze', 'kontrolleur']
+  },
+  {
+    name: { de: 'Verhüllen', en: 'Veil' },
+    kategorie: 'legendaer',
+    text: {
+      de: 'Bis zum Ende seines nächsten Zuges ist ein Umkreis von 15 Fuß um es herum stark verschleiert. Es selbst sieht hindurch.',
+      en: 'Until the end of its next turn a 15-foot radius around it is heavily obscured. It sees through the effect.'
+    },
+    rollen: ['lauerer', 'plaenkler', 'kontrolleur']
+  },
+  {
+    name: { de: 'Abschütteln', en: 'Shake It Off' },
+    kategorie: 'legendaer',
+    text: {
+      de: 'Kostet 2 Aktionen. Es wiederholt einen Rettungswurf gegen eine Wirkung, die es beeinträchtigt, und beendet sie bei Erfolg.',
+      en: 'Costs 2 actions. It repeats one saving throw against an effect on it, ending the effect on a success.'
+    }
+  },
+  {
+    name: { de: 'Wer weicht, blutet', en: 'Nowhere to Go' },
+    kategorie: 'legendaer',
+    text: {
+      de: 'Bis zum Beginn seines nächsten Zuges nimmt jede Kreatur, die seine Reichweite verlässt, {kleinerSchaden} {schadensart}.',
+      en: 'Until the start of its next turn, any creature that leaves its reach takes {kleinerSchaden} {schadensart}.'
+    },
+    rollen: ['brocken', 'schlaeger', 'lauerer']
+  },
+  {
+    name: { de: 'Anfeuern', en: 'Spur On' },
+    kategorie: 'legendaer',
+    text: {
+      de: 'Ein Verbündeter in 30 Fuß richtet mit seinem nächsten Treffer {kleinerSchaden} Schaden mehr an.',
+      en: 'An ally within 30 feet deals {kleinerSchaden} extra damage on its next hit.'
+    },
+    rollen: ['anfuehrer']
+  },
+  {
+    name: { de: 'Zunge lähmen', en: 'Still the Tongue' },
+    kategorie: 'legendaer',
+    text: {
+      de: 'Ein Ziel in 60 Fuß muss eine Konstitutionsrettung (SG {sg}) bestehen oder kann bis zum Ende seines nächsten Zuges nicht zaubern.',
+      en: 'A target within 60 feet must succeed on a DC {sg} Constitution save or cannot cast spells until the end of its next turn.'
+    },
+    rollen: ['kontrolleur', 'anfuehrer', 'schuetze']
   }
 ];
