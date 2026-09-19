@@ -223,10 +223,24 @@ export function AppSymbol({
   /** Die data:-URL aus dem Symbolordner, oder undefined. */
   readonly bild?: string;
 }): ReactElement {
-  const [kaputt, setKaputt] = useState(false);
+  /*
+   * Gemerkt wird, WELCHES Bild nicht ging — nicht bloss, DASS eines nicht
+   * ging.
+   *
+   * Vorher stand hier ein `useState(false)`, das nie zurueckgesetzt wurde.
+   * Einmal auf das eingebaute Symbol zurueckgefallen, blieb die Kachel dabei,
+   * solange die Oberflaeche lief: „Symbole neu laden" holte die Datei zwar
+   * frisch von der Platte, aber der Schalter stand weiter auf kaputt. Wer
+   * eine fehlerhafte Datei ersetzte, sah sein Bild erst nach einem Neustart —
+   * und hielt den Knopf zu Recht fuer wirkungslos.
+   *
+   * Mit der Kennung des gescheiterten Bildes gilt der Fehlschlag nur fuer
+   * genau dieses Bild. Kommt ein anderes herein, wird es wieder versucht.
+   */
+  const [gescheitert, setGescheitert] = useState<string | null>(null);
   const Eingebaut = iconFuer(id);
 
-  if (!bild || kaputt) return <Eingebaut size={size} />;
+  if (!bild || gescheitert === bild) return <Eingebaut size={size} />;
 
   return (
     <img
@@ -236,7 +250,7 @@ export function AppSymbol({
       height={size}
       alt=""
       aria-hidden="true"
-      onError={() => setKaputt(true)}
+      onError={() => setGescheitert(bild)}
     />
   );
 }
