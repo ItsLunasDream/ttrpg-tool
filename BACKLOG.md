@@ -1106,6 +1106,17 @@ Werkzeuge an, der dritte räumt eine doppelte Einstellung weg.
    `EN`/`DE`-Wähler (`leiste__sprache`, `App.tsx`). Die Sprache steht in den
    Einstellungen der Hülle und wird von dort an alle Werkzeuge
    durchgereicht; zwei Stellen für dieselbe Einstellung sind eine zu viel.
+4. **Rückgängig (Strg+Z).** Im Tracker lässt sich nichts zurücknehmen: wer
+   einen Teilnehmer entfernt, hat ihn weg. Ein Verlauf um `setzeUndSichere`
+   deckt in einem Zug alles ab, was durch diese Stelle läuft — Teilnehmer,
+   Zustände, Schaden, Reihenfolge.
+
+   **Nicht verwechseln:** der Zurück-Pfeil der Hülle (Alt+Links, M4) ist der
+   Verlauf *zwischen Werkzeugen*, kein Rückgängig. Nähme er im Tracker eine
+   Löschung zurück, käme man nicht mehr zum vorigen Werkzeug. Beides bleibt
+   getrennt: Strg+Z und ein eigener Knopf im Tracker, der Pfeil der Hülle
+   bleibt Navigation — so, wie es der Story Creator mit seinen eigenen
+   Undo-/Redo-Pfeilen im Editor schon macht.
 
 ## Vorgemerkt: vier Ausbauten für die Sammlung
 
