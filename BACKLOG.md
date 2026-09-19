@@ -1179,3 +1179,31 @@ Zwei Dinge vorher prüfen:
 3. **Die Platzhaltertexte im Steckbrief bleiben deutsch.** Bei „Age" steht
    `z.B. 132`, bei „Pronouns" `z.B. sie/ihr`, auch wenn die Oberfläche auf
    Englisch steht. Die Beispiele gehören in beide Sprachen.
+
+## Vorgemerkt: ein Paket bleibt in der Sammlung ein Paket
+
+Beim Status Effect Creator lässt sich ein Paket erzeugen — mehrere Zustände,
+die zusammen abgestimmt sind (`paket.ts`: gemeinsamer Vorrat, damit nicht
+dreimal derselbe Nachteil greift). In die Sammlung wandert davon aber nur
+das Ergebnis: vier einzelne Zustände, jeder als eigene Datei, jeder an
+seiner alphabetischen Stelle zwischen fremden Einträgen. Die Zusammen­
+gehörigkeit ist nach dem Speichern weg, und damit auch der Grund, warum man
+das Paket überhaupt gewürfelt hat.
+
+Das Paket soll die Sammlung als Einheit erreichen: eine Kachel für das
+Paket, aufklappbar zu seinen Zuständen, und die Suche findet es über den
+Paketnamen wie über die Namen der einzelnen Zustände.
+
+Zu klären, bevor gebaut wird:
+
+- **Ablage.** Heute kennt `ablage.ts` nur `Abgelegt` je Zustand. Entweder
+  bekommt jeder Zustand ein Feld `paket` im Kopf (kleiner Eingriff, die
+  Gruppe ergibt sich beim Einlesen) oder das Paket wird ein eigener
+  Eintragstyp mit Verweisen. Das erste passt besser dazu, dass ein Zustand
+  auch einzeln brauchbar bleibt.
+- **Einzeln herauslösen.** Man muss einen Zustand aus dem Paket weiter
+  einzeln benutzen, umbenennen und löschen können, ohne dass der Rest
+  kaputtgeht.
+- **Dasselbe Muster anderswo.** Monster-Varianten und Begegnungen haben die
+  gleiche Frage. Wenn die Gruppierung gebaut wird, dann so, dass die anderen
+  Werkzeuge sie übernehmen können.
