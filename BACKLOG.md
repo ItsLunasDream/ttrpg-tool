@@ -1085,6 +1085,39 @@ Quelle unter CC-BY-4.0, die dasselbe liefert (Lazy GM's 5e Monster Builder
 Resource Document); die Lizenz ist gelesen, sollte aber vor dem Übernehmen
 von Zahlen noch einmal selbst geprüft werden.
 
+## Vorgemerkt: Initiative Tracker
+
+Aus dem Gebrauch. Die ersten beiden gleichen den Tracker an die neueren
+Werkzeuge an, der dritte räumt eine doppelte Einstellung weg.
+
+1. **Begegnungen als Sammlung, mit Kacheln und Suche.** Die gespeicherten
+   Begegnungen sehen heute anders aus als die Sammlungen im Monster Creator
+   und im Status Effect Creator: `Begegnungen.tsx` ist eine schlichte Liste
+   mit Namen und Teilnehmerzahl. Es fehlen die Kachelansicht und ein
+   Suchfeld, das **sowohl den Namen der Begegnung als auch die Namen der
+   Teilnehmer** durchsucht. Vorbild für die Suche ist `suche.ts` in
+   `apps/monster` und `apps/zustaende`.
+2. **Knopf „Neue Begegnung", mit Rückfrage.** Bevor der bisherige Stand
+   verlorengeht, und zwar in zwei Fällen: der Kampf läuft noch, oder die
+   aktuelle Begegnung ist nicht gespeichert. Dieselbe Sorte Dialog wie beim
+   Schließen einer Notiz im Story Creator — sagen, was verlorenginge, und
+   Abbrechen anbieten.
+3. **Der eigene Sprachwähler kann weg.** In der Werkzeugleiste sitzt ein
+   `EN`/`DE`-Wähler (`leiste__sprache`, `App.tsx`). Die Sprache steht in den
+   Einstellungen der Hülle und wird von dort an alle Werkzeuge
+   durchgereicht; zwei Stellen für dieselbe Einstellung sind eine zu viel.
+4. **Rückgängig (Strg+Z).** Im Tracker lässt sich nichts zurücknehmen: wer
+   einen Teilnehmer entfernt, hat ihn weg. Ein Verlauf um `setzeUndSichere`
+   deckt in einem Zug alles ab, was durch diese Stelle läuft — Teilnehmer,
+   Zustände, Schaden, Reihenfolge.
+
+   **Nicht verwechseln:** der Zurück-Pfeil der Hülle (Alt+Links, M4) ist der
+   Verlauf *zwischen Werkzeugen*, kein Rückgängig. Nähme er im Tracker eine
+   Löschung zurück, käme man nicht mehr zum vorigen Werkzeug. Beides bleibt
+   getrennt: Strg+Z und ein eigener Knopf im Tracker, der Pfeil der Hülle
+   bleibt Navigation — so, wie es der Story Creator mit seinen eigenen
+   Undo-/Redo-Pfeilen im Editor schon macht.
+
 ## Vorgemerkt: vier Ausbauten für die Sammlung
 
 Aus einer Durchsicht, was der Sammlung noch fehlt. Alle vier stehen als
@@ -1103,3 +1136,46 @@ Aufgabe, keiner davon hat ein Konzept.
    seine Kampagne. Begegnungen, Karten, Symbole und Einstellungen bleiben
    außen vor. Der API-Schlüssel gehört nicht in eine Sicherung — er liegt im
    Schlüsselbund des Systems und wäre anderswo ohnehin wertlos.
+
+## Vorgemerkt: ein Name für die Sammlung nach außen
+
+Nur festgehalten, nicht entschieden. Es geht um den Namen nach außen und in
+Texten; intern darf der Code `ttrpg-tools-shell` heißen.
+
+Mit Bezug auf Würfel und Vorteil:
+
+- **Take 20** — die Regel, bei der man ohne Zeitdruck nimmt, was ein
+  ausgeschlafener Wurf ergäbe. Passt zu Werkzeugen, die man *vor* der Sitzung
+  benutzt. Mein Vorschlag von den zehn.
+- **Crit Kit** — kurz, sagt „Werkzeugkasten", reimt sich.
+- **Triple Advantage** — die Steigerung der Idee „Super Advantage", und
+  regeltechnisch genauso frei erfunden.
+- **Passive 20** / **Twenty Sided** / **Open Roll** / **Roll Ahead**
+- **Rolltable** — beschreibt die halbe Sammlung wörtlich.
+- **Long Rest** / **Downtime** — die Zeit zwischen den Abenteuern, also
+  genau die Zeit, in der man vorbereitet.
+- **Super Advantage** — die eigene Idee, hier der Vollständigkeit halber.
+
+Zwei Dinge vorher prüfen:
+
+1. **Verfügbarkeit und Marken.** Kann ich von hier aus nicht nachsehen, weder
+   Domains noch eingetragene Marken. „Take 20" und „Long Rest" sind gängige
+   Begriffe in der Szene und dürften mehrfach belegt sein.
+2. **Der Datenordner hängt am Namen.** Gespeichertes liegt unter
+   `AppData\Roaming\ttrpg-tools-shell`. Eine Umbenennung der App darf den
+   Pfad nicht mitziehen, sonst sind Kampagnen scheinbar weg. Der Ordner
+   bleibt also, oder es braucht einen Umzug beim ersten Start.
+
+## Vorgemerkt: drei Kleinigkeiten
+
+1. **Monster-Export in den Story Creator schreibt Metadaten in den Text.**
+   Die angelegte Notiz beginnt mit `id: … name: … cr: … schemaVersion: 2`
+   als Fließtext im Editor. Das ist der Kopf der Datei, der nicht in den
+   Notizkörper gehört: entweder gar nicht exportieren oder als Kurzinfo
+   oben, nicht als Absatz. Betrifft die Brücke Monster → Story Creator.
+2. **Der Einklapp-Pfeil an Überschriften sitzt zu weit links.** Ein paar
+   Pixel nach rechts, damit er mittig zwischen Rand und Text steht
+   (Story Creator, Überschriften einklappen).
+3. **Die Platzhaltertexte im Steckbrief bleiben deutsch.** Bei „Age" steht
+   `z.B. 132`, bei „Pronouns" `z.B. sie/ihr`, auch wenn die Oberfläche auf
+   Englisch steht. Die Beispiele gehören in beide Sprachen.

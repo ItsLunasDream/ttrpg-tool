@@ -21,7 +21,7 @@
  */
 
 import { alsWuerfel } from './angriffe';
-import { rettungsSg } from './attribute';
+import { rettungsSg, uebungsbonus } from './attribute';
 import { schadensartName } from './schadensarten';
 import type { Sprache } from './tabellen';
 
@@ -34,6 +34,15 @@ export interface Kampfzahlen {
   readonly kleinerSchaden: string;
   /** Die Schadensart, die zum Thema passt. */
   readonly schadensart: string;
+  /**
+   * Der Uebungsbonus, als Zahl mit Vorzeichen: „+3".
+   *
+   * Fuer Faehigkeiten, die einen Bonus GEBEN statt einen Wurf zu fordern —
+   * „Parade" erhoeht die Ruestungsklasse, und um wie viel, stand nirgends.
+   * Der Uebungsbonus ist dafuer der uebliche Massstab in den Statblocks und
+   * waechst von selbst mit dem Grad.
+   */
+  readonly uebung: string;
 }
 
 /**
@@ -57,6 +66,7 @@ export const ANTEIL_KLEIN = 0.3;
  */
 
 export function kampfzahlen(
+  crWert: number,
   angriffsbonus: number,
   schadenProRunde: number,
   themenschaden: readonly string[],
@@ -68,7 +78,8 @@ export function kampfzahlen(
     // liest sich wie ein Statblock und nicht wie eine Rechnung.
     schaden: alsWuerfel(Math.max(1, Math.round(schadenProRunde * ANTEIL_GROSS)), 10, 0),
     kleinerSchaden: alsWuerfel(Math.max(1, Math.round(schadenProRunde * ANTEIL_KLEIN)), 6, 0),
-    schadensart: schadensartMitWort(themenschaden[0] ?? 'wucht', sprache)
+    schadensart: schadensartMitWort(themenschaden[0] ?? 'wucht', sprache),
+    uebung: `+${uebungsbonus(crWert)}`
   };
 }
 
@@ -108,11 +119,12 @@ export function setzeZahlen(text_: string, zahlen: Kampfzahlen): string {
     .replace(/\{sg\}/g, String(zahlen.sg))
     .replace(/\{schaden\}/g, zahlen.schaden)
     .replace(/\{kleinerSchaden\}/g, zahlen.kleinerSchaden)
-    .replace(/\{schadensart\}/g, zahlen.schadensart);
+    .replace(/\{schadensart\}/g, zahlen.schadensart)
+    .replace(/\{uebung\}/g, zahlen.uebung);
 }
 
 /** Alle Platzhalter, die es gibt. Fuer die Pruefung der Tabellen. */
-export const PLATZHALTER = ['sg', 'schaden', 'kleinerSchaden', 'schadensart'] as const;
+export const PLATZHALTER = ['sg', 'schaden', 'kleinerSchaden', 'schadensart', 'uebung'] as const;
 
 /** Platzhalter, die ein Text nennt, die es aber nicht gibt. */
 export function unbekanntePlatzhalter(text_: string): string[] {

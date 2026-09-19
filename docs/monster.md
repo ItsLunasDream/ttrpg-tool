@@ -356,7 +356,8 @@ Hülle):
   nach Thema und Bewegung.
 - `platzhalter.ts` — die Zahlen in den Fähigkeitstexten. Die Tabellen sind
   für jeden Grad dieselben, die Zahlen nicht; die Texte tragen deshalb
-  `{sg}`, `{schaden}`, `{kleinerSchaden}` und `{schadensart}`, gefüllt aus
+  `{sg}`, `{schaden}`, `{kleinerSchaden}`, `{schadensart}` und `{uebung}`
+  (der Übungsbonus mit Vorzeichen), gefüllt aus
   den Richtwerten. Damit bleibt die Regel des Werkzeugs gewahrt: die
   Tabellen liefern die Form, die Zahlen kommen aus der Eichung.
 - Oberfläche mit Erzeugen, Prüfen von außen, Sammlung als Liste und als
@@ -404,6 +405,16 @@ Schwierigkeitsgrad zu nennen, und mehrere machten Schaden ohne Würfel. Beides
 ist am Tisch keine Fähigkeit, sondern eine Rückfrage. Die Texte tragen jetzt
 Platzhalter (siehe `platzhalter.ts`), und der SG kommt aus derselben harten
 Regel wie der Angriffsbonus.
+
+**Nachtrag: Zahlen an den übrigen Stellen.** Eine zweite Durchsicht aller
+62 Fähigkeiten fand dieselbe Lücke in drei weiteren Formen — ein Bonus ohne
+Höhe („Parade" erhöhte die Rüstungsklasse um nichts, jetzt um `{uebung}`),
+eine Bewegung ohne Weite („Ausweichender Schritt", jetzt eine halbe
+Bewegungsrate), eine Beschwörung ohne Anzahl („Herbeirufen", jetzt 1d4) —
+dazu zwei fehlende Befreiungs-SG und vier Ziele, die nur „in Sichtweite"
+standen statt in 30 Fuß. Zwei Tests halten die Klasse fest, nicht bloß die
+einzelnen Fälle: wer etwas erhöht, bewegt oder herbeiruft, muss eine Zahl
+nennen, und ein Ziel außerhalb des Nahkampfs braucht eine Fußangabe.
 
 **Eine Fähigkeit ohne Folge.** „Es macht eine Wahrnehmungsprobe." ist
 gestrichen. Ein Test hält fest, dass kein Text nur aus einer Probe bestehen

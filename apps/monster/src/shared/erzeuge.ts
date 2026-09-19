@@ -356,6 +356,7 @@ export function erzeugeMonster(wunsch: Wuensche, sprache: Sprache, rng: () => nu
        * Aufgaben fuer die Spielleitung. Siehe `platzhalter.ts`.
        */
       kampfzahlen(
+        ziel.wert,
         werte.angriffsbonus,
         werte.schadenProRunde,
         thema.schaden,
@@ -437,6 +438,7 @@ export function wuerfleNeu(
           // Dasselbe Monster, dieselben Zahlen: beim Nachwuerfeln der
           // Faehigkeiten aendert sich die Auswahl, nicht der Grad.
           kampfzahlen(
+            ziel.wert,
             monster.werte.angriffsbonus,
             monster.werte.schadenProRunde,
             thema.schaden,

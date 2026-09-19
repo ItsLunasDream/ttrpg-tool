@@ -155,7 +155,13 @@ test('der Schaden einer legendaeren Aktion waechst mit dem Grad', () => {
   const fuer = (cr) => {
     const monster = T.erzeugeMonster({ cr, legendaer: true }, 'de', wuerfelgeber(3));
     return schnitt(
-      T.kampfzahlen(monster.werte.angriffsbonus, monster.werte.schadenProRunde, ['wucht'], 'de').schaden
+      T.kampfzahlen(
+        T.richtwert(monster.cr).wert,
+        monster.werte.angriffsbonus,
+        monster.werte.schadenProRunde,
+        ['wucht'],
+        'de'
+      ).schaden
     );
   };
   assert.ok(fuer('1') < fuer('10'), 'Grad 10 schlaegt nicht haerter zu als Grad 1');
@@ -239,4 +245,44 @@ test('die Umgebung bleibt in beiden Sprachen dieselbe Liste', () => {
   }
   const kennungen = T.UMGEBUNGEN.map((u) => u.id);
   assert.equal(new Set(kennungen).size, kennungen.length);
+});
+
+test('wer etwas erhoeht, bewegt oder herbeiruft, nennt eine Zahl', () => {
+  /*
+   * Die Beanstandung aus der Oberflaeche war „Parry" — eine Reaktion, die die
+   * Ruestungsklasse erhoeht, ohne zu sagen um wie viel. Dieselbe Luecke gibt
+   * es in drei Formen: ein Bonus ohne Hoehe, eine Bewegung ohne Weite, eine
+   * Beschwoerung ohne Anzahl. Der Test sucht das Verb und verlangt dahinter
+   * eine Zahl, einen Platzhalter oder ein benanntes Mass („Bewegungsrate").
+   */
+  const verbDe = /\b(erhöht|verringert|senkt|verbessert|gewährt|ruft|bewegt sich|zieht sich|beschwört|heilt)\b/i;
+  const massDe = /(\{\w+\}|\d|hälfte|halbe|volle|Bewegungsrate|weitere)/i;
+  const verbEn = /\b(adds|increases|reduces|grants|calls|moves|summons|heals|regains)\b/i;
+  const massEn = /(\{\w+\}|\d|half|full|speed|another)/i;
+  for (const f of T.FAEHIGKEITEN) {
+    if (verbDe.test(f.text.de)) {
+      assert.ok(massDe.test(f.text.de), `ohne Zahl: ${f.name.de} — ${f.text.de}`);
+    }
+    if (verbEn.test(f.text.en)) {
+      assert.ok(massEn.test(f.text.en), `ohne Zahl: ${f.name.en} — ${f.text.en}`);
+    }
+  }
+});
+
+test('ein Ziel auf Entfernung steht nicht nur „in Sichtweite"', () => {
+  /*
+   * „Sichtweite" ist am Tisch keine Reichweite: auf freiem Feld sind das
+   * dreihundert Meter. Wo ein Ziel nicht im Nahkampf steht, gehoert eine
+   * Fussangabe dazu. Nahkampf ist ausgenommen, da regelt die Reichweite des
+   * Angriffs das schon.
+   */
+  const nahkampf = /(Nahkampf|melee)/i;
+  const fuss = /(\d+ Fuß|\d+ f(ee|oo)t)/i;
+  for (const f of T.FAEHIGKEITEN) {
+    if (nahkampf.test(f.text.de)) continue;
+    assert.ok(!/Sichtweite/i.test(f.text.de), `ohne Reichweite: ${f.name.de} — ${f.text.de}`);
+    if (/\bcan see\b/i.test(f.text.en)) {
+      assert.ok(fuss.test(f.text.en), `ohne Reichweite: ${f.name.en} — ${f.text.en}`);
+    }
+  }
 });
