@@ -468,8 +468,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Umklammern', en: 'Restraining Grab' },
     kategorie: 'passiv',
     text: {
-      de: 'Trifft es im Nahkampf, ist das Ziel gepackt und festgehalten.',
-      en: 'On a melee hit the target is grappled and restrained.'
+      de: 'Trifft es im Nahkampf, ist das Ziel gepackt und festgehalten; Befreien mit einer Stärke- oder Geschicklichkeitsprobe gegen SG {sg}.',
+      en: 'On a melee hit the target is grappled and restrained; escaping takes a DC {sg} Strength or Dexterity check.'
     },
     rollen: ['brecher', 'verteidiger', 'kontrolleur']
   },
@@ -486,8 +486,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Ausweichender Schritt', en: 'Shifting Step' },
     kategorie: 'bonusaktion',
     text: {
-      de: 'Als Bonusaktion bewegt es sich, ohne Gelegenheitsangriffe auszulösen.',
-      en: 'As a bonus action it moves without provoking opportunity attacks.'
+      de: 'Als Bonusaktion bewegt es sich bis zur Hälfte seiner Bewegungsrate, ohne Gelegenheitsangriffe auszulösen.',
+      en: 'As a bonus action it moves up to half its speed without provoking opportunity attacks.'
     },
     rollen: ['plaenkler', 'lauerer', 'schuetze']
   },
@@ -521,8 +521,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Befehl', en: 'Command' },
     kategorie: 'bonusaktion',
     text: {
-      de: 'Als Bonusaktion darf ein Verbündeter in Sichtweite sofort einen Angriff machen.',
-      en: 'As a bonus action an ally it can see makes one attack immediately.'
+      de: 'Als Bonusaktion darf ein Verbündeter in 30 Fuß, den es sehen kann, sofort einen Angriff machen.',
+      en: 'As a bonus action an ally within 30 feet that it can see makes one attack immediately.'
     },
     rollen: ['anfuehrer']
   },
@@ -590,8 +590,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Falsche Erscheinung', en: 'False Appearance' },
     kategorie: 'passiv',
     text: {
-      de: 'Solange es sich nicht bewegt, ist es von einem gewöhnlichen Gegenstand nicht zu unterscheiden.',
-      en: 'While it remains motionless it is indistinguishable from an ordinary object.'
+      de: 'Solange es sich nicht bewegt, hält man es für einen gewöhnlichen Gegenstand; wer es durchschauen will, braucht eine Nachforschungsprobe gegen SG {sg}.',
+      en: 'While it remains motionless it passes for an ordinary object; seeing through it takes a DC {sg} Investigation check.'
     },
     rollen: ['lauerer', 'verteidiger']
   },
@@ -677,8 +677,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Rückzug', en: 'Disengaging Step' },
     kategorie: 'bonusaktion',
     text: {
-      de: 'Es zieht sich zurück, ohne Gelegenheitsangriffe auszulösen.',
-      en: 'It disengages without provoking opportunity attacks.'
+      de: 'Es zieht sich seine volle Bewegungsrate weit zurück, ohne Gelegenheitsangriffe auszulösen.',
+      en: 'It disengages and moves up to its full speed without provoking opportunity attacks.'
     },
     rollen: ['plaenkler', 'schuetze', 'lauerer']
   },
@@ -713,8 +713,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Antreiben', en: 'Rally' },
     kategorie: 'bonusaktion',
     text: {
-      de: 'Ein Verbündeter in Sichtweite bekommt Vorteil auf seinen nächsten Angriffswurf.',
-      en: 'An ally it can see gains advantage on its next attack roll.'
+      de: 'Ein Verbündeter in 30 Fuß, den es sehen kann, bekommt Vorteil auf seinen nächsten Angriffswurf.',
+      en: 'An ally within 30 feet that it can see gains advantage on its next attack roll.'
     },
     rollen: ['anfuehrer']
   },
@@ -767,8 +767,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Herbeirufen', en: 'Call of the Pack' },
     kategorie: 'aktion',
     text: {
-      de: 'Einmal am Tag ruft es schwächere Verbündete herbei, die in der nächsten Runde eintreffen.',
-      en: 'Once per day it calls weaker allies, arriving on the following round.'
+      de: 'Einmal am Tag ruft es 1d4 schwächere Verbündete herbei, die in der nächsten Runde eintreffen.',
+      en: 'Once per day it calls 1d4 weaker allies, arriving on the following round.'
     },
     rollen: ['anfuehrer']
   },
@@ -803,8 +803,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Parade', en: 'Parry' },
     kategorie: 'reaktion',
     text: {
-      de: 'Es erhöht seine Rüstungsklasse gegen einen Nahkampfangriff, den es kommen sieht.',
-      en: 'It adds to its AC against one melee attack it can see.'
+      de: 'Es erhöht seine Rüstungsklasse um {uebung} gegen einen Nahkampfangriff, den es kommen sieht.',
+      en: 'It adds {uebung} to its AC against one melee attack it can see.'
     },
     rollen: ['verteidiger', 'plaenkler']
   },
@@ -881,8 +881,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Befehl erteilen', en: 'Issue Command' },
     kategorie: 'legendaer',
     text: {
-      de: 'Ein Verbündeter in Sichtweite bewegt sich und greift einmal an.',
-      en: 'An ally it can see moves and makes one attack.'
+      de: 'Ein Verbündeter in 30 Fuß, den es sehen kann, bewegt sich und greift einmal an.',
+      en: 'An ally within 30 feet that it can see moves and makes one attack.'
     },
     rollen: ['anfuehrer', 'kontrolleur']
   },
@@ -890,8 +890,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     name: { de: 'Zermürbender Blick', en: 'Withering Glare' },
     kategorie: 'legendaer',
     text: {
-      de: 'Ein Ziel in Sichtweite muss eine Weisheitsrettung (SG {sg}) bestehen oder hat Nachteil auf seinen nächsten Angriff.',
-      en: 'A target it can see must succeed on a DC {sg} Wisdom save or has disadvantage on its next attack.'
+      de: 'Ein Ziel in 30 Fuß, das es sehen kann, muss eine Weisheitsrettung (SG {sg}) bestehen oder hat Nachteil auf seinen nächsten Angriff.',
+      en: 'A target within 30 feet that it can see must succeed on a DC {sg} Wisdom save or has disadvantage on its next attack.'
     }
   },
   {

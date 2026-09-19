@@ -1136,3 +1136,46 @@ Aufgabe, keiner davon hat ein Konzept.
    seine Kampagne. Begegnungen, Karten, Symbole und Einstellungen bleiben
    außen vor. Der API-Schlüssel gehört nicht in eine Sicherung — er liegt im
    Schlüsselbund des Systems und wäre anderswo ohnehin wertlos.
+
+## Vorgemerkt: ein Name für die Sammlung nach außen
+
+Nur festgehalten, nicht entschieden. Es geht um den Namen nach außen und in
+Texten; intern darf der Code `ttrpg-tools-shell` heißen.
+
+Mit Bezug auf Würfel und Vorteil:
+
+- **Take 20** — die Regel, bei der man ohne Zeitdruck nimmt, was ein
+  ausgeschlafener Wurf ergäbe. Passt zu Werkzeugen, die man *vor* der Sitzung
+  benutzt. Mein Vorschlag von den zehn.
+- **Crit Kit** — kurz, sagt „Werkzeugkasten", reimt sich.
+- **Triple Advantage** — die Steigerung der Idee „Super Advantage", und
+  regeltechnisch genauso frei erfunden.
+- **Passive 20** / **Twenty Sided** / **Open Roll** / **Roll Ahead**
+- **Rolltable** — beschreibt die halbe Sammlung wörtlich.
+- **Long Rest** / **Downtime** — die Zeit zwischen den Abenteuern, also
+  genau die Zeit, in der man vorbereitet.
+- **Super Advantage** — die eigene Idee, hier der Vollständigkeit halber.
+
+Zwei Dinge vorher prüfen:
+
+1. **Verfügbarkeit und Marken.** Kann ich von hier aus nicht nachsehen, weder
+   Domains noch eingetragene Marken. „Take 20" und „Long Rest" sind gängige
+   Begriffe in der Szene und dürften mehrfach belegt sein.
+2. **Der Datenordner hängt am Namen.** Gespeichertes liegt unter
+   `AppData\Roaming\ttrpg-tools-shell`. Eine Umbenennung der App darf den
+   Pfad nicht mitziehen, sonst sind Kampagnen scheinbar weg. Der Ordner
+   bleibt also, oder es braucht einen Umzug beim ersten Start.
+
+## Vorgemerkt: drei Kleinigkeiten
+
+1. **Monster-Export in den Story Creator schreibt Metadaten in den Text.**
+   Die angelegte Notiz beginnt mit `id: … name: … cr: … schemaVersion: 2`
+   als Fließtext im Editor. Das ist der Kopf der Datei, der nicht in den
+   Notizkörper gehört: entweder gar nicht exportieren oder als Kurzinfo
+   oben, nicht als Absatz. Betrifft die Brücke Monster → Story Creator.
+2. **Der Einklapp-Pfeil an Überschriften sitzt zu weit links.** Ein paar
+   Pixel nach rechts, damit er mittig zwischen Rand und Text steht
+   (Story Creator, Überschriften einklappen).
+3. **Die Platzhaltertexte im Steckbrief bleiben deutsch.** Bei „Age" steht
+   `z.B. 132`, bei „Pronouns" `z.B. sie/ihr`, auch wenn die Oberfläche auf
+   Englisch steht. Die Beispiele gehören in beide Sprachen.
