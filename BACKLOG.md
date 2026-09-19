@@ -1085,6 +1085,28 @@ Quelle unter CC-BY-4.0, die dasselbe liefert (Lazy GM's 5e Monster Builder
 Resource Document); die Lizenz ist gelesen, sollte aber vor dem Übernehmen
 von Zahlen noch einmal selbst geprüft werden.
 
+## Vorgemerkt: Initiative Tracker
+
+Aus dem Gebrauch. Die ersten beiden gleichen den Tracker an die neueren
+Werkzeuge an, der dritte räumt eine doppelte Einstellung weg.
+
+1. **Begegnungen als Sammlung, mit Kacheln und Suche.** Die gespeicherten
+   Begegnungen sehen heute anders aus als die Sammlungen im Monster Creator
+   und im Status Effect Creator: `Begegnungen.tsx` ist eine schlichte Liste
+   mit Namen und Teilnehmerzahl. Es fehlen die Kachelansicht und ein
+   Suchfeld, das **sowohl den Namen der Begegnung als auch die Namen der
+   Teilnehmer** durchsucht. Vorbild für die Suche ist `suche.ts` in
+   `apps/monster` und `apps/zustaende`.
+2. **Knopf „Neue Begegnung", mit Rückfrage.** Bevor der bisherige Stand
+   verlorengeht, und zwar in zwei Fällen: der Kampf läuft noch, oder die
+   aktuelle Begegnung ist nicht gespeichert. Dieselbe Sorte Dialog wie beim
+   Schließen einer Notiz im Story Creator — sagen, was verlorenginge, und
+   Abbrechen anbieten.
+3. **Der eigene Sprachwähler kann weg.** In der Werkzeugleiste sitzt ein
+   `EN`/`DE`-Wähler (`leiste__sprache`, `App.tsx`). Die Sprache steht in den
+   Einstellungen der Hülle und wird von dort an alle Werkzeuge
+   durchgereicht; zwei Stellen für dieselbe Einstellung sind eine zu viel.
+
 ## Vorgemerkt: vier Ausbauten für die Sammlung
 
 Aus einer Durchsicht, was der Sammlung noch fehlt. Alle vier stehen als
