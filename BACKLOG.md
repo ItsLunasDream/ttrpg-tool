@@ -1270,8 +1270,25 @@ Terrain-Eintrag in den Tracker.
 
 Zu klären: wie die Gruppe (Stufen, Anzahl) hinterlegt wird, welche
 Schwierigkeitsrechnung genommen wird und woher ihre Zahlen stammen dürfen
-(Lizenz, wie bei den Richtwerten im Monster Creator), und was beim Schieben
-in den Tracker mitwandert.
+(Lizenz, wie bei den Richtwerten im Monster Creator).
+
+**Die fertige Begegnung geht in einem Zug in den Initiative Tracker.** Das
+ist der Grund, warum das Werkzeug überhaupt lohnt: sonst tippt man am Tisch
+ab, was man vorher zusammengestellt hat. Was dabei mitwandern muss:
+
+- die Monster als Teilnehmer, mit Trefferpunkten, Rüstungsklasse und
+  Initiative-Modifikator, mehrere gleiche als „Wolf 1" bis „Wolf 4"
+- die Umgebung in ihren zwei Sorten: die Beschreibung als Text, die
+  Gameplay-Regel als Terrain-Eintrag (`istTerrain` gibt es schon)
+- der Verweis zurück auf die gespeicherte Begegnung, damit ein zweiter
+  Durchlauf nicht bei null anfängt
+
+Zwei Dinge, die dabei geklärt sein müssen: was passiert, wenn im Tracker
+noch ein Kampf läuft (dieselbe Rückfrage wie bei „Neue Begegnung",
+Punkt 2 der Tracker-Liste), und ob der Tracker Änderungen zurückschreibt
+oder die Begegnung nur als Vorlage liest. Ich würde zum Zweiten raten: eine
+Vorlage, die im Kampf nicht mitgeschrieben wird, ist leichter zu verstehen
+als zwei Stände, die auseinanderlaufen.
 
 ### 3. Konzept: Austausch-App für die Gruppe am Tisch
 
@@ -1351,3 +1368,36 @@ Zu klären:
 - **Attunement.** Ob ein Gegenstand Einstimmung braucht, ist im Spiel der
   stärkste Hebel gegen zu viel auf einmal, und gehört deshalb in die
   Rechnung.
+
+
+## Vorgemerkt: Umgebungen an einer Stelle
+
+Aus der Planung des Encounter Creators, aber eigenständig: Umgebungen gibt
+es heute dreimal, an drei Stellen, in drei Formen.
+
+- `apps/monster/src/shared/umgebungen.ts` — 16 Umgebungen mit Themenbindung
+  und den Merkmalen `wasser` und `grabbar`. Dient dazu, dass ein
+  schwimmendes Wesen nicht in der Wüste wohnt.
+- `apps/initiative/src/shared/kampf.ts` — Terrain als eigene Art
+  Teilnehmer (`istTerrain`), also die Umgebung als etwas, das im Kampf eine
+  Runde hat.
+- `apps/inspiration/src/shared/orte.ts` — Orte mit Ausstattung, also die
+  Umgebung als Beschreibung zum Vorlesen und als Vorlage für eine Karte.
+
+Drei Sichten auf dieselbe Sache, und keine kennt die andere. Der Encounter
+Creator wäre die vierte. Stattdessen: ein gemeinsames Paket unter
+`packages/`, das die Umgebung einmal beschreibt — Name, was man sieht, was
+am Tisch mit einer Zahl wirkt, welche Themen dazu passen — und das die
+Werkzeuge jeweils so lesen, wie sie es brauchen.
+
+Zu klären:
+
+- **Die Regel mit Zahl ist der neue Teil.** „Schneesturm: Sicht höchstens
+  30 Fuß" steht heute nirgends. Ohne sie bleibt die Vereinheitlichung ein
+  Umzug ohne Gewinn.
+- **Was `packages/` darf.** Die Regel der Sammlung gilt: plattformfrei,
+  kein `node:*`, kein `electron`, keine Browser-Globals. Für Tabellen und
+  reine Funktionen ist das kein Hindernis.
+- **Wie umgezogen wird, ohne etwas kaputtzumachen.** Der Monster Creator
+  hat Tests auf seine Umgebungen (Thema, Bewegung, beide Sprachen); die
+  müssen nach dem Umzug unverändert grün sein, sonst war es kein Umzug.
