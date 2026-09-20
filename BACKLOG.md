@@ -1207,3 +1207,82 @@ Zu klären, bevor gebaut wird:
 - **Dasselbe Muster anderswo.** Monster-Varianten und Begegnungen haben die
   gleiche Frage. Wenn die Gruppierung gebaut wird, dann so, dass die anderen
   Werkzeuge sie übernehmen können.
+
+## Vorgemerkt: Export nach Foundry, Encounter Creator, Austausch-App
+
+Drei Punkte aus der Planung. Der erste ist eine Aufgabe, die anderen zwei
+sind Konzepte, die vor dem Bauen geschrieben werden müssen.
+
+### 1. Monster und Zustände als JSON für Foundry
+
+Beide Werkzeuge exportieren heute Markdown. Für den Tisch am Bildschirm
+fehlt ein Export, den Foundry VTT einlesen kann.
+
+Offen und vor dem Bauen zu klären — hier fehlt mir belastbares Wissen, ich
+würde Feldnamen sonst raten:
+
+- **Welches Format genau.** Foundry kennt mehrere Wege hinein: das
+  JSON eines Actors aus dem System `dnd5e`, ein Compendium-Pack, oder das
+  Format eines Importer-Moduls. Die drei sehen verschieden aus und altern
+  verschieden schnell — das Actor-JSON hängt an der Version des
+  dnd5e-Systems, und die hat sich zwischen 2.x und 4.x deutlich geändert.
+  Erster Schritt ist deshalb nicht Code, sondern: eine Zielversion
+  festlegen und ein echtes Beispiel-JSON aus einer laufenden Installation
+  danebenlegen.
+- **Zustände haben in Foundry keinen sauberen Platz.** Ein Zustand mit
+  Stufen ist dort am ehesten ein Active Effect oder ein Item, kein Actor.
+  Was davon passt, entscheidet sich am Beispiel.
+- **Was verlorengeht.** Die Stufen, die Gegenpole und die Vorlesekarte haben
+  in einem Statblock kein Gegenstück. Lieber als Beschreibungstext
+  mitschicken als weglassen.
+
+Der Export bleibt zusätzlich, nicht anstelle von Markdown.
+
+### 2. Konzept: Encounter Creator
+
+Die Kachel `encounter` sagt heute „später". Das Konzept gehört geschrieben,
+bevor gebaut wird; im Backlog steht der Punkt schon grob (Monster wählen,
+Schwierigkeit gegen die Gruppe rechnen, in den Tracker schieben).
+
+Neu dazu: **eigene Monster aus dem Monster Creator müssen wählbar sein**,
+nicht nur eine mitgelieferte Liste. Die Sammlung des Monster Creators ist
+die naheliegende Quelle, und die Gradangabe, die dort schon an jedem
+Monster hängt, ist genau das, was die Schwierigkeitsrechnung braucht. Ob
+zusätzlich eine SRD-Liste dazukommt, ist Teil des Konzepts.
+
+Zu klären: wie die Gruppe (Stufen, Anzahl) hinterlegt wird, welche
+Schwierigkeitsrechnung genommen wird und woher ihre Zahlen stammen dürfen
+(Lizenz, wie bei den Richtwerten im Monster Creator), und was beim Schieben
+in den Tracker mitwandert.
+
+### 3. Konzept: Austausch-App für die Gruppe am Tisch
+
+Eine eigene App für den Austausch, wenn eine Gruppe in Person spielt und
+alle die Sammlung haben: Notizen, Monster, Nachrichten und mehr hin- und
+herschicken. Zuerst nur im selben Netzwerk, später möglicherweise über das
+Internet. Gedacht als benannter Raum mit Passwort, Peer-to-Peer, am liebsten
+ohne Server.
+
+Das ist noch Konzept, deshalb hier nur, was vorher geklärt sein muss:
+
+- **Ohne Server geht im lokalen Netz, im Internet nicht ganz.** Im selben
+  WLAN finden sich die Geräte über mDNS/Bonjour und reden direkt
+  miteinander; dafür braucht es nichts weiter. Über das Internet scheitert
+  das an den Routern (NAT): dort braucht Peer-to-Peer fast immer einen
+  fremden Helfer zum Kennenlernen (STUN/Signaling), und bei ungünstigen
+  Anschlüssen läuft der Verkehr sogar über einen Relay. „Ohne Server" ist
+  also für Stufe 1 zu halten, für Stufe 2 nur mit Einschränkung.
+- **Was das Passwort leisten soll.** Ein Raumname plus Passwort kann
+  entweder nur den Zutritt regeln oder auch die Verbindung verschlüsseln.
+  Das Zweite ist das, was man will, und es entscheidet die Wahl der
+  Bibliothek.
+- **Wer was sehen darf.** Die Spielleitung schickt nicht alles an alle. Ein
+  Monster mit Statblock an einen Spieler ist ein Spoiler. Das Konzept muss
+  sagen, was geteilt wird, auf Zuruf oder dauerhaft.
+- **Eigene App oder Werkzeug in der Hülle.** Ein Werkzeug in der Sammlung
+  wäre ein Fenster wie die anderen; eine eigene App wäre nötig, wenn auch
+  Leute ohne die Sammlung mitmachen sollen. Das ist die erste Frage im
+  Konzept, weil davon alles andere abhängt.
+- **Die Ablagen sind heute getrennt.** Jedes Werkzeug schreibt in seinen
+  eigenen Ordner. Etwas Empfangenes muss in der richtigen Ablage landen und
+  darf Vorhandenes nicht überschreiben.
