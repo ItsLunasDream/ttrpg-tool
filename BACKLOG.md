@@ -1250,6 +1250,24 @@ die naheliegende Quelle, und die Gradangabe, die dort schon an jedem
 Monster hängt, ist genau das, was die Schwierigkeitsrechnung braucht. Ob
 zusätzlich eine SRD-Liste dazukommt, ist Teil des Konzepts.
 
+Ebenfalls dazu: **die Umgebung gehört in die Begegnung**, wählbar oder
+gewürfelt. Gemeint sind zwei Sorten, und beide müssen vorkommen:
+
+- **Was man sieht.** „Hohe Höhle, unten ein Wasserbecken, Hängebrücken
+  ziehen sich hindurch." Das ist die Beschreibung, aus der die Spielleitung
+  vorliest und aus der eine Karte entstehen kann.
+- **Was am Tisch wirkt.** „Schneesturm: man sieht höchstens 30 Fuß weit."
+  Eine Regel mit Zahl, keine Stimmung. Ohne diese Sorte ist die Umgebung
+  Deko.
+
+Drei Stellen, an die das anschließt, statt es ein viertes Mal zu bauen: der
+Monster Creator hat schon Umgebungen mit Themenbindung (`umgebungen.ts`),
+der Initiative Tracker kennt Terrain als eigene Art Teilnehmer
+(`istTerrain` in `kampf.ts`), und die Inspirationshilfe erzeugt
+Ortsbeschreibungen samt Ausstattung. Der Encounter Creator sollte diese drei
+zusammenführen: Beschreibung von der einen Seite, Gameplay-Regel als
+Terrain-Eintrag in den Tracker.
+
 Zu klären: wie die Gruppe (Stufen, Anzahl) hinterlegt wird, welche
 Schwierigkeitsrechnung genommen wird und woher ihre Zahlen stammen dürfen
 (Lizenz, wie bei den Richtwerten im Monster Creator), und was beim Schieben
@@ -1272,17 +1290,64 @@ Das ist noch Konzept, deshalb hier nur, was vorher geklärt sein muss:
   fremden Helfer zum Kennenlernen (STUN/Signaling), und bei ungünstigen
   Anschlüssen läuft der Verkehr sogar über einen Relay. „Ohne Server" ist
   also für Stufe 1 zu halten, für Stufe 2 nur mit Einschränkung.
-- **Was das Passwort leisten soll.** Ein Raumname plus Passwort kann
-  entweder nur den Zutritt regeln oder auch die Verbindung verschlüsseln.
-  Das Zweite ist das, was man will, und es entscheidet die Wahl der
-  Bibliothek.
+- **Entschieden: das Passwort regelt nur den Zutritt.** Verschlüsselung
+  ist ein eigener Punkt und kommt extra. Solange sie fehlt, gilt für Stufe 1
+  ausdrücklich: alles im Raum liegt für jeden im selben Netz offen. Im
+  eigenen WLAN am Spieltisch ist das vertretbar; in einem fremden Netz
+  (Bibliothek, Laden, Uni) nicht, und das gehört als Hinweis in die
+  Oberfläche, nicht nur in die Doku. Über das Internet darf es ohne
+  Verschlüsselung gar nicht erst gehen.
 - **Wer was sehen darf.** Die Spielleitung schickt nicht alles an alle. Ein
   Monster mit Statblock an einen Spieler ist ein Spoiler. Das Konzept muss
   sagen, was geteilt wird, auf Zuruf oder dauerhaft.
-- **Eigene App oder Werkzeug in der Hülle.** Ein Werkzeug in der Sammlung
-  wäre ein Fenster wie die anderen; eine eigene App wäre nötig, wenn auch
-  Leute ohne die Sammlung mitmachen sollen. Das ist die erste Frage im
-  Konzept, weil davon alles andere abhängt.
+- **Entschieden: ein Werkzeug in der Hülle**, keine eigene App. Damit ist
+  auch gesagt, dass es viel mit den anderen Werkzeugen reden muss — eine
+  Notiz kommt aus dem Story Creator, ein Monster aus dem Monster Creator,
+  ein Zustand aus dem Status Effect Creator. Heute gibt es dafür nur
+  Einzelbrücken zwischen je zwei Werkzeugen (Monster → Story Creator, NPC →
+  Story Creator, Inspiration → Karteneditor). Ein Werkzeug, das von allen
+  etwas holt und an alle etwas zurückgibt, braucht das als gemeinsame
+  Schnittstelle: „gib mir deine Einträge", „nimm diesen Eintrag an". Das ist
+  der größte Brocken am ganzen Punkt und sollte im Konzept vor der
+  Netzwerkfrage stehen — die Verbindung ist das kleinere Problem.
 - **Die Ablagen sind heute getrennt.** Jedes Werkzeug schreibt in seinen
   eigenen Ordner. Etwas Empfangenes muss in der richtigen Ablage landen und
   darf Vorhandenes nicht überschreiben.
+
+## Vorgemerkt: Magic Item Creator
+
+Ein weiteres Werkzeug in derselben Form wie der Monster Creator und der
+Status Effect Creator: magische Gegenstände erzeugen, in einer Sammlung
+ablegen, nach Foundry exportieren. Bezug ist D&D 2024, wie bei den anderen.
+
+Warum es hierher passt: die drei Teile, die so ein Werkzeug braucht, stehen
+schon. Tabellen mit zweisprachigen Paaren, eine Ablage mit Kacheln und
+Suche, Platzhalter für Zahlen im Text (`platzhalter.ts` im Monster Creator
+füllt genau so die Würfel und SGs ein). Der Gegenstand ist die kleinste der
+drei Sorten — kein Statblock, keine Stufen.
+
+Das **Punktesystem je Seltenheit** ist der interessante Teil und zugleich
+der, bei dem ich ehrlich sein muss: **eine offizielle Formel, die Seltenheit
+in Punkte umrechnet, kenne ich nicht.** Das Regelwerk ordnet Gegenstände
+Seltenheitsstufen zu und gibt Preisspannen, aber keine Rechnung, aus der man
+„dieser Effekt kostet 4 Punkte" ableiten könnte. Wenn ich hier eine Tabelle
+erfinde, ist sie erfunden. Der gangbare Weg ist derselbe wie bei den
+Zuständen: eine eigene Skala aufstellen, den vorhandenen Gegenständen
+Punkte zuweisen und prüfen, ob die Reihenfolge stimmt (ein Common landet
+unter einem Very Rare). Das ist eine Eichung, keine Ableitung, und sie
+gehört genauso benannt.
+
+Zu klären:
+
+- **Woher die Vergleichsgegenstände kommen dürfen.** Dieselbe Lizenzfrage
+  wie bei den Richtwerten im Monster Creator: was aus einer CC-BY-Quelle
+  stammt, darf hinein, mit Namensnennung.
+- **Was die Punkte überhaupt zählen.** Ein Bonus auf Angriff wiegt anders
+  als eine Ladung pro Tag, und „einmal am Tag" ist etwas anderes als
+  „dauernd". Ohne diese Achsen ist die Skala eine Zahl ohne Bedeutung.
+- **Verzehrbares und Fluch.** Ein Trank ist kein dauerhafter Gegenstand,
+  und ein Fluch zieht Punkte ab statt sie hinzuzufügen. Beides sollte von
+  Anfang an vorgesehen sein, sonst wird es später angeflanscht.
+- **Attunement.** Ob ein Gegenstand Einstimmung braucht, ist im Spiel der
+  stärkste Hebel gegen zu viel auf einmal, und gehört deshalb in die
+  Rechnung.
