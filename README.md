@@ -268,6 +268,11 @@ numbers mean is up to the table.
   tools and stays navigation.
 - Encounters are documents (Markdown with a YAML header); the running fight
   is session state and sits next to them as JSON.
+- **The encounter list is a collection**, laid out like the ones in the
+  Monster and Status Effect Creators: tiles to browse, a list to scan, a
+  search box above. Search covers the encounter's name *and* the names of
+  its participants — you usually remember who was in the fight, not what you
+  called it.
 - Images are copied into the tool's own folder, not linked.
 
 The rules are pure functions in `src/shared/kampf.ts`. A mistake in turn

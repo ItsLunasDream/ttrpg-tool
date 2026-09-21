@@ -238,6 +238,53 @@ app.whenReady().then(async () => {
     pruefe(inhalt.includes('Goblin'), 'und mit den Teilnehmern darin');
   }
 
+  // --- Die Sammlung: Kacheln und Suche ------------------------------------
+  /*
+   * Aufgebaut wie im Monster Creator. Geprueft wird vor allem das, was diese
+   * Sammlung von den anderen unterscheidet: gesucht wird auch ueber die
+   * Namen der Teilnehmer, nicht nur ueber den der Begegnung.
+   */
+  await js(`[...document.querySelectorAll('button')].find(
+    b => /Open encounter|Begegnung öffnen|Öffnen|Open/.test(b.textContent)).click(); true`);
+  await warte(600);
+  pruefe(await js("Boolean(document.querySelector('.kacheln'))"), 'die Sammlung zeigt Kacheln');
+  pruefe(
+    (await js("document.querySelectorAll('.kacheln .kachel').length")) === 1,
+    'die gespeicherte Begegnung steht als Kachel da'
+  );
+
+  const suchfeld = "document.querySelector('.sammlung__suche')";
+  const tippe = async (wort) =>
+    js(`(() => { const f = ${suchfeld};
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(f, '${wort}');
+      f.dispatchEvent(new Event('input',{bubbles:true})); return true; })()`);
+  const kachelZahl = () => js("document.querySelectorAll('.kacheln .kachel').length");
+
+  await tippe('Testbegegnung');
+  await warte(300);
+  pruefe((await kachelZahl()) === 1, 'die Suche findet den Namen der Begegnung');
+
+  // Goblin ist der Teilnehmer von weiter oben — im Namen der Begegnung steht
+  // er nicht.
+  await tippe('Goblin');
+  await warte(300);
+  pruefe((await kachelZahl()) === 1, 'und den Namen eines Teilnehmers');
+
+  await tippe('Drachenhort');
+  await warte(300);
+  pruefe((await kachelZahl()) === 0, 'und findet nichts, wo nichts ist');
+
+  await tippe('');
+  await warte(300);
+  await js(`[...document.querySelectorAll('.sammlung__ansicht button')].pop().click(); true`);
+  await warte(300);
+  pruefe(
+    await js("Boolean(document.querySelector('.begegnungen__liste'))"),
+    'der Umschalter bringt die Liste'
+  );
+  await js(`document.querySelector('.begegnungen__zu').click(); true`);
+  await warte(400);
+
   // --- Kampf beenden ------------------------------------------------------
   // Auch das lief ueber einen Browser-Dialog (`confirm`) und haette den
   // Renderer angehalten.

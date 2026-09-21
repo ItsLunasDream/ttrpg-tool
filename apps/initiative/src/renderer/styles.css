@@ -590,13 +590,137 @@ input[type='number'] {
 }
 
 .begegnungen__zu {
-  position: absolute;
-  top: 6px;
-  right: 8px;
   padding: 2px 8px;
   background: none;
   border: 0;
   color: var(--text-leise);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.begegnungen__kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.begegnungen__titel {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-leise);
+}
+
+/* ---------- Sammlung: Leiste, Kacheln, Liste ----------
+   Dieselbe Form wie im Monster Creator und im Status Effect Creator. Wer
+   zwischen den Werkzeugen wechselt, soll nicht jedes Mal umlernen. */
+
+.sammlung__leiste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.sammlung__suche {
+  flex: 1;
+  min-width: 180px;
+}
+
+.sammlung__ansicht {
+  display: flex;
+  gap: 4px;
+}
+
+.knopf--klein {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+.knopf--an {
+  border-color: var(--betont);
+  color: var(--betont);
+}
+
+.sammlung__zahl {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.kacheln {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.kacheln li {
+  position: relative;
+}
+
+.kachel {
+  width: 100%;
+  text-align: left;
+  background: var(--grund);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  padding: 12px 14px;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+}
+
+.kachel:hover {
+  border-color: var(--betont);
+}
+
+.kachel__oben {
+  font-size: 11px;
+  color: var(--betont);
+  letter-spacing: 0.06em;
+}
+
+.kachel__name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Die Teilnehmer darunter: eine Zeile, der Rest wird abgeschnitten. Eine
+   Kachel, die mit zwoelf Namen in die Hoehe waechst, sprengt das Raster. */
+.kachel__unten {
+  font-size: 12px;
+  color: var(--text-leise);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kachel__weg {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: none;
+  border: 0;
+  color: var(--text-leise);
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.kacheln li:hover .kachel__weg,
+.kachel__weg:focus-visible {
+  opacity: 1;
 }
 
 /* ---------- Meldung ---------- */
