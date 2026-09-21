@@ -1218,23 +1218,78 @@ sind Konzepte, die vor dem Bauen geschrieben werden müssen.
 Beide Werkzeuge exportieren heute Markdown. Für den Tisch am Bildschirm
 fehlt ein Export, den Foundry VTT einlesen kann.
 
-Offen und vor dem Bauen zu klären — hier fehlt mir belastbares Wissen, ich
-würde Feldnamen sonst raten:
+**Die Zielversion steht jetzt fest.** Aus vier echten Exporten aus der
+laufenden Installation: Foundry-Kern 14.x, System `dnd5e` 5.3.3,
+`system.source.rules: "2024"`. Danach richtet sich der Export; eine
+Fehlermeldung beim Import gegen eine andere Systemversion ist zu erwarten
+und kein Grund, das Format zu verwässern.
 
-- **Welches Format genau.** Foundry kennt mehrere Wege hinein: das
-  JSON eines Actors aus dem System `dnd5e`, ein Compendium-Pack, oder das
-  Format eines Importer-Moduls. Die drei sehen verschieden aus und altern
-  verschieden schnell — das Actor-JSON hängt an der Version des
-  dnd5e-Systems, und die hat sich zwischen 2.x und 4.x deutlich geändert.
-  Erster Schritt ist deshalb nicht Code, sondern: eine Zielversion
-  festlegen und ein echtes Beispiel-JSON aus einer laufenden Installation
-  danebenlegen.
-- **Zustände haben in Foundry keinen sauberen Platz.** Ein Zustand mit
-  Stufen ist dort am ehesten ein Active Effect oder ein Item, kein Actor.
-  Was davon passt, entscheidet sich am Beispiel.
-- **Was verlorengeht.** Die Stufen, die Gegenpole und die Vorlesekarte haben
-  in einem Statblock kein Gegenstück. Lieber als Beschreibungstext
-  mitschicken als weglassen.
+Was die Beispiele zeigen — zwei offizielle (Archmage, Rage) und zwei eigene
+(Relentless Warrior, Absolute Zero):
+
+**Monster = ein Actor vom Typ `npc`.** Die Felder, die der Monster Creator
+schon hat, haben dort alle einen Platz:
+
+| bei uns | in Foundry |
+| --- | --- |
+| Attribute | `system.abilities.<str…cha>.value`, Rettungswurf-Übung als `proficient: 1` |
+| RK | `system.attributes.ac` = `{ calc: "flat", flat: 18 }` |
+| TP | `system.attributes.hp` = `{ value, max, formula }` |
+| Bewegung | `system.attributes.movement.walk` — als **Zeichenkette** „30", dazu `burrow/climb/fly/swim`, `units: "ft"` |
+| Sinne | `system.attributes.senses.ranges.darkvision` usw. |
+| Grad | `system.details.cr` (Zahl; ½ wäre 0.5) |
+| Art | `system.details.type.value` („undead", „humanoid") |
+| Größe | `system.traits.size` („med") |
+| Resistenzen | `traits.dr`, Immunitäten `traits.di`, Verwundbarkeiten `traits.dv`, Zustandsimmunitäten `traits.ci` — je `{ value: [...], custom: "" }` |
+| legendäre Aktionen | `system.resources.legact.max` |
+
+**Fähigkeiten und Angriffe sind eigene Items im Actor**, nicht Felder:
+Fähigkeiten als `type: "feat"` mit `system.type.value: "monster"` und der
+Beschreibung als HTML in `system.description.value`; Angriffe als
+`type: "weapon"` mit `system.damage.base` = `{ number: 4, denomination: 10,
+types: ["force"] }` und `system.range` = `{ reach: 5, value: 150, units:
+"ft" }`.
+
+**Der Fund, der uns direkt hilft:** die Beschreibung kennt Enricher, also
+klickbare Würfe im Fließtext. Im Homebrew steht
+`[[/damage 1d4 type=necrotic]]`, im offiziellen Archmage
+`[[/attack extended]]. [[/damage average extended]]`. Unsere Platzhalter
+aus `platzhalter.ts` können also direkt in diese Form geschrieben werden,
+statt als toter Text. Vom zweiten Sorte Enricher, den `@UUID[Compendium…]`-
+Verweisen, sollten wir die Finger lassen: die zeigen auf Inhalte, die eine
+fremde Installation nicht haben muss.
+
+**Offen geblieben, ehrlich benannt:** unser Angriffsbonus ist eine feste
+Zahl, Foundry rechnet ihn aus Attribut plus Übungsbonus. In den Beispielen
+steht bei `activities.<id>.attack` ein `flat: false` und ein leeres
+`bonus`. Ob sich unsere Zahl mit `flat: true` plus `bonus` festnageln lässt,
+schließe ich aus den Feldnamen — **ausprobiert habe ich es nicht.** Das ist
+der erste Test beim Bauen.
+
+**Zustände: der bessere Weg ist der, den du selbst gewählt hast.** „Absolute
+Zero" ist kein Active Effect, sondern ein Item `type: "feat"` — die Stufen
+stehen als Liste in der HTML-Beschreibung, und *eine* Aktivität vom Typ
+`save` trägt den SG (`save.ability: ["con"]`, `save.dc.formula: "16"`). Das
+passt eins zu eins auf unser Modell: Wirkungen je Stufe als Liste,
+Rettungswurf als eine Zahl. Der andere Weg wäre „Rage": dort automatisiert
+ein Active Effect mit `system.changes[]` (`key: "system.traits.dr.value"`,
+`value: "slashing"`, `type: "add"`) die Regel wirklich. Das ist deutlich
+mehr Arbeit — für Stufen bräuchte es einen Effekt je Stufe — und sollte
+erst kommen, wenn der einfache Export steht.
+
+**Kleinkram, der einen Import sonst kaputt macht:**
+
+- IDs sind 16 Zeichen lang (`blq8X7qsos2imCpP`, `mmArchmage000000`). Unsere
+  Erzeugung muss dasselbe Format liefern.
+- `folder` beim Actor zeigt im Export auf einen Ordner der Welt
+  (`"0WNu3ZCW…"`). Wir schreiben dort `null`.
+- `img` zeigt im Homebrew auf `tokenizer/npc-images/…` — Dateien, die eine
+  andere Installation nicht hat. Entweder ein Pfad aus dem System oder das
+  Feld weglassen.
+- `_stats` mit `systemId`, `systemVersion` und `coreVersion` mitschreiben,
+  damit erkennbar bleibt, wogegen erzeugt wurde.
+- Was in keine Liste passt, gehört in das `custom`-Feld daneben — im
+  Homebrew steht so „Sleep" bei den Zustandsimmunitäten.
 
 Der Export bleibt zusätzlich, nicht anstelle von Markdown.
 
