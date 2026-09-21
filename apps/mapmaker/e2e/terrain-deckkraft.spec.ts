@@ -21,41 +21,37 @@ interface Messung {
   kreuzung: [number, number, number, number];
 }
 
-// Der Fehler steht noch: an der Kreuzung ist das Rot um rund 27 Stufen
-// kraeftiger als auf einer einzelnen Lage. Die Pruefung bleibt als
-// Nachstellung stehen, bis entschieden ist, wie sie behoben wird — die drei
-// moeglichen Wege stehen im BACKLOG.
-test.fixme('eine gemalte Terrain-Fläche ist überall gleich deckend', async ({ page }) => {
+test('eine gemalte Terrain-Fläche ist überall gleich deckend', async ({ page }) => {
   await oeffneEditor(page);
   await werkzeug(page, 'terrain');
 
-  // Zeichnen und Bild ablegen — in einem eigenen Schritt, damit zwischen
-  // Playwright und der Seite kein langes Versprechen haengt.
-  await page.evaluate(() => {
+  // Gezeichnet wird in Canvas-Koordinaten — so, wie ein Zeiger es taete.
+  const messung = await page.evaluate<Messung>(() => {
     const T = window.T;
     T.state().patchTerrain({ color: 0xff0000, alpha: 0.5, width: 60, smoothing: 0 });
-    T.look(0, 0, 1);
-    T.pump(2);
-    // Ein Strich, der sich selbst kreuzt: hin und wieder zurueck ueber die
-    // eigene Spur. Genau das tut, wer eine Flaeche ausmalt.
+    T.pump(1);
+
+    const c = T.canvas()!;
+    const mx = Math.round(c.clientWidth / 2);
+    const my = Math.round(c.clientHeight / 2);
+
+    // Ein Strich, der sich in der Mitte selbst kreuzt: hin und wieder zurueck
+    // ueber die eigene Spur. Genau das tut, wer eine Flaeche ausmalt.
     T.stroke([
-      [-150, -80],
-      [0, 0],
-      [150, 80],
-      [150, -80],
-      [0, 0],
-      [-150, 80],
+      [mx - 150, my - 80],
+      [mx, my],
+      [mx + 150, my + 80],
+      [mx + 150, my - 80],
+      [mx, my],
+      [mx - 150, my + 80],
     ]);
     T.pump(3);
-  });
-  await page.waitForTimeout(300);
 
-  const messung = await page.evaluate<Messung>(() => {
-    // Die Weltmitte (0|0) ist die Kreuzung; auf halbem Weg nach aussen liegt
-    // eine einzelne Lage.
-    const [kreuzung, einzeln] = window.T.probe([
-      [0, 0],
-      [100, 53],
+    // Die Kreuzung liegt in der Mitte; eine einzelne Lage auf halbem Weg nach
+    // aussen entlang des ersten Schenkels.
+    const [kreuzung, einzeln] = T.probe([
+      [mx, my],
+      [mx - 75, my - 40],
     ]);
     return { einzeln, kreuzung };
   });

@@ -38,11 +38,14 @@ export interface DevHarness {
   wait(ms: number): Promise<void>;
   look(x: number, y: number, zoom: number): void;
   /**
-   * Farbe an Weltpunkten, aus dem fertig gezeichneten Bild.
+   * Farbe an Punkten des Bildschirms, aus dem fertig gezeichneten Bild.
    *
    * Manche Fragen lassen sich nur am Bild beantworten — ob eine Flaeche
    * ueberall gleich deckt zum Beispiel. Das Modell weiss das nicht, dort steht
    * nur ein Polygon.
+   *
+   * Die Punkte zaehlen wie bei `ptr` vom linken oberen Eck des Canvas, nicht
+   * in Weltkoordinaten: so misst man dort, wo man geklickt hat.
    */
   probe(punkte: Array<[number, number]>): Array<[number, number, number, number]>;
   shot(name: string, width?: number): Promise<string>;
@@ -209,10 +212,12 @@ export function installDevHarness(): void {
       });
       r.app.renderer.render({ container: r.app.stage, target: rt });
       const { pixels, width, height } = r.app.renderer.extract.pixels(rt);
-      const aus = punkte.map(([wx, wy]) => {
-        const p = r.camera.worldToScreen(wx, wy);
-        const sx = Math.min(width - 1, Math.max(0, Math.round(p.x)));
-        const sy = Math.min(height - 1, Math.max(0, Math.round(p.y)));
+      const c = canvasEl();
+      const fx = c ? width / c.clientWidth : 1;
+      const fy = c ? height / c.clientHeight : 1;
+      const aus = punkte.map(([px, py]) => {
+        const sx = Math.min(width - 1, Math.max(0, Math.round(px * fx)));
+        const sy = Math.min(height - 1, Math.max(0, Math.round(py * fy)));
         const i = (sy * width + sx) * 4;
         return [pixels[i], pixels[i + 1], pixels[i + 2], pixels[i + 3]] as [
           number,

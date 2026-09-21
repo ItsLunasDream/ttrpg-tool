@@ -1619,23 +1619,27 @@ ausmalt, trifft das also fast immer.
 `cacheAsTexture` flachlegen, weder beim Bauen noch beim Setzen der
 Deckkraft. Der Wert bleibt bei 27.
 
-**Drei Wege, und keiner ist umsonst** — das gehört entschieden, bevor jemand
-anfängt:
+**Behoben, Weg: eigene Textur.** Die Fläche wird einmal voll deckend in ein
+eigenes Bild gezeichnet — dort schadet die doppelte Füllung nichts, deckend
+über deckend bleibt deckend — und dieses Bild dann mit der gewünschten
+Deckkraft angezeigt. Ein Bild ist ein einziges Viereck, da überlappt nichts
+mehr. Weiche Kanten bleiben erhalten, eine neue Abhängigkeit braucht es
+nicht, und am Speicherformat ändert sich nichts.
 
-1. **Vereinigung der Kontur beim Malen** (Bibliothek wie `polygon-clipping`,
-   MIT, klein). Sauber an der Wurzel, hilft auch Export und Treffertest.
-   Kostet eine neue Abhängigkeit *und* eine Änderung am Speicherformat: die
-   Vereinigung kann ein Loch haben — ein im Kreis gemalter Weg —, und eine
-   `ShapeObject` kennt heute nur einen Ring. Ohne Löcher liefe der Kreis
-   voll.
-2. **Maske statt Füllung.** Die Form wird zur Maske, gefüllt wird ein
-   einfaches Rechteck. Die Maske ist binär, Überlappungen zählen nicht
-   doppelt. Billig und ohne Abhängigkeit, aber Maskenkanten sind hart: die
-   Fläche bekäme ausgefranste Ränder.
-3. **Selbst in eine Textur rendern.** Die Fläche deckend in eine eigene
-   Textur zeichnen und diese mit der Deckkraft anzeigen. Behält weiche
-   Kanten und braucht nichts Neues, kostet aber Texturspeicher je Fläche und
-   ein Neuzeichnen bei jeder Zoomstufe.
+Der Weg gilt nur für die schlichte durchscheinende Füllung ohne Strich und
+ohne Muster, also genau für den Terrain-Pinsel. Wo ein Strich dazukommt, hat
+der seine eigene Deckkraft, die sich mit der der Füllung nicht in einem Bild
+verrechnen lässt; dort bleibt es beim Zeichnen wie bisher.
 
-Bis das entschieden ist, steht die Prüfung als `test.fixme` im Baum: sie
-beschreibt den Fehler und schlägt nicht fehl.
+Die beiden anderen Wege, zum Nachlesen, falls der gewählte je Ärger macht:
+die Kontur beim Malen vereinigen (Bibliothek plus Änderung am
+Speicherformat, weil eine Vereinigung ein Loch haben kann) oder eine Maske
+statt der Füllung (billig, aber harte, ausgefranste Kanten). Nicht geholfen
+hat `cacheAsTexture` von Pixi, weder beim Bauen noch beim Setzen der
+Deckkraft — gemessen, der Wert blieb unverändert.
+
+Zwei Dinge, die der Weg mitbringt und die im Blick bleiben müssen: die
+Schärfe hängt an der Zoomstufe, mit der gebacken wurde, deshalb backt der
+Renderer nach, wenn der Zoom sich verdoppelt oder halbiert hat; und die
+Bildgröße ist auf 2048 Texel je Kante gedeckelt, damit eine riesige Fläche
+nicht den Speicher sprengt.

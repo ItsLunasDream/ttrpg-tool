@@ -26,6 +26,8 @@ import {
   Container,
   Culler,
   Graphics,
+  Matrix,
+  RenderTexture,
   Sprite,
   Text,
   type BLEND_MODES,
@@ -289,6 +291,7 @@ export class MapRenderer {
     this.drawVignette(doc);
     this.drawSelection(doc);
 
+    this.pruefeFlaechenSchaerfe(doc);
     this.cullIfNeeded(doc);
   }
 
@@ -641,9 +644,111 @@ export class MapRenderer {
         return sprite;
       }
       case 'shape':
-        return this.buildShape(obj);
+        return this.alsBild(obj) ? this.buildFlaechenBild(obj) : this.buildShape(obj);
       case 'text':
         return this.buildText(doc, obj);
+    }
+  }
+
+  /**
+   * Gehört diese Fläche als eigenes Bild in die Szene?
+   *
+   * Nur für die schlichte durchscheinende Füllung ohne Strich und ohne Muster
+   * — das ist der Terrain-Pinsel. Wo ein Strich dazukommt, hat er seine eigene
+   * Deckkraft, die sich nicht mit der der Füllung in einem Bild verrechnen
+   * lässt; dort bleibt es beim Zeichnen wie bisher.
+   */
+  private alsBild(obj: ShapeObject): boolean {
+    return (
+      !!obj.fill &&
+      obj.fill.alpha < 1 &&
+      !obj.stroke &&
+      !obj.fill.pattern &&
+      obj.shape !== 'line' &&
+      obj.points.length >= 6
+    );
+  }
+
+  private buildFlaechenBild(obj: ShapeObject): FlaechenBild {
+    const bild = new FlaechenBild();
+    bild.fuellDeckkraft = obj.fill?.alpha ?? 1;
+    this.backeFlaeche(obj, bild);
+    return bild;
+  }
+
+  /** Zeichnet die Fläche voll deckend in eine frische Textur. */
+  private backeFlaeche(obj: ShapeObject, bild: FlaechenBild): void {
+    const pts = obj.points;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (let i = 0; i < pts.length; i += 2) {
+      minX = Math.min(minX, pts[i]);
+      maxX = Math.max(maxX, pts[i]);
+      minY = Math.min(minY, pts[i + 1]);
+      maxY = Math.max(maxY, pts[i + 1]);
+    }
+    // Ein Rand, damit die weiche Kante nicht am Bildrand abgeschnitten wird.
+    const rand = 2;
+    const breite = Math.max(1, maxX - minX) + rand * 2;
+    const hoehe = Math.max(1, maxY - minY) + rand * 2;
+
+    const zoom = this.camera.zoom;
+    const deckel = Math.min(MAX_TEXEL / breite, MAX_TEXEL / hoehe);
+    const aufloesung = Math.max(0.05, Math.min(zoom, deckel));
+
+    const g = new Graphics();
+    this.tracePath(g, obj);
+    const verlauf = buildGradient(obj.fill!);
+    if (verlauf) g.fill({ fill: verlauf, alpha: 1 });
+    else g.fill({ color: obj.fill!.color, alpha: 1 });
+
+    const tex = RenderTexture.create({
+      width: Math.max(1, Math.round(breite * aufloesung)),
+      height: Math.max(1, Math.round(hoehe * aufloesung)),
+      resolution: 1,
+      antialias: true,
+    });
+    this.app.renderer.render({
+      container: g,
+      target: tex,
+      clear: true,
+      transform: new Matrix(
+        aufloesung,
+        0,
+        0,
+        aufloesung,
+        (-minX + rand) * aufloesung,
+        (-minY + rand) * aufloesung,
+      ),
+    });
+    g.destroy();
+
+    const alt = bild.texture;
+    bild.texture = tex;
+    if (alt && alt !== tex) alt.destroy(true);
+    bild.position.set(minX - rand, minY - rand);
+    bild.scale.set(1 / aufloesung);
+    bild.zoomDerTextur = aufloesung;
+  }
+
+  /**
+   * Backt Flächen nach, die für die jetzige Zoomstufe zu grob geworden sind.
+   *
+   * Läuft je Bild höchstens dann, wenn der Zoom sich verdoppelt oder halbiert
+   * hat — sonst würde bei jedem Mausrad-Schritt alles neu gezeichnet.
+   */
+  private pruefeFlaechenSchaerfe(doc: MapDocument): void {
+    const zoom = this.camera.zoom;
+    for (const [id, view] of this.objectViews) {
+      const bild = view.node;
+      if (!(bild instanceof FlaechenBild)) continue;
+      const faktor = zoom / bild.zoomDerTextur;
+      if (faktor <= SCHAERFE_TOLERANZ && faktor >= 1 / SCHAERFE_TOLERANZ) continue;
+      const obj = doc.objects[id];
+      if (obj?.kind !== 'shape') continue;
+      this.backeFlaeche(obj, bild);
     }
   }
 
@@ -878,7 +983,9 @@ export class MapRenderer {
   private applyTransform(doc: MapDocument, obj: MapObject, node: Container): void {
     node.position.set(obj.x, obj.y);
     node.rotation = obj.rotation;
-    node.alpha = obj.opacity;
+    // Bei einem Flaechenbild steckt die Deckkraft der Fuellung nicht im Bild —
+    // dort ist sie voll deckend, damit die Lagen des Striches nicht durchschlagen.
+    node.alpha = obj.opacity * (node instanceof FlaechenBild ? node.fuellDeckkraft : 1);
     node.zIndex = obj.z;
 
     if (obj.kind === 'prop') {
@@ -1310,6 +1417,50 @@ function pointsHash(points: number[]): number {
  * Punkte im Schlüssel blieb ein verschobener Stützpunkt im Bild stehen, wo er
  * war, obwohl das Modell längst den neuen Ort kannte.
  */
+/**
+ * Eine gefüllte Fläche als eigenes Bild statt als Zeichnung.
+ *
+ * **Warum das sein muss.** Eine mit dem Terrain-Pinsel gemalte Fläche ist ein
+ * einziges Polygon, dessen Kontur sich überschlägt — überall dort, wo der
+ * Strich sich selbst kreuzt oder enger biegt, als der Pinsel breit ist. Beim
+ * Zeichnen wird so ein Polygon in Dreiecke zerlegt, die einander überlappen,
+ * und überlappende Dreiecke werden zweimal gefüllt. Bei voller Deckkraft
+ * sieht man davon nichts; sobald die Fläche durchscheinend ist, treten die
+ * Lagen des Striches hervor, und aus dem Boden wird ein Stapel.
+ *
+ * Der Ausweg: die Fläche einmal **voll deckend** in ein eigenes Bild zeichnen
+ * — dort schadet die doppelte Füllung nicht, deckend über deckend bleibt
+ * deckend — und dieses Bild dann mit der gewünschten Deckkraft anzeigen. Das
+ * Bild ist ein einziges Viereck, da gibt es nichts mehr zu überlappen.
+ *
+ * `cacheAsTexture` von Pixi tut dem Anschein nach dasselbe, hat den Fehler in
+ * der Messung aber nicht behoben — deshalb die eigene Textur, die wir in der
+ * Hand haben.
+ *
+ * **Die Schärfe** hängt an der Zoomstufe, mit der das Bild gebacken wurde.
+ * `zoomDerTextur` hält sie fest; der Renderer backt neu, wenn sich der Zoom
+ * weit genug davon entfernt hat. Ohne das wäre die Fläche beim Hineinzoomen
+ * matschig.
+ */
+class FlaechenBild extends Sprite {
+  /** Deckkraft der Füllung — steckt nicht im Bild, sondern kommt hier obendrauf. */
+  fuellDeckkraft = 1;
+  /** Bei welcher Zoomstufe gebacken wurde. */
+  zoomDerTextur = 1;
+
+  override destroy(options?: Parameters<Sprite['destroy']>[0]): void {
+    const tex = this.texture;
+    super.destroy(options);
+    // Die Textur gehört diesem Sprite allein; ohne das bliebe sie im Speicher.
+    tex?.destroy(true);
+  }
+}
+
+/** So weit darf der Zoom von der gebackenen Schärfe abweichen, bevor neu gebacken wird. */
+const SCHAERFE_TOLERANZ = 2;
+/** Deckel für die Bildgröße, damit eine riesige Fläche nicht den Speicher sprengt. */
+const MAX_TEXEL = 2048;
+
 function viewKey(obj: MapObject): string {
   switch (obj.kind) {
     case 'prop':
