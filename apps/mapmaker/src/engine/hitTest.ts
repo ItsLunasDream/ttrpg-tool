@@ -71,7 +71,24 @@ export function halfExtents(
  * Mittelpunkt aus den Punkten berechnet und mitrotiert werden.
  */
 export function objectCenter(_doc: MapDocument, obj: MapObject): Point {
-  if (obj.kind !== 'shape') return { x: obj.x, y: obj.y };
+  const local = localCenterOffset(obj);
+  if (local.x === 0 && local.y === 0) return { x: obj.x, y: obj.y };
+  const cos = Math.cos(obj.rotation);
+  const sin = Math.sin(obj.rotation);
+  return {
+    x: obj.x + local.x * cos - local.y * sin,
+    y: obj.y + local.x * sin + local.y * cos,
+  };
+}
+
+/**
+ * Abstand der Mitte vom Ursprung, im *eigenen* Bezugssystem des Objekts.
+ *
+ * Bleibt beim Drehen gleich — anders als der Weltmittelpunkt. Wer um die Mitte
+ * drehen will, braucht genau diesen Wert (siehe `rotateAroundCenterPatch`).
+ */
+export function localCenterOffset(obj: MapObject): Point {
+  if (obj.kind !== 'shape') return { x: 0, y: 0 };
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -82,12 +99,8 @@ export function objectCenter(_doc: MapDocument, obj: MapObject): Point {
     minY = Math.min(minY, obj.points[i + 1]);
     maxY = Math.max(maxY, obj.points[i + 1]);
   }
-  if (!Number.isFinite(minX)) return { x: obj.x, y: obj.y };
-  const cx = (minX + maxX) / 2;
-  const cy = (minY + maxY) / 2;
-  const cos = Math.cos(obj.rotation);
-  const sin = Math.sin(obj.rotation);
-  return { x: obj.x + cx * cos - cy * sin, y: obj.y + cx * sin + cy * cos };
+  if (!Number.isFinite(minX)) return { x: 0, y: 0 };
+  return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
 }
 
 /** Achsenparallele Hülle in Weltkoordinaten — für Culling und Auswahlrahmen. */

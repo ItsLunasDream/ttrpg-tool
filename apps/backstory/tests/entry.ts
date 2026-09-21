@@ -50,3 +50,6 @@ export { layoutGraph } from '../src/renderer/graph/layout';
 export { buildGraphEdges, buildGraphNodes } from '../src/renderer/graph/build';
 export { CHANNEL_PREFIX, channel } from '../src/shared/channels';
 export { istAnbieterId } from '@suite/ki';
+
+export { kiAbgeschaltet } from '../src/renderer/components/AssistantThread';
+export { beispieltext } from '../src/shared/noteTypes';

@@ -1179,3 +1179,489 @@ Zwei Dinge vorher prüfen:
 3. **Die Platzhaltertexte im Steckbrief bleiben deutsch.** Bei „Age" steht
    `z.B. 132`, bei „Pronouns" `z.B. sie/ihr`, auch wenn die Oberfläche auf
    Englisch steht. Die Beispiele gehören in beide Sprachen.
+
+## Vorgemerkt: ein Paket bleibt in der Sammlung ein Paket
+
+Beim Status Effect Creator lässt sich ein Paket erzeugen — mehrere Zustände,
+die zusammen abgestimmt sind (`paket.ts`: gemeinsamer Vorrat, damit nicht
+dreimal derselbe Nachteil greift). In die Sammlung wandert davon aber nur
+das Ergebnis: vier einzelne Zustände, jeder als eigene Datei, jeder an
+seiner alphabetischen Stelle zwischen fremden Einträgen. Die Zusammen­
+gehörigkeit ist nach dem Speichern weg, und damit auch der Grund, warum man
+das Paket überhaupt gewürfelt hat.
+
+Das Paket soll die Sammlung als Einheit erreichen: eine Kachel für das
+Paket, aufklappbar zu seinen Zuständen, und die Suche findet es über den
+Paketnamen wie über die Namen der einzelnen Zustände.
+
+Zu klären, bevor gebaut wird:
+
+- **Ablage.** Heute kennt `ablage.ts` nur `Abgelegt` je Zustand. Entweder
+  bekommt jeder Zustand ein Feld `paket` im Kopf (kleiner Eingriff, die
+  Gruppe ergibt sich beim Einlesen) oder das Paket wird ein eigener
+  Eintragstyp mit Verweisen. Das erste passt besser dazu, dass ein Zustand
+  auch einzeln brauchbar bleibt.
+- **Einzeln herauslösen.** Man muss einen Zustand aus dem Paket weiter
+  einzeln benutzen, umbenennen und löschen können, ohne dass der Rest
+  kaputtgeht.
+- **Dasselbe Muster anderswo.** Monster-Varianten und Begegnungen haben die
+  gleiche Frage. Wenn die Gruppierung gebaut wird, dann so, dass die anderen
+  Werkzeuge sie übernehmen können.
+
+## Vorgemerkt: Export nach Foundry, Encounter Creator, Austausch-App
+
+Drei Punkte aus der Planung. Der erste ist eine Aufgabe, die anderen zwei
+sind Konzepte, die vor dem Bauen geschrieben werden müssen.
+
+### 1. Monster und Zustände als JSON für Foundry
+
+Beide Werkzeuge exportieren heute Markdown. Für den Tisch am Bildschirm
+fehlt ein Export, den Foundry VTT einlesen kann.
+
+**Die Zielversion steht jetzt fest.** Aus vier echten Exporten aus der
+laufenden Installation: Foundry-Kern 14.x, System `dnd5e` 5.3.3,
+`system.source.rules: "2024"`. Danach richtet sich der Export; eine
+Fehlermeldung beim Import gegen eine andere Systemversion ist zu erwarten
+und kein Grund, das Format zu verwässern.
+
+Was die Beispiele zeigen — zwei offizielle (Archmage, Rage) und zwei eigene
+(Relentless Warrior, Absolute Zero):
+
+**Monster = ein Actor vom Typ `npc`.** Die Felder, die der Monster Creator
+schon hat, haben dort alle einen Platz:
+
+| bei uns | in Foundry |
+| --- | --- |
+| Attribute | `system.abilities.<str…cha>.value`, Rettungswurf-Übung als `proficient: 1` |
+| RK | `system.attributes.ac` = `{ calc: "flat", flat: 18 }` |
+| TP | `system.attributes.hp` = `{ value, max, formula }` |
+| Bewegung | `system.attributes.movement.walk` — als **Zeichenkette** „30", dazu `burrow/climb/fly/swim`, `units: "ft"` |
+| Sinne | `system.attributes.senses.ranges.darkvision` usw. |
+| Grad | `system.details.cr` (Zahl; ½ wäre 0.5) |
+| Art | `system.details.type.value` („undead", „humanoid") |
+| Größe | `system.traits.size` („med") |
+| Resistenzen | `traits.dr`, Immunitäten `traits.di`, Verwundbarkeiten `traits.dv`, Zustandsimmunitäten `traits.ci` — je `{ value: [...], custom: "" }` |
+| legendäre Aktionen | `system.resources.legact.max` |
+
+**Fähigkeiten und Angriffe sind eigene Items im Actor**, nicht Felder:
+Fähigkeiten als `type: "feat"` mit `system.type.value: "monster"` und der
+Beschreibung als HTML in `system.description.value`; Angriffe als
+`type: "weapon"` mit `system.damage.base` = `{ number: 4, denomination: 10,
+types: ["force"] }` und `system.range` = `{ reach: 5, value: 150, units:
+"ft" }`.
+
+**Der Fund, der uns direkt hilft:** die Beschreibung kennt Enricher, also
+klickbare Würfe im Fließtext. Im Homebrew steht
+`[[/damage 1d4 type=necrotic]]`, im offiziellen Archmage
+`[[/attack extended]]. [[/damage average extended]]`. Unsere Platzhalter
+aus `platzhalter.ts` können also direkt in diese Form geschrieben werden,
+statt als toter Text. Vom zweiten Sorte Enricher, den `@UUID[Compendium…]`-
+Verweisen, sollten wir die Finger lassen: die zeigen auf Inhalte, die eine
+fremde Installation nicht haben muss.
+
+**Offen geblieben, ehrlich benannt:** unser Angriffsbonus ist eine feste
+Zahl, Foundry rechnet ihn aus Attribut plus Übungsbonus. In den Beispielen
+steht bei `activities.<id>.attack` ein `flat: false` und ein leeres
+`bonus`. Ob sich unsere Zahl mit `flat: true` plus `bonus` festnageln lässt,
+schließe ich aus den Feldnamen — **ausprobiert habe ich es nicht.** Das ist
+der erste Test beim Bauen.
+
+**Zustände: der bessere Weg ist der, den du selbst gewählt hast.** „Absolute
+Zero" ist kein Active Effect, sondern ein Item `type: "feat"` — die Stufen
+stehen als Liste in der HTML-Beschreibung, und *eine* Aktivität vom Typ
+`save` trägt den SG (`save.ability: ["con"]`, `save.dc.formula: "16"`). Das
+passt eins zu eins auf unser Modell: Wirkungen je Stufe als Liste,
+Rettungswurf als eine Zahl. Der andere Weg wäre „Rage": dort automatisiert
+ein Active Effect mit `system.changes[]` (`key: "system.traits.dr.value"`,
+`value: "slashing"`, `type: "add"`) die Regel wirklich. Das ist deutlich
+mehr Arbeit — für Stufen bräuchte es einen Effekt je Stufe — und sollte
+erst kommen, wenn der einfache Export steht.
+
+**Kleinkram, der einen Import sonst kaputt macht:**
+
+- IDs sind 16 Zeichen lang (`blq8X7qsos2imCpP`, `mmArchmage000000`). Unsere
+  Erzeugung muss dasselbe Format liefern.
+- `folder` beim Actor zeigt im Export auf einen Ordner der Welt
+  (`"0WNu3ZCW…"`). Wir schreiben dort `null`.
+- `img` zeigt im Homebrew auf `tokenizer/npc-images/…` — Dateien, die eine
+  andere Installation nicht hat. Entweder ein Pfad aus dem System oder das
+  Feld weglassen.
+- `_stats` mit `systemId`, `systemVersion` und `coreVersion` mitschreiben,
+  damit erkennbar bleibt, wogegen erzeugt wurde.
+- Was in keine Liste passt, gehört in das `custom`-Feld daneben — im
+  Homebrew steht so „Sleep" bei den Zustandsimmunitäten.
+
+Der Export bleibt zusätzlich, nicht anstelle von Markdown.
+
+### 2. Konzept: Encounter Creator
+
+Die Kachel `encounter` sagt heute „später". Das Konzept gehört geschrieben,
+bevor gebaut wird; im Backlog steht der Punkt schon grob (Monster wählen,
+Schwierigkeit gegen die Gruppe rechnen, in den Tracker schieben).
+
+Neu dazu: **eigene Monster aus dem Monster Creator müssen wählbar sein**,
+nicht nur eine mitgelieferte Liste. Die Sammlung des Monster Creators ist
+die naheliegende Quelle, und die Gradangabe, die dort schon an jedem
+Monster hängt, ist genau das, was die Schwierigkeitsrechnung braucht. Ob
+zusätzlich eine SRD-Liste dazukommt, ist Teil des Konzepts.
+
+Ebenfalls dazu: **die Umgebung gehört in die Begegnung**, wählbar oder
+gewürfelt. Gemeint sind zwei Sorten, und beide müssen vorkommen:
+
+- **Was man sieht.** „Hohe Höhle, unten ein Wasserbecken, Hängebrücken
+  ziehen sich hindurch." Das ist die Beschreibung, aus der die Spielleitung
+  vorliest und aus der eine Karte entstehen kann.
+- **Was am Tisch wirkt.** „Schneesturm: man sieht höchstens 30 Fuß weit."
+  Eine Regel mit Zahl, keine Stimmung. Ohne diese Sorte ist die Umgebung
+  Deko.
+
+Drei Stellen, an die das anschließt, statt es ein viertes Mal zu bauen: der
+Monster Creator hat schon Umgebungen mit Themenbindung (`umgebungen.ts`),
+der Initiative Tracker kennt Terrain als eigene Art Teilnehmer
+(`istTerrain` in `kampf.ts`), und die Inspirationshilfe erzeugt
+Ortsbeschreibungen samt Ausstattung. Der Encounter Creator sollte diese drei
+zusammenführen: Beschreibung von der einen Seite, Gameplay-Regel als
+Terrain-Eintrag in den Tracker.
+
+Zu klären: wie die Gruppe (Stufen, Anzahl) hinterlegt wird, welche
+Schwierigkeitsrechnung genommen wird und woher ihre Zahlen stammen dürfen
+(Lizenz, wie bei den Richtwerten im Monster Creator).
+
+**Die fertige Begegnung geht in einem Zug in den Initiative Tracker.** Das
+ist der Grund, warum das Werkzeug überhaupt lohnt: sonst tippt man am Tisch
+ab, was man vorher zusammengestellt hat. Was dabei mitwandern muss:
+
+- die Monster als Teilnehmer, mit Trefferpunkten, Rüstungsklasse und
+  Initiative-Modifikator, mehrere gleiche als „Wolf 1" bis „Wolf 4"
+- die Umgebung in ihren zwei Sorten: die Beschreibung als Text, die
+  Gameplay-Regel als Terrain-Eintrag (`istTerrain` gibt es schon)
+- der Verweis zurück auf die gespeicherte Begegnung, damit ein zweiter
+  Durchlauf nicht bei null anfängt
+
+Zwei Dinge, die dabei geklärt sein müssen: was passiert, wenn im Tracker
+noch ein Kampf läuft (dieselbe Rückfrage wie bei „Neue Begegnung",
+Punkt 2 der Tracker-Liste), und ob der Tracker Änderungen zurückschreibt
+oder die Begegnung nur als Vorlage liest. Ich würde zum Zweiten raten: eine
+Vorlage, die im Kampf nicht mitgeschrieben wird, ist leichter zu verstehen
+als zwei Stände, die auseinanderlaufen.
+
+### 3. Konzept: Austausch-App für die Gruppe am Tisch
+
+Eine eigene App für den Austausch, wenn eine Gruppe in Person spielt und
+alle die Sammlung haben: Notizen, Monster, Nachrichten und mehr hin- und
+herschicken. Zuerst nur im selben Netzwerk, später möglicherweise über das
+Internet. Gedacht als benannter Raum mit Passwort, Peer-to-Peer, am liebsten
+ohne Server.
+
+Das ist noch Konzept, deshalb hier nur, was vorher geklärt sein muss:
+
+- **Ohne Server geht im lokalen Netz, im Internet nicht ganz.** Im selben
+  WLAN finden sich die Geräte über mDNS/Bonjour und reden direkt
+  miteinander; dafür braucht es nichts weiter. Über das Internet scheitert
+  das an den Routern (NAT): dort braucht Peer-to-Peer fast immer einen
+  fremden Helfer zum Kennenlernen (STUN/Signaling), und bei ungünstigen
+  Anschlüssen läuft der Verkehr sogar über einen Relay. „Ohne Server" ist
+  also für Stufe 1 zu halten, für Stufe 2 nur mit Einschränkung.
+- **Entschieden: das Passwort regelt nur den Zutritt.** Verschlüsselung
+  ist ein eigener Punkt und kommt extra. Solange sie fehlt, gilt für Stufe 1
+  ausdrücklich: alles im Raum liegt für jeden im selben Netz offen. Im
+  eigenen WLAN am Spieltisch ist das vertretbar; in einem fremden Netz
+  (Bibliothek, Laden, Uni) nicht, und das gehört als Hinweis in die
+  Oberfläche, nicht nur in die Doku. Über das Internet darf es ohne
+  Verschlüsselung gar nicht erst gehen.
+- **Wer was sehen darf.** Die Spielleitung schickt nicht alles an alle. Ein
+  Monster mit Statblock an einen Spieler ist ein Spoiler. Das Konzept muss
+  sagen, was geteilt wird, auf Zuruf oder dauerhaft.
+- **Entschieden: ein Werkzeug in der Hülle**, keine eigene App. Damit ist
+  auch gesagt, dass es viel mit den anderen Werkzeugen reden muss — eine
+  Notiz kommt aus dem Story Creator, ein Monster aus dem Monster Creator,
+  ein Zustand aus dem Status Effect Creator. Heute gibt es dafür nur
+  Einzelbrücken zwischen je zwei Werkzeugen (Monster → Story Creator, NPC →
+  Story Creator, Inspiration → Karteneditor). Ein Werkzeug, das von allen
+  etwas holt und an alle etwas zurückgibt, braucht das als gemeinsame
+  Schnittstelle: „gib mir deine Einträge", „nimm diesen Eintrag an". Das ist
+  der größte Brocken am ganzen Punkt und sollte im Konzept vor der
+  Netzwerkfrage stehen — die Verbindung ist das kleinere Problem.
+- **Die Ablagen sind heute getrennt.** Jedes Werkzeug schreibt in seinen
+  eigenen Ordner. Etwas Empfangenes muss in der richtigen Ablage landen und
+  darf Vorhandenes nicht überschreiben.
+
+## Vorgemerkt: Magic Item Creator
+
+Ein weiteres Werkzeug in derselben Form wie der Monster Creator und der
+Status Effect Creator: magische Gegenstände erzeugen, in einer Sammlung
+ablegen, nach Foundry exportieren. Bezug ist D&D 2024, wie bei den anderen.
+
+Warum es hierher passt: die drei Teile, die so ein Werkzeug braucht, stehen
+schon. Tabellen mit zweisprachigen Paaren, eine Ablage mit Kacheln und
+Suche, Platzhalter für Zahlen im Text (`platzhalter.ts` im Monster Creator
+füllt genau so die Würfel und SGs ein). Der Gegenstand ist die kleinste der
+drei Sorten — kein Statblock, keine Stufen.
+
+Das **Punktesystem je Seltenheit** ist der interessante Teil und zugleich
+der, bei dem ich ehrlich sein muss: **eine offizielle Formel, die Seltenheit
+in Punkte umrechnet, kenne ich nicht.** Das Regelwerk ordnet Gegenstände
+Seltenheitsstufen zu und gibt Preisspannen, aber keine Rechnung, aus der man
+„dieser Effekt kostet 4 Punkte" ableiten könnte. Wenn ich hier eine Tabelle
+erfinde, ist sie erfunden. Der gangbare Weg ist derselbe wie bei den
+Zuständen: eine eigene Skala aufstellen, den vorhandenen Gegenständen
+Punkte zuweisen und prüfen, ob die Reihenfolge stimmt (ein Common landet
+unter einem Very Rare). Das ist eine Eichung, keine Ableitung, und sie
+gehört genauso benannt.
+
+Zu klären:
+
+- **Woher die Vergleichsgegenstände kommen dürfen.** Dieselbe Lizenzfrage
+  wie bei den Richtwerten im Monster Creator: was aus einer CC-BY-Quelle
+  stammt, darf hinein, mit Namensnennung.
+- **Was die Punkte überhaupt zählen.** Ein Bonus auf Angriff wiegt anders
+  als eine Ladung pro Tag, und „einmal am Tag" ist etwas anderes als
+  „dauernd". Ohne diese Achsen ist die Skala eine Zahl ohne Bedeutung.
+- **Verzehrbares und Fluch.** Ein Trank ist kein dauerhafter Gegenstand,
+  und ein Fluch zieht Punkte ab statt sie hinzuzufügen. Beides sollte von
+  Anfang an vorgesehen sein, sonst wird es später angeflanscht.
+- **Attunement.** Ob ein Gegenstand Einstimmung braucht, ist im Spiel der
+  stärkste Hebel gegen zu viel auf einmal, und gehört deshalb in die
+  Rechnung.
+
+
+## Vorgemerkt: Umgebungen an einer Stelle
+
+Aus der Planung des Encounter Creators, aber eigenständig: Umgebungen gibt
+es heute dreimal, an drei Stellen, in drei Formen.
+
+- `apps/monster/src/shared/umgebungen.ts` — 16 Umgebungen mit Themenbindung
+  und den Merkmalen `wasser` und `grabbar`. Dient dazu, dass ein
+  schwimmendes Wesen nicht in der Wüste wohnt.
+- `apps/initiative/src/shared/kampf.ts` — Terrain als eigene Art
+  Teilnehmer (`istTerrain`), also die Umgebung als etwas, das im Kampf eine
+  Runde hat.
+- `apps/inspiration/src/shared/orte.ts` — Orte mit Ausstattung, also die
+  Umgebung als Beschreibung zum Vorlesen und als Vorlage für eine Karte.
+
+Drei Sichten auf dieselbe Sache, und keine kennt die andere. Der Encounter
+Creator wäre die vierte. Stattdessen: ein gemeinsames Paket unter
+`packages/`, das die Umgebung einmal beschreibt — Name, was man sieht, was
+am Tisch mit einer Zahl wirkt, welche Themen dazu passen — und das die
+Werkzeuge jeweils so lesen, wie sie es brauchen.
+
+**Erledigt: das Paket steht.** `packages/umgebungen` hält die sechzehn
+Umgebungen einmal, mit drei Sichten je Eintrag: `name`, `anblick` (was man
+sieht, zum Vorlesen und als Vorlage für eine Karte) und `regeln` (was am
+Tisch wirkt, mit Zahl). Der Monster Creator liest von dort; seine 138
+Prüfungen liefen unverändert durch, was der Prüfstein dafür war, dass es
+wirklich nur ein Umzug ist. Was bei ihm bleibt, ist die Übersetzung seiner
+`Bewegung` in das, was das Paket fragt: schwimmt es, gräbt es.
+
+**Die Regel mit Zahl gibt es jetzt**, je Umgebung mindestens zwei, und ein
+Test verlangt, dass mindestens eine davon eine Zahl im Satz trägt: „Das
+Unterholz begrenzt die Sicht auf 30 Fuß", nicht „waldig". Wo ein Wert
+getrennt danebensteht, prüft ein zweiter Test, dass es dieselbe Zahl ist
+wie im Satz — sonst laufen die Zahl zum Rechnen und die Zahl zum Lesen
+auseinander.
+
+**Offen: die beiden anderen Verbraucher.**
+
+- **Initiative Tracker.** `istTerrain` bleibt vorerst, wie es ist. Der
+  sinnvolle Schritt ist nicht, den Typ umzubauen, sondern eine Umgebung als
+  Gelände-Einträge in den Kampf zu schieben — und das gehört zur Übergabe
+  aus dem Encounter Creator, nicht hierher.
+- **Inspirationshilfe.** `orte.ts` ist eine andere Achse: dort geht es um
+  Ortsbeschreibungen zum Vorlesen und um Ausstattung für den Kartenbau, mit
+  Namensbausteinen und Zustand. Das ist kein zweiter Satz Umgebungen,
+  sondern etwas Eigenes. Zusammengelegt gehört höchstens der `anblick` —
+  und erst, wenn der Encounter Creator zeigt, welche Form davon gebraucht
+  wird.
+
+**Nicht gemacht, mit Absicht:** die Regeln stehen nicht im Statblock eines
+Monsters. Für ein Monster ist die Umgebung ein Etikett — wo es lebt —, kein
+Schlachtfeld. „Das Unterholz begrenzt die Sicht auf 30 Fuß" bei jedem
+Waldbewohner wäre falsch am Platz. Die Regeln warten im Paket auf den, der
+sie braucht.
+
+## Vorgemerkt: Assistent-Fenster weg, wenn die KI aus ist
+
+Im Story Creator steht rechts der Assistent auch dann, wenn die KI in den
+Einstellungen ausgeschaltet ist. Dann nimmt er Platz weg für etwas, das
+nicht geht. Er soll verschwinden, nicht ausgegraut dastehen.
+
+Was schon da ist: `App.tsx` hält den Zustand der KI (`aiStatus`) und lauscht
+über `onKiWechsel` auf Änderungen aus der Hülle, das Umschalten kommt also
+ohne Neustart an.
+
+Zwei Dinge sind dabei zu klären:
+
+- **„Aus" und „nicht eingerichtet" sind nicht dasselbe.** `AiStatus` kennt
+  heute `ready`, `hasKey` und `managedByShell`, aber kein eigenes Feld für
+  den Schalter der Hülle. Wer keinen Schlüssel hinterlegt hat, soll den
+  Assistenten weiter sehen — dort steht ja die Anleitung, wie man ihn
+  einrichtet. Wer die KI bewusst abgeschaltet hat, soll ihn loswerden. Ohne
+  diese Unterscheidung blendet man dem Neuling die Einrichtung aus.
+- **Der Platz muss zurückfallen.** Verschwindet die Spalte, soll der Editor
+  die Breite bekommen, nicht eine Lücke bleiben. Und dasselbe gilt für den
+  Knopf, der den Assistenten öffnet, sowie für den KI-Bereich im
+  Schreibhilfe-Dialog.
+
+## Vorgemerkt: Farbthemen, dann Einteilung der Werkzeuge
+
+Zwei Punkte, die zusammengehören und in dieser Reihenfolge gebaut werden
+müssen: erst die Farbthemen, dann die Einteilung, die sich ihrer bedient.
+
+### 1. Wählbare Farbthemen, wie in VSCode
+
+Der Nutzer soll zwischen Paletten wählen. Schwerpunkt auf dunklen Themen,
+dazu ein paar helle — damit ist der helle Modus gleich mit abgedeckt, ohne
+dass es einen eigenen Schalter dafür braucht. Jede Palette muss in sich
+stimmig sein, nicht eine Sammlung ausgetauschter Einzelfarben.
+
+Was heute im Weg steht, nachgezählt:
+
+| Werkzeug | harte Farbwerte | eigene Variablen |
+| --- | ---: | ---: |
+| Würfel | 40 | 11 |
+| Initiative | 27 | 12 |
+| NPC | 16 | 12 |
+| Monster | 16 | 15 |
+| Story Creator | 15 | 17 |
+| Zustände | 15 | 11 |
+| Inspiration | 12 | 11 |
+| Karteneditor | 0 | 0 |
+| Hülle | — | 16 |
+
+Also: jedes Werkzeug hat seinen eigenen kleinen Satz Variablen, und daneben
+stehen überall feste `#…`-Werte im Stylesheet. Ein Thema umzuschalten, das
+an neun Stellen anders heißt, geht nicht. Der erste Schritt ist deshalb
+nicht die Palette, sondern **ein gemeinsamer Satz benannter Farbrollen** in
+einem Paket unter `packages/` — Grund, Grund-hoch, Rand, Text, Text leise,
+betont, Warnung, Erfolg und so weiter. Die Werkzeuge benutzen nur noch
+Rollen; die Palette setzt die Rollen.
+
+Zu klären:
+
+- **Welche Rollen es gibt.** Zu wenige, und die Themen sehen alle gleich
+  aus; zu viele, und niemand kann eine neue Palette bauen, ohne dreißig
+  Werte zu treffen. Die 16 der Hülle sind ein brauchbarer Anfang.
+- **Die harten Werte müssen weg**, sonst bleibt bei jedem Thema ein Rest
+  in der alten Farbe stehen. Der Würfel ist der dickste Brocken, und dort
+  stecken Farben zusätzlich in der 3D-Ansicht, nicht nur im Stylesheet.
+- **Lesbarkeit prüfen, nicht hoffen.** Jede Palette braucht einen Test auf
+  Kontrast zwischen Text und Grund. Sonst gibt es ein schönes Thema, in dem
+  die leisen Texte verschwinden. Das lässt sich rechnen und gehört in die
+  Prüfungen, wie die Eichung bei den Zuständen.
+- **Wo die Einstellung steht.** In der Hülle, zusammen mit Sprache und KI;
+  die Werkzeuge bekommen sie durchgereicht, wie die Sprache heute schon.
+- **Eigene Paletten später.** Wenn die Rollen einmal stehen, ist eine
+  Palette eine kleine Datei. Ob Nutzer eigene ablegen dürfen, ist eine
+  spätere Frage, aber das Format sollte sie nicht verbauen.
+
+### 2. Werkzeuge nach Rolle am Tisch gruppieren
+
+Die Kachelseite soll die Werkzeuge einteilen, statt neun gleichwertige
+Kacheln nebeneinander zu zeigen:
+
+- **Für die Spielleitung:** Monster Creator, Status Effect Creator,
+  Inspirationshilfe, Encounter Creator, NPC Creator, Karteneditor,
+  Initiative Tracker.
+- **Für alle am Tisch:** Story Creator, Würfel.
+
+Dazu die Idee, beide Gruppen farblich zu unterscheiden. Zwei Vorbehalte,
+bevor das gebaut wird:
+
+- **Nicht zwei Themen gleichzeitig.** Wenn jede Gruppe ihre eigene Palette
+  bekommt, sieht die Sammlung aus wie zwei Programme. Besser ist ein Thema
+  mit einer Zweitfarbe je Gruppe: Kachelrahmen, Kopfzeile des Werkzeugs,
+  vielleicht das Symbol. Das muss jede Palette mitliefern, gehört also in
+  die Rollen aus Punkt 1.
+- **Farbe allein reicht nicht.** Wer Farben schlecht unterscheidet, sieht
+  die Einteilung sonst nicht. Es braucht ohnehin Überschriften über den
+  Gruppen; die Farbe ist die Zugabe, nicht die Information.
+
+Offen: ob die Zuordnung fest ist oder der Nutzer Werkzeuge verschieben darf.
+Der NPC Creator ist der Grenzfall — ein Spieler baut damit auch seinen
+Charakterhintergrund.
+
+## Fehler: Karteneditor, Terrain drehen und Deckkraft
+
+Zwei Beobachtungen aus dem Gebrauch. Beim ersten habe ich die Ursache im
+Code gefunden, beim zweiten habe ich eine Vermutung und habe sie nicht
+nachgestellt — das steht unten ausdrücklich dabei.
+
+### 1. Terrain dreht sich um die obere linke Ecke, nicht um die Mitte
+
+Der Terrain-Pinsel legt den Ursprung der fertigen Fläche auf den *ersten
+Punkt des Bandes* (`terrainPaint.ts`: `const ox = band[0]`), also auf die
+Kante am Anfang des Striches. Gerendert wird dann mit `node.rotation =
+obj.rotation` bei einem Knoten, der auf `x`/`y` sitzt (`renderer.ts`) — die
+Fläche dreht sich also um genau diesen Anfangspunkt.
+
+Bemerkenswert: der Kommentar an der Stelle sagt, der Ursprung werde so
+gelegt, „sonst ließe sich die Fläche später nicht um ihre Mitte drehen".
+Die Absicht war also richtig, umgesetzt ist sie nicht — der erste Punkt des
+Bandes ist nicht die Mitte.
+
+Zwei Wege, und sie unterscheiden sich in der Tragweite:
+
+- **Nur den Terrain-Pinsel ändern:** Ursprung auf den Mittelpunkt der Form
+  legen (`polygonCentroid.ts` gibt es schon) und die lokalen Punkte
+  entsprechend verschieben. Kleiner Eingriff, hilft aber nur neuen Flächen;
+  vorhandene Karten behalten ihren Ursprung.
+- **Beim Drehen um die Mitte der Auswahl drehen**, egal wo der Ursprung
+  liegt. `rotateGroupPatch` in `groupTransform.ts` kann das für Gruppen
+  schon, jedes Objekt wandert auf seiner Kreisbahn um den Gruppenmittelpunkt.
+  Bei einem einzelnen Objekt scheint dieser Weg nicht genommen zu werden.
+  Das wäre die Lösung, die auch alte Karten heilt.
+
+**Ausdrücklich mitgefordert: die Drehung der anderen Objektarten prüfen.**
+Freihandzeichnungen und Polygone haben denselben Ursprung wie das Terrain,
+Bilder und Rechtecke vermutlich nicht. Wenn sich die Arten verschieden
+verhalten, ist das schon für sich ein Fehler, auch dort, wo die Drehung
+zufällig gut aussieht.
+
+### 2. Bei geringer Deckkraft werden die Überlappungen des Striches sichtbar
+
+Gewünscht ist eine durchgehende Fläche; zu sehen sind die Lagen, die beim
+Ziehen übereinandergelaufen sind.
+
+**Nachgestellt und gemessen.** Eine Prüfung im echten Browser
+(`e2e/terrain-deckkraft.spec.ts`) malt einen Strich, der sich selbst kreuzt,
+und liest die Farbe aus dem fertigen Bild: an der Kreuzung ist das Rot um 27
+Stufen kräftiger als auf einer einzelnen Lage. Die Vermutung stimmt also.
+
+Die Ursache genau: der Pinsel legt *ein* Polygon an, aber dessen Kontur
+überschlägt sich, wo der Strich sich selbst kreuzt oder enger biegt als der
+Pinsel breit ist. Gerechnet: bei einem geraden Strich und bei einer Kurve,
+deren Radius größer als die halbe Pinselbreite ist, gibt es keine einzige
+Überschneidung; bei Pinselbreite 80 auf Radius 30 sind es fünf, bei einem
+Strich, der sich selbst kreuzt, vierzehn. Ein solches Polygon wird in
+Dreiecke zerlegt, die einander überlappen, und überlappende Dreiecke werden
+zweimal gefüllt. Die Vorgabe des Pinsels ist Breite 120 — wer eine Fläche
+ausmalt, trifft das also fast immer.
+
+**Was nicht hilft** (ausprobiert, jeweils gemessen): die Fläche über
+`cacheAsTexture` flachlegen, weder beim Bauen noch beim Setzen der
+Deckkraft. Der Wert bleibt bei 27.
+
+**Behoben, Weg: eigene Textur.** Die Fläche wird einmal voll deckend in ein
+eigenes Bild gezeichnet — dort schadet die doppelte Füllung nichts, deckend
+über deckend bleibt deckend — und dieses Bild dann mit der gewünschten
+Deckkraft angezeigt. Ein Bild ist ein einziges Viereck, da überlappt nichts
+mehr. Weiche Kanten bleiben erhalten, eine neue Abhängigkeit braucht es
+nicht, und am Speicherformat ändert sich nichts.
+
+Der Weg gilt nur für die schlichte durchscheinende Füllung ohne Strich und
+ohne Muster, also genau für den Terrain-Pinsel. Wo ein Strich dazukommt, hat
+der seine eigene Deckkraft, die sich mit der der Füllung nicht in einem Bild
+verrechnen lässt; dort bleibt es beim Zeichnen wie bisher.
+
+Die beiden anderen Wege, zum Nachlesen, falls der gewählte je Ärger macht:
+die Kontur beim Malen vereinigen (Bibliothek plus Änderung am
+Speicherformat, weil eine Vereinigung ein Loch haben kann) oder eine Maske
+statt der Füllung (billig, aber harte, ausgefranste Kanten). Nicht geholfen
+hat `cacheAsTexture` von Pixi, weder beim Bauen noch beim Setzen der
+Deckkraft — gemessen, der Wert blieb unverändert.
+
+Zwei Dinge, die der Weg mitbringt und die im Blick bleiben müssen: die
+Schärfe hängt an der Zoomstufe, mit der gebacken wurde, deshalb backt der
+Renderer nach, wenn der Zoom sich verdoppelt oder halbiert hat; und die
+Bildgröße ist auf 2048 Texel je Kante gedeckelt, damit eine riesige Fläche
+nicht den Speicher sprengt.

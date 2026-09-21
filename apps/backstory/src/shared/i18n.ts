@@ -361,6 +361,8 @@ const de = {
   'export.pdfCampaign': 'Kampagne als PDF',
 
   'prompts.title': 'Schreibhilfe und KI',
+  /** Derselbe Dialog, wenn die KI abgeschaltet ist: dann gibt es dort keine. */
+  'prompts.titleOhneKi': 'Schreibhilfe',
   'prompts.open': 'Schreibhilfe',
   'prompts.tabPrompts': 'Vorschläge (ohne KI)',
   'prompts.tabAi': 'KI-Assistent',
@@ -779,6 +781,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'export.pdfCampaign': 'Campaign as PDF',
 
   'prompts.title': 'Writing prompts and AI',
+  'prompts.titleOhneKi': 'Writing prompts',
   'prompts.tabPrompts': 'Suggestions (no AI)',
   'prompts.tabAi': 'AI assistant',
   'prompts.open': 'Prompts',

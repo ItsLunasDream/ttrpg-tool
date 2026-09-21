@@ -23,6 +23,10 @@ export const texte = {
   'knopf.duplizieren': ['Duplizieren', 'Duplicate'],
   'knopf.umbenennen': ['Umbenennen', 'Rename'],
   'knopf.terrain': ['Gelände', 'Terrain'],
+  'knopf.zurueck': ['Rückgängig', 'Undo'],
+  'knopf.vor': ['Wiederherstellen', 'Redo'],
+  'knopf.zurueckTitel': ['Rückgängig (Strg+Z)', 'Undo (Ctrl+Z)'],
+  'knopf.vorTitel': ['Wiederherstellen (Strg+Umschalt+Z)', 'Redo (Ctrl+Shift+Z)'],
   'terrain.vorgabe': ['Gelände', 'Terrain'],
   'terrain.hinweis': [
     'Kommt bei Initiative 20 an die Reihe, hinter Figuren mit derselben Zahl.',
@@ -37,6 +41,8 @@ export const texte = {
   'knopf.entfernen': ['Entfernen', 'Remove'],
   'knopf.speichern': ['Begegnung speichern', 'Save encounter'],
   'knopf.oeffnen': ['Öffnen', 'Open'],
+  'knopf.neueBegegnung': ['Neue Begegnung', 'New encounter'],
+  'knopf.verwerfen': ['Verwerfen', 'Discard'],
   'knopf.bild': ['Bild wählen', 'Choose image'],
   'knopf.bildAendern': ['Bild ändern', 'Change image'],
   'knopf.bildWeg': ['Bild entfernen', 'Remove image'],
@@ -61,6 +67,33 @@ export const texte = {
   'wurf.nurGegner': ['Nur Gegner würfeln', 'Roll for enemies only'],
   'begegnung.name': ['Name der Begegnung', 'Encounter name'],
   'begegnung.keine': ['Keine gespeicherten Begegnungen', 'No saved encounters'],
+  'begegnung.titel': ['Begegnungen', 'Encounters'],
+  'bestaetigen.neuLaeuft': [
+    'Der Kampf läuft noch. Neue Begegnung anfangen?',
+    'The fight is still running. Start a new encounter?'
+  ],
+  'bestaetigen.neuUngespeichert': [
+    'Diese Aufstellung ist nicht gespeichert. Neue Begegnung anfangen?',
+    'This line-up is not saved. Start a new encounter?'
+  ],
+  'bestaetigen.neuBeides': [
+    'Der Kampf läuft noch und die Aufstellung ist nicht gespeichert. Neue Begegnung anfangen?',
+    'The fight is still running and the line-up is not saved. Start a new encounter?'
+  ],
+  'begegnung.suche': [
+    'Suche: Begegnung oder Teilnehmer',
+    'Search: encounter or participant'
+  ],
+  'begegnung.teilnehmerzahl': ['{n} Teilnehmer', '{n} participants'],
+  'begegnung.ohneTeilnehmer': ['Ohne Teilnehmer', 'No participants'],
+  'sammlung.sortieren': ['Sortieren', 'Sort'],
+  'sammlung.nachName': ['Nach Namen', 'By name'],
+  'sammlung.nachGroesse': ['Nach Größe', 'By size'],
+  'sammlung.kacheln': ['Kacheln', 'Tiles'],
+  'sammlung.liste': ['Liste', 'List'],
+  'sammlung.anzahl': ['{n} gefunden', '{n} found'],
+  'sammlung.nichts': ['Nichts gefunden', 'Nothing found'],
+  'knopf.schliessen': ['Schließen', 'Close'],
   'msg.gespeichert': ['Begegnung gespeichert', 'Encounter saved'],
   'msg.geladen': ['Begegnung geladen', 'Encounter loaded'],
   'taste.leertaste': ['Leertaste: weiter', 'Space: next'],

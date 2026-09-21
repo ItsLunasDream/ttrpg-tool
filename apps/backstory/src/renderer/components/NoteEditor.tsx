@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CHECKED, findNoteType } from '../../shared/noteTypes';
+import { beispieltext, CHECKED, findNoteType } from '../../shared/noteTypes';
 import type { Note, Relation } from '../../shared/types';
 import { backlinksFor, unresolvedLinks, type NoteIndex } from '../noteIndex';
 import { hasLinkReservedChars, normalizeName } from '../../shared/wikilinks';
@@ -11,7 +11,7 @@ import { TokenInput } from './TokenInput';
 import { ImageField } from './ImageField';
 import { Menu } from './Menu';
 import { AssistantPanel, type AiStatus } from './AssistantPanel';
-import { useT } from '../i18n';
+import { useLanguage, useT } from '../i18n';
 
 interface Props {
   note: Note;
@@ -54,6 +54,7 @@ interface Props {
 
 export function NoteEditor(props: Props) {
   const t = useT();
+  const { language } = useLanguage();
   const { note, index, dirty, saving, autosaveEnabled, onPatch, onSave, onRename, onDelete } = props;
   const def = findNoteType(index.types, note.type);
 
@@ -202,6 +203,12 @@ export function NoteEditor(props: Props) {
             </h3>
             {def.fields.map((field) => {
               const value = note.fields[field.key] ?? '';
+              /*
+               * Der Beispieltext folgt der eingestellten Sprache, die
+               * Beschriftung nicht: die gehoert der Kampagne. „z.B. sie/ihr"
+               * neben einem Feld namens „Pronouns" war schlicht falsch.
+               */
+              const beispiel = beispieltext(note.type, field.key, field.placeholder, language);
               const setValue = (next: string) => onPatch({ fields: { ...note.fields, [field.key]: next } });
 
               return (
@@ -243,13 +250,13 @@ export function NoteEditor(props: Props) {
                   ) : field.type === 'date' ? (
                     <input type="date" value={value} onChange={(e) => setValue(e.target.value)} />
                   ) : field.type === 'textarea' ? (
-                    <textarea rows={3} value={value} placeholder={field.placeholder} onChange={(e) => setValue(e.target.value)} />
+                    <textarea rows={3} value={value} placeholder={beispiel} onChange={(e) => setValue(e.target.value)} />
                   ) : (
                     <span className="field__row">
                       <input
                         type={field.type === 'number' ? 'number' : 'text'}
                         value={value}
-                        placeholder={field.placeholder}
+                        placeholder={beispiel}
                         onChange={(e) => setValue(e.target.value)}
                       />
                       {field.type === 'url' && value.trim() ? (

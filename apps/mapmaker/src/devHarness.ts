@@ -37,6 +37,17 @@ export interface DevHarness {
   pump(n?: number): void;
   wait(ms: number): Promise<void>;
   look(x: number, y: number, zoom: number): void;
+  /**
+   * Farbe an Punkten des Bildschirms, aus dem fertig gezeichneten Bild.
+   *
+   * Manche Fragen lassen sich nur am Bild beantworten — ob eine Flaeche
+   * ueberall gleich deckt zum Beispiel. Das Modell weiss das nicht, dort steht
+   * nur ein Polygon.
+   *
+   * Die Punkte zaehlen wie bei `ptr` vom linken oberen Eck des Canvas, nicht
+   * in Weltkoordinaten: so misst man dort, wo man geklickt hat.
+   */
+  probe(punkte: Array<[number, number]>): Array<[number, number, number, number]>;
   shot(name: string, width?: number): Promise<string>;
   /**
    * Kontaktbogen aller (oder ausgewählter) prozeduraler Props als PNG.
@@ -188,6 +199,35 @@ export function installDevHarness(): void {
       });
 
       return c.toDataURL('image/png');
+    },
+
+    probe(punkte) {
+      const r = getRenderer();
+      if (!r) return [];
+      this.pump(2);
+      const rt = RenderTexture.create({
+        width: r.app.screen.width,
+        height: r.app.screen.height,
+        resolution: 1,
+      });
+      r.app.renderer.render({ container: r.app.stage, target: rt });
+      const { pixels, width, height } = r.app.renderer.extract.pixels(rt);
+      const c = canvasEl();
+      const fx = c ? width / c.clientWidth : 1;
+      const fy = c ? height / c.clientHeight : 1;
+      const aus = punkte.map(([px, py]) => {
+        const sx = Math.min(width - 1, Math.max(0, Math.round(px * fx)));
+        const sy = Math.min(height - 1, Math.max(0, Math.round(py * fy)));
+        const i = (sy * width + sx) * 4;
+        return [pixels[i], pixels[i + 1], pixels[i + 2], pixels[i + 3]] as [
+          number,
+          number,
+          number,
+          number,
+        ];
+      });
+      rt.destroy(true);
+      return aus;
     },
 
     async shot(name, width = 640) {

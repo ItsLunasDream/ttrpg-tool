@@ -232,3 +232,20 @@ test('das geschaetzte Gewicht erkennt bekannte Wirkungen wieder', () => {
 test('unbekannter Text zaehlt als eine leichte Wirkung', () => {
   assert.equal(T.geschaetztesGewicht([{ nummer: 1, text: 'Dir wird komisch zumute' }], 'de'), 1);
 });
+
+test('der Weg in den Story Creator nimmt die Kopfzahlen nicht mit', () => {
+  /*
+   * Derselbe Fehler wie im Monster Creator: die angelegte Notiz begann mit
+   * „id: … name: … schemaVersion: 2" als Fliesstext. Auf der Platte ist das
+   * ein Dateikopf und richtig, in einer Notiz ist es ein Absatz zu viel.
+   */
+  const z = beispiel();
+  const datei = T.alsMarkdown(z, 'de');
+  const leib = T.alsLeib(z, 'de');
+
+  assert.ok(datei.startsWith('---'), 'die Datei traegt ihren Kopf');
+  assert.ok(!leib.startsWith('---'), 'der Leib nicht');
+  assert.ok(!leib.includes('schemaVersion'), leib.slice(0, 120));
+  assert.ok(!leib.includes('gewicht:'), leib.slice(0, 120));
+  assert.equal(datei.slice(datei.indexOf('\n---\n\n') + 6), leib);
+});

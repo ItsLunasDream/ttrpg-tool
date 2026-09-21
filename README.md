@@ -95,6 +95,7 @@ packages/dice/     Reading and rolling dice expressions
 packages/i18n/     Language choice and text substitution
 packages/motion/   Timings, curves and base animations
 packages/ki/       Connection to language models (Ollama, Claude)
+packages/umgebungen/ Environments: what you see, and what has a numbered effect
 ```
 
 `packages/*` are platform-free: no `node:*`, no `electron`, no browser
@@ -260,8 +261,24 @@ numbers mean is up to the table.
 - **Space means next.** Damage is typed and applied with Enter, not clicked —
   damage is rarely one.
 - Right-clicking a row opens a menu.
+- **Ctrl+Z takes it back.** Everything that changes the fight goes through
+  one place, so undo covers all of it: a removed participant, damage, a
+  condition, the order. Ctrl+Shift+Z (or Ctrl+Y) redoes; the two arrows in
+  the bar do the same and grey out when there is nothing to do. This is not
+  the shell's back arrow (Alt+Left, M4) — that one is the history *between*
+  tools and stays navigation.
 - Encounters are documents (Markdown with a YAML header); the running fight
   is session state and sits next to them as JSON.
+- **New encounter** clears the tracker, and asks first only when something
+  is at stake: the fight is still running, or the line-up is not saved. What
+  it compares is what *saving* would produce, not the running state — damage
+  and conditions belong to the session, not to the encounter, so taking a
+  hit does not make it "unsaved".
+- **The encounter list is a collection**, laid out like the ones in the
+  Monster and Status Effect Creators: tiles to browse, a list to scan, a
+  search box above. Search covers the encounter's name *and* the names of
+  its participants — you usually remember who was in the fight, not what you
+  called it.
 - Images are copied into the tool's own folder, not linked.
 
 The rules are pure functions in `src/shared/kampf.ts`. A mistake in turn

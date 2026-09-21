@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import type { Eintrag } from '../shared/ablage';
-import { alsMarkdown, zuId } from '../shared/ablage';
+import { alsLeib, zuId } from '../shared/ablage';
 import { alsVariante, erzeugeMonster, wuerfleNeu, type Monster } from '../shared/erzeuge';
 import type { Kampfweite } from '../shared/angriffe';
 import { zieheKiNach, type RohMonster } from '../shared/kiAufgaben';
@@ -169,7 +169,9 @@ export function App() {
 
   const exportieren = async () => {
     if (!monster) return;
-    const markdown = alsMarkdown(
+    // Ohne die Kopfzahlen: in einer Notiz sind sie kein Dateikopf mehr,
+    // sondern ein Absatz „id: … name: … schemaVersion: 2" ueber dem Statblock.
+    const markdown = alsLeib(
       { ...monster, id: zuId(monster.name), geaendert: new Date().toISOString() },
       getLanguage()
     );

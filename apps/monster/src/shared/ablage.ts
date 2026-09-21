@@ -57,8 +57,28 @@ function alsYaml(wert: string): string {
     : JSON.stringify(wert);
 }
 
+/**
+ * Die ganze Datei: Kopfzahlen als YAML, darunter der Statblock.
+ *
+ * So liegt ein Monster auf der Platte. Der Kopf ist fuer Maschinen — die
+ * Sammlung liest daraus ihre Kacheln, ohne den Leib zu zerlegen.
+ */
 export function alsMarkdown(monster: Abgelegt, sprache: Sprache): string {
-  const de = sprache !== 'en';
+  return [...kopfzeilen(monster), ...leibzeilen(monster, sprache)].join('\n');
+}
+
+/**
+ * Nur der Statblock, ohne die Kopfzahlen.
+ *
+ * Fuer den Weg in den Story Creator: dort ist der Kopf keine Verwaltung mehr,
+ * sondern steht als Absatz im Text — „id: … name: … schemaVersion: 2" mitten
+ * in der Notiz. Wer ein Monster in eine Notiz schiebt, will den Statblock.
+ */
+export function alsLeib(monster: Abgelegt, sprache: Sprache): string {
+  return leibzeilen(monster, sprache).join('\n');
+}
+
+function kopfzeilen(monster: Abgelegt): string[] {
   const w = monster.werte;
   const kopf = [
     '---',
@@ -85,6 +105,12 @@ export function alsMarkdown(monster: Abgelegt, sprache: Sprache): string {
     '---',
     ''
   ];
+  return kopf;
+}
+
+function leibzeilen(monster: Abgelegt, sprache: Sprache): string[] {
+  const de = sprache !== 'en';
+  const w = monster.werte;
 
   /*
    * Der Leib ist ein Statblock, kein Bericht.
@@ -222,7 +248,7 @@ export function alsMarkdown(monster: Abgelegt, sprache: Sprache): string {
   const alles = [...leib, ...schluss].filter(
     (zeile, stelle, liste) => !(zeile === '' && liste[stelle - 1] === '')
   );
-  return [...kopf, ...alles].join('\n');
+  return alles;
 }
 
 /**

@@ -159,6 +159,61 @@ app.whenReady().then(async () => {
     [...document.querySelectorAll('.dialog__knoepfe button')].pop().click(); return true; })()`);
   await warte(700);
 
+  // --- Rueckgaengig -------------------------------------------------------
+  /*
+   * Der Fall aus dem Gebrauch: „Wenn man ein Participant löscht soll hier
+   * ZURÜCK bzw. STRG+Z das auch rückgängig machen." Am Modell ist der
+   * Verlauf geprueft; hier geht es darum, dass die Taste und der Knopf
+   * wirklich daran haengen und dass die Zeile mit allem zurueckkommt.
+   */
+  const namen = () =>
+    js("[...document.querySelectorAll('.zeile__name')].map((e) => e.textContent).join('|')");
+  const vorherNamen = await namen();
+  const anzahlVorher = await js("document.querySelectorAll('.zeile').length");
+
+  // Ueber das Rechtsklickmenue entfernen — derselbe Weg wie von Hand.
+  await js(`(() => { const ziel = document.querySelector('.zeile__name');
+    const k = ziel.getBoundingClientRect();
+    ziel.dispatchEvent(new MouseEvent('contextmenu', {
+      bubbles: true, clientX: k.left + 10, clientY: k.top + 10 }));
+    return true; })()`);
+  await warte(400);
+  await js(`[...document.querySelectorAll('.kontextmenue button')].pop().click(); true`);
+  await warte(600);
+  pruefe(
+    (await js("document.querySelectorAll('.zeile').length")) === anzahlVorher - 1,
+    'der Teilnehmer ist entfernt'
+  );
+
+  // Strg+Z am Fenster, nicht am Knopf: genau so tippt man es.
+  await js(`document.dispatchEvent(new KeyboardEvent('keydown',
+    { key: 'z', ctrlKey: true, bubbles: true })); true`);
+  await warte(600);
+  pruefe((await namen()) === vorherNamen, 'Strg+Z holt ihn vollstaendig zurueck');
+
+  // Und wieder vor, ueber den Knopf in der Leiste.
+  await js(`[...document.querySelectorAll('button')].find(
+    (b) => b.textContent.trim() === '↷').click(); true`);
+  await warte(600);
+  pruefe(
+    (await js("document.querySelectorAll('.zeile').length")) === anzahlVorher - 1,
+    'Wiederherstellen entfernt ihn erneut'
+  );
+
+  // Zurueck auf den vollen Stand, damit die naechsten Schritte dieselbe
+  // Liste sehen wie bisher.
+  await js(`[...document.querySelectorAll('button')].find(
+    (b) => b.textContent.trim() === '↶').click(); true`);
+  await warte(600);
+  pruefe((await namen()) === vorherNamen, 'und der Knopf zurueck ebenfalls');
+
+  // Der Zurueck-Pfeil der Huelle ist etwas anderes und darf hier nichts
+  // zuruecknehmen — sonst kaeme man nicht mehr zum vorigen Werkzeug.
+  await js(`document.dispatchEvent(new KeyboardEvent('keydown',
+    { key: 'ArrowLeft', altKey: true, bubbles: true })); true`);
+  await warte(500);
+  pruefe((await namen()) === vorherNamen, 'Alt+Links nimmt im Tracker nichts zurueck');
+
   // --- Begegnung speichern und laden --------------------------------------
   // Diese beiden Knoepfe hat der Rauchtest zuerst nicht gedrueckt — und genau
   // dort steckte ein Fehler, den keine Modellpruefung sehen konnte: die
@@ -183,6 +238,73 @@ app.whenReady().then(async () => {
     pruefe(inhalt.includes('Goblin'), 'und mit den Teilnehmern darin');
   }
 
+  // --- Neue Begegnung -----------------------------------------------------
+  /*
+   * Der Knopf wirft den jetzigen Kampf weg — und fragt vorher, wenn etwas
+   * auf dem Spiel steht. Hier steht beides: der Kampf laeuft, und gespeichert
+   * ist er in diesem Moment noch nicht.
+   */
+  const neuKnopf = `[...document.querySelectorAll('button')].find(
+    b => /New encounter|Neue Begegnung/.test(b.textContent))`;
+  await js(`${neuKnopf}.click(); true`);
+  await warte(500);
+  pruefe(await js("Boolean(document.querySelector('.dialog'))"), 'die Rueckfrage kommt');
+
+  // Abbrechen laesst alles stehen.
+  await js(`[...document.querySelectorAll('.dialog__knoepfe button')].shift().click(); true`);
+  await warte(500);
+  pruefe(
+    (await js("document.querySelectorAll('.zeile').length")) > 0,
+    'Abbrechen laesst die Teilnehmer stehen'
+  );
+
+  // --- Die Sammlung: Kacheln und Suche ------------------------------------
+  /*
+   * Aufgebaut wie im Monster Creator. Geprueft wird vor allem das, was diese
+   * Sammlung von den anderen unterscheidet: gesucht wird auch ueber die
+   * Namen der Teilnehmer, nicht nur ueber den der Begegnung.
+   */
+  await js(`[...document.querySelectorAll('button')].find(
+    b => /Open encounter|Begegnung öffnen|Öffnen|Open/.test(b.textContent)).click(); true`);
+  await warte(600);
+  pruefe(await js("Boolean(document.querySelector('.kacheln'))"), 'die Sammlung zeigt Kacheln');
+  pruefe(
+    (await js("document.querySelectorAll('.kacheln .kachel').length")) === 1,
+    'die gespeicherte Begegnung steht als Kachel da'
+  );
+
+  const suchfeld = "document.querySelector('.sammlung__suche')";
+  const tippe = async (wort) =>
+    js(`(() => { const f = ${suchfeld};
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(f, '${wort}');
+      f.dispatchEvent(new Event('input',{bubbles:true})); return true; })()`);
+  const kachelZahl = () => js("document.querySelectorAll('.kacheln .kachel').length");
+
+  await tippe('Testbegegnung');
+  await warte(300);
+  pruefe((await kachelZahl()) === 1, 'die Suche findet den Namen der Begegnung');
+
+  // Goblin ist der Teilnehmer von weiter oben — im Namen der Begegnung steht
+  // er nicht.
+  await tippe('Goblin');
+  await warte(300);
+  pruefe((await kachelZahl()) === 1, 'und den Namen eines Teilnehmers');
+
+  await tippe('Drachenhort');
+  await warte(300);
+  pruefe((await kachelZahl()) === 0, 'und findet nichts, wo nichts ist');
+
+  await tippe('');
+  await warte(300);
+  await js(`[...document.querySelectorAll('.sammlung__ansicht button')].pop().click(); true`);
+  await warte(300);
+  pruefe(
+    await js("Boolean(document.querySelector('.begegnungen__liste'))"),
+    'der Umschalter bringt die Liste'
+  );
+  await js(`document.querySelector('.begegnungen__zu').click(); true`);
+  await warte(400);
+
   // --- Kampf beenden ------------------------------------------------------
   // Auch das lief ueber einen Browser-Dialog (`confirm`) und haette den
   // Renderer angehalten.
@@ -193,36 +315,60 @@ app.whenReady().then(async () => {
   await warte(600);
   pruefe(!(await js("Boolean(document.querySelector('.leiste__runde'))")), 'der Kampf ist beendet');
 
+  // Jetzt ist gespeichert und der Kampf beendet: es steht nichts mehr auf
+  // dem Spiel, also darf nicht mehr gefragt werden.
+  await js(`${neuKnopf}.click(); true`);
+  await warte(600);
+  pruefe(
+    !(await js("Boolean(document.querySelector('.dialog'))")),
+    'ohne Verlust kommt keine Rueckfrage'
+  );
+  pruefe(
+    (await js("document.querySelectorAll('.zeile').length")) === 0,
+    'und der Tracker ist leer'
+  );
+
   // --- Sprachkopplung ---------------------------------------------------
   // Bei den anderen beiden Werkzeugen war genau das die Fehlerquelle: die
   // Modelltests sahen die Kopplung nicht, und im Fenster blieb ein Werkzeug
   // auf der alten Sprache stehen.
-  const spracheJetzt = () =>
-    js("document.querySelector('.leiste__sprache')?.value ?? ''");
+  //
+  // Der Tracker hatte bis 0.2.0 einen eigenen EN/DE-Waehler; der ist raus,
+  // weil die Sprache in den Einstellungen der Huelle steht. Geprueft wird
+  // deshalb nur noch die eine Richtung, die es noch gibt — und dass der
+  // Waehler wirklich weg ist.
+  pruefe(
+    !(await js("Boolean(document.querySelector('.leiste__sprache'))")),
+    'der Tracker hat keinen eigenen Sprachwaehler mehr'
+  );
+
+  // Gelesen wird die Sprache am `lang` des Dokuments: das setzt der Tracker
+  // selbst, sobald er umgestellt hat.
+  const spracheJetzt = () => js('document.documentElement.lang');
   const vorher = await spracheJetzt();
   const andere = vorher === 'de' ? 'en' : 'de';
-  await js(`(() => { const s = document.querySelector('.leiste__sprache');
-    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(s, '${andere}');
-    s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
-  await warte(900);
-  pruefe((await spracheJetzt()) === andere, `der Tracker stellt selbst um (${vorher} -> ${andere})`);
 
-  // Die Huelle muss es mitbekommen haben und ihre eigene Titelleiste umstellen.
   const huelle = fenster.contentView.children[0];
-  const huellenText = await huelle.webContents.executeJavaScript(
-    "document.querySelector('.titelleiste__knopf')?.textContent ?? ''"
+  await huelle.webContents.executeJavaScript(
+    `window.shell.einstellungen.schreiben({ language: '${andere}' })`
+  );
+  await warte(900);
+  pruefe((await spracheJetzt()) === andere, `der Tracker folgt der Huelle (${vorher} -> ${andere})`);
+
+  // Und die Beschriftungen gehen wirklich mit, nicht nur das `lang`.
+  const knopfText = await js(
+    "[...document.querySelectorAll('button')].map((k) => k.textContent).join('|')"
   );
   pruefe(
-    andere === 'de' ? huellenText === 'Einstellungen' : huellenText === 'Settings',
-    `die Huelle ist mitgegangen (\"${huellenText}\")`
+    andere === 'de' ? knopfText.includes('Teilnehmer') : knopfText.includes('Participant'),
+    `die Beschriftungen sind mitgegangen (${andere})`
   );
 
-  // Und zurueck, von der Huelle aus: der Tracker muss folgen.
   await huelle.webContents.executeJavaScript(
     `window.shell.einstellungen.schreiben({ language: '${vorher}' })`
   );
   await warte(900);
-  pruefe((await spracheJetzt()) === vorher, 'und folgt der Huelle wieder zurueck');
+  pruefe((await spracheJetzt()) === vorher, 'und wieder zurueck');
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' | ') || 'keine'})`);
 

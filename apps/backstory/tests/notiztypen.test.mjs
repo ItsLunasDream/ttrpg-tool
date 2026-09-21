@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import entry from '../dist/tests/entry.cjs';
 
-const { NOTIZTYP_VORLAGEN, vorlageNotiztypen, factoryFieldKey, DEFAULT_NOTE_TYPES } = entry;
+const { NOTIZTYP_VORLAGEN, vorlageNotiztypen, factoryFieldKey, DEFAULT_NOTE_TYPES, beispieltext } = entry;
 
 test('beide Sprachen haben dieselben Typen und Feldschluessel', () => {
   // Nur die Beschriftungen unterscheiden sich. Sonst faende eine Notiz ihre
@@ -34,4 +34,27 @@ test('Werksschluessel werden in beiden Sprachen gefunden', () => {
 
 test('die deutsche Vorlage bleibt der Rueckfallwert fuer alte Kampagnen', () => {
   assert.deepEqual(DEFAULT_NOTE_TYPES, NOTIZTYP_VORLAGEN.de);
+});
+
+test('der Beispieltext folgt der Sprache, die eigene Beschriftung nicht', () => {
+  /*
+   * Aus dem Gebrauch: „Die Vorschlagstext bei Profile ‚z.B. 132' bei Age oder
+   * ‚z.B. sie/ihr' bei Pronouns auf Englisch." Die Notiztypen gehoeren der
+   * Kampagne und folgen bewusst keinem Sprachwechsel — ein Beispieltext ist
+   * aber kein Inhalt, sondern ein Hinweis.
+   */
+  assert.equal(beispieltext('character', 'age', 'z.B. 132', 'en'), 'e.g. 132');
+  assert.equal(beispieltext('character', 'pronouns', 'z.B. sie/ihr', 'en'), 'e.g. she/her');
+  assert.equal(beispieltext('character', 'age', 'e.g. 132', 'de'), 'z.B. 132');
+});
+
+test('ein selbst geschriebener Beispieltext bleibt stehen', () => {
+  // Sonst ueberschriebe der Sprachwechsel, was die Autorin eingetragen hat.
+  assert.equal(beispieltext('character', 'age', 'in Jahren, Elfen zaehlen anders', 'en'),
+    'in Jahren, Elfen zaehlen anders');
+});
+
+test('ein Feld ohne Vorlage behaelt, was dort steht', () => {
+  assert.equal(beispieltext('character', 'lieblingsfarbe', 'z.B. blau', 'en'), 'z.B. blau');
+  assert.equal(beispieltext('character', 'lieblingsfarbe', undefined, 'en'), '');
 });

@@ -1,7 +1,8 @@
-import { AssistantThread, type AiStatus } from './AssistantThread';
+import { AssistantThread, kiAbgeschaltet, type AiStatus } from './AssistantThread';
 import { useT } from '../i18n';
 
 export type { AiStatus };
+export { kiAbgeschaltet };
 
 interface Props {
   status: AiStatus | null;
@@ -16,6 +17,10 @@ interface Props {
  */
 export function AssistantPanel(props: Props) {
   const t = useT();
+
+  // Ist die KI aus, faellt der Platz an den Editor zurueck. Ausgegraut
+  // stehenbleiben waere schlechter: das sieht aus wie ein Fehler.
+  if (kiAbgeschaltet(props.status)) return null;
 
   return (
     <section className="panel">

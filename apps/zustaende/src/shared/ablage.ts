@@ -94,10 +94,28 @@ export function skaliertesGewicht(gewicht: number, fassung: number): number {
   return fassung >= SCHEMA_VERSION ? gewicht : gewicht * SKALENFAKTOR;
 }
 
+/**
+ * Die ganze Datei: Kopfzahlen als YAML, darunter der Zustand zum Vorlesen.
+ *
+ * So liegt ein Zustand auf der Platte. Der Kopf ist fuer Maschinen — die
+ * Sammlung und der Tracker lesen daraus, ohne den Leib zu zerlegen.
+ */
 export function alsMarkdown(zustand: Abgelegt, sprache: Sprache): string {
-  const de = sprache !== 'en';
+  return [...kopfzeilen(zustand), ...leibzeilen(zustand, sprache)].join('\n');
+}
+
+/**
+ * Nur der Zustand, ohne die Kopfzahlen.
+ *
+ * Fuer den Weg in den Story Creator: dort ist der Kopf keine Verwaltung mehr,
+ * sondern steht als Absatz „id: … name: … schemaVersion: 2" ueber dem Text.
+ */
+export function alsLeib(zustand: Abgelegt, sprache: Sprache): string {
+  return leibzeilen(zustand, sprache).join('\n');
+}
+
+function kopfzeilen(zustand: Abgelegt): string[] {
   const gewicht = gesamtgewicht(zustand.stufen);
-  const vergleich = naechsterVergleich(gewicht);
 
   const kopf = [
     '---',
@@ -122,6 +140,13 @@ export function alsMarkdown(zustand: Abgelegt, sprache: Sprache): string {
     '---',
     ''
   ];
+  return kopf;
+}
+
+function leibzeilen(zustand: Abgelegt, sprache: Sprache): string[] {
+  const de = sprache !== 'en';
+  const gewicht = gesamtgewicht(zustand.stufen);
+  const vergleich = naechsterVergleich(gewicht);
 
   const leib: string[] = [
     `# ${zustand.zeichen} ${zustand.name}`,
@@ -202,7 +227,7 @@ export function alsMarkdown(zustand: Abgelegt, sprache: Sprache): string {
   const alles = [...leib].filter(
     (zeile, stelle, liste) => !(zeile === '' && liste[stelle - 1] === '')
   );
-  return [...kopf, ...alles].join('\n');
+  return alles;
 }
 
 /**

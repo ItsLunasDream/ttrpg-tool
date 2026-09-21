@@ -333,3 +333,35 @@ export const RELATION_SUGGESTIONS = [
   'Heimat',
   'Mitglied von'
 ];
+
+/**
+ * Der Beispieltext eines Steckbrieffelds, in der eingestellten Sprache.
+ *
+ * Die Notiztypen gehoeren der Kampagne und folgen bewusst keinem
+ * Sprachwechsel: eigene Beschriftungen gehoeren der Autorin und duerfen nicht
+ * ueberschrieben werden. Ein Beispieltext ist aber kein Inhalt, sondern ein
+ * Hinweis — „z.B. sie/ihr" neben einem Feld namens „Pronouns" ist schlicht
+ * falsch beschriftet.
+ *
+ * Aufgeloest wird deshalb so: steht dort noch der Text aus einer der beiden
+ * Vorlagen, wird die Fassung der eingestellten Sprache genommen. Steht etwas
+ * anderes, hat jemand ihn selbst geschrieben, und der bleibt.
+ */
+export function beispieltext(
+  typeId: NoteType,
+  key: string,
+  gespeichert: string | undefined,
+  sprache: Language
+): string {
+  const ausVorlage = (lang: Language): string | undefined =>
+    NOTIZTYP_VORLAGEN[lang]
+      .find((def) => def.id === typeId)
+      ?.fields.find((field) => field.key === key)?.placeholder;
+
+  const eigene = ausVorlage(sprache);
+  if (eigene === undefined) return gespeichert ?? '';
+
+  const vorlagen = (Object.keys(NOTIZTYP_VORLAGEN) as Language[]).map(ausVorlage);
+  const unveraendert = !gespeichert || vorlagen.includes(gespeichert);
+  return unveraendert ? eigene : gespeichert;
+}

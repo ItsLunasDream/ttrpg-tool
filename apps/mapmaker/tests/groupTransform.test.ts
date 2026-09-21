@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   allowsNonUniformScale,
+  rotateAroundCenterPatch,
   rotateGroupPatch,
   scaleGroupPatch,
 } from '@/model/groupTransform';
-import type { MapObject, PropObject } from '@/model/types';
+import { localCenterOffset, objectCenter } from '@/engine/hitTest';
+import type { MapObject, PropObject, ShapeObject } from '@/model/types';
 
 function prop(over: Partial<PropObject> = {}): PropObject {
   return {
@@ -137,5 +139,68 @@ describe('Gruppe skalieren', () => {
     const p = scaleGroupPatch([form], MITTE, 2, 2)!.get('s')!;
     expect(p.points).toEqual([0, 0, 80, 40]);
     expect(p.x as number).toBeCloseTo(200, 6);
+  });
+});
+
+describe('ein einzelnes Objekt um seine Mitte drehen', () => {
+  /*
+   * Aus dem Gebrauch: eine mit dem Terrain-Pinsel gemalte Flaeche drehte sich
+   * um die Ecke, an der der Strich begann, und wanderte dabei quer ueber die
+   * Karte. Grund war, dass beim Drehen nur `rotation` gesetzt wurde — in der
+   * Anzeige dreht das um den Ursprung, und der liegt bei einer Zeichnung am
+   * Anfang des Striches, nicht in der Mitte.
+   */
+  function flaeche(over: Partial<ShapeObject> = {}): ShapeObject {
+    return {
+      id: 's',
+      kind: 'shape',
+      layerId: 'l',
+      x: 100,
+      y: 100,
+      rotation: 0,
+      opacity: 1,
+      z: 0,
+      locked: false,
+      shape: 'polygon',
+      points: [0, 0, 40, 0, 40, 20, 0, 20],
+      closed: true,
+      blend: 'normal',
+      stroke: null,
+      fill: null,
+      ...over,
+    };
+  }
+
+  it('die Mitte bleibt stehen, der Ursprung weicht zurueck', () => {
+    const f = flaeche();
+    const mitte = objectCenter({} as never, f);
+    expect(mitte).toEqual({ x: 120, y: 110 });
+
+    const p = rotateAroundCenterPatch(localCenterOffset(f), mitte, Math.PI / 2);
+    // Gedreht wird um 90 Grad: der lokale Versatz (20|10) zeigt danach nach
+    // unten, der Ursprung muss also nach rechts oben wandern.
+    expect(p.x as number).toBeCloseTo(130, 6);
+    expect(p.y as number).toBeCloseTo(90, 6);
+
+    const gedreht = flaeche({ ...(p as Partial<ShapeObject>) });
+    expect(objectCenter({} as never, gedreht).x).toBeCloseTo(mitte.x, 6);
+    expect(objectCenter({} as never, gedreht).y).toBeCloseTo(mitte.y, 6);
+  });
+
+  it('eine volle Umdrehung laesst das Objekt, wo es war', () => {
+    const f = flaeche({ x: -37, y: 12 });
+    const mitte = objectCenter({} as never, f);
+    const p = rotateAroundCenterPatch(localCenterOffset(f), mitte, Math.PI * 2);
+    expect(p.x as number).toBeCloseTo(f.x, 6);
+    expect(p.y as number).toBeCloseTo(f.y, 6);
+  });
+
+  it('bei einem Prop aendert sich nur die Drehung', () => {
+    const p1 = prop({ x: 50, y: 70 });
+    const mitte = objectCenter({} as never, p1);
+    const p = rotateAroundCenterPatch(localCenterOffset(p1), mitte, 1.234);
+    expect(p.x as number).toBeCloseTo(50, 6);
+    expect(p.y as number).toBeCloseTo(70, 6);
+    expect(p.rotation).toBe(1.234);
   });
 });
