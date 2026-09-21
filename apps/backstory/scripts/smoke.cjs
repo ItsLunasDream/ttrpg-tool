@@ -1261,8 +1261,41 @@ app.whenReady().then(async () => {
       }
     }
 
-    // 16b. Der KI-Bereich liegt im selben Dialog, klar benannt
+    // 16b. Der KI-Bereich liegt im selben Dialog, klar benannt — aber nur,
+    //      wenn es eine KI gibt. Ist sie abgeschaltet (die Voreinstellung),
+    //      soll nichts davon im Weg stehen: kein Assistent in der Sidebar,
+    //      kein Reiter im Dialog, kein „und KI" im Titel.
     await selectNote(window, 'Toran');
+    await sleep(400);
+    check(
+      !(await run(window, `return Boolean(document.querySelector('.assistant'));`)),
+      'Bei abgeschalteter KI steht der Assistent trotzdem in der Sidebar'
+    );
+
+    await clickButton(window, 'Schreibhilfe');
+    await sleep(700);
+    check(
+      !(await run(window, `return document.querySelector('.modal__header h2').textContent.includes('KI');`)),
+      'Der Dialogtitel verspricht KI, obwohl keine eingerichtet ist'
+    );
+    check(
+      !(await run(window, `return Boolean(document.querySelector('.prompts__tabs'));`)),
+      'Bei abgeschalteter KI steht die Reiterleiste trotzdem da'
+    );
+    check(
+      await run(window, `return Boolean(document.querySelector('.prompts__categories'));`),
+      'Die Vorschläge fehlen — die kommen ohne KI aus und müssen bleiben'
+    );
+    await clickButton(window, '\u00d7', "document.querySelector('.modal__header')");
+    await sleep(400);
+
+    // Und mit KI: derselbe Dialog bekommt seine zwei Reiter zurueck.
+    await run(window, `return window.api.settings.update({ aiProvider: 'ollama' });`);
+    await sleep(900);
+    check(
+      await run(window, `return Boolean(document.querySelector('.assistant'));`),
+      'Mit gewählter KI fehlt der Assistent in der Sidebar'
+    );
     await clickButton(window, 'Schreibhilfe');
     await sleep(700);
     check(
@@ -1287,6 +1320,10 @@ app.whenReady().then(async () => {
     );
     await clickButton(window, '\u00d7', "document.querySelector('.modal__header')");
     await sleep(400);
+    // Zurueck auf den Ausgangszustand, damit die naechsten Schritte dieselbe
+    // Oberflaeche sehen wie vorher.
+    await run(window, `return window.api.settings.update({ aiProvider: 'none' });`);
+    await sleep(700);
 
     // 16. Schreibhilfe: Vorschlag in den Text uebernehmen
     await selectNote(window, 'Toran');

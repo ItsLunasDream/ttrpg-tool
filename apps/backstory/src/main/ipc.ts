@@ -103,8 +103,9 @@ export function registerIpc(context: IpcContext): void {
   /** Fuer den Über-Dialog: welche Fassung gerade läuft. */
   handle<[], string>('app:version', async () => app.getVersion());
 
-  handle<[Partial<AppSettings>], AppSettings>('settings:update', async (patch) => {
+  handleWithEvent<[Partial<AppSettings>], AppSettings>('settings:update', async (event, patch) => {
     const vorher = context.settings.language;
+    const kiVorher = context.settings.aiProvider;
     const next: AppSettings = { ...context.settings, ...patch, vaultRoot: context.settings.vaultRoot };
     context.settings = await writeSettings(context.settingsFile, next);
     vault.setHistoryOptions({
@@ -112,6 +113,17 @@ export function registerIpc(context: IpcContext): void {
       maxVersions: context.settings.historyMaxVersions
     });
     if (context.settings.language !== vorher) context.onLanguageChange?.(context.settings.language);
+    /*
+     * Ein Wechsel des Anbieters entscheidet, ob es den Assistenten ueberhaupt
+     * gibt. Aus dem eigenen Einstellungsdialog holt die Oberflaeche den
+     * Zustand selbst nach; kommt die Aenderung von woanders — aus einem
+     * Skript, aus einer zweiten Ansicht —, erfuhr sie bisher nichts davon und
+     * zeigte einen Assistenten, den es nicht mehr gab. Dasselbe Signal
+     * benutzt die Huelle, wenn sie die KI fuer die Sammlung fuehrt.
+     */
+    if (context.settings.aiProvider !== kiVorher && !event.sender.isDestroyed()) {
+      event.sender.send(channel('app:ki-gewechselt'));
+    }
     return context.settings;
   });
 

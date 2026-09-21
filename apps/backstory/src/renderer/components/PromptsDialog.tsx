@@ -57,7 +57,7 @@ export function PromptsDialog(props: Props) {
 
   return (
     <Modal
-      title={t('prompts.title')}
+      title={t(ohneKi ? 'prompts.titleOhneKi' : 'prompts.title')}
       wide
       onClose={onClose}
       footer={
