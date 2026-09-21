@@ -1424,3 +1424,81 @@ Zwei Dinge sind dabei zu klären:
   die Breite bekommen, nicht eine Lücke bleiben. Und dasselbe gilt für den
   Knopf, der den Assistenten öffnet, sowie für den KI-Bereich im
   Schreibhilfe-Dialog.
+
+## Vorgemerkt: Farbthemen, dann Einteilung der Werkzeuge
+
+Zwei Punkte, die zusammengehören und in dieser Reihenfolge gebaut werden
+müssen: erst die Farbthemen, dann die Einteilung, die sich ihrer bedient.
+
+### 1. Wählbare Farbthemen, wie in VSCode
+
+Der Nutzer soll zwischen Paletten wählen. Schwerpunkt auf dunklen Themen,
+dazu ein paar helle — damit ist der helle Modus gleich mit abgedeckt, ohne
+dass es einen eigenen Schalter dafür braucht. Jede Palette muss in sich
+stimmig sein, nicht eine Sammlung ausgetauschter Einzelfarben.
+
+Was heute im Weg steht, nachgezählt:
+
+| Werkzeug | harte Farbwerte | eigene Variablen |
+| --- | ---: | ---: |
+| Würfel | 40 | 11 |
+| Initiative | 27 | 12 |
+| NPC | 16 | 12 |
+| Monster | 16 | 15 |
+| Story Creator | 15 | 17 |
+| Zustände | 15 | 11 |
+| Inspiration | 12 | 11 |
+| Karteneditor | 0 | 0 |
+| Hülle | — | 16 |
+
+Also: jedes Werkzeug hat seinen eigenen kleinen Satz Variablen, und daneben
+stehen überall feste `#…`-Werte im Stylesheet. Ein Thema umzuschalten, das
+an neun Stellen anders heißt, geht nicht. Der erste Schritt ist deshalb
+nicht die Palette, sondern **ein gemeinsamer Satz benannter Farbrollen** in
+einem Paket unter `packages/` — Grund, Grund-hoch, Rand, Text, Text leise,
+betont, Warnung, Erfolg und so weiter. Die Werkzeuge benutzen nur noch
+Rollen; die Palette setzt die Rollen.
+
+Zu klären:
+
+- **Welche Rollen es gibt.** Zu wenige, und die Themen sehen alle gleich
+  aus; zu viele, und niemand kann eine neue Palette bauen, ohne dreißig
+  Werte zu treffen. Die 16 der Hülle sind ein brauchbarer Anfang.
+- **Die harten Werte müssen weg**, sonst bleibt bei jedem Thema ein Rest
+  in der alten Farbe stehen. Der Würfel ist der dickste Brocken, und dort
+  stecken Farben zusätzlich in der 3D-Ansicht, nicht nur im Stylesheet.
+- **Lesbarkeit prüfen, nicht hoffen.** Jede Palette braucht einen Test auf
+  Kontrast zwischen Text und Grund. Sonst gibt es ein schönes Thema, in dem
+  die leisen Texte verschwinden. Das lässt sich rechnen und gehört in die
+  Prüfungen, wie die Eichung bei den Zuständen.
+- **Wo die Einstellung steht.** In der Hülle, zusammen mit Sprache und KI;
+  die Werkzeuge bekommen sie durchgereicht, wie die Sprache heute schon.
+- **Eigene Paletten später.** Wenn die Rollen einmal stehen, ist eine
+  Palette eine kleine Datei. Ob Nutzer eigene ablegen dürfen, ist eine
+  spätere Frage, aber das Format sollte sie nicht verbauen.
+
+### 2. Werkzeuge nach Rolle am Tisch gruppieren
+
+Die Kachelseite soll die Werkzeuge einteilen, statt neun gleichwertige
+Kacheln nebeneinander zu zeigen:
+
+- **Für die Spielleitung:** Monster Creator, Status Effect Creator,
+  Inspirationshilfe, Encounter Creator, NPC Creator, Karteneditor,
+  Initiative Tracker.
+- **Für alle am Tisch:** Story Creator, Würfel.
+
+Dazu die Idee, beide Gruppen farblich zu unterscheiden. Zwei Vorbehalte,
+bevor das gebaut wird:
+
+- **Nicht zwei Themen gleichzeitig.** Wenn jede Gruppe ihre eigene Palette
+  bekommt, sieht die Sammlung aus wie zwei Programme. Besser ist ein Thema
+  mit einer Zweitfarbe je Gruppe: Kachelrahmen, Kopfzeile des Werkzeugs,
+  vielleicht das Symbol. Das muss jede Palette mitliefern, gehört also in
+  die Rollen aus Punkt 1.
+- **Farbe allein reicht nicht.** Wer Farben schlecht unterscheidet, sieht
+  die Einteilung sonst nicht. Es braucht ohnehin Überschriften über den
+  Gruppen; die Farbe ist die Zugabe, nicht die Information.
+
+Offen: ob die Zuordnung fest ist oder der Nutzer Werkzeuge verschieben darf.
+Der NPC Creator ist der Grenzfall — ein Spieler baut damit auch seinen
+Charakterhintergrund.
