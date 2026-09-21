@@ -17,6 +17,7 @@ import { translatePoints } from '@/model/geometry';
 import {
   groupHandles,
   halfExtents,
+  localCenterOffset,
   nearestHandle,
   objectCenter,
   pickHandle,
@@ -27,7 +28,13 @@ import {
 } from '@/engine/hitTest';
 import { scalePatch } from '@/model/scaleObject';
 import { insertPoint, movePoint, pickNode, removePoint } from '@/model/pathEdit';
-import { allowsNonUniformScale, rotateGroupPatch, scaleGroupPatch } from '@/model/groupTransform';
+import {
+  allowsNonUniformScale,
+  rotateAroundCenterPatch,
+  rotateGroupPatch,
+  scaleGroupPatch,
+  type Point,
+} from '@/model/groupTransform';
 import { expandToGroups, isObjectEditable } from '@/model/document';
 import { makeId } from '@/model/ids';
 import { emptyVttSelection, vttSelectionSize } from '@/model/store';
@@ -57,6 +64,8 @@ interface TransformStart {
    */
   startObject: MapObject;
   startRotation: number;
+  /** Abstand der Mitte vom Ursprung im eigenen System — fuer die Drehung. */
+  startLocalCenter: Point;
   /** Winkel vom Mittelpunkt zum Zeiger beim Anfassen. */
   startAngle: number;
   /**
@@ -557,6 +566,7 @@ export class SelectTool implements Tool {
         half: halfExtents(ctx.doc, obj, ctx.renderer.textMetrics),
         startObject: structuredClone(obj),
         startRotation: obj.rotation,
+        startLocalCenter: localCenterOffset(obj),
         startAngle: Math.atan2(e.world.y - center.y, e.world.x - center.x),
         startGroup: [],
       };
@@ -584,6 +594,7 @@ export class SelectTool implements Tool {
       half: { hw: (b.maxX - b.minX) / 2, hh: (b.maxY - b.minY) / 2 },
       startObject: structuredClone(beweglich[0]),
       startRotation: 0,
+      startLocalCenter: { x: 0, y: 0 },
       startAngle: Math.atan2(e.world.y - center.y, e.world.x - center.x),
       startGroup: beweglich.map((o) => structuredClone(o)),
     };
@@ -613,7 +624,11 @@ export class SelectTool implements Tool {
         rotation = Math.round(rotation / rad) * rad;
       }
       ctx.exec(
-        new PatchObjects(new Map([[obj.id, { rotation }]]), t('sel.rotation'), 'transform-rot'),
+        new PatchObjects(
+          new Map([[obj.id, rotateAroundCenterPatch(tr.startLocalCenter, tr.center, rotation)]]),
+          t('sel.rotation'),
+          'transform-rot',
+        ),
       );
       return;
     }

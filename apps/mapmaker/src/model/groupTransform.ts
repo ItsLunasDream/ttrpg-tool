@@ -97,3 +97,34 @@ export function scaleGroupPatch(
   }
   return out;
 }
+
+/**
+ * Patch, um ein *einzelnes* Objekt um seine Mitte zu drehen.
+ *
+ * Gedreht wird in der Anzeige um den Ursprung `x`/`y` des Objekts. Bei einem
+ * Prop oder einem Bild ist das auch die Mitte; bei einer Zeichnung ist es der
+ * erste Punkt — beim Terrain-Pinsel die Kante am Anfang des Striches. Eine so
+ * gemalte Fläche drehte sich deshalb um ihre obere linke Ecke und wanderte
+ * dabei quer über die Karte.
+ *
+ * `local` ist der Abstand der Mitte vom Ursprung im *eigenen* Bezugssystem des
+ * Objekts, also unabhängig von der Drehung. Die Weltmitte ist
+ * `x/y + R(rotation) · local`; soll sie beim Drehen stehenbleiben, muss der
+ * Ursprung um denselben Betrag zurückweichen.
+ *
+ * Das heilt auch Karten, die es schon gibt: der Ursprung der abgelegten
+ * Flächen bleibt, wo er ist, gedreht wird trotzdem um die Mitte.
+ */
+export function rotateAroundCenterPatch(
+  local: Point,
+  center: Point,
+  rotation: number,
+): Record<string, unknown> {
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  return {
+    rotation,
+    x: center.x - (local.x * cos - local.y * sin),
+    y: center.y - (local.x * sin + local.y * cos),
+  };
+}
