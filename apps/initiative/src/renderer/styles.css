@@ -181,10 +181,6 @@ input[type='number'] {
   background: var(--rand);
 }
 
-.leiste__sprache {
-  padding: 5px 6px;
-}
-
 /* ---------- Liste ---------- */
 
 .liste {

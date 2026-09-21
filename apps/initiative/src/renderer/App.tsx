@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { rollD20 } from '@suite/dice';
 import { api } from './api';
-import { getLanguage, onLanguageChange, setLanguage, t, LANGUAGES, type Language } from './i18n';
+import { getLanguage, onLanguageChange, t, type Language } from './i18n';
 import {
   aendereHp,
   beginne,
@@ -273,18 +273,12 @@ export function App() {
         >
           {t('feld.taktik')}
         </button>
-        <select
-          className="leiste__sprache"
-          value={sprache}
-          onChange={(ereignis) => setLanguage(ereignis.target.value as Language)}
-          aria-label="Sprache"
-        >
-          {LANGUAGES.map((eintrag) => (
-            <option key={eintrag} value={eintrag}>
-              {eintrag.toUpperCase()}
-            </option>
-          ))}
-        </select>
+        {/*
+          Hier stand ein eigener EN/DE-Waehler. Die Sprache steht in den
+          Einstellungen der Huelle und wird von dort durchgereicht; zwei
+          Stellen fuer dieselbe Einstellung sind eine zu viel. Die Anzeige
+          folgt weiterhin, siehe `onLanguageChange` weiter oben.
+        */}
       </header>
 
       {zeigeBegegnungen ? (

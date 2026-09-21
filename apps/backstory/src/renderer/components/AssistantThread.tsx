@@ -4,6 +4,27 @@ import { leseAntwort, type Stueck } from '../../shared/antwortMarkdown';
 import { useAssistant } from '../assistant';
 import { useT } from '../i18n';
 
+/**
+ * Ist die KI abgeschaltet — nicht bloss unfertig eingerichtet?
+ *
+ * Der Unterschied entscheidet, ob der Assistent ueberhaupt erscheint. Wer
+ * keinen Schluessel hinterlegt hat, soll ihn sehen: dort steht, wie man ihn
+ * einrichtet. Wer die KI in den Einstellungen abgeschaltet hat, will den
+ * Platz nicht fuer etwas hergeben, das nicht geht.
+ *
+ * Erkannt wird das am Anbieter: `baueAnbieter` liefert nur bei „none" nichts,
+ * und „none" steht genau dann, wenn die KI aus ist. Ein gewaehlter Anbieter
+ * ohne Schluessel meldet sich weiterhin mit seinem Namen und `ready: false`.
+ *
+ * Ein fehlender Zustand (`null`) heisst nicht „aus", sondern „noch nicht
+ * gefragt" oder „Frage fehlgeschlagen". Dann bleibt der Assistent stehen —
+ * ihn wegen einer Stoerung verschwinden zu lassen waere das schlechtere von
+ * beidem.
+ */
+export function kiAbgeschaltet(status: AiStatus | null): boolean {
+  return status?.provider === 'none';
+}
+
 export interface AiStatus {
   provider: string;
   ready: boolean;

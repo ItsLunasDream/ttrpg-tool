@@ -197,32 +197,43 @@ app.whenReady().then(async () => {
   // Bei den anderen beiden Werkzeugen war genau das die Fehlerquelle: die
   // Modelltests sahen die Kopplung nicht, und im Fenster blieb ein Werkzeug
   // auf der alten Sprache stehen.
-  const spracheJetzt = () =>
-    js("document.querySelector('.leiste__sprache')?.value ?? ''");
+  //
+  // Der Tracker hatte bis 0.2.0 einen eigenen EN/DE-Waehler; der ist raus,
+  // weil die Sprache in den Einstellungen der Huelle steht. Geprueft wird
+  // deshalb nur noch die eine Richtung, die es noch gibt — und dass der
+  // Waehler wirklich weg ist.
+  pruefe(
+    !(await js("Boolean(document.querySelector('.leiste__sprache'))")),
+    'der Tracker hat keinen eigenen Sprachwaehler mehr'
+  );
+
+  // Gelesen wird die Sprache am `lang` des Dokuments: das setzt der Tracker
+  // selbst, sobald er umgestellt hat.
+  const spracheJetzt = () => js('document.documentElement.lang');
   const vorher = await spracheJetzt();
   const andere = vorher === 'de' ? 'en' : 'de';
-  await js(`(() => { const s = document.querySelector('.leiste__sprache');
-    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(s, '${andere}');
-    s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
-  await warte(900);
-  pruefe((await spracheJetzt()) === andere, `der Tracker stellt selbst um (${vorher} -> ${andere})`);
 
-  // Die Huelle muss es mitbekommen haben und ihre eigene Titelleiste umstellen.
   const huelle = fenster.contentView.children[0];
-  const huellenText = await huelle.webContents.executeJavaScript(
-    "document.querySelector('.titelleiste__knopf')?.textContent ?? ''"
+  await huelle.webContents.executeJavaScript(
+    `window.shell.einstellungen.schreiben({ language: '${andere}' })`
+  );
+  await warte(900);
+  pruefe((await spracheJetzt()) === andere, `der Tracker folgt der Huelle (${vorher} -> ${andere})`);
+
+  // Und die Beschriftungen gehen wirklich mit, nicht nur das `lang`.
+  const knopfText = await js(
+    "[...document.querySelectorAll('button')].map((k) => k.textContent).join('|')"
   );
   pruefe(
-    andere === 'de' ? huellenText === 'Einstellungen' : huellenText === 'Settings',
-    `die Huelle ist mitgegangen (\"${huellenText}\")`
+    andere === 'de' ? knopfText.includes('Teilnehmer') : knopfText.includes('Participant'),
+    `die Beschriftungen sind mitgegangen (${andere})`
   );
 
-  // Und zurueck, von der Huelle aus: der Tracker muss folgen.
   await huelle.webContents.executeJavaScript(
     `window.shell.einstellungen.schreiben({ language: '${vorher}' })`
   );
   await warte(900);
-  pruefe((await spracheJetzt()) === vorher, 'und folgt der Huelle wieder zurueck');
+  pruefe((await spracheJetzt()) === vorher, 'und wieder zurueck');
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' | ') || 'keine'})`);
 

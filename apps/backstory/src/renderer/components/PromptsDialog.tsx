@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PromptCategory } from '../../shared/writingPrompts';
 import { useT } from '../i18n';
 import { Modal } from './Modal';
-import { AssistantThread, type AiStatus } from './AssistantThread';
+import { AssistantThread, kiAbgeschaltet, type AiStatus } from './AssistantThread';
 
 interface Props {
   categories: PromptCategory[] | null;
@@ -34,6 +34,11 @@ export function PromptsDialog(props: Props) {
   const { categories, aiStatus, onInsert, onEditFile, onClose } = props;
   const t = useT();
   const [tab, setTab] = useState<'prompts' | 'ai'>('prompts');
+  // Ist die KI aus, gibt es den Reiter nicht — dann bleiben die Vorschlaege,
+  // die ohnehin ohne Modell auskommen.
+  const ohneKi = kiAbgeschaltet(aiStatus);
+  const reiter = ohneKi ? (['prompts'] as const) : (['prompts', 'ai'] as const);
+  const aktiv = ohneKi ? 'prompts' : tab;
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [rolled, setRolled] = useState<string[]>([]);
 
@@ -57,7 +62,7 @@ export function PromptsDialog(props: Props) {
       onClose={onClose}
       footer={
         <>
-          {tab === 'prompts' ? (
+          {aktiv === 'prompts' ? (
             <button type="button" onClick={onEditFile}>
               {t('prompts.editFile')}
             </button>
@@ -73,20 +78,23 @@ export function PromptsDialog(props: Props) {
         Der Unterschied muss auf einen Blick zu sehen sein, deshalb stehen
         beide Male ausgeschrieben in der Beschriftung.
       */}
-      <div className="prompts__tabs">
-        {(['prompts', 'ai'] as const).map((entry) => (
-          <button
-            key={entry}
-            type="button"
-            className={tab === entry ? 'is-active' : undefined}
-            onClick={() => setTab(entry)}
-          >
-            {t(entry === 'prompts' ? 'prompts.tabPrompts' : 'prompts.tabAi')}
-          </button>
-        ))}
-      </div>
+      {/* Bei abgeschalteter KI bleibt nur ein Reiter — dann keine Leiste. */}
+      {reiter.length > 1 ? (
+        <div className="prompts__tabs">
+          {reiter.map((entry) => (
+            <button
+              key={entry}
+              type="button"
+              className={aktiv === entry ? 'is-active' : undefined}
+              onClick={() => setTab(entry)}
+            >
+              {t(entry === 'prompts' ? 'prompts.tabPrompts' : 'prompts.tabAi')}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
-      {tab === 'ai' ? (
+      {aktiv === 'ai' ? (
         <AssistantThread
           status={aiStatus}
           variant="chat"
@@ -96,7 +104,7 @@ export function PromptsDialog(props: Props) {
         />
       ) : null}
 
-      {tab === 'prompts' ? (
+      {aktiv === 'prompts' ? (
         categories === null ? (
         <p className="panel__empty">{t('app.loading')}</p>
       ) : categories.length === 0 ? (
@@ -148,7 +156,7 @@ export function PromptsDialog(props: Props) {
         )
       ) : null}
 
-      {tab === 'prompts' ? <p className="modal__hint">{t('prompts.hint')}</p> : null}
+      {aktiv === 'prompts' ? <p className="modal__hint">{t('prompts.hint')}</p> : null}
     </Modal>
   );
 }
