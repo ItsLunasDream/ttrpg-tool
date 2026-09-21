@@ -1600,23 +1600,42 @@ zufällig gut aussieht.
 Gewünscht ist eine durchgehende Fläche; zu sehen sind die Lagen, die beim
 Ziehen übereinandergelaufen sind.
 
-**Vermutung, nicht nachgestellt:** Der Pinsel erzeugt *ein* Polygon, kein
-Stapel — insofern kann es nicht an mehreren Objekten liegen. Wohl aber
-daran, dass dieses eine Polygon sich selbst überschneidet: `strokeBand`
-legt links und rechts der Mittellinie je eine Kante an, und in einer engen
-Kurve oder bei einem Strich, der sich selbst kreuzt, schlägt die innere
-Kante über. Ein solches Polygon wird beim Zeichnen in Dreiecke zerlegt, und
-überlappende Dreiecke werden doppelt gefüllt. Bei voller Deckkraft sieht
-man das nicht, bei halber schon. Das passt zur Beobachtung, ist aber eine
-Vermutung: ich habe es nicht ausprobiert.
+**Nachgestellt und gemessen.** Eine Prüfung im echten Browser
+(`e2e/terrain-deckkraft.spec.ts`) malt einen Strich, der sich selbst kreuzt,
+und liest die Farbe aus dem fertigen Bild: an der Kreuzung ist das Rot um 27
+Stufen kräftiger als auf einer einzelnen Lage. Die Vermutung stimmt also.
 
-Zu prüfen, bevor etwas gebaut wird:
+Die Ursache genau: der Pinsel legt *ein* Polygon an, aber dessen Kontur
+überschlägt sich, wo der Strich sich selbst kreuzt oder enger biegt als der
+Pinsel breit ist. Gerechnet: bei einem geraden Strich und bei einer Kurve,
+deren Radius größer als die halbe Pinselbreite ist, gibt es keine einzige
+Überschneidung; bei Pinselbreite 80 auf Radius 30 sind es fünf, bei einem
+Strich, der sich selbst kreuzt, vierzehn. Ein solches Polygon wird in
+Dreiecke zerlegt, die einander überlappen, und überlappende Dreiecke werden
+zweimal gefüllt. Die Vorgabe des Pinsels ist Breite 120 — wer eine Fläche
+ausmalt, trifft das also fast immer.
 
-- Tritt es auch bei einem geraden Strich ohne Kurve auf? Wenn ja, liegt es
-  nicht an der Selbstüberschneidung und die Vermutung oben ist falsch.
-- Passiert es schon in der Vorschau oder erst an der abgelegten Fläche?
+**Was nicht hilft** (ausprobiert, jeweils gemessen): die Fläche über
+`cacheAsTexture` flachlegen, weder beim Bauen noch beim Setzen der
+Deckkraft. Der Wert bleibt bei 27.
 
-Wenn es die Selbstüberschneidung ist, führt der saubere Weg über eine
-Vereinigung der Bandkontur (ein Polygon ohne Überschläge) statt über die
-heutige Aneinanderreihung von oberer und unterer Kante. Das ist mehr Arbeit
-als eine Zeile und sollte erst nach der Prüfung angefangen werden.
+**Drei Wege, und keiner ist umsonst** — das gehört entschieden, bevor jemand
+anfängt:
+
+1. **Vereinigung der Kontur beim Malen** (Bibliothek wie `polygon-clipping`,
+   MIT, klein). Sauber an der Wurzel, hilft auch Export und Treffertest.
+   Kostet eine neue Abhängigkeit *und* eine Änderung am Speicherformat: die
+   Vereinigung kann ein Loch haben — ein im Kreis gemalter Weg —, und eine
+   `ShapeObject` kennt heute nur einen Ring. Ohne Löcher liefe der Kreis
+   voll.
+2. **Maske statt Füllung.** Die Form wird zur Maske, gefüllt wird ein
+   einfaches Rechteck. Die Maske ist binär, Überlappungen zählen nicht
+   doppelt. Billig und ohne Abhängigkeit, aber Maskenkanten sind hart: die
+   Fläche bekäme ausgefranste Ränder.
+3. **Selbst in eine Textur rendern.** Die Fläche deckend in eine eigene
+   Textur zeichnen und diese mit der Deckkraft anzeigen. Behält weiche
+   Kanten und braucht nichts Neues, kostet aber Texturspeicher je Fläche und
+   ein Neuzeichnen bei jeder Zoomstufe.
+
+Bis das entschieden ist, steht die Prüfung als `test.fixme` im Baum: sie
+beschreibt den Fehler und schlägt nicht fehl.
