@@ -37,7 +37,7 @@ import {
   type Wirkrichtung
 } from '../shared/tabellen';
 import { bogen } from '../shared/karte';
-import { erzeugePaket, ueberschneidung, type Paket } from '../shared/paket';
+import { erzeugePaket, paketId, ueberschneidung, type Paket } from '../shared/paket';
 import { zuId as kennung } from '../shared/ablage';
 import { api } from './api';
 import { Blatt } from './Blatt';
@@ -297,13 +297,29 @@ export function App() {
     );
   };
 
-  /** Ein ganzes Paket in die Sammlung. */
+  /**
+   * Ein ganzes Paket in die Sammlung — und dort bleibt es eines.
+   *
+   * Jeder Zustand traegt den Verweis aufs Paket in seinem Kopf. Damit
+   * stehen sie in der Sammlung beieinander, statt einzeln an ihre
+   * alphabetische Stelle zwischen fremde Eintraege zu rutschen. Der Grund,
+   * warum man ein Paket wuerfelt, ist ja die Abstimmung untereinander; die
+   * waere nach dem Speichern sonst nicht mehr zu sehen.
+   */
   const speicherePaket = async () => {
     if (!paket) return;
+    const kennung = paketId(paket.name);
+    const zeitpunkt = new Date().toISOString();
     let gespeichert = 0;
     for (const einzelner of paket.zustaende) {
       const ergebnis = await api.sammlung.speichern(
-        { ...einzelner, id: zuId(einzelner.name), geaendert: new Date().toISOString() },
+        {
+          ...einzelner,
+          id: zuId(einzelner.name),
+          geaendert: zeitpunkt,
+          paketId: kennung,
+          paketName: paket.name
+        },
         getLanguage()
       );
       if (ergebnis.ok) gespeichert += 1;

@@ -310,6 +310,34 @@ Fällt weitgehend nebenbei ab, sobald der einzelne Zustand steht — das
 Verteilen ist derselbe Erzeuger mit einem gemeinsamen Vorrat statt sechs
 Einzelwürfen.
 
+### In der Sammlung bleibt es ein Paket
+
+Die vier Zustände landeten anfangs einzeln in der Sammlung, jeder an seiner
+alphabetischen Stelle zwischen fremden Einträgen — und damit war die
+Abstimmung, der ganze Grund für das Paket, nach dem Speichern nicht mehr zu
+sehen.
+
+Jeder Zustand trägt jetzt einen Verweis auf sein Paket im Dateikopf
+(`paket` und `paket_name`). **Nicht** als eigene Paketdatei: ein Paket ist
+kein Gegenstand für sich, sondern eine Zusammengehörigkeit, und jeder
+Zustand bleibt einzeln brauchbar — man kann einen herauslösen, umbenennen
+oder löschen, ohne dass die anderen etwas merken. Eine eigene Datei müsste
+bei jedem Löschen nachgeführt werden und wäre die zweite Stelle, an der
+dieselbe Wahrheit steht.
+
+In der Sammlung wird daraus eine Kachel, die sich aufklappt. Zugeklappt
+nennt sie die Zustände darin, damit man das Paket wiedererkennt, ohne es zu
+öffnen. Zwei Regeln, die das Verhalten erträglich machen:
+
+- **Ein Paket steht dort, wo sein erster Zustand stünde.** Sonst sprängen
+  die Kacheln beim Tippen im Suchfeld hin und her.
+- **Ein Paket mit nur noch einem Zustand ist keines mehr.** Wer die anderen
+  gelöscht hat — oder wessen Suche nur einen trifft — will keine Kachel
+  aufklappen müssen, um an den letzten zu kommen.
+
+Gesucht wird auch über den Paketnamen: wer „Arktis" tippt, meint die vier
+Zustände darin.
+
 ## Die Eichung: das Gewicht braucht einen Maßstab
 
 Oben steht ein Punktesystem, dessen Werte geschätzt sind. Geschätzte Werte

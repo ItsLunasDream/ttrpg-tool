@@ -43,6 +43,7 @@ const TEXTE = {
   'paket.alleKarten': ['Alle Karten drucken', 'Print all cards'],
   'paket.oeffnen': ['Einzeln öffnen', 'Open on its own'],
   'paket.gespeichert': ['{anzahl} Zustände liegen in der Sammlung.', '{anzahl} conditions are in the collection.'],
+  'paket.zustaende': ['{anzahl} Zustände', '{anzahl} conditions'],
 
   'karte.gespeichert': ['Die Karte liegt als PDF: {pfad}', 'The card is saved as a PDF: {pfad}'],
   'karte.abgebrochen': ['Abgebrochen.', 'Cancelled.'],

@@ -254,3 +254,22 @@ export function ueberschneidung(paket: Paket): number {
   }
   return doppelt;
 }
+
+/**
+ * Die Kennung eines Pakets aus seinem Namen.
+ *
+ * Dieselbe Regel wie bei den Zustaenden selbst (`zuId` in `ablage.ts`), nur
+ * mit einem Vorsatz: so kann eine Paketkennung nie zufaellig mit der
+ * Kennung eines einzelnen Zustands zusammenfallen.
+ */
+export function paketId(name: string): string {
+  const sauber = name
+    .toLowerCase()
+    .replace(/[äÄ]/g, 'ae')
+    .replace(/[öÖ]/g, 'oe')
+    .replace(/[üÜ]/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `paket-${sauber || 'ohne-namen'}`;
+}
