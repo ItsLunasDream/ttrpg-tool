@@ -41,6 +41,8 @@ export const texte = {
   'knopf.entfernen': ['Entfernen', 'Remove'],
   'knopf.speichern': ['Begegnung speichern', 'Save encounter'],
   'knopf.oeffnen': ['Öffnen', 'Open'],
+  'knopf.neueBegegnung': ['Neue Begegnung', 'New encounter'],
+  'knopf.verwerfen': ['Verwerfen', 'Discard'],
   'knopf.bild': ['Bild wählen', 'Choose image'],
   'knopf.bildAendern': ['Bild ändern', 'Change image'],
   'knopf.bildWeg': ['Bild entfernen', 'Remove image'],
@@ -66,6 +68,18 @@ export const texte = {
   'begegnung.name': ['Name der Begegnung', 'Encounter name'],
   'begegnung.keine': ['Keine gespeicherten Begegnungen', 'No saved encounters'],
   'begegnung.titel': ['Begegnungen', 'Encounters'],
+  'bestaetigen.neuLaeuft': [
+    'Der Kampf läuft noch. Neue Begegnung anfangen?',
+    'The fight is still running. Start a new encounter?'
+  ],
+  'bestaetigen.neuUngespeichert': [
+    'Diese Aufstellung ist nicht gespeichert. Neue Begegnung anfangen?',
+    'This line-up is not saved. Start a new encounter?'
+  ],
+  'bestaetigen.neuBeides': [
+    'Der Kampf läuft noch und die Aufstellung ist nicht gespeichert. Neue Begegnung anfangen?',
+    'The fight is still running and the line-up is not saved. Start a new encounter?'
+  ],
   'begegnung.suche': [
     'Suche: Begegnung oder Teilnehmer',
     'Search: encounter or participant'

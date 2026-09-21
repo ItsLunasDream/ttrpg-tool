@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { rollD20 } from '@suite/dice';
 import { api } from './api';
+import { nichtsZuVerlieren, pruefeVerlust } from '../shared/neuebegegnung';
 import {
   kannVor,
   kannZurueck,
@@ -78,7 +79,7 @@ export function App() {
    * Eigene statt `window.prompt`/`window.confirm`: `prompt()` wirft in
    * Electron, und `confirm()` haelt den ganzen Renderer an.
    */
-  const [dialog, setDialog] = useState<'speichern' | 'beenden' | null>(null);
+  const [dialog, setDialog] = useState<'speichern' | 'beenden' | 'neu' | null>(null);
   /** Wer gerade umbenannt wird. Der Dialog fragt nach dem neuen Namen. */
   const [umbenennen, setUmbenennen] = useState<{ id: string; name: string } | null>(null);
 
@@ -265,6 +266,29 @@ export function App() {
     setzeUndSichere((vorher) => beginne(vorher));
   }, [kampf.laeuft, setzeUndSichere]);
 
+  /**
+   * Eine neue Begegnung anfangen.
+   *
+   * Gefragt wird nur, wo etwas auf dem Spiel steht — laeuft der Kampf noch,
+   * oder steht die Aufstellung so nicht auf der Platte. Eine Rueckfrage bei
+   * jedem Klick waere nach dem dritten Mal nur noch ein Hindernis.
+   */
+  const warnung = useMemo(() => pruefeVerlust(kampf, begegnungen), [kampf, begegnungen]);
+
+  const legeNeuAn = useCallback(() => {
+    setTaktik('');
+    setZeigeBegegnungen(false);
+    setzeUndSichere(leererKampf());
+  }, [setzeUndSichere]);
+
+  const neueBegegnung = useCallback(() => {
+    if (nichtsZuVerlieren(warnung)) {
+      legeNeuAn();
+      return;
+    }
+    setDialog('neu');
+  }, [warnung, legeNeuAn]);
+
   const beende = useCallback(() => {
     setzeUndSichere((vorher) => ({ ...vorher, laeuft: false, amZug: -1, runde: 0 }));
   }, [setzeUndSichere]);
@@ -370,6 +394,9 @@ export function App() {
           {kampf.laeuft ? t('knopf.beenden') : t('knopf.beginnen')}
         </button>
         <span className="leiste__trenner" />
+        <button type="button" onClick={neueBegegnung}>
+          {t('knopf.neueBegegnung')}
+        </button>
         <button type="button" onClick={() => setZeigeBegegnungen((vorher) => !vorher)}>
           {t('knopf.oeffnen')}
         </button>
@@ -515,6 +542,23 @@ export function App() {
           onAbschluss={(wert) => {
             setDialog(null);
             if (wert) beende();
+          }}
+        />
+      ) : null}
+
+      {dialog === 'neu' ? (
+        <Dialog
+          titel={
+            warnung.laeuft && warnung.ungespeichert
+              ? t('bestaetigen.neuBeides')
+              : warnung.laeuft
+                ? t('bestaetigen.neuLaeuft')
+                : t('bestaetigen.neuUngespeichert')
+          }
+          bestaetigen={t('knopf.verwerfen')}
+          onAbschluss={(wert) => {
+            setDialog(null);
+            if (wert) legeNeuAn();
           }}
         />
       ) : null}

@@ -268,6 +268,11 @@ numbers mean is up to the table.
   tools and stays navigation.
 - Encounters are documents (Markdown with a YAML header); the running fight
   is session state and sits next to them as JSON.
+- **New encounter** clears the tracker, and asks first only when something
+  is at stake: the fight is still running, or the line-up is not saved. What
+  it compares is what *saving* would produce, not the running state — damage
+  and conditions belong to the session, not to the encounter, so taking a
+  hit does not make it "unsaved".
 - **The encounter list is a collection**, laid out like the ones in the
   Monster and Status Effect Creators: tiles to browse, a list to scan, a
   search box above. Search covers the encounter's name *and* the names of

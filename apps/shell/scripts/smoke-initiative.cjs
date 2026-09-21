@@ -238,6 +238,26 @@ app.whenReady().then(async () => {
     pruefe(inhalt.includes('Goblin'), 'und mit den Teilnehmern darin');
   }
 
+  // --- Neue Begegnung -----------------------------------------------------
+  /*
+   * Der Knopf wirft den jetzigen Kampf weg — und fragt vorher, wenn etwas
+   * auf dem Spiel steht. Hier steht beides: der Kampf laeuft, und gespeichert
+   * ist er in diesem Moment noch nicht.
+   */
+  const neuKnopf = `[...document.querySelectorAll('button')].find(
+    b => /New encounter|Neue Begegnung/.test(b.textContent))`;
+  await js(`${neuKnopf}.click(); true`);
+  await warte(500);
+  pruefe(await js("Boolean(document.querySelector('.dialog'))"), 'die Rueckfrage kommt');
+
+  // Abbrechen laesst alles stehen.
+  await js(`[...document.querySelectorAll('.dialog__knoepfe button')].shift().click(); true`);
+  await warte(500);
+  pruefe(
+    (await js("document.querySelectorAll('.zeile').length")) > 0,
+    'Abbrechen laesst die Teilnehmer stehen'
+  );
+
   // --- Die Sammlung: Kacheln und Suche ------------------------------------
   /*
    * Aufgebaut wie im Monster Creator. Geprueft wird vor allem das, was diese
@@ -294,6 +314,19 @@ app.whenReady().then(async () => {
   await js(`[...document.querySelectorAll('.dialog__knoepfe button')].pop().click(); true`);
   await warte(600);
   pruefe(!(await js("Boolean(document.querySelector('.leiste__runde'))")), 'der Kampf ist beendet');
+
+  // Jetzt ist gespeichert und der Kampf beendet: es steht nichts mehr auf
+  // dem Spiel, also darf nicht mehr gefragt werden.
+  await js(`${neuKnopf}.click(); true`);
+  await warte(600);
+  pruefe(
+    !(await js("Boolean(document.querySelector('.dialog'))")),
+    'ohne Verlust kommt keine Rueckfrage'
+  );
+  pruefe(
+    (await js("document.querySelectorAll('.zeile').length")) === 0,
+    'und der Tracker ist leer'
+  );
 
   // --- Sprachkopplung ---------------------------------------------------
   // Bei den anderen beiden Werkzeugen war genau das die Fehlerquelle: die

@@ -38,3 +38,4 @@ export {
   VERLAUF_TIEFE
 } from '../src/shared/verlauf';
 export { finde, passt, heuhaufen, treffendeTeilnehmer } from '../src/shared/suche';
+export { pruefeVerlust, nichtsZuVerlieren, alsVorlage } from '../src/shared/neuebegegnung';
