@@ -1502,3 +1502,66 @@ bevor das gebaut wird:
 Offen: ob die Zuordnung fest ist oder der Nutzer Werkzeuge verschieben darf.
 Der NPC Creator ist der Grenzfall — ein Spieler baut damit auch seinen
 Charakterhintergrund.
+
+## Fehler: Karteneditor, Terrain drehen und Deckkraft
+
+Zwei Beobachtungen aus dem Gebrauch. Beim ersten habe ich die Ursache im
+Code gefunden, beim zweiten habe ich eine Vermutung und habe sie nicht
+nachgestellt — das steht unten ausdrücklich dabei.
+
+### 1. Terrain dreht sich um die obere linke Ecke, nicht um die Mitte
+
+Der Terrain-Pinsel legt den Ursprung der fertigen Fläche auf den *ersten
+Punkt des Bandes* (`terrainPaint.ts`: `const ox = band[0]`), also auf die
+Kante am Anfang des Striches. Gerendert wird dann mit `node.rotation =
+obj.rotation` bei einem Knoten, der auf `x`/`y` sitzt (`renderer.ts`) — die
+Fläche dreht sich also um genau diesen Anfangspunkt.
+
+Bemerkenswert: der Kommentar an der Stelle sagt, der Ursprung werde so
+gelegt, „sonst ließe sich die Fläche später nicht um ihre Mitte drehen".
+Die Absicht war also richtig, umgesetzt ist sie nicht — der erste Punkt des
+Bandes ist nicht die Mitte.
+
+Zwei Wege, und sie unterscheiden sich in der Tragweite:
+
+- **Nur den Terrain-Pinsel ändern:** Ursprung auf den Mittelpunkt der Form
+  legen (`polygonCentroid.ts` gibt es schon) und die lokalen Punkte
+  entsprechend verschieben. Kleiner Eingriff, hilft aber nur neuen Flächen;
+  vorhandene Karten behalten ihren Ursprung.
+- **Beim Drehen um die Mitte der Auswahl drehen**, egal wo der Ursprung
+  liegt. `rotateGroupPatch` in `groupTransform.ts` kann das für Gruppen
+  schon, jedes Objekt wandert auf seiner Kreisbahn um den Gruppenmittelpunkt.
+  Bei einem einzelnen Objekt scheint dieser Weg nicht genommen zu werden.
+  Das wäre die Lösung, die auch alte Karten heilt.
+
+**Ausdrücklich mitgefordert: die Drehung der anderen Objektarten prüfen.**
+Freihandzeichnungen und Polygone haben denselben Ursprung wie das Terrain,
+Bilder und Rechtecke vermutlich nicht. Wenn sich die Arten verschieden
+verhalten, ist das schon für sich ein Fehler, auch dort, wo die Drehung
+zufällig gut aussieht.
+
+### 2. Bei geringer Deckkraft werden die Überlappungen des Striches sichtbar
+
+Gewünscht ist eine durchgehende Fläche; zu sehen sind die Lagen, die beim
+Ziehen übereinandergelaufen sind.
+
+**Vermutung, nicht nachgestellt:** Der Pinsel erzeugt *ein* Polygon, kein
+Stapel — insofern kann es nicht an mehreren Objekten liegen. Wohl aber
+daran, dass dieses eine Polygon sich selbst überschneidet: `strokeBand`
+legt links und rechts der Mittellinie je eine Kante an, und in einer engen
+Kurve oder bei einem Strich, der sich selbst kreuzt, schlägt die innere
+Kante über. Ein solches Polygon wird beim Zeichnen in Dreiecke zerlegt, und
+überlappende Dreiecke werden doppelt gefüllt. Bei voller Deckkraft sieht
+man das nicht, bei halber schon. Das passt zur Beobachtung, ist aber eine
+Vermutung: ich habe es nicht ausprobiert.
+
+Zu prüfen, bevor etwas gebaut wird:
+
+- Tritt es auch bei einem geraden Strich ohne Kurve auf? Wenn ja, liegt es
+  nicht an der Selbstüberschneidung und die Vermutung oben ist falsch.
+- Passiert es schon in der Vorschau oder erst an der abgelegten Fläche?
+
+Wenn es die Selbstüberschneidung ist, führt der saubere Weg über eine
+Vereinigung der Bandkontur (ein Polygon ohne Überschläge) statt über die
+heutige Aneinanderreihung von oberer und unterer Kante. Das ist mehr Arbeit
+als eine Zeile und sollte erst nach der Prüfung angefangen werden.
