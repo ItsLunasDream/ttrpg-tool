@@ -95,6 +95,7 @@ packages/dice/     Reading and rolling dice expressions
 packages/i18n/     Language choice and text substitution
 packages/motion/   Timings, curves and base animations
 packages/ki/       Connection to language models (Ollama, Claude)
+packages/umgebungen/ Environments: what you see, and what has a numbered effect
 ```
 
 `packages/*` are platform-free: no `node:*`, no `electron`, no browser

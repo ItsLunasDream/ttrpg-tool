@@ -1445,17 +1445,39 @@ Creator wäre die vierte. Stattdessen: ein gemeinsames Paket unter
 am Tisch mit einer Zahl wirkt, welche Themen dazu passen — und das die
 Werkzeuge jeweils so lesen, wie sie es brauchen.
 
-Zu klären:
+**Erledigt: das Paket steht.** `packages/umgebungen` hält die sechzehn
+Umgebungen einmal, mit drei Sichten je Eintrag: `name`, `anblick` (was man
+sieht, zum Vorlesen und als Vorlage für eine Karte) und `regeln` (was am
+Tisch wirkt, mit Zahl). Der Monster Creator liest von dort; seine 138
+Prüfungen liefen unverändert durch, was der Prüfstein dafür war, dass es
+wirklich nur ein Umzug ist. Was bei ihm bleibt, ist die Übersetzung seiner
+`Bewegung` in das, was das Paket fragt: schwimmt es, gräbt es.
 
-- **Die Regel mit Zahl ist der neue Teil.** „Schneesturm: Sicht höchstens
-  30 Fuß" steht heute nirgends. Ohne sie bleibt die Vereinheitlichung ein
-  Umzug ohne Gewinn.
-- **Was `packages/` darf.** Die Regel der Sammlung gilt: plattformfrei,
-  kein `node:*`, kein `electron`, keine Browser-Globals. Für Tabellen und
-  reine Funktionen ist das kein Hindernis.
-- **Wie umgezogen wird, ohne etwas kaputtzumachen.** Der Monster Creator
-  hat Tests auf seine Umgebungen (Thema, Bewegung, beide Sprachen); die
-  müssen nach dem Umzug unverändert grün sein, sonst war es kein Umzug.
+**Die Regel mit Zahl gibt es jetzt**, je Umgebung mindestens zwei, und ein
+Test verlangt, dass mindestens eine davon eine Zahl im Satz trägt: „Das
+Unterholz begrenzt die Sicht auf 30 Fuß", nicht „waldig". Wo ein Wert
+getrennt danebensteht, prüft ein zweiter Test, dass es dieselbe Zahl ist
+wie im Satz — sonst laufen die Zahl zum Rechnen und die Zahl zum Lesen
+auseinander.
+
+**Offen: die beiden anderen Verbraucher.**
+
+- **Initiative Tracker.** `istTerrain` bleibt vorerst, wie es ist. Der
+  sinnvolle Schritt ist nicht, den Typ umzubauen, sondern eine Umgebung als
+  Gelände-Einträge in den Kampf zu schieben — und das gehört zur Übergabe
+  aus dem Encounter Creator, nicht hierher.
+- **Inspirationshilfe.** `orte.ts` ist eine andere Achse: dort geht es um
+  Ortsbeschreibungen zum Vorlesen und um Ausstattung für den Kartenbau, mit
+  Namensbausteinen und Zustand. Das ist kein zweiter Satz Umgebungen,
+  sondern etwas Eigenes. Zusammengelegt gehört höchstens der `anblick` —
+  und erst, wenn der Encounter Creator zeigt, welche Form davon gebraucht
+  wird.
+
+**Nicht gemacht, mit Absicht:** die Regeln stehen nicht im Statblock eines
+Monsters. Für ein Monster ist die Umgebung ein Etikett — wo es lebt —, kein
+Schlachtfeld. „Das Unterholz begrenzt die Sicht auf 30 Fuß" bei jedem
+Waldbewohner wäre falsch am Platz. Die Regeln warten im Paket auf den, der
+sie braucht.
 
 ## Vorgemerkt: Assistent-Fenster weg, wenn die KI aus ist
 
