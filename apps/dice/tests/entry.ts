@@ -33,3 +33,4 @@ export {
   TISCH,
   tischFuer
 } from '../src/renderer/wuerfel3d/wurf';
+export { Ablage } from '../src/main/ablage';

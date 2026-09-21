@@ -22,6 +22,20 @@ import type { Begegnung, Kampf } from '../shared/types';
 export class Ablage {
   constructor(private readonly wurzel: string) {}
 
+  /**
+   * Die laufende Schreibarbeit am Kampf, eine nach der anderen.
+   *
+   * Dieselbe Vorsorge wie beim Wuerfel, aus demselben Anlass (siehe dort).
+   * Hier wiegt sie schwerer: der laufende Kampf wird bei JEDER Aenderung
+   * geschrieben — Schaden, ein Zustand, ein Zug weiter —, und am Tisch
+   * kommen die schnell hintereinander. Faende jemand die Datei halb
+   * geschrieben vor, waere mitten im Gefecht der Kampf weg.
+   *
+   * Geschrieben wird daneben und dann umbenannt: wer liest, sieht immer
+   * genau einen vollstaendigen Stand.
+   */
+  private kampfKette: Promise<unknown> = Promise.resolve();
+
   get begegnungenOrdner(): string {
     return path.join(this.wurzel, 'begegnungen');
   }
@@ -101,8 +115,26 @@ export class Ablage {
   }
 
   async schreibeKampf(kampf: Kampf): Promise<void> {
+    const arbeit = this.kampfKette.then(
+      () => this.schreibeKampfJetzt(kampf),
+      () => this.schreibeKampfJetzt(kampf)
+    );
+    // Die Kette darf nie abgelehnt stehenbleiben, sonst schleppt jeder
+    // spaetere Aufruf denselben alten Fehler mit.
+    this.kampfKette = arbeit.catch(() => undefined);
+    await arbeit;
+  }
+
+  /**
+   * Erst daneben schreiben, dann umbenennen: ein Umbenennen ist im
+   * Dateisystem ein Schritt. Bricht der Strom mitten im Schreiben ab, steht
+   * der alte Kampf noch da statt eines halben neuen.
+   */
+  private async schreibeKampfJetzt(kampf: Kampf): Promise<void> {
     await fs.mkdir(this.wurzel, { recursive: true });
-    await fs.writeFile(this.kampfDatei, JSON.stringify(kampf, null, 2), 'utf8');
+    const daneben = `${this.kampfDatei}.neu`;
+    await fs.writeFile(daneben, JSON.stringify(kampf, null, 2), 'utf8');
+    await fs.rename(daneben, this.kampfDatei);
   }
 
   /**
