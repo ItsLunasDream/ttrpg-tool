@@ -1401,3 +1401,26 @@ Zu klären:
 - **Wie umgezogen wird, ohne etwas kaputtzumachen.** Der Monster Creator
   hat Tests auf seine Umgebungen (Thema, Bewegung, beide Sprachen); die
   müssen nach dem Umzug unverändert grün sein, sonst war es kein Umzug.
+
+## Vorgemerkt: Assistent-Fenster weg, wenn die KI aus ist
+
+Im Story Creator steht rechts der Assistent auch dann, wenn die KI in den
+Einstellungen ausgeschaltet ist. Dann nimmt er Platz weg für etwas, das
+nicht geht. Er soll verschwinden, nicht ausgegraut dastehen.
+
+Was schon da ist: `App.tsx` hält den Zustand der KI (`aiStatus`) und lauscht
+über `onKiWechsel` auf Änderungen aus der Hülle, das Umschalten kommt also
+ohne Neustart an.
+
+Zwei Dinge sind dabei zu klären:
+
+- **„Aus" und „nicht eingerichtet" sind nicht dasselbe.** `AiStatus` kennt
+  heute `ready`, `hasKey` und `managedByShell`, aber kein eigenes Feld für
+  den Schalter der Hülle. Wer keinen Schlüssel hinterlegt hat, soll den
+  Assistenten weiter sehen — dort steht ja die Anleitung, wie man ihn
+  einrichtet. Wer die KI bewusst abgeschaltet hat, soll ihn loswerden. Ohne
+  diese Unterscheidung blendet man dem Neuling die Einrichtung aus.
+- **Der Platz muss zurückfallen.** Verschwindet die Spalte, soll der Editor
+  die Breite bekommen, nicht eine Lücke bleiben. Und dasselbe gilt für den
+  Knopf, der den Assistenten öffnet, sowie für den KI-Bereich im
+  Schreibhilfe-Dialog.
