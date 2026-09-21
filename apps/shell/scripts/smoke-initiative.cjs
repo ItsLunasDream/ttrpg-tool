@@ -159,6 +159,61 @@ app.whenReady().then(async () => {
     [...document.querySelectorAll('.dialog__knoepfe button')].pop().click(); return true; })()`);
   await warte(700);
 
+  // --- Rueckgaengig -------------------------------------------------------
+  /*
+   * Der Fall aus dem Gebrauch: „Wenn man ein Participant löscht soll hier
+   * ZURÜCK bzw. STRG+Z das auch rückgängig machen." Am Modell ist der
+   * Verlauf geprueft; hier geht es darum, dass die Taste und der Knopf
+   * wirklich daran haengen und dass die Zeile mit allem zurueckkommt.
+   */
+  const namen = () =>
+    js("[...document.querySelectorAll('.zeile__name')].map((e) => e.textContent).join('|')");
+  const vorherNamen = await namen();
+  const anzahlVorher = await js("document.querySelectorAll('.zeile').length");
+
+  // Ueber das Rechtsklickmenue entfernen — derselbe Weg wie von Hand.
+  await js(`(() => { const ziel = document.querySelector('.zeile__name');
+    const k = ziel.getBoundingClientRect();
+    ziel.dispatchEvent(new MouseEvent('contextmenu', {
+      bubbles: true, clientX: k.left + 10, clientY: k.top + 10 }));
+    return true; })()`);
+  await warte(400);
+  await js(`[...document.querySelectorAll('.kontextmenue button')].pop().click(); true`);
+  await warte(600);
+  pruefe(
+    (await js("document.querySelectorAll('.zeile').length")) === anzahlVorher - 1,
+    'der Teilnehmer ist entfernt'
+  );
+
+  // Strg+Z am Fenster, nicht am Knopf: genau so tippt man es.
+  await js(`document.dispatchEvent(new KeyboardEvent('keydown',
+    { key: 'z', ctrlKey: true, bubbles: true })); true`);
+  await warte(600);
+  pruefe((await namen()) === vorherNamen, 'Strg+Z holt ihn vollstaendig zurueck');
+
+  // Und wieder vor, ueber den Knopf in der Leiste.
+  await js(`[...document.querySelectorAll('button')].find(
+    (b) => b.textContent.trim() === '↷').click(); true`);
+  await warte(600);
+  pruefe(
+    (await js("document.querySelectorAll('.zeile').length")) === anzahlVorher - 1,
+    'Wiederherstellen entfernt ihn erneut'
+  );
+
+  // Zurueck auf den vollen Stand, damit die naechsten Schritte dieselbe
+  // Liste sehen wie bisher.
+  await js(`[...document.querySelectorAll('button')].find(
+    (b) => b.textContent.trim() === '↶').click(); true`);
+  await warte(600);
+  pruefe((await namen()) === vorherNamen, 'und der Knopf zurueck ebenfalls');
+
+  // Der Zurueck-Pfeil der Huelle ist etwas anderes und darf hier nichts
+  // zuruecknehmen — sonst kaeme man nicht mehr zum vorigen Werkzeug.
+  await js(`document.dispatchEvent(new KeyboardEvent('keydown',
+    { key: 'ArrowLeft', altKey: true, bubbles: true })); true`);
+  await warte(500);
+  pruefe((await namen()) === vorherNamen, 'Alt+Links nimmt im Tracker nichts zurueck');
+
   // --- Begegnung speichern und laden --------------------------------------
   // Diese beiden Knoepfe hat der Rauchtest zuerst nicht gedrueckt — und genau
   // dort steckte ein Fehler, den keine Modellpruefung sehen konnte: die

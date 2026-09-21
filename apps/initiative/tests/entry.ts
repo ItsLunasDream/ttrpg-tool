@@ -28,3 +28,12 @@ export {
   istGueltigeId
 } from '../src/shared/format';
 export { Ablage } from '../src/main/ablage';
+export {
+  leererVerlauf,
+  merke,
+  kannZurueck,
+  kannVor,
+  zurueck,
+  vor,
+  VERLAUF_TIEFE
+} from '../src/shared/verlauf';

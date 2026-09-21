@@ -23,6 +23,10 @@ export const texte = {
   'knopf.duplizieren': ['Duplizieren', 'Duplicate'],
   'knopf.umbenennen': ['Umbenennen', 'Rename'],
   'knopf.terrain': ['Gelände', 'Terrain'],
+  'knopf.zurueck': ['Rückgängig', 'Undo'],
+  'knopf.vor': ['Wiederherstellen', 'Redo'],
+  'knopf.zurueckTitel': ['Rückgängig (Strg+Z)', 'Undo (Ctrl+Z)'],
+  'knopf.vorTitel': ['Wiederherstellen (Strg+Umschalt+Z)', 'Redo (Ctrl+Shift+Z)'],
   'terrain.vorgabe': ['Gelände', 'Terrain'],
   'terrain.hinweis': [
     'Kommt bei Initiative 20 an die Reihe, hinter Figuren mit derselben Zahl.',

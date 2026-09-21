@@ -181,6 +181,15 @@ input[type='number'] {
   background: var(--rand);
 }
 
+/* Rueckgaengig und Wiederherstellen: nur ein Pfeil, also schmaler als die
+   beschrifteten Knoepfe daneben. Der Pfeil selbst etwas groesser, sonst
+   verschwindet er zwischen den Woertern. */
+.knopf--schmal {
+  padding: 5px 9px;
+  font-size: 15px;
+  line-height: 1;
+}
+
 /* ---------- Liste ---------- */
 
 .liste {

@@ -260,6 +260,12 @@ numbers mean is up to the table.
 - **Space means next.** Damage is typed and applied with Enter, not clicked —
   damage is rarely one.
 - Right-clicking a row opens a menu.
+- **Ctrl+Z takes it back.** Everything that changes the fight goes through
+  one place, so undo covers all of it: a removed participant, damage, a
+  condition, the order. Ctrl+Shift+Z (or Ctrl+Y) redoes; the two arrows in
+  the bar do the same and grey out when there is nothing to do. This is not
+  the shell's back arrow (Alt+Left, M4) — that one is the history *between*
+  tools and stays navigation.
 - Encounters are documents (Markdown with a YAML header); the running fight
   is session state and sits next to them as JSON.
 - Images are copied into the tool's own folder, not linked.

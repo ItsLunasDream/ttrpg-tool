@@ -10,9 +10,18 @@
  * Die Regeln stehen nicht hier, sondern in shared/kampf.ts. Diese Datei
  * zeichnet und leitet Tastendruecke weiter.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { rollD20 } from '@suite/dice';
 import { api } from './api';
+import {
+  kannVor,
+  kannZurueck,
+  leererVerlauf,
+  merke,
+  vor as verlaufVor,
+  zurueck as verlaufZurueck,
+  type Verlauf
+} from '../shared/verlauf';
 import { getLanguage, onLanguageChange, t, type Language } from './i18n';
 import {
   aendereHp,
@@ -44,6 +53,12 @@ export function App() {
   const [geladen, setGeladen] = useState(false);
   const [sprache, setSprache] = useState<Language>(getLanguage);
   const [meldung, setMeldung] = useState<string | null>(null);
+  /*
+   * Rueckgaengig: gemerkt werden ganze Kampfstaende, nicht einzelne
+   * Handlungen. Siehe `shared/verlauf.ts` — ein Kampf ist klein genug dafuer,
+   * und eine Umkehrung je Aktion koennte etwas vergessen.
+   */
+  const [verlauf, setVerlauf] = useState<Verlauf<Kampf>>(leererVerlauf);
   const [begegnungen, setBegegnungen] = useState<Begegnung[]>([]);
   const [zeigeBegegnungen, setZeigeBegegnungen] = useState(false);
   /** Teilnehmer, dessen Zeile gerade aufgeklappt ist. */
@@ -93,13 +108,56 @@ export function App() {
    * Programm abstuerzt, hat mitten im Kampf ein Problem, das kein Knopf
    * loesen kann.
    */
-  const setzeUndSichere = useCallback((naechster: Kampf | ((vorher: Kampf) => Kampf)) => {
-    setKampf((vorher) => {
-      const neu = typeof naechster === 'function' ? naechster(vorher) : naechster;
-      void api.kampf.schreiben(neu);
-      return neu;
-    });
+  /*
+   * Der jetzige Stand auch als Ref.
+   *
+   * Zwei Zustaende muessen zusammen umgesetzt werden — der Kampf und sein
+   * Verlauf —, und der neue Verlauf haengt vom alten Kampf ab. Mit den
+   * Aktualisierungsfunktionen von React ginge das nur ineinander
+   * verschachtelt, und ein `setState` in der Funktion eines anderen ist
+   * keine reine Rechnung: im Strict Mode liefe es doppelt und schriebe jeden
+   * Schritt zweimal in den Verlauf. Die Refs werden vor dem Setzen
+   * mitgezogen, damit zwei Aenderungen im selben Durchlauf sich sehen.
+   */
+  const standRef = useRef(kampf);
+  const verlaufRef = useRef(verlauf);
+  useEffect(() => {
+    // Faengt auch die Wege ab, die `setKampf` direkt benutzen — das Einlesen
+    // beim Start zum Beispiel, das ausdruecklich keinen Verlauf anlegen soll.
+    standRef.current = kampf;
+  }, [kampf]);
+
+  const setzeStand = useCallback((neu: Kampf, neuerVerlauf: Verlauf<Kampf>) => {
+    standRef.current = neu;
+    verlaufRef.current = neuerVerlauf;
+    setKampf(neu);
+    setVerlauf(neuerVerlauf);
+    void api.kampf.schreiben(neu);
   }, []);
+
+  const setzeUndSichere = useCallback(
+    (naechster: Kampf | ((vorher: Kampf) => Kampf)) => {
+      const vorher = standRef.current;
+      const neu = typeof naechster === 'function' ? naechster(vorher) : naechster;
+      // Hier laeuft alles durch, was den Kampf aendert — deshalb steht das
+      // Merken genau hier und nicht an zwanzig Aufrufstellen.
+      if (neu !== vorher) setzeStand(neu, merke(verlaufRef.current, vorher));
+    },
+    [setzeStand]
+  );
+
+  /** Einen Schritt zurueck oder vor, ohne dabei neuen Verlauf anzulegen. */
+  const springe = useCallback(
+    (richtung: 'zurueck' | 'vor') => {
+      const jetzt = standRef.current;
+      const schritt =
+        richtung === 'zurueck'
+          ? verlaufZurueck(verlaufRef.current, jetzt)
+          : verlaufVor(verlaufRef.current, jetzt);
+      if (schritt) setzeStand(schritt.stand, schritt.verlauf);
+    },
+    [setzeStand]
+  );
 
   const sortiert = kampf.teilnehmer;
   const dranId = kampf.laeuft && kampf.amZug >= 0 ? sortiert[kampf.amZug]?.id : null;
@@ -117,17 +175,44 @@ export function App() {
    */
   useEffect(() => {
     function beiTaste(ereignis: KeyboardEvent) {
-      if (ereignis.key !== ' ' && ereignis.code !== 'Space') return;
       const ziel = ereignis.target as HTMLElement | null;
-      if (ziel && /^(INPUT|TEXTAREA|SELECT)$/.test(ziel.tagName)) return;
-      if (ziel?.isContentEditable) return;
+      const tippt =
+        (ziel && /^(INPUT|TEXTAREA|SELECT)$/.test(ziel.tagName)) || ziel?.isContentEditable;
+
+      /*
+       * Strg+Z und Strg+Umschalt+Z (auch Strg+Y) — die gewohnten Tasten.
+       *
+       * Nicht zu verwechseln mit dem Zurueck-Pfeil der Huelle (Alt+Links,
+       * M4): der ist der Verlauf ZWISCHEN den Werkzeugen. Naehme er hier
+       * eine Loeschung zurueck, kaeme man nicht mehr zum vorigen Werkzeug.
+       * Deshalb hoert der Tracker ausdruecklich nur auf Strg.
+       */
+      if ((ereignis.ctrlKey || ereignis.metaKey) && !ereignis.altKey) {
+        const taste = ereignis.key.toLowerCase();
+        // Im Eingabefeld gehoert Strg+Z dem Feld: dort nimmt es Tippen
+        // zurueck, und das erwartet man auch.
+        if (tippt) return;
+        if (taste === 'z' && !ereignis.shiftKey) {
+          ereignis.preventDefault();
+          springe('zurueck');
+          return;
+        }
+        if (taste === 'y' || (taste === 'z' && ereignis.shiftKey)) {
+          ereignis.preventDefault();
+          springe('vor');
+          return;
+        }
+      }
+
+      if (ereignis.key !== ' ' && ereignis.code !== 'Space') return;
+      if (tippt) return;
       if (!kampf.laeuft) return;
       ereignis.preventDefault();
       weiter();
     }
     window.addEventListener('keydown', beiTaste);
     return () => window.removeEventListener('keydown', beiTaste);
-  }, [kampf.laeuft, weiter]);
+  }, [kampf.laeuft, weiter, springe]);
 
   const melde = useCallback((text: string) => {
     setMeldung(text);
@@ -240,6 +325,32 @@ export function App() {
           </span>
         ) : null}
         <span className="leiste__fueller" />
+
+        {/*
+          Rueckgaengig und Wiederherstellen. Ausgegraut, wenn nichts geht —
+          sonst klickt man ins Leere und weiss nicht, ob es kaputt ist.
+        */}
+        <button
+          type="button"
+          className="knopf--schmal"
+          onClick={() => springe('zurueck')}
+          disabled={!kannZurueck(verlauf)}
+          title={t('knopf.zurueckTitel')}
+          aria-label={t('knopf.zurueck')}
+        >
+          ↶
+        </button>
+        <button
+          type="button"
+          className="knopf--schmal"
+          onClick={() => springe('vor')}
+          disabled={!kannVor(verlauf)}
+          title={t('knopf.vorTitel')}
+          aria-label={t('knopf.vor')}
+        >
+          ↷
+        </button>
+        <span className="leiste__trenner" />
 
         <button type="button" onClick={neu}>
           + {t('knopf.neu')}
