@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import type { Eintrag } from '../shared/ablage';
-import { alsMarkdown, zuId } from '../shared/ablage';
+import { alsLeib, zuId } from '../shared/ablage';
 import {
   erzeugeZustand,
   pruefeZustand,
@@ -251,7 +251,9 @@ export function App() {
 
   const exportieren = async () => {
     if (!zustand) return;
-    const markdown = alsMarkdown(
+    // Ohne die Kopfzahlen: in einer Notiz sind sie kein Dateikopf mehr,
+    // sondern ein Absatz ueber dem Zustand.
+    const markdown = alsLeib(
       { ...zustand, id: zuId(zustand.name), geaendert: new Date().toISOString() },
       getLanguage() === 'en' ? 'en' : 'de'
     );

@@ -131,3 +131,24 @@ test('bei gleichem Grad entscheidet der Name, damit nichts springt', () => {
   const nachCr = T.sortiere(SAMMLUNG, 'cr').filter((e) => e.cr === '4').map((e) => e.name);
   assert.deepEqual(nachCr, ['Grabwandler', 'Knochenchor']);
 });
+
+test('der Weg in den Story Creator nimmt die Kopfzahlen nicht mit', () => {
+  /*
+   * Aus dem Gebrauch: die angelegte Notiz begann mit „id: … name: … cr: …
+   * schemaVersion: 2" als Fliesstext ueber dem Statblock. Auf der Platte ist
+   * das ein Dateikopf und richtig; in einer Notiz ist es ein Absatz, den
+   * niemand lesen will.
+   */
+  const m = beispiel({ name: 'Eisenschild' });
+  const datei = T.alsMarkdown(m, 'de');
+  const leib = T.alsLeib(m, 'de');
+
+  assert.ok(datei.startsWith('---'), 'die Datei traegt ihren Kopf');
+  assert.ok(!leib.startsWith('---'), 'der Leib nicht');
+  assert.ok(!leib.includes('schemaVersion'), leib.slice(0, 120));
+  assert.ok(!leib.includes('angriffsbonus:'), leib.slice(0, 120));
+  assert.ok(leib.startsWith('# Eisenschild'), leib.slice(0, 60));
+
+  // Und der Leib ist genau das, was in der Datei unter dem Kopf steht.
+  assert.equal(datei.slice(datei.indexOf('\n---\n\n') + 6), leib);
+});
