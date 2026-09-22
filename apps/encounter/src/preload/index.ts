@@ -8,6 +8,7 @@ import { kanal } from '../shared/kanaele';
 import type { Begegnung, Eintrag } from '../shared/ablage';
 import type { Monsterkarte } from '../shared/monsterliste';
 import type { Uebergabe } from '@suite/uebergabe';
+import type { Gruppe } from '../shared/schwierigkeit';
 
 const api = {
   /**
@@ -51,6 +52,17 @@ const api = {
    */
   inDenTracker: (uebergabe: Uebergabe) =>
     ipcRenderer.invoke(kanal('tracker'), uebergabe) as Promise<boolean>,
+  /** Die Gruppe am Tisch, aus den Einstellungen der Huelle. */
+  gruppe: {
+    lesen: () => ipcRenderer.invoke(kanal('gruppe')) as Promise<Gruppe>,
+    beiWechsel: (hoerer: (gruppe: Gruppe) => void) => {
+      const lauscher = (_e: unknown, gruppe: Gruppe) => hoerer(gruppe);
+      ipcRenderer.on(kanal('gruppe:gesetzt'), lauscher);
+      return () => {
+        ipcRenderer.off(kanal('gruppe:gesetzt'), lauscher);
+      };
+    }
+  },
   sprache: {
     melde: (sprache: string) => ipcRenderer.send(kanal('sprache:gewechselt'), sprache),
     beiWechsel: (hoerer: (sprache: string) => void) => {

@@ -18,6 +18,8 @@ import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import type { Uebergabe } from '@suite/uebergabe';
+import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
+import { leseGruppe, schreibeGruppe, type Gruppe } from '../shared/schwierigkeit';
 import { kanal } from '../shared/kanaele';
 import { alsMonsterkarte, type Monsterkarte } from '../shared/monsterliste';
 import {
@@ -71,6 +73,66 @@ export interface EncounterEmbed {
   setLanguage(webContents: WebContents, language: string): Promise<void>;
   /** Zeigt eine Begegnung, die die Suche der Huelle gefunden hat. */
   zeigeEintrag(webContents: WebContents, kennung: string): Promise<boolean>;
+  /** Die eigenen Einstellungen, wie die Huelle sie malt. */
+  werkzeugEinstellungen(): Promise<Werkzeugeinstellungen>;
+  setzeWerkzeugEinstellung(
+    webContents: WebContents,
+    feldId: string,
+    wert: Wert
+  ): Promise<Werkzeugeinstellungen>;
+}
+
+/** Die Kennung des einen Feldes. Ein Tippfehler faellt hier auf. */
+const FELD_GRUPPE = 'gruppe';
+
+/**
+ * Die Gruppe am Tisch, als Zeile.
+ *
+ * Sie steht in den Einstellungen und nicht in der Begegnung: eine Gruppe
+ * wechselt selten, und sie bei jeder Begegnung neu einzutippen waere die
+ * Sorte Reibung, an der ein Werkzeug stirbt.
+ */
+async function leseEinstellungen(ordner: string): Promise<Gruppe> {
+  try {
+    const roh = JSON.parse(await readFile(path.join(ordner, 'einstellungen.json'), 'utf8'));
+    return typeof roh?.gruppe === 'string' ? leseGruppe(roh.gruppe) : [];
+  } catch {
+    // Noch nichts eingestellt ist kein Fehler.
+    return [];
+  }
+}
+
+async function schreibeEinstellungen(ordner: string, gruppe: Gruppe): Promise<void> {
+  await writeFile(
+    path.join(ordner, 'einstellungen.json'),
+    `${JSON.stringify({ gruppe: schreibeGruppe(gruppe) }, null, 2)}\n`,
+    'utf8'
+  );
+}
+
+function beschreibung(gruppe: Gruppe): Werkzeugeinstellungen {
+  return {
+    appId: 'encounter',
+    gruppen: [
+      {
+        id: 'tisch',
+        name: { de: 'Die Gruppe am Tisch', en: 'The party at the table' },
+        felder: [
+          {
+            art: 'zeile',
+            id: FELD_GRUPPE,
+            name: { de: 'Spielfiguren', en: 'Player characters' },
+            wert: schreibeGruppe(gruppe),
+            platzhalter: { de: '4x5', en: '4x5' },
+            hinweis: {
+              de: 'Anzahl mal Stufe, mit Komma getrennt: „4x5" oder „3x4, 1x6". Ohne diese Angabe zeigt das Werkzeug nur die Summe der Grade.',
+              en: 'Count times level, comma separated: “4x5” or “3x4, 1x6”. Without it the tool only shows the sum of the challenge ratings.'
+            }
+          }
+        ]
+      }
+    ]
+  };
 }
 
 /**
@@ -153,6 +215,10 @@ export async function mountEncounter(
 ): Promise<EncounterEmbed> {
   const ordner = ordnerVon(options.datenordner);
   await mkdir(ordner, { recursive: true });
+
+  // Einmal gelesen und hier gehalten: die Oberflaeche fragt bei jedem
+  // Oeffnen danach, und die Huelle stellt sie um.
+  let gruppe: Gruppe = await leseEinstellungen(ordner);
 
   // `removeHandler` vor jedem `handle`: die Huelle kann ein Werkzeug
   // abbauen und neu montieren, und ein zweites Mal denselben Kanal
@@ -246,6 +312,9 @@ export async function mountEncounter(
     return options.inDenTracker(uebergabe);
   });
 
+  /** Die Gruppe am Tisch, fuer die Oberflaeche. */
+  handle('gruppe', async (): Promise<Gruppe> => gruppe);
+
   handle('loeschen', async (_e: never, id: string): Promise<boolean> => {
     try {
       await unlink(dateiVon(ordner, id));
@@ -280,13 +349,38 @@ export async function mountEncounter(
       if (webContents.isDestroyed()) return false;
       webContents.send(kanal('suche:zeigen'), kennung);
       return true;
+    },
+    werkzeugEinstellungen: async () => beschreibung(gruppe),
+    setzeWerkzeugEinstellung: async (webContents, feldId, wert) => {
+      if (feldId === FELD_GRUPPE && typeof wert === 'string') {
+        gruppe = leseGruppe(wert);
+        await schreibeEinstellungen(ordner, gruppe);
+        // Die offene Ansicht rechnet sofort neu; sonst stimmte das
+        // Verhaeltnis erst nach dem naechsten Oeffnen.
+        if (!webContents.isDestroyed()) webContents.send(kanal('gruppe:gesetzt'), gruppe);
+      }
+      /*
+       * Zurueck kommt die GELESENE Gruppe, nicht das Getippte. Wer sich
+       * vertippt, sieht das Feld danach so, wie das Werkzeug es
+       * verstanden hat — eine Zeile, die nichts ergab, steht dann nicht
+       * mehr da und behauptet auch nichts.
+       */
+      return beschreibung(gruppe);
     }
   };
 }
 
 /** Meldet alles ab. Fuer Tests und einen sauberen Abbau. */
 export function unmountEncounter(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'monster:liste', 'tracker']) {
+  for (const name of [
+    'liste',
+    'lesen',
+    'speichern',
+    'loeschen',
+    'monster:liste',
+    'tracker',
+    'gruppe'
+  ]) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));

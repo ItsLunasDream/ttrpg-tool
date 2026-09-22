@@ -88,6 +88,29 @@ const TEXTE = {
   'umgebung.sg': ['SG', 'DC'],
   'umgebung.schaden': ['Schaden', 'Damage'],
 
+  'verhaeltnis.grade': ['Grade zusammen {summe}', 'Challenge ratings {summe} in total'],
+  'verhaeltnis.gegen': ['gegen', 'against'],
+  'verhaeltnis.gruppe': [
+    '{figuren} Figuren auf Stufe {stufe}',
+    '{figuren} characters at level {stufe}'
+  ],
+  'verhaeltnis.gruppeSpanne': [
+    '{figuren} Figuren auf Stufe {von} bis {bis}',
+    '{figuren} characters at levels {von} to {bis}'
+  ],
+  'verhaeltnis.keineGruppe': [
+    'keine Gruppe eingetragen',
+    'no party set'
+  ],
+  'verhaeltnis.ohneGrad': [
+    '{anzahl} Gegner ohne lesbaren Grad sind nicht mitgezählt.',
+    '{anzahl} opponents without a readable rating are not counted.'
+  ],
+  'verhaeltnis.kleingedrucktes': [
+    'Zwei Zahlen nebeneinander, kein Urteil: die Schwellen aus dem Regelwerk liegen noch nicht vor. Die Gruppe steht in den Einstellungen.',
+    'Two numbers side by side, not a verdict: the thresholds from the rules are not in yet. The party is set in the settings.'
+  ],
+
   'tracker.knopf': ['In den Tracker', 'To the tracker'],
   'tracker.unterwegs': [
     'Die Begegnung ist im Initiative Tracker.',

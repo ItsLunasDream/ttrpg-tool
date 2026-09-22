@@ -5,13 +5,15 @@ stellt eine Begegnung zusammen: welche Monster, wie viele, wo, und wie hart
 das für diese Gruppe wird — und schiebt das Ergebnis in einem Zug in den
 Initiative Tracker.
 
-**Stand:** Stufe 1 bis 4 sind gebaut — die Kachel ist echt, Begegnungen
-lassen sich anlegen, benennen, mit einer Notiz versehen und in einer
-Sammlung wiederfinden, die Monster kommen aus der eigenen Sammlung, eine
-Umgebung hängt mit ihren zwei Sorten daran, und „In den Tracker" schiebt
-das Ganze in den Initiative Tracker: Gruppen als ein Eintrag mit mehreren
-Körpern, jede Regel der Umgebung als eigener Terrain-Eintrag. Die Suche
-der Hülle findet die Begegnungen. Stufe 5 steht aus.
+**Stand:** Alle fünf Stufen sind gebaut — mit einer Einschränkung bei der
+letzten. Die Kachel ist echt, Begegnungen lassen sich anlegen, benennen,
+mit einer Notiz versehen und in einer Sammlung wiederfinden, die Monster
+kommen aus der eigenen Sammlung, eine Umgebung hängt mit ihren zwei Sorten
+daran, „In den Tracker" schiebt das Ganze in den Initiative Tracker, und
+unter den Gegnern steht das Verhältnis zur Gruppe. **Was fehlt, ist das
+Urteil:** die Schwellen aus dem Regelwerk liegen noch nicht vor (siehe
+`packages/srd/`), und bis dahin stehen dort zwei Zahlen nebeneinander
+statt „mittelschwer".
 
 ## Wozu
 
@@ -112,12 +114,29 @@ brauchen — siehe `docs/nachschlagewerk.md`. Was bleibt, ist Fleißarbeit:
 die Tabellen aus dem Dokument sauber herausholen und gegenlesen. **Der Bau
 ist damit nicht mehr blockiert.**
 
-Bis dahin gibt es eine zweitbeste Lösung, die ehrlich bleibt: **die Summe
-der Grade gegen die Gruppenstärke stellen und das Ergebnis als Verhältnis
-zeigen, nicht als Urteil.** „Grade zusammen 9 gegen 4 Figuren auf Stufe 5"
+**Gebaut ist die zweitbeste Lösung, die ehrlich bleibt:** die Summe der
+Grade gegen die Gruppenstärke stellen und das Ergebnis als Verhältnis
+zeigen, nicht als Urteil. „Grade zusammen 9 gegen 4 Figuren auf Stufe 5"
 sagt weniger als „mittelschwer", behauptet aber auch nichts Falsches. Eine
 Eichung an bekannten Begegnungen kann daraus später eine Skala machen — so
 wie das Gewicht im Status Effect Creator entstanden ist.
+
+Drei Dinge daran sind Absicht und keine Sparsamkeit:
+
+- **Kein Balken, keine Ampel.** Beides wäre ein Urteil in Bildform, und
+  den Bestand dafür gibt es nicht. Zwei Zahlen und ein „gegen" dazwischen.
+- **Ein Gegner ohne lesbaren Grad wird gezählt und genannt**, nicht als
+  Null verrechnet. Eine Summe, in der drei Monster fehlen, sieht sonst
+  genauso aus wie eine vollständige.
+- **Die Gruppe wird nicht geraten.** „4" könnte vier Figuren auf
+  unbekannter Stufe heißen oder eine auf Stufe 4; die Zeile bleibt dann
+  ungelesen, und das Werkzeug zeigt im Klartext, was es verstanden hat.
+
+Die Gruppe steht als Zeile in den Einstellungen des Werkzeugs
+(`packages/einstellungen`), in der Schreibweise `Anzahl x Stufe`, mit
+Komma getrennt: `4x5` oder `3x4, 1x6`. Ein Textfeld statt zweier
+Zahlenfelder, weil unterschiedliche Stufen vorkommen und die
+Feldbeschreibung keine Liste kennt.
 
 **Nicht erfinden, was man nicht weiß, und es dazuschreiben.**
 
@@ -218,5 +237,6 @@ darunter. Eine Sammlung mit Kacheln und Suche, dieselbe Handhabung wie
 5. **Schwierigkeit.** Erst das Verhältnis, später die Skala mit den Zahlen
    aus `packages/srd/`.
 
-Stufe 4 ist der Punkt, ab dem sich das Werkzeug lohnt. Stufe 5 macht es gut
-und wartet auf nichts mehr — nur darauf, dass jemand die Tabellen erfasst.
+Stufe 4 ist der Punkt, ab dem sich das Werkzeug lohnt. Stufe 5 steht in
+ihrer ersten Hälfte: das Verhältnis ist da, die Skala wartet auf die
+Tabellen.

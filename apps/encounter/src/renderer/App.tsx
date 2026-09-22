@@ -24,6 +24,11 @@ import {
   type Umgebung
 } from '@suite/umgebungen';
 import { modifikator, type Uebergabe } from '@suite/uebergabe';
+import {
+  gradsumme,
+  gruppenstaerke,
+  type Gruppe
+} from '../shared/schwierigkeit';
 
 /** Die Sprache, wie `@suite/umgebungen` sie erwartet. */
 function sprache(): Sprache {
@@ -33,6 +38,8 @@ function sprache(): Sprache {
 export function App() {
   const [, neuZeichnen] = useState(0);
   const [eintraege, setEintraege] = useState<readonly Eintrag[]>([]);
+  /** Die Gruppe am Tisch, aus den Einstellungen der Huelle. */
+  const [gruppe, setGruppe] = useState<Gruppe>([]);
   const [offen, setOffen] = useState<Begegnung | null>(null);
   const [suche, setSuche] = useState('');
   const [sortierung, setSortierung] = useState<Sortierung>('geaendert');
@@ -59,6 +66,18 @@ export function App() {
    */
   useEffect(() => {
     void api.monster.liste().then(setMonster, () => setMonster([]));
+  }, []);
+
+  /*
+   * Die Gruppe am Tisch.
+   *
+   * Einmal beim Start gelesen, und danach auf Zuruf: wer sie im Dialog
+   * der Huelle umstellt, soll das Verhaeltnis sofort anders sehen und
+   * nicht erst nach einem Neustart des Werkzeugs.
+   */
+  useEffect(() => {
+    void api.gruppe.lesen().then(setGruppe, () => setGruppe([]));
+    return api.gruppe.beiWechsel(setGruppe);
   }, []);
 
   /*
@@ -385,6 +404,8 @@ export function App() {
             </>
           )}
 
+          <Verhaeltnis offen={offen} monster={monster} gruppe={gruppe} />
+
           <h3>{t('umgebung.titel')}</h3>
           <p className="hinweis hinweis--klein">{t('umgebung.satz')}</p>
           <div className="leiste">
@@ -522,6 +543,74 @@ export function App() {
       {fehler ? <p className="fehler">{fehler}</p> : null}
     </div>
   );
+}
+
+/**
+ * Was die Begegnung der Gruppe gegenueberstellt — und kein Urteil.
+ *
+ * Hier steht ausdruecklich NICHT „mittelschwer". Die Schwellen dafuer
+ * gehoeren nach `packages/srd/` und sind dort noch nicht erfasst; eine
+ * aus dem Kopf getippte Schwelle saehe aus wie eine Auskunft. Also das
+ * Zweitbeste, das ehrlich bleibt: beide Zahlen nebeneinander, und wer
+ * sie deutet, ist der Mensch am Tisch.
+ *
+ * Fehlt die Gruppe, steht trotzdem die Gradsumme da. Sie ist fuer sich
+ * schon brauchbar, und ein leerer Kasten waere eine Aufforderung, in die
+ * Einstellungen zu gehen — die steht im Hinweis, nicht als Leerstelle.
+ */
+function Verhaeltnis({
+  offen,
+  monster,
+  gruppe
+}: {
+  readonly offen: Begegnung;
+  readonly monster: readonly Monsterkarte[];
+  readonly gruppe: Gruppe;
+}) {
+  const summe = gradsumme(
+    offen.gegner.map((einer) => ({
+      anzahl: einer.anzahl,
+      grad: monster.find((m) => m.id === einer.monsterId)?.cr ?? ''
+    }))
+  );
+  const staerke = gruppenstaerke(gruppe);
+  if (offen.gegner.length === 0) return null;
+
+  return (
+    <div className="verhaeltnis">
+      <div className="verhaeltnis__zahlen">
+        <span className="verhaeltnis__seite">
+          {t('verhaeltnis.grade', { summe: zahl(summe.summe) })}
+        </span>
+        <span className="verhaeltnis__gegen">{t('verhaeltnis.gegen')}</span>
+        <span className="verhaeltnis__seite">
+          {staerke
+            ? staerke.kleinsteStufe === staerke.groessteStufe
+              ? t('verhaeltnis.gruppe', {
+                  figuren: staerke.figuren,
+                  stufe: staerke.kleinsteStufe
+                })
+              : t('verhaeltnis.gruppeSpanne', {
+                  figuren: staerke.figuren,
+                  von: staerke.kleinsteStufe,
+                  bis: staerke.groessteStufe
+                })
+            : t('verhaeltnis.keineGruppe')}
+        </span>
+      </div>
+      {summe.ohneGrad > 0 ? (
+        <p className="hinweis hinweis--klein">
+          {t('verhaeltnis.ohneGrad', { anzahl: summe.ohneGrad })}
+        </p>
+      ) : null}
+      <p className="hinweis hinweis--klein">{t('verhaeltnis.kleingedrucktes')}</p>
+    </div>
+  );
+}
+
+/** Halbe Grade lesbar: „1,5" statt „1.5000000000000002". */
+function zahl(wert: number): string {
+  return Number.isInteger(wert) ? String(wert) : String(Math.round(wert * 100) / 100);
 }
 
 /**

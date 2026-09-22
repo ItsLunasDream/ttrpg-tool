@@ -459,3 +459,38 @@ body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* Das Verhaeltnis: zwei Zahlen nebeneinander, mit dem „gegen" dazwischen.
+   Bewusst kein Balken und keine Ampel — beides waere ein Urteil, und das
+   gibt der Bestand noch nicht her. */
+.verhaeltnis {
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  background: var(--lasur);
+}
+
+.verhaeltnis__zahlen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.verhaeltnis__seite {
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.verhaeltnis__gegen {
+  color: var(--text-leise);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.verhaeltnis .hinweis {
+  margin: 8px 0 0;
+}

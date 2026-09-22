@@ -321,6 +321,49 @@ app.whenReady().then(async () => {
     (await js("document.querySelectorAll('.gegnerzeile').length")) === 1,
     'die Begegnung ist wieder offen'
   );
+
+  // --- Das Verhaeltnis, und ausdruecklich kein Urteil -----------------------
+  //
+  // Ohne eingetragene Gruppe steht die Gradsumme trotzdem da. Das Monster
+  // hat Grad 5 und ist zweimal dabei, also zehn.
+  pruefe(
+    (await js("document.querySelectorAll('.verhaeltnis').length")) === 1,
+    'das Verhaeltnis steht bei einer Begegnung mit Gegnern da'
+  );
+  const ohneGruppe = await js("document.querySelector('.verhaeltnis')?.textContent ?? ''");
+  pruefe(/10/.test(ohneGruppe), `die Gradsumme rechnet die Anzahl ein (${ohneGruppe.slice(0, 40)})`);
+  pruefe(
+    /keine Gruppe|no party/i.test(ohneGruppe),
+    'und ohne Gruppe sagt es das, statt etwas zu behaupten'
+  );
+  // Kein Urteil: keines der Woerter, die eine Schwelle behaupten wuerden.
+  // Die Laenge steht mit in der Pruefung: auf leerem Text waere „kein
+  // Urteil" sonst gruen, ohne dass irgendetwas dagestanden haette.
+  pruefe(
+    ohneGruppe.length > 10 &&
+      !/leicht|mittel|schwer|tödlich|toedlich|easy|medium|hard|deadly/i.test(ohneGruppe),
+    'und faellt kein Urteil'
+  );
+
+  // Die Gruppe kommt aus den Einstellungen der Huelle, nicht aus dem
+  // Werkzeug — derselbe Weg, den ein Mensch im Dialog nimmt.
+  const beschreibung = await hjs(`window.shell.werkzeug.setzen('encounter', 'gruppe', '3x4, 1x6')`);
+  pruefe(
+    Boolean(beschreibung) && beschreibung.appId === 'encounter',
+    'die Huelle nimmt die Gruppe entgegen'
+  );
+  await warte(600);
+  const mitGruppe = await js("document.querySelector('.verhaeltnis')?.textContent ?? ''");
+  pruefe(/4/.test(mitGruppe) && /6/.test(mitGruppe), `die Gruppe steht daneben (${mitGruppe.slice(0, 60)})`);
+  pruefe(
+    !/keine Gruppe|no party/i.test(mitGruppe),
+    'und der Hinweis auf die fehlende Gruppe ist weg'
+  );
+  pruefe(
+    fs.existsSync(path.join(ordner, 'einstellungen.json')),
+    'die Gruppe liegt auf der Platte'
+  );
+
   await js(`document.querySelector('button[data-tracker]').click(); true`);
   await warte(6000);
 
