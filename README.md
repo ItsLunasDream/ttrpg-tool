@@ -102,6 +102,9 @@ packages/farben/   Colour roles and the selectable themes
 packages/eintraege/ What a tool has filed, in a form every tool understands
 ```
 
+Planned: `packages/tabellen/` — the format of a random table, rolling on it
+and nesting it, for the Loot Generator. See [docs/loot.md](docs/loot.md).
+
 Planned: `packages/srd/` — one place for everything taken from the SRD 5.2,
 shared by the reference work, the Magic Item Creator's calibration and the
 Encounter Creator's difficulty numbers. See
@@ -608,7 +611,8 @@ What is in `docs/` (all German):
 | `encounter.md` | Concept: Encounter Creator (not built) |
 | `austausch.md` | Concept: sharing between the group at the table (not built) |
 | `magicitems.md` | Concept: Magic Item Creator (not built) |
-| `nachschlagewerk.md` | Concept: the rules offline, in the same search (not built) |
+| `nachschlagewerk.md` | Concept: the rules offline plus house rules, in the same search (not built) |
+| `loot.md` | Concept: Loot Generator, own nested random tables (not built) |
 
 ## License
 

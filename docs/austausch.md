@@ -55,6 +55,27 @@ Was ein Eintrag mitbringen muss:
 Ablage schon so, und wer eine empfangene Datei von Hand aufmacht, soll etwas
 lesen können. Das ist dieselbe Entscheidung wie überall in der Sammlung.
 
+### Regeln sind auch Einträge
+
+Das Nachschlagewerk (`docs/nachschlagewerk.md`) hält neben den offiziellen
+Regeln die **Hausregeln** des Tisches — wie kritische Treffer gewürfelt
+werden, was bei einer langen Rast sonst noch geht. Genau die will man
+verschicken: die Gruppe soll nachlesen können, was gilt, ohne zu fragen.
+
+Dabei gilt eine Unterscheidung, die man gleich richtig macht:
+
+- **Eine Hausregel reist ganz**, mit Text. Sie stammt vom Tisch, es gibt sie
+  nirgends sonst.
+- **Eine offizielle Regel reist nicht, sie wird genannt.** Jede Installation
+  hat denselben Bestand; den Text mitzuschicken wäre Ballast. Es genügt die
+  Kennung, und beim Empfänger geht die Stelle auf.
+
+Das passt ohne Umbau in die Tabelle oben: eine Hausregel ist ein Eintrag mit
+Inhalt, ein Verweis auf eine offizielle Regel einer ohne. Nebenbei erledigt
+sich damit die Frage, ob die vorgeschriebene Namensnennung des SRD
+mitreisen muss — sie stellt sich nicht, wenn der offizielle Text gar nicht
+mitreist.
+
 ### Wo Empfangenes landet
 
 Die Ablagen sind heute getrennt: jedes Werkzeug hat seinen eigenen Ordner.

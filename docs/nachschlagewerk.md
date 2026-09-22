@@ -1,20 +1,28 @@
 # Nachschlagewerk (Konzept)
 
-Die Regeln offline dabei haben, in derselben Suche wie die eigenen Sachen.
+Die Regeln offline dabei haben — die offiziellen und die eigenen —, in
+derselben Suche wie alles andere.
 
 **Stand:** Konzept. Nichts davon ist gebaut.
 
 ## Wofür es da ist — und wofür nicht
 
 Gute Nachschlagewerke zum SRD gibt es im Netz reichlich, und sie sind besser
-gepflegt, als dieses es je sein wird. Der Mehrwert hier ist genau einer:
+gepflegt, als dieses es je sein wird. Zwei Dinge können sie nicht:
 
 > **Offline, und in derselben Suche wie die eigenen Monster, Zustände und
 > Begegnungen.**
+>
+> **Und die Hausregeln stehen daneben, an der Regel, die sie ändern.**
 
-Das ist am Tisch ohne WLAN etwas wert, und es ist der einzige Grund. Wer das
-nicht braucht, braucht diese Anwendung nicht — das gehört so gesagt, bevor
-jemand anfängt, mehrere hundert Seiten zu erfassen.
+Der zweite Punkt ist der stärkere. Offline zu sein ist am Tisch ohne WLAN
+etwas wert, aber es ist Bequemlichkeit. Dass die eigene Krit-Regel genau
+dort auftaucht, wo jemand „Critical Hit" nachschlägt, ist es nicht — das
+löst ein Problem, das jeder Tisch hat und niemand gelöst bekommt, weil
+Hausregeln immer irgendwo anders liegen als die Regeln, die sie ändern.
+
+Ohne diese beiden Gründe braucht niemand diese Anwendung, und das gehört so
+gesagt, bevor jemand anfängt, mehrere hundert Seiten zu erfassen.
 
 Der zweite Nutzen ist nach innen gerichtet: dieselben Daten tragen die
 Eichung des Magic Item Creators (`docs/magicitems.md`) und die
@@ -105,9 +113,75 @@ Zwei weitere Kleinigkeiten:
 
 - **Rolle `alle`, nicht `leitung`.** Ein Nachschlagewerk brauchen Spielende
   genauso, und die Kachelseite gruppiert danach (#134).
-- **Kein Schreiben.** Das Werkzeug legt nichts ab und ändert nichts. Damit
-  braucht es keine Ablage, keinen Sicherungspfad und kein `flush` mit Inhalt
-  — es ist die einfachste Anwendung der Sammlung.
+- **Es schreibt doch.** Der offizielle Bestand ist unveränderlich, die
+  Hausregeln sind es nicht — siehe den nächsten Abschnitt. Damit braucht das
+  Werkzeug eine Ablage wie die anderen, und es gehört in die Sicherung.
+
+## Hausregeln stehen neben den offiziellen
+
+**Das ist der Teil, der aus einem Nachschlagewerk ein Werkzeug macht.**
+
+Jeder Tisch hat eigene Regeln: wie kritische Treffer gewürfelt werden, was
+bei einer langen Rast sonst noch geht, ob man aus dem Liegen aufstehen darf
+und wie teuer das ist. Heute stehen die irgendwo — in einer Notiz, in einem
+Kanal, im Kopf der Spielleitung. Genau dort sucht sie am Spielabend niemand.
+
+Also bekommt das Werkzeug einen zweiten Bestand: **Hausregeln, selbst
+geschrieben, neben den offiziellen und in derselben Liste.**
+
+### Die wichtigste Eigenschaft: sie hängen an der offiziellen Regel
+
+Zwei getrennte Listen wären die naheliegende und die falsche Lösung. Wer
+„Critical Hit" nachschlägt, liest die offizielle Regel, nickt, und vergisst,
+dass am eigenen Tisch seit einem Jahr etwas anderes gilt. Der Fehler ist
+nicht, dass die Hausregel fehlt — sie steht ja da, eine Liste weiter. Der
+Fehler ist, dass niemand an der Stelle danach sucht.
+
+Deshalb: **eine Hausregel darf auf die offizielle Regel zeigen, die sie
+ändert.** Steht so ein Verweis, dann trägt die offizielle Regel eine
+sichtbare Marke — „an diesem Tisch gilt etwas anderes" — mit einem Sprung
+dorthin. Eine Hausregel ohne Verweis ist auch in Ordnung; nicht jede Regel
+ändert eine vorhandene, manche kommt einfach dazu.
+
+### Was dabei zu beachten ist
+
+- **Nicht übersetzen.** Dieselbe Festlegung wie beim Loot Generator
+  (`docs/loot.md`): was die Spielleitung schreibt, kommt so zurück, wie sie
+  es geschrieben hat. Der offizielle Text ist englisch, eine Hausregel darf
+  deutsch sein, und beide stehen nebeneinander. Das sieht gemischt aus und
+  ist trotzdem richtig — die Alternative wäre, den Text der Spielleitung
+  durch eine Maschine zu schicken.
+- **Der offizielle Bestand bleibt unangetastet.** Eine Hausregel überschreibt
+  nie, sie legt sich daneben. Sonst weiß nach einem halben Jahr niemand mehr,
+  was die Regel eigentlich sagt und was der Tisch daraus gemacht hat — und
+  genau das braucht man, wenn jemand Neues mitspielt.
+- **Hausregeln sind Einträge** wie alles andere (`packages/eintraege`). Strg+K
+  findet sie neben der offiziellen Regel, dem eigenen Zustand und dem eigenen
+  Monster.
+- **Markdown**, wie überall. Eine Hausregel ist ein Text mit Namen, kein
+  Formular.
+
+## Regeln verschicken
+
+Die Austausch-App (`docs/austausch.md`) soll Regeln an den Tisch schicken
+können — und hier gibt es einen Unterschied, den man gleich richtig macht:
+
+- **Hausregeln werden verschickt**, ganz, mit Text. Sie sind der Grund für
+  die Sache: die Gruppe soll nachlesen können, was am Tisch gilt, ohne
+  nachzufragen.
+- **Offizielle Regeln werden nicht verschickt, sondern genannt.** Jede
+  Installation hat denselben Bestand; den Text mitzuschicken wäre Ballast.
+  Es genügt die Kennung, und beim Empfänger geht die Stelle auf. Wer eine
+  Hausregel bekommt, die auf „Critical Hit" zeigt, sieht bei sich beides.
+
+Das passt ohne Umbau in die Schnittstelle, die `docs/austausch.md` schon
+beschreibt (Werkzeug, Kennung, Name, Art, Inhalt): eine Hausregel ist ein
+Eintrag mit Inhalt, ein Verweis auf eine offizielle Regel ein Eintrag ohne.
+
+Ein Nebeneffekt, der die Entscheidung zusätzlich trägt: eine Hausregel zu
+verschicken ist lizenzrechtlich unbedenklich, weil sie vom Tisch stammt.
+Beim offiziellen Text stellte sich die Frage, ob die Namensnennung mitreisen
+muss — sie stellt sich nicht, wenn er gar nicht mitreist.
 
 ## Abgrenzung zum Status Effect Creator
 
@@ -119,6 +193,13 @@ Sie überschneiden sich nicht, sie ergänzen sich:
 Dass in der Suche beide nebeneinander stehen, ist der Gewinn und nicht die
 Doppelung: „Kälte" findet die offizielle Regel und die drei eigenen
 Zustände, die man dazu gebaut hat.
+
+Die Hausregeln sind davon noch einmal verschieden und gehören trotzdem
+hierher: ein selbst gebauter *Zustand* ist ein Ding, das im Spiel auf einer
+Figur liegt — dafür ist der Status Effect Creator da, mit Stufen, Dauer und
+Foundry-Export. Eine *Hausregel* ist ein Satz darüber, wie gespielt wird.
+Die Faustregel: wer es einer Figur anheften kann, baut es dort; wer es der
+Gruppe ansagt, schreibt es hier.
 
 ## Namensnennung
 
@@ -147,6 +228,12 @@ Name darf keine fremde Marke tragen.
 - **Ob Monster dazukommen.** Der Encounter Creator hätte gern eine Liste
   bekannter Monster zum Vergleich. Das wäre derselbe Bestand, aber deutlich
   mehr Text. Eigene Entscheidung, nicht nebenbei.
+- **Ob eine Hausregel mehr Form braucht als Text.** „Kritische Treffer:
+  doppelte Würfel statt doppeltem Ergebnis" ist ein Satz. „Bei einer langen
+  Rast darf man zusätzlich eines von vier Dingen tun" ist eine Liste mit
+  Regeln daran. Ob das über Markdown hinaus Struktur braucht — etwa, damit
+  der Würfel-Werkzeug die Krit-Regel kennt —, sollte man erst entscheiden,
+  wenn zwanzig echte Hausregeln dastehen. Vorher gerät die Form zu eng.
 - **Wie die Suche im Regeltext arbeitet.** `packages/eintraege` sucht in
   Name, Art und Stichworten, ausdrücklich nicht im Volltext. Für ein
   Nachschlagewerk ist das womöglich zu wenig — wer „difficult terrain" sucht,
@@ -159,10 +246,14 @@ Name darf keine fremde Marke tragen.
    Teil, der ständig gebraucht wird, und er trägt sofort etwas: die Suche
    findet ab da offizielle Zustände.
 2. **Oberfläche und Einbettung.** Liste, Text, Suchfeld. Baugleich zu den
-   vorhandenen Werkzeugen, nur ohne Bearbeiten.
-3. **Magische Gegenstände.** Damit steht zugleich die Eichung für
+   vorhandenen Werkzeugen.
+3. **Hausregeln.** Ablage, Bearbeiten, der Verweis auf die offizielle Regel
+   und die Marke an dieser. Der Teil, der das Werkzeug von einem PDF
+   unterscheidet.
+4. **Magische Gegenstände.** Damit steht zugleich die Eichung für
    `docs/magicitems.md`.
-4. **Zauber und Ausrüstung.** Der lange Teil, und der, den man auch erstmal
+5. **Zauber und Ausrüstung.** Der lange Teil, und der, den man auch erstmal
    weglassen kann.
 
-Stufe 1 und 2 zusammen ergeben schon ein Werkzeug, das man am Tisch aufmacht.
+Stufe 1 bis 3 zusammen ergeben schon ein Werkzeug, das man am Tisch aufmacht.
+Das Verschicken kommt mit der Austausch-App, nicht vorher.
