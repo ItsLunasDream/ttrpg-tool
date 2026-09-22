@@ -26,6 +26,25 @@ import type { Glossarblock } from '@suite/srd/glossar';
 import { finde } from '../shared/suche';
 import { verlinke } from '../shared/verweise';
 import { zerlege, type Hausregel } from '../shared/hausregeln';
+import { findetStelle, markiere, nteStelle, vorkommenBei, type Notiz } from '../shared/notizen';
+
+/**
+ * Die Notizen am Text: welche es gibt, und wie man eine oeffnet. Als Kontext
+ * aus demselben Grund wie die Verweise — sie stecken tief in den Bloecken.
+ */
+interface Notizkontext {
+  readonly notizen: readonly Notiz[];
+  readonly oeffne: (notiz: Notiz, rect: DOMRect, neu: boolean) => void;
+}
+
+const NotizKontext = createContext<Notizkontext>({ notizen: [], oeffne: () => undefined });
+
+/** Der Text eines Blocks, an dem eine Notiz haengen kann; sonst `undefined`. */
+function blocktext(block: Glossarblock | undefined, s: Sprache): string | undefined {
+  return block && (block.typ === 'absatz' || block.typ === 'punkt' || block.typ === 'stichpunkt')
+    ? block.text[s]
+    : undefined;
+}
 
 /**
  * Was ein Verweis kann: oeffnen und seine Vorschau zeigen. Als Kontext, weil
@@ -77,6 +96,23 @@ export function App() {
   /** Die Hausregel, die gerade geschrieben wird. `neu`: noch nicht auf der Platte. */
   const [bearbeitung, setBearbeitung] = useState<{ regel: Hausregel; neu: boolean } | null>(null);
   const [fehler, setFehler] = useState('');
+  const [notizen, setNotizen] = useState<readonly Notiz[]>([]);
+  /** Die Notiz im kleinen Fenster: eine neue oder eine, die man bearbeitet. */
+  const [notizfenster, setNotizfenster] = useState<{ notiz: Notiz; rect: DOMRect; neu: boolean } | null>(null);
+
+  useEffect(() => {
+    void api.notizen.liste().then(setNotizen, () => setNotizen([]));
+  }, []);
+
+  const schreibeNotizen = async (neu: readonly Notiz[]) => {
+    setNotizen(neu);
+    if (!(await api.notizen.schreiben([...neu]))) setFehler(t('notiz.fehler'));
+  };
+
+  const notizwege = useMemo<Notizkontext>(
+    () => ({ notizen, oeffne: (notiz, rect, neu) => setNotizfenster({ notiz, rect, neu }) }),
+    [notizen]
+  );
 
   const ladeHausregeln = async () => {
     try {
@@ -194,6 +230,7 @@ export function App() {
 
   return (
     <VerweisKontext.Provider value={verweise}>
+    <NotizKontext.Provider value={notizwege}>
     <div className="rahmen">
       <header className="kopf">
         <h1>{t('titel')}</h1>
@@ -307,8 +344,92 @@ export function App() {
           geh={() => verweise.verberge()}
         />
       ) : null}
+      {notizfenster ? (
+        <Notizfenster
+          notiz={notizfenster.notiz}
+          rect={notizfenster.rect}
+          neu={notizfenster.neu}
+          speichern={(text) => {
+            const fertig = { ...notizfenster.notiz, text, geaendert: new Date().toISOString() };
+            void schreibeNotizen(
+              notizfenster.neu
+                ? [...notizen, fertig]
+                : notizen.map((n) => (n.id === fertig.id ? fertig : n))
+            );
+            setNotizfenster(null);
+          }}
+          loeschen={() => {
+            void schreibeNotizen(notizen.filter((n) => n.id !== notizfenster.notiz.id));
+            setNotizfenster(null);
+          }}
+          schliessen={() => setNotizfenster(null)}
+        />
+      ) : null}
     </div>
+    </NotizKontext.Provider>
     </VerweisKontext.Provider>
+  );
+}
+
+const NOTIZ_BREIT = 300;
+
+/** Das kleine Fenster fuer eine Notiz: schreiben, aendern, loeschen. */
+function Notizfenster({
+  notiz,
+  rect,
+  neu,
+  speichern,
+  loeschen,
+  schliessen
+}: {
+  readonly notiz: Notiz;
+  readonly rect: DOMRect;
+  readonly neu: boolean;
+  readonly speichern: (text: string) => void;
+  readonly loeschen: () => void;
+  readonly schliessen: () => void;
+}) {
+  const [text, setText] = useState(notiz.text);
+  const links = Math.max(8, Math.min(rect.left, window.innerWidth - NOTIZ_BREIT - 8));
+  const oben = rect.bottom + 220 > window.innerHeight;
+  const lage = oben
+    ? { left: links, bottom: window.innerHeight - rect.top + 6, width: NOTIZ_BREIT }
+    : { left: links, top: rect.bottom + 6, width: NOTIZ_BREIT };
+  return (
+    <div className="notizfenster" style={lage} role="dialog" aria-label={t('notiz.titel')} data-notizfenster>
+      <p className="notizfenster__stelle">„{notiz.stelle}"</p>
+      <textarea
+        autoFocus
+        rows={4}
+        value={text}
+        placeholder={t('notiz.platzhalter')}
+        data-notiz-text
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') schliessen();
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && text.trim()) speichern(text.trim());
+        }}
+      />
+      <div className="regel__knoepfe">
+        <button
+          type="button"
+          className="knopf knopf--haupt"
+          data-notiz-speichern
+          disabled={!text.trim()}
+          onClick={() => speichern(text.trim())}
+        >
+          {t('haus.speichern')}
+        </button>
+        {neu ? null : (
+          <button type="button" className="knopf" data-notiz-loeschen onClick={loeschen}>
+            {t('haus.loeschen')}
+          </button>
+        )}
+        <button type="button" className="knopf" onClick={schliessen}>
+          {t('haus.abbrechen')}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -412,7 +533,56 @@ function Blatt({
 }) {
   const spr = sprache();
   const { nach } = useContext(VerweisKontext);
+  const { notizen, oeffne: oeffneNotiz } = useContext(NotizKontext);
   const sprachen: Sprache[] = daneben ? [spr, andere(spr)] : [spr];
+  const meine = notizen.filter((n) => n.regel === regel.id);
+  /** Eine Auswahl im Text, aus der eine Notiz werden kann. */
+  const [auswahl, setAuswahl] = useState<{ notiz: Notiz; rect: DOMRect } | null>(null);
+
+  /*
+   * Text auswaehlen, dann erscheint der Knopf „Notiz". Verankert wird am
+   * Block, am ausgewaehlten Text und am wievielten Vorkommen — nicht an
+   * Zeichenpositionen (docs/nachschlagewerk.md).
+   */
+  const nimmAuswahl = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
+      setAuswahl(null);
+      return;
+    }
+    const bereich = sel.getRangeAt(0);
+    const element = (knoten: Node) => (knoten instanceof Element ? knoten : knoten.parentElement);
+    const start = element(bereich.startContainer)?.closest<HTMLElement>('[data-block]');
+    const ende = element(bereich.endContainer)?.closest<HTMLElement>('[data-block]');
+    const stelle = sel.toString().trim();
+    if (!start || start !== ende || !stelle) {
+      setAuswahl(null);
+      return;
+    }
+    const index = Number(start.dataset.block);
+    const s = (start.dataset.sprache === 'en' ? 'en' : 'de') as Sprache;
+    const quelle = blocktext(regel.bloecke[index], s);
+    if (quelle === undefined) return;
+    const bisher = document.createRange();
+    bisher.setStart(start, 0);
+    bisher.setEnd(bereich.startContainer, bereich.startOffset);
+    const offset = bisher.toString().length;
+    const vorkommen = vorkommenBei(quelle, stelle, offset);
+    if (nteStelle(quelle, stelle, vorkommen) < 0) return;
+    setAuswahl({
+      rect: bereich.getBoundingClientRect(),
+      notiz: {
+        id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        regel: regel.id,
+        sprache: s,
+        block: index,
+        stelle,
+        vorkommen,
+        text: '',
+        geaendert: ''
+      }
+    });
+  };
 
   return (
     <article className="regel" data-regel={regel.id}>
@@ -450,7 +620,7 @@ function Blatt({
 
       <div className={daneben ? 'regel__fassungen regel__fassungen--zwei' : 'regel__fassungen'}>
         {sprachen.map((s) => (
-          <section key={s} className="regel__fassung" lang={s} data-sprache={s}>
+          <section key={s} className="regel__fassung" lang={s} data-sprache={s} onMouseUp={nimmAuswahl}>
             {daneben ? <h3>{s === 'de' ? 'Deutsch' : 'English'}</h3> : null}
             {(() => {
               // Je Sprachfassung ein eigenes Gedaechtnis: „nur das erste
@@ -459,16 +629,60 @@ function Blatt({
               return regel.bloecke.map((block, index) => (
                 <Block
                   key={index}
+                  index={index}
                   block={block}
                   sprache={s}
                   eigenes={glossarId(regel)}
                   gesehen={gesehen}
+                  notizen={meine.filter((n) => n.sprache === s && n.block === index)}
                 />
               ));
             })()}
           </section>
         ))}
       </div>
+
+      {auswahl ? (
+        <button
+          type="button"
+          className="notizknopf"
+          data-notiz-neu
+          style={{ left: auswahl.rect.left, top: auswahl.rect.bottom + 4 }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            oeffneNotiz(auswahl.notiz, auswahl.rect, true);
+            setAuswahl(null);
+          }}
+        >
+          ✎ {t('notiz.neu')}
+        </button>
+      ) : null}
+
+      {/*
+        Alle Notizen dieses Eintrags, auch die, deren Stelle verschwunden
+        ist. Eine Notiz still fallen zu lassen waere das Schlimmste — man
+        merkt es erst, wenn man sie sucht.
+      */}
+      {meine.length > 0 ? (
+        <section className="regel__notizen" data-notizen>
+          <h3>{t('notiz.titelMehr')}</h3>
+          {meine.map((n) => {
+            const da = findetStelle(n, blocktext(regel.bloecke[n.block], n.sprache));
+            return (
+              <button
+                key={n.id}
+                type="button"
+                className={da ? 'notizzeile' : 'notizzeile notizzeile--weg'}
+                onClick={(e) => oeffneNotiz(n, e.currentTarget.getBoundingClientRect(), false)}
+              >
+                <span className="notizzeile__stelle">„{n.stelle}"</span>
+                <span className="notizzeile__text">{n.text}</span>
+                {da ? null : <span className="notizzeile__weg">{t('notiz.weg')}</span>}
+              </button>
+            );
+          })}
+        </section>
+      ) : null}
 
       {regel.verweise.length > 0 ? (
         <nav className="regel__verweise" aria-label={t('verweise')}>
@@ -656,34 +870,63 @@ function Verlinkt({
   text,
   sprache: s,
   eigenes,
-  gesehen
+  gesehen,
+  notizen = [],
+  quelle = text,
+  versatz = 0
 }: {
   readonly text: string;
   readonly sprache: Sprache;
   readonly eigenes: string;
   readonly gesehen: Set<string>;
+  /** Notizen an diesem Block. */
+  readonly notizen?: readonly Notiz[];
+  /** Der ganze Blocktext und wo `text` darin anfaengt — fuer die Notizstellen. */
+  readonly quelle?: string;
+  readonly versatz?: number;
 }) {
+  const { oeffne } = useContext(NotizKontext);
+  const verweise = (stueck: string, schluessel: string) =>
+    verlinke(stueck, s, eigenes, gesehen).map((teil, i) => {
+      if (typeof teil === 'string') return teil;
+      const ziel = regelFuerGlossar(teil.ziel);
+      return ziel ? <Verweis key={`${schluessel}-${i}`} id={ziel.id} kind={teil.text} leise /> : teil.text;
+    });
   return (
     <>
-      {verlinke(text, s, eigenes, gesehen).map((stueck, i) => {
-        if (typeof stueck === 'string') return stueck;
-        const ziel = regelFuerGlossar(stueck.ziel);
-        return ziel ? <Verweis key={i} id={ziel.id} kind={stueck.text} leise /> : stueck.text;
-      })}
+      {markiere(text, quelle, versatz, notizen).map((stueck, i) =>
+        typeof stueck === 'string' ? (
+          verweise(stueck, String(i))
+        ) : (
+          <mark
+            key={`m${i}`}
+            className="notizstelle"
+            data-notiz={stueck.notiz.id}
+            title={stueck.notiz.text}
+            onClick={(e) => oeffne(stueck.notiz, e.currentTarget.getBoundingClientRect(), false)}
+          >
+            {stueck.text}
+          </mark>
+        )
+      )}
     </>
   );
 }
 
 function Block({
+  index,
   block,
   sprache: s,
   eigenes,
-  gesehen
+  gesehen,
+  notizen
 }: {
+  readonly index: number;
   readonly block: Glossarblock;
   readonly sprache: Sprache;
   readonly eigenes: string;
   readonly gesehen: Set<string>;
+  readonly notizen: readonly Notiz[];
 }) {
   if (block.typ === 'tabelle') {
     return (
@@ -730,16 +973,28 @@ function Block({
   }
   if (block.typ === 'absatz') {
     return (
-      <p className="regel__einleitung">
-        <Verlinkt text={block.text[s]} sprache={s} eigenes={eigenes} gesehen={gesehen} />
+      <p className="regel__einleitung" data-block={index} data-sprache={s}>
+        <Verlinkt text={block.text[s]} sprache={s} eigenes={eigenes} gesehen={gesehen} notizen={notizen} />
       </p>
     );
   }
   const teil = unterpunkt(block.text[s]);
   return (
-    <p className={block.typ === 'stichpunkt' ? 'regel__punkt regel__punkt--tief' : 'regel__punkt'}>
+    <p
+      className={block.typ === 'stichpunkt' ? 'regel__punkt regel__punkt--tief' : 'regel__punkt'}
+      data-block={index}
+      data-sprache={s}
+    >
       {teil.kopf ? <strong>{teil.kopf} </strong> : null}
-      <Verlinkt text={teil.rest} sprache={s} eigenes={eigenes} gesehen={gesehen} />
+      <Verlinkt
+        text={teil.rest}
+        sprache={s}
+        eigenes={eigenes}
+        gesehen={gesehen}
+        notizen={notizen}
+        quelle={block.text[s]}
+        versatz={block.text[s].length - teil.rest.length}
+      />
     </p>
   );
 }

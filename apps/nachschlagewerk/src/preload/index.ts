@@ -8,8 +8,13 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
 import type { Hausregel } from '../shared/hausregeln';
+import type { Notiz } from '../shared/notizen';
 
 const api = {
+  notizen: {
+    liste: () => ipcRenderer.invoke(kanal('notizen:liste')) as Promise<Notiz[]>,
+    schreiben: (notizen: Notiz[]) => ipcRenderer.invoke(kanal('notizen:schreiben'), notizen) as Promise<boolean>
+  },
   hausregeln: {
     liste: () => ipcRenderer.invoke(kanal('hausregeln:liste')) as Promise<Hausregel[]>,
     speichern: (regel: Hausregel, neu: boolean) =>

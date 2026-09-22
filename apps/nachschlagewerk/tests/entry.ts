@@ -4,3 +4,4 @@ export { finde, schluessel } from '../src/shared/suche';
 export { verlinke } from '../src/shared/verweise';
 export { alsMarkdown, leseHausregel, freieKennung, zuId, zerlege } from '../src/shared/hausregeln';
 export { alsRegel } from '../src/shared/bestand';
+export { nteStelle, vorkommenBei, markiere, findetStelle, leseNotizen } from '../src/shared/notizen';

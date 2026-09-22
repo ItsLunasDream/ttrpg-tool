@@ -21,7 +21,15 @@ einer offiziellen Regel. Sie liegen als Markdown unter
 werden von Strg+K gefunden und nicht übersetzt. Zeigt eine Hausregel auf
 eine offizielle Regel, trägt diese die Marke „An diesem Tisch gilt: …".
 `[[Name]]` in einer Hausregel verweist auf einen Eintrag; ein Verweis ins
-Leere ist rot gewellt statt still Text. Offen: Notizen am Text (#147).
+Leere ist rot gewellt statt still Text.
+
+Notizen am Text sind gebaut: Text markieren, „Notiz" klicken, schreiben.
+Verankert am Block, am ausgewählten Text und am wievielten Vorkommen, nicht
+an Zeichenpositionen; abgelegt in `<Datenordner>/nachschlagewerk/notizen.json`.
+Die Stelle ist hinterlegt, ein Klick darauf öffnet die Notiz. Unter dem
+Eintrag stehen alle seine Notizen, auch die, deren Stelle nicht mehr
+gefunden wird (rot markiert). Noch nicht in der Suche und nicht an
+Tabellen oder Listen.
 
 ## Wofür es da ist — und wofür nicht
 

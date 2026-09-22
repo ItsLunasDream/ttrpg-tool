@@ -474,3 +474,102 @@ body {
   border-color: var(--betont);
   color: var(--grund);
 }
+
+/* Notizen am Text */
+.notizstelle {
+  background: color-mix(in srgb, var(--betont) 22%, transparent);
+  color: inherit;
+  border-bottom: 1px dashed var(--betont);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.notizknopf {
+  position: fixed;
+  z-index: 40;
+  background: var(--betont);
+  color: var(--grund);
+  border: 0;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.notizfenster {
+  position: fixed;
+  z-index: 60;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notizfenster__stelle {
+  margin: 0;
+  color: var(--text-leise);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.notizfenster textarea {
+  background: var(--grund);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.regel__notizen {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.regel__notizen h3 {
+  font-size: 13px;
+  margin: 0;
+  color: var(--text-leise);
+}
+
+.notizzeile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  background: var(--lasur);
+  border: 0;
+  border-left: 3px solid var(--betont);
+  border-radius: 4px;
+  padding: 6px 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.notizzeile--weg {
+  border-left-color: var(--gefahr, #e5484d);
+}
+
+.notizzeile__stelle {
+  color: var(--text-leise);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.notizzeile__weg {
+  color: var(--gefahr, #e5484d);
+  font-size: 11px;
+}

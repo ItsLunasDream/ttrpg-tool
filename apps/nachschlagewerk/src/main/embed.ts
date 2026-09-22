@@ -24,6 +24,13 @@ import {
   zuId,
   type Hausregel
 } from '../shared/hausregeln';
+import { leseNotizen, type Notiz } from '../shared/notizen';
+
+/**
+ * Die Notizen am Text, alle in einer Datei. Es sind Randbemerkungen, keine
+ * Dokumente: eine Datei je Notiz waere ein Ordner voller Schnipsel.
+ */
+export const NOTIZDATEI = 'notizen.json';
 
 /** Der Ordner der Hausregeln im Datenordner des Werkzeugs. */
 export const ORDNER_NAME = 'hausregeln';
@@ -164,6 +171,25 @@ export async function mountNachschlagewerk(
     }
   );
 
+  const notizdatei = path.join(options.datenordner, NOTIZDATEI);
+  handle('notizen:liste', async (): Promise<Notiz[]> => {
+    try {
+      return leseNotizen(await readFile(notizdatei, 'utf8'));
+    } catch {
+      return [];
+    }
+  });
+  // Geschrieben wird immer die ganze Liste: sie ist klein, und so kann
+  // keine Notiz zwischen zwei Teilschreibvorgaengen verloren gehen.
+  handle('notizen:schreiben', async (_e: never, notizen: Notiz[]): Promise<boolean> => {
+    try {
+      await writeFile(notizdatei, `${JSON.stringify(leseNotizen(JSON.stringify(notizen)), null, 1)}\n`, 'utf8');
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
   handle('hausregeln:loeschen', async (_e: never, id: string): Promise<boolean> => {
     try {
       await unlink(path.join(ordner, `${zuId(id)}.md`));
@@ -198,7 +224,13 @@ export async function mountNachschlagewerk(
 
 /** Meldet alles ab. Fuer Tests und einen sauberen Abbau. */
 export function unmountNachschlagewerk(): void {
-  for (const name of ['hausregeln:liste', 'hausregeln:speichern', 'hausregeln:loeschen']) {
+  for (const name of [
+    'hausregeln:liste',
+    'hausregeln:speichern',
+    'hausregeln:loeschen',
+    'notizen:liste',
+    'notizen:schreiben'
+  ]) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));

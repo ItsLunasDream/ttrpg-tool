@@ -245,6 +245,53 @@ app.whenReady().then(async () => {
     'Strg+K findet die Hausregel'
   );
 
+  // --- Notizen am Text ------------------------------------------------------
+  //
+  // Text auswaehlen, Knopf „Notiz", schreiben, speichern. Die Stelle ist
+  // danach hinterlegt, und die Notiz liegt auf der Platte.
+  await hjs(`window.shell.suche.zeige('nachschlagewerk', 'zustand/blinded')`);
+  await warte(500);
+  await js(`(() => {
+    const p = document.querySelector('.regel__fassung [data-block="2"]');
+    const text = [...p.childNodes].find((n) => n.nodeType === 3 && n.textContent.includes('Disadvantage')) ??
+      [...p.querySelectorAll('*')].flatMap((e) => [...e.childNodes]).find((n) => n.nodeType === 3 && n.textContent.includes('Disadvantage'));
+    const von = text.textContent.indexOf('Disadvantage');
+    const r = document.createRange();
+    r.setStart(text, von);
+    r.setEnd(text, von + 'Disadvantage'.length);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+    p.closest('.regel__fassung').dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    return true;
+  })()`);
+  await warte(300);
+  pruefe(await js("Boolean(document.querySelector('[data-notiz-neu]'))"), 'nach einer Auswahl erscheint der Knopf „Notiz"');
+  await js(`document.querySelector('[data-notiz-neu]').click(); true`);
+  await warte(300);
+  await js(`(() => {
+    const el = document.querySelector('[data-notiz-text]');
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, 'Bei uns nur im Kampf');
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  })()`);
+  await warte(200);
+  await js(`document.querySelector('[data-notiz-speichern]').click(); true`);
+  await warte(600);
+  pruefe(
+    (await js("document.querySelector('mark.notizstelle')?.textContent ?? ''")) === 'Disadvantage',
+    'die Stelle ist danach hinterlegt'
+  );
+  const notizdatei = path.join(userData, 'nachschlagewerk', 'notizen.json');
+  pruefe(
+    fs.existsSync(notizdatei) && /Bei uns nur im Kampf/.test(fs.readFileSync(notizdatei, 'utf8')),
+    'die Notiz liegt auf der Platte'
+  );
+  pruefe(
+    /Bei uns nur im Kampf/.test(await js("document.querySelector('[data-notizen]')?.textContent ?? ''")),
+    'und steht unter dem Eintrag'
+  );
+
   // --- Die Namensnennung ---------------------------------------------------
   pruefe(
     /Systemreferenzdokument 5\.2\.1|System Reference Document 5\.2\.1/.test(

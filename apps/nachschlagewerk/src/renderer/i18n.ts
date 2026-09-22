@@ -50,6 +50,12 @@ const TEXTE = {
   'haus.abbrechen': ['Abbrechen', 'Cancel'],
   'haus.nameFehlt': ['Die Hausregel braucht einen Namen.', 'The house rule needs a name.'],
   'haus.fehler': ['Konnte nicht speichern: {detail}', 'Could not save: {detail}'],
+  'notiz.neu': ['Notiz', 'Note'],
+  'notiz.titel': ['Notiz', 'Note'],
+  'notiz.titelMehr': ['Deine Notizen', 'Your notes'],
+  'notiz.platzhalter': ['Was willst du dir hier merken?', 'What do you want to remember here?'],
+  'notiz.weg': ['Stelle nicht mehr gefunden', 'Passage no longer found'],
+  'notiz.fehler': ['Die Notizen ließen sich nicht speichern.', 'The notes could not be saved.'],
   'haus.insLeere': ['Diesen Eintrag gibt es nicht.', 'This entry does not exist.']
 } as const;
 
