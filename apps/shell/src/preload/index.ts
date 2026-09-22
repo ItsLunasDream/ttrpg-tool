@@ -7,6 +7,7 @@
  */
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ShellSettings } from '../main/settings';
+import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
 
 const api = {
   /**
@@ -205,6 +206,28 @@ const api = {
         ipcRenderer.off('einstellungen:sprache-extern', hoerer);
       };
     }
+  },
+  /**
+   * Die Einstellungen der einzelnen Werkzeuge.
+   *
+   * Sie liegen nicht hier, sondern in den Werkzeugen selbst — die Huelle
+   * holt nur deren Beschreibung und malt sie in ihren eigenen Dialog. So
+   * gibt es eine Stelle, an der man Einstellungen sucht, und nicht zwei.
+   */
+  werkzeug: {
+    /** Was dieses Werkzeug an Einstellungen hat, oder `null`: keine. */
+    einstellungen: (appId: string) =>
+      ipcRenderer.invoke('werkzeug:einstellungen', appId) as Promise<Werkzeugeinstellungen | null>,
+    /** Setzt ein Feld und liefert den Stand danach. */
+    setzen: (appId: string, feldId: string, wert: Wert) =>
+      ipcRenderer.invoke('werkzeug:einstellung-setzen', appId, feldId, wert) as Promise<
+        Werkzeugeinstellungen | null
+      >,
+    /** Loest einen Knopf aus (Ordner waehlen, Wort entfernen, ...). */
+    befehl: (appId: string, befehlId: string, wert?: string) =>
+      ipcRenderer.invoke('werkzeug:einstellung-befehl', appId, befehlId, wert) as Promise<
+        Werkzeugeinstellungen | null
+      >
   }
 };
 

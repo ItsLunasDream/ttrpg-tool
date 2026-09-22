@@ -13,7 +13,9 @@
 import { useState } from 'react';
 import { LANGUAGES, type Language, type MessageKey, type MessageParams } from '../shared/i18n';
 import type { KiEinstellungen } from '@suite/ki/einstellungen';
+import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
 import { Dialog } from './Dialog';
+import { Werkzeugfelder } from './Werkzeugfelder';
 
 /** Was die Bereitschaftspruefung zurueckmeldet. Der Schluessel selbst nie. */
 export interface KiZustandAnsicht {
@@ -37,6 +39,26 @@ interface Props {
   readonly symboleNeuLaden: () => Promise<void>;
   /** Vergisst, welche Einfuehrungen schon gesehen sind. */
   readonly einfuehrungenZuruecksetzen: () => Promise<void>;
+  /**
+   * Die gerade laufenden Werkzeuge, mit ihrem uebersetzten Namen.
+   *
+   * Nur laufende: was noch nie offen war, hat seine Einstellungen noch nicht
+   * geladen und koennte nichts beantworten. Das ist kein Mangel, sondern die
+   * Regel dieses Fensters — man stellt ein Werkzeug ein, waehrend man darin
+   * arbeitet.
+   */
+  readonly offeneWerkzeuge: readonly { readonly id: string; readonly name: string }[];
+  readonly werkzeugEinstellungen: (appId: string) => Promise<Werkzeugeinstellungen | null>;
+  readonly werkzeugSetzen: (
+    appId: string,
+    feldId: string,
+    wert: Wert
+  ) => Promise<Werkzeugeinstellungen | null>;
+  readonly werkzeugBefehl: (
+    appId: string,
+    befehlId: string,
+    wert?: string
+  ) => Promise<Werkzeugeinstellungen | null>;
   readonly onClose: () => void;
   readonly t: (key: MessageKey, params?: MessageParams) => string;
 }
@@ -52,6 +74,10 @@ export function Einstellungen({
   symbolordnerOeffnen,
   symboleNeuLaden,
   einfuehrungenZuruecksetzen,
+  offeneWerkzeuge,
+  werkzeugEinstellungen,
+  werkzeugSetzen,
+  werkzeugBefehl,
   onClose,
   t
 }: Props) {
@@ -231,6 +257,24 @@ export function Einstellungen({
           ) : null}
         </>
       ) : null}
+
+      {/*
+        Die Werkzeuge selbst. Sie stehen hier und nicht in einem eigenen
+        Dialog im Werkzeug: zwei Stellen fuer Einstellungen heisst, dass man
+        immer zuerst in der falschen nachsieht.
+      */}
+      {offeneWerkzeuge.map((werkzeug) => (
+        <Werkzeugfelder
+          key={werkzeug.id}
+          appId={werkzeug.id}
+          titel={werkzeug.name}
+          sprache={sprache === 'de' ? 'de' : 'en'}
+          lade={werkzeugEinstellungen}
+          setze={werkzeugSetzen}
+          befehl={werkzeugBefehl}
+          onFehler={(grund) => setFehler(t('settings.saveFailed', { detail: String(grund) }))}
+        />
+      ))}
 
       <h3 className="feld__ueberschrift">{t('settings.icons')}</h3>
       <p className="feld__hinweis">{t('settings.iconsHint')}</p>

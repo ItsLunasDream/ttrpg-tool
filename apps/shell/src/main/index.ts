@@ -53,6 +53,7 @@ import { join } from 'node:path';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { berechneAppFlaeche } from '../shared/apps';
 import { mountApp, registerSchemes, type MontageHaken, type MontierteApp } from './apps';
+import type { Wert } from '@suite/einstellungen';
 import { brichFahrtAb, fahreEin } from './fahrt';
 import {
   DEFAULT_SETTINGS,
@@ -694,6 +695,39 @@ function registriereKanaele(): void {
     }
     return ohneSchluessel(aktualisiert);
   });
+
+  /*
+   * Die Einstellungen der einzelnen Werkzeuge.
+   *
+   * Die Huelle kennt sie nicht und soll sie nicht kennen. Sie fragt das
+   * Werkzeug, was es einzustellen gibt, malt das in ihren eigenen Dialog und
+   * schickt Aenderungen zurueck. Ein Werkzeug ohne eigene Einstellungen
+   * liefert `null`, und der Dialog laesst den Abschnitt dann weg.
+   *
+   * Nur montierte Werkzeuge antworten: was noch nie offen war, hat auch noch
+   * keine Einstellungen geladen. Der Dialog fragt deshalb genau die ab, die
+   * gerade laufen.
+   */
+  handle('werkzeug:einstellungen', async (_event, appId: string) => {
+    const montiert = offen.get(appId);
+    return (await montiert?.werkzeugEinstellungen?.()) ?? null;
+  });
+
+  handle(
+    'werkzeug:einstellung-setzen',
+    async (_event, appId: string, feldId: string, wert: Wert) => {
+      const montiert = offen.get(appId);
+      return (await montiert?.setzeWerkzeugEinstellung?.(feldId, wert)) ?? null;
+    }
+  );
+
+  handle(
+    'werkzeug:einstellung-befehl',
+    async (_event, appId: string, befehlId: string, wert?: string) => {
+      const montiert = offen.get(appId);
+      return (await montiert?.werkzeugBefehl?.(befehlId, wert)) ?? null;
+    }
+  );
 
   /**
    * Bereitschaft der KI.

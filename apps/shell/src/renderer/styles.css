@@ -718,6 +718,56 @@ body {
   margin-top: 8px;
 }
 
+/*
+ * Felder, die ein Werkzeug beschreibt. Sie sollen sich nicht von denen der
+ * Huelle unterscheiden — wer den Dialog aufmacht, soll eine Liste sehen und
+ * nicht zwei Bauarten.
+ */
+
+/* Kaestchen: Text rechts vom Haken, nicht am anderen Ende der Zeile. */
+.feld--inline {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.feld__untertitel {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-leise);
+  margin: 16px 0 8px;
+}
+
+.werkzeugfelder__gruppe > div + div {
+  margin-top: 12px;
+}
+
+/* Ein Pfad ist zum Lesen da, nicht zum Tippen: schmal und umbrechend. */
+.feld__pfad {
+  font-size: 12px;
+  color: var(--text-leise);
+  word-break: break-all;
+  text-align: right;
+}
+
+.feld__sammlung {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.feld__sammlung li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 /* ---------- Ueber ---------- */
 
 .ueber {

@@ -126,6 +126,15 @@ export function App() {
    */
   const [ki, setKi] = useState<KiEinstellungen>(KI_VOREINSTELLUNGEN);
   const [kiZustand, setKiZustand] = useState<KiZustandAnsicht | null>(null);
+  /**
+   * Welche Werkzeuge schon einmal wirklich offen waren.
+   *
+   * Nur die koennen ihre eigenen Einstellungen beantworten — was nie montiert
+   * wurde, hat sie noch nicht geladen. Der Einstellungen-Dialog fragt deshalb
+   * genau diese ab. Einmal montiert, bleibt ein Werkzeug montiert, also
+   * wandert hier auch nichts wieder heraus.
+   */
+  const [montierte, setMontierte] = useState<ReadonlySet<string>>(new Set());
   const [wenigerBewegung, setWenigerBewegung] = useState(false);
   /**
    * Eigene Symbole aus dem Symbolordner, als data:-URL je Kennung.
@@ -474,7 +483,10 @@ export function App() {
         setBuehne(ergebnis);
         // Erst wenn das Werkzeug wirklich da ist. Eine Einfuehrung vor einer
         // Fehlermeldung waere die falsche Reihenfolge.
-        if (ergebnis.zustand === 'offen') zeigeEinfuehrung(id);
+        if (ergebnis.zustand === 'offen') {
+          zeigeEinfuehrung(id);
+          setMontierte((vorher) => (vorher.has(id) ? vorher : new Set(vorher).add(id)));
+        }
       })
       // Der Hauptprozess faengt Montagefehler selbst ab und meldet sie als
       // Zustand. Bleibt trotzdem eine Ablehnung uebrig, ist etwas an der
@@ -667,6 +679,17 @@ export function App() {
           symbolordnerOeffnen={() => window.shell.symbole.ordnerOeffnen()}
           symboleNeuLaden={ladeSymboleNeu}
           einfuehrungenZuruecksetzen={setzeEinfuehrungenZurueck}
+          offeneWerkzeuge={APPS.filter((app) => montierte.has(app.id)).map((app) => ({
+            id: app.id,
+            name: t(nameKey(app.id))
+          }))}
+          werkzeugEinstellungen={(appId) => window.shell.werkzeug.einstellungen(appId)}
+          werkzeugSetzen={(appId, feldId, wert) =>
+            window.shell.werkzeug.setzen(appId, feldId, wert)
+          }
+          werkzeugBefehl={(appId, befehlId, wert) =>
+            window.shell.werkzeug.befehl(appId, befehlId, wert)
+          }
           onClose={() => zeigeDialog(null)}
           t={t}
         />

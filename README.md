@@ -96,6 +96,7 @@ packages/i18n/     Language choice and text substitution
 packages/motion/   Timings, curves and base animations
 packages/ki/       Connection to language models (Ollama, Claude)
 packages/umgebungen/ Environments: what you see, and what has a numbered effect
+packages/einstellungen/ How a tool describes its own settings for the shell
 ```
 
 `packages/*` are platform-free: no `node:*`, no `electron`, no browser
@@ -107,6 +108,13 @@ globals. They are bundled into both processes.
 shell across the full area, with the tool's view on top of it, leaving room
 for the title bar and the rail.
 
+- Settings live in one place. The shell's settings dialog shows its own
+  entries (language, AI, icons, introductions) and, underneath, a section per
+  running tool. A tool does not draw that section itself — it runs in its own
+  view — but describes its fields (`packages/einstellungen`), and the shell
+  draws them. A new tool joins in by answering `werkzeugEinstellungen`; the
+  shell needs to know nothing about it. Started on its own, a tool keeps its
+  own settings dialog: there is no shell to hold it.
 - A tool stays loaded once opened and is only hidden when you switch away.
   Everything is still there when you come back; the price is memory, roughly
   130 MB per tool.

@@ -71,6 +71,12 @@ export function App() {
 function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language) => void }) {
   const { t, compare, language } = useLanguage();
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  /**
+   * Ob eine Huelle einbettet. Sie fuehrt dann die Einstellungen, und der
+   * eigene Knopf dafuer faellt weg — zwei Stellen fuer dieselbe Sache heisst,
+   * dass man immer zuerst in der falschen nachsieht.
+   */
+  const [inHuelle, setInHuelle] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -272,6 +278,37 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   useEffect(
     () => api.onKiWechsel(() => void call(api.ai.status()).then(setAiStatus, () => setAiStatus(null))),
     []
+  );
+
+  useEffect(() => {
+    void call(api.app.inHuelle()).then(setInHuelle, () => setInHuelle(false));
+  }, []);
+
+  /*
+   * Im Einstellungen-Dialog der Huelle wurde etwas verstellt.
+   *
+   * Der ganze Stand kommt mit. Ohne diese Meldung schriebe die Oberflaeche
+   * weiter mit der alten Wartezeit und zeigte den alten Ordner — die
+   * Einstellungen liegen hier im Speicher, nicht bei jedem Zugriff auf der
+   * Platte.
+   */
+  useEffect(() => api.onEinstellungen(setSettings), []);
+
+  /*
+   * Der Speicherort wurde von der Huelle aus gewechselt. Kampagnen und
+   * Notizen im Speicher gehoeren danach zum alten Ordner; sie stehen zu
+   * lassen hiesse, auf Dateien zu zeigen, die hier nicht liegen.
+   */
+  useEffect(
+    () =>
+      api.onSpeicherortWechsel(() => {
+        void guard(async () => {
+          const liste = await call(api.campaigns.list());
+          setCampaigns(liste);
+          setActiveCampaignId(liste[0]?.id ?? null);
+        });
+      }),
+    [guard]
   );
 
   /*
@@ -852,7 +889,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         }
         onOpenHelp={() => setDialog({ kind: 'help' })}
         onOpenAbout={() => setDialog({ kind: 'about' })}
-        onOpenSettings={() => setDialog({ kind: 'settings' })}
+        onOpenSettings={inHuelle ? null : () => setDialog({ kind: 'settings' })}
         onEditNoteTypes={() => setDialog({ kind: 'noteTypes' })}
       />
 
