@@ -29,12 +29,37 @@ cd /d "%~dp0.."
 set "LOGDATEI=%CD%\bauen-win.log"
 set "PAKETORDNER=%CD%\apps\shell\release"
 
+rem  ERST PRUEFEN, OB IN DIESEM ORDNER UEBERHAUPT GESCHRIEBEN WERDEN KANN.
+rem  ====================================================================
+rem  Liegt das Repository unter OneDrive oder in "Dokumente", scheitert das
+rem  Anlegen neuer Dateien oft - an OneDrive selbst oder am ueberwachten
+rem  Ordnerzugriff von Windows, der "Dokumente" standardmaessig schuetzt.
+rem  Die Meldung dazu ist irrefuehrend ("Datei nicht gefunden", bei git
+rem  "No such file or directory"), und jeder Schritt danach scheitert mit
+rem  einer anderen Meldung. Also einmal hier, mit einer lesbaren Erklaerung.
+set "PROBE=%CD%\.bauen-probe.tmp"
+(echo probe) > "%PROBE%" 2>nul
+if not exist "%PROBE%" goto :schreibschutz
+del "%PROBE%" >nul 2>&1
+
 rem  Neues Protokoll je Lauf: ein angehaengtes waechst sonst endlos und man
 rem  liest beim Nachsehen den Lauf von vorgestern.
-echo Lauf vom %DATE% %TIME%> "%LOGDATEI%"
+set "LOGGEN=1"
+(echo Lauf vom %DATE% %TIME%) > "%LOGDATEI%" 2>nul
+if not exist "%LOGDATEI%" set "LOGGEN=0"
+
+rem  Unter OneDrive laeuft es manchmal trotzdem - aber git und OneDrive
+rem  vertragen sich schlecht. Ein Hinweis, kein Abbruch.
+if not "%CD:OneDrive=%"=="%CD%" (
+  echo Hinweis: Dieses Repository liegt in einem OneDrive-Ordner.
+  echo OneDrive sperrt dabei gelegentlich Dateien in .git und node_modules,
+  echo und git meldet dann "cannot lock ref". Sicherer ist ein Ordner
+  echo ausserhalb von OneDrive, etwa C:\dev\ttrpg-tool.
+  echo.
+)
 
 call :sag "Arbeitsordner: %CD%"
-call :sag "Protokoll:     %LOGDATEI%"
+if "%LOGGEN%"=="1" call :sag "Protokoll:     %LOGDATEI%"
 call :sag ""
 
 call :sag "[1/4] git fetch -p"
@@ -108,6 +133,26 @@ call :sag "  apps\shell\release\win-unpacked\TTRPG-Tools.exe"
 if exist "%PAKETORDNER%" start "" "%PAKETORDNER%"
 goto :ende
 
+:schreibschutz
+echo.
+echo In diesem Ordner lassen sich keine Dateien anlegen:
+echo   %CD%
+echo.
+echo Damit scheitern git, npm und der Paketbau - jeder mit einer anderen,
+echo irrefuehrenden Meldung. Am Code liegt es nicht. Die zwei ueblichen Gruende:
+echo.
+echo   1. Ueberwachter Ordnerzugriff (Windows-Ransomware-Schutz). Er schuetzt
+echo      "Dokumente" und blockiert unbekannte Programme wie git, node oder cmd.
+echo      Nachsehen: Windows-Sicherheit, Viren- und Bedrohungsschutz,
+echo      Ransomware-Schutz verwalten. Steht er auf "Ein", unter
+echo      "Blockierungsverlauf" nachsehen, ob git.exe oder node.exe darin stehen,
+echo      und sie zulassen.
+echo.
+echo   2. OneDrive. Git-Repositories in einem OneDrive-Ordner gehen oft kaputt.
+echo      Sicherer: das Repository ausserhalb klonen, zum Beispiel nach
+echo      C:\dev\ttrpg-tool, und das Skript von dort starten.
+goto :ende
+
 :fehler
 call :sag ""
 call :sag "Abgebrochen - der Schritt oben ist fehlgeschlagen."
@@ -122,10 +167,10 @@ rem  Ein leerer Text braucht "echo." - ein nacktes echo meldet sonst, ob es
 rem  selbst ein- oder ausgeschaltet ist, und das mitten im Bauprotokoll.
 if "%~1"=="" (
   echo.
-  echo.>> "%LOGDATEI%"
+  if "%LOGGEN%"=="1" (echo.) >> "%LOGDATEI%" 2>nul
 ) else (
   echo %~1
-  echo %~1>> "%LOGDATEI%"
+  if "%LOGGEN%"=="1" (echo %~1) >> "%LOGDATEI%" 2>nul
 )
 exit /b 0
 
