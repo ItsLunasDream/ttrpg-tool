@@ -98,6 +98,10 @@ export const texte = {
   'knopf.schliessen': ['Schließen', 'Close'],
   'msg.gespeichert': ['Begegnung gespeichert', 'Encounter saved'],
   'msg.geladen': ['Begegnung geladen', 'Encounter loaded'],
+  'msg.uebernommen': [
+    'Begegnung aus dem Encounter Creator übernommen',
+    'Encounter taken over from the encounter creator'
+  ],
   'taste.leertaste': ['Leertaste: weiter', 'Space: next'],
   'bestaetigen.beenden': [
     'Kampf wirklich beenden? Die Reihenfolge geht verloren.',

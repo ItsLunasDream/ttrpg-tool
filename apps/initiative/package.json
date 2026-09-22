@@ -24,7 +24,8 @@
   "dependencies": {
     "@suite/dice": "*",
     "@suite/motion": "*",
-    "@suite/eintraege": "*"
+    "@suite/eintraege": "*",
+    "@suite/uebergabe": "*"
   },
   "author": {
     "name": "ItsLunasDream"

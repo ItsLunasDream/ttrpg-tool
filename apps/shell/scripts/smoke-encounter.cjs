@@ -37,6 +37,7 @@ fs.writeFileSync(
     'rolle: jaeger',
     'tp: 90',
     'rk: 15',
+    'ge: 14',
     'geaendert: 2026-09-22T09:00:00.000Z',
     '---',
     '',
@@ -306,6 +307,58 @@ app.whenReady().then(async () => {
   const eintraege = await hjs('window.shell.suche.eintraege()');
   const meine = (eintraege ?? []).filter((e) => e.werkzeug === 'encounter');
   pruefe(meine.length === 2, `die Suche der Huelle kennt sie (${meine.length})`);
+
+  // --- Der Weg in den Initiative Tracker -----------------------------------
+  //
+  // Der eigentliche Zweck des Werkzeugs, und die Naht, die kein Modultest
+  // sieht: Knopf im einen Werkzeug, Huelle holt das andere nach vorn,
+  // dort stehen Teilnehmer und Terrain. Drei Prozessgrenzen auf einmal.
+  await js(
+    `document.querySelector('.begegnungskachel[data-id="hinterhalt-am-fluss"]').click(); true`
+  );
+  await warte(800);
+  pruefe(
+    (await js("document.querySelectorAll('.gegnerzeile').length")) === 1,
+    'die Begegnung ist wieder offen'
+  );
+  await js(`document.querySelector('button[data-tracker]').click(); true`);
+  await warte(6000);
+
+  const tracker = fenster.contentView.children.find((v) =>
+    v.webContents.getURL().includes('/apps/initiative/')
+  );
+  pruefe(Boolean(tracker), 'der Tracker kommt hoch');
+  if (tracker) {
+    const tjs = (a) => tracker.webContents.executeJavaScript(a);
+    const text = await tjs('document.body.innerText');
+    pruefe(/Bounty Hounter/.test(text), 'die Gegner stehen im Tracker');
+    // Die Sprache der Huelle entscheidet, ob „Wald" oder „Forest"
+    // dasteht — der Name kommt aus `packages/umgebungen` und wandert
+    // uebersetzt mit. Der Rauchtest darf sich darauf nicht festlegen.
+    // Die Sprache der Huelle entscheidet, ob „Wald" oder „Forest"
+    // dasteht, und das Aussehen macht daraus Kleinschreibung — der
+    // Rauchtest darf sich auf beides nicht festlegen.
+    pruefe(/wald|forest/i.test(text), 'und die Umgebung als Terrain');
+    // Die Regel selbst, nicht nur der Name der Umgebung: sie ist der
+    // Grund, warum die Umgebung ueberhaupt mitwandert.
+    pruefe(
+      /sight|sicht|undergrowth|unterholz/i.test(text),
+      'samt der Regel, die am Tisch wirkt'
+    );
+    /*
+     * Zwei Wolfskoerper unter EINEM Eintrag, nicht zwei Eintraege: eine
+     * Gruppe wuerfelt einmal Initiative. Genau dafuer hat der Tracker
+     * seine Koerper.
+     */
+    const zeilen = await tjs("document.querySelectorAll('.zeile').length");
+    const terrain = await tjs("document.querySelectorAll('.zeile--terrain').length");
+    pruefe(zeilen === 3, `ein Eintrag fuer die Gruppe, zwei fuers Terrain (${zeilen})`);
+    pruefe(terrain === 2, `jede Regel der Umgebung ist ein eigener Eintrag (${terrain})`);
+    pruefe(
+      /Hinterhalt am Fluss/.test(text),
+      'und der Kampf traegt den Namen der Begegnung'
+    );
+  }
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
   console.log(fehler.length === 0 ? '\nEncounter bestanden.' : `\n${fehler.length} Fehler.`);

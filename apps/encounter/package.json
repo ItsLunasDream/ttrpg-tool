@@ -29,6 +29,7 @@
     "@suite/motion": "*",
     "@suite/umgebungen": "*",
     "@suite/eintraege": "*",
-    "@suite/i18n": "*"
+    "@suite/i18n": "*",
+    "@suite/uebergabe": "*"
   }
 }

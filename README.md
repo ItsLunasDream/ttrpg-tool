@@ -101,10 +101,9 @@ packages/einstellungen/ How a tool describes its own settings for the shell
 packages/foundry/  Monsters and conditions as JSON that Foundry VTT reads
 packages/farben/   Colour roles and the selectable themes
 packages/eintraege/ What a tool has filed, in a form every tool understands
+packages/tabellen/ Random tables: the format, rolling on one and nesting them
+packages/uebergabe/ The shape an encounter travels in, from one tool to another
 ```
-
-Planned: `packages/tabellen/` — the format of a random table, rolling on it
-and nesting it, for the Loot Generator. See [docs/loot.md](docs/loot.md).
 
 Planned: `packages/srd/` — one place for everything taken from the SRD 5.2,
 shared by the reference work, the Magic Item Creator's calibration and the

@@ -23,6 +23,7 @@ import {
   type Sprache,
   type Umgebung
 } from '@suite/umgebungen';
+import { modifikator, type Uebergabe } from '@suite/uebergabe';
 
 /** Die Sprache, wie `@suite/umgebungen` sie erwartet. */
 function sprache(): Sprache {
@@ -107,6 +108,54 @@ export function App() {
     return ergebnis.id;
   };
 
+  /**
+   * Schiebt die offene Begegnung in den Initiative Tracker.
+   *
+   * Zusammengestellt wird hier nur die gemeinsame Form aus
+   * `@suite/uebergabe` — Namen, Zahlen, Saetze. Teilnehmer und Terrain
+   * baut der Tracker daraus selbst; dieses Werkzeug kennt sein
+   * Datenmodell nicht und soll es nicht kennen.
+   *
+   * Die Werte kommen aus der MONSTERLISTE und nicht aus der Datei: wer
+   * sein Monster eben noch geaendert hat, soll die neuen Trefferpunkte
+   * im Tracker sehen. Ein Monster, das es nicht mehr gibt, wandert mit
+   * seinen Nullen mit — es fehlt sichtbar, statt stillschweigend zu
+   * verschwinden.
+   */
+  const inDenTracker = async () => {
+    if (!offen) return;
+    setFehler('');
+    const umgebung = umgebungNach(offen.umgebungId);
+    const spr = sprache();
+    const uebergabe: Uebergabe = {
+      name: offen.name,
+      quelle: offen.id,
+      gegner: offen.gegner.map((einer) => {
+        const karte = monster.find((m) => m.id === einer.monsterId);
+        return {
+          name: einer.name,
+          anzahl: einer.anzahl,
+          tp: karte?.tp ?? 0,
+          rk: karte?.rk ?? 0,
+          iniMod: modifikator(karte?.ge ?? 10)
+        };
+      }),
+      umgebung: umgebung
+        ? {
+            name: umgebungName(umgebung, spr),
+            beschreibung: anblickzeilen(umgebung, spr),
+            regeln: umgebung.regeln.map((regel) => ({
+              text: regel.wirkung[spr === 'de' ? 'de' : 'en'],
+              wert: typeof regel.wert === 'number' ? regel.wert : null
+            }))
+          }
+        : null
+    };
+    const ging = await api.inDenTracker(uebergabe);
+    if (ging) setMeldung(t('tracker.unterwegs'));
+    else setFehler(t('tracker.ging-nicht'));
+  };
+
   // --- Eine neue Begegnung --------------------------------------------------
   if (anlegen !== null) {
     return (
@@ -176,6 +225,20 @@ export function App() {
             ← {t('zurueck')}
           </button>
           <span className="leiste__luecke" />
+          {/*
+            Der Weg in den Tracker steht NEBEN dem Speichern und nicht
+            statt seiner. Er schiebt hinueber, was gerade auf dem Schirm
+            steht; was auf der Platte liegt, bleibt davon unberuehrt.
+          */}
+          <button
+            type="button"
+            className="knopf"
+            data-tracker
+            disabled={offen.gegner.length === 0}
+            onClick={() => void inDenTracker()}
+          >
+            {t('tracker.knopf')}
+          </button>
           <button
             type="button"
             className="knopf knopf--haupt"

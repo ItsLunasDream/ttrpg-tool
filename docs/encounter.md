@@ -5,12 +5,13 @@ stellt eine Begegnung zusammen: welche Monster, wie viele, wo, und wie hart
 das für diese Gruppe wird — und schiebt das Ergebnis in einem Zug in den
 Initiative Tracker.
 
-**Stand:** Stufe 1 bis 3 sind gebaut — die Kachel ist echt, Begegnungen
+**Stand:** Stufe 1 bis 4 sind gebaut — die Kachel ist echt, Begegnungen
 lassen sich anlegen, benennen, mit einer Notiz versehen und in einer
-Sammlung wiederfinden, die Monster kommen aus der eigenen Sammlung, und
-eine Umgebung aus `packages/umgebungen` hängt mit ihren zwei Sorten daran:
-was man sieht zum Vorlesen, was wirkt mit seiner Zahl. Die Suche der Hülle
-findet sie. Stufen 4 und 5 stehen aus.
+Sammlung wiederfinden, die Monster kommen aus der eigenen Sammlung, eine
+Umgebung hängt mit ihren zwei Sorten daran, und „In den Tracker" schiebt
+das Ganze in den Initiative Tracker: Gruppen als ein Eintrag mit mehreren
+Körpern, jede Regel der Umgebung als eigener Terrain-Eintrag. Die Suche
+der Hülle findet die Begegnungen. Stufe 5 steht aus.
 
 ## Wozu
 
@@ -144,6 +145,31 @@ zwischen „ein Kampf läuft" und „es gibt Ungespeichertes". Der Weg von auße
 muss dieselbe Frage stellen, nicht eine zweite eigene.
 
 **Zurückgeschrieben wird nicht.** Siehe Grundsatz oben.
+
+### Wie der Weg gebaut ist
+
+Die beiden Werkzeuge kennen einander nicht, und das bleibt so. Zwischen
+ihnen steht `packages/uebergabe`: eine bewusst dünne Form aus Namen,
+Zahlen und Sätzen, die beide Seiten ohne Kenntnis der anderen verstehen.
+Der Encounter Creator füllt sie, die Hülle holt den Tracker nach vorn und
+stellt sie zu, der Tracker baut daraus seine eigenen Teilnehmer
+(`src/shared/uebernahme.ts`). Derselbe Weg wie „Karte anlegen" aus der
+Inspirationshilfe.
+
+Drei Entscheidungen, die man dem Ergebnis nicht ansieht:
+
+- **Die Initiative wird nicht gewürfelt.** Sie steht auf null; der
+  Zuschlag aus der Geschicklichkeit landet im Feinwert, den der Tracker
+  ohnehin beim Auswürfeln benutzt. Eine Zahl, die von außen hereinkommt
+  und aussieht wie gewürfelt, wäre schlimmer als eine leere.
+- **Jede Regel wird ein eigener Terrain-Eintrag**, und die Regel steht in
+  seinem Namen. Im Tracker ist der Name das einzige, was immer zu sehen
+  ist — stünde dort nur „Wald", wäre die halbe Arbeit unsichtbar. Einzeln,
+  weil sich ein einzelner Eintrag austragen lässt, wenn er nicht mehr
+  gilt.
+- **Der Kampf bekommt keine `begegnungId`.** Die Kennung gehört dem
+  Encounter Creator; sie zu übernehmen hieße, dass „Speichern" im Tracker
+  später in eine fremde Ablage zielt.
 
 ## Und der Karteneditor?
 

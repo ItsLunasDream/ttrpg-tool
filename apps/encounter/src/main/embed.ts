@@ -17,6 +17,7 @@ import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { Eintrag as SuchEintrag } from '@suite/eintraege';
+import type { Uebergabe } from '@suite/uebergabe';
 import { kanal } from '../shared/kanaele';
 import { alsMonsterkarte, type Monsterkarte } from '../shared/monsterliste';
 import {
@@ -48,6 +49,15 @@ export interface EncounterEmbedOptions {
    * „noch kein Monster gebaut".
    */
   readonly monsterordner?: string;
+  /**
+   * Schiebt eine Begegnung in den Initiative Tracker.
+   *
+   * Reicht die Huelle durch, und nur sie: dieses Werkzeug kennt den
+   * Tracker nicht, und der Tracker kennt dieses hier nicht. Derselbe Weg
+   * wie bei „Karte anlegen" aus der Inspirationshilfe. Fehlt der Haken,
+   * bleibt der Knopf ohne Wirkung und meldet das ehrlich.
+   */
+  readonly inDenTracker?: (uebergabe: Uebergabe) => Promise<boolean>;
 }
 
 export interface EncounterEmbed {
@@ -224,6 +234,18 @@ export async function mountEncounter(
     return heraus;
   });
 
+  /*
+   * Der Weg in den Tracker.
+   *
+   * Hier wird nichts umgerechnet: was der Renderer zusammengestellt hat,
+   * geht unveraendert an die Huelle. Die Uebersetzung in Teilnehmer und
+   * Terrain macht der Tracker selbst, mit seinen eigenen Regeln.
+   */
+  handle('tracker', async (_e: never, uebergabe: Uebergabe): Promise<boolean> => {
+    if (!options.inDenTracker) return false;
+    return options.inDenTracker(uebergabe);
+  });
+
   handle('loeschen', async (_e: never, id: string): Promise<boolean> => {
     try {
       await unlink(dateiVon(ordner, id));
@@ -264,7 +286,7 @@ export async function mountEncounter(
 
 /** Meldet alles ab. Fuer Tests und einen sauberen Abbau. */
 export function unmountEncounter(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'monster:liste']) {
+  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'monster:liste', 'tracker']) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));

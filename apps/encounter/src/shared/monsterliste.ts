@@ -13,7 +13,7 @@
  * dieser kleine Leser; der Gewinn ist, dass man den Monster Creator
  * umbauen kann, ohne dass hier etwas bricht, solange der Kopf bleibt.
  *
- * Gelesen werden nur die fuenf Felder, die eine Begegnung braucht. Was der
+ * Gelesen werden nur die wenigen Felder, die eine Begegnung braucht. Was der
  * Monster Creator sonst noch in den Kopf schreibt, geht uns nichts an.
  */
 
@@ -25,6 +25,15 @@ export interface Monsterkarte {
   readonly cr: string;
   readonly tp: number;
   readonly rk: number;
+  /**
+   * Die Geschicklichkeit, roh.
+   *
+   * Nur dafuer da, den Zuschlag auf den Initiativewurf zu rechnen, wenn
+   * die Begegnung in den Tracker wandert. Fehlt sie im Kopf, steht hier
+   * 10 — das ergibt null Zuschlag, und null ist die ehrlichste Antwort
+   * auf „steht nicht da".
+   */
+  readonly ge: number;
   /** Fuer die Suche in der Auswahlliste. */
   readonly themaId: string;
   readonly rolleId: string;
@@ -51,6 +60,20 @@ function liesKopf(inhalt: string): Record<string, string> {
   return kopf;
 }
 
+/**
+ * Ein Attributwert aus dem Kopf, mit 10 als Rueckfall.
+ *
+ * Nicht null: bei den anderen Zahlen ist null der ehrliche Rueckfall, bei
+ * einem Attribut waere sie ein Wert wie jeder andere und ergaebe einen
+ * Zuschlag von minus fuenf. Zehn heisst „durchschnittlich" und damit kein
+ * Zuschlag.
+ */
+function attributwert(roh: string | undefined): number {
+  if (roh === undefined || roh === '') return 10;
+  const wert = Number(roh);
+  return Number.isFinite(wert) ? wert : 10;
+}
+
 export function alsMonsterkarte(inhalt: string, rueckfallId: string): Monsterkarte {
   const kopf = liesKopf(inhalt);
   const zahl = (name: string) => {
@@ -63,6 +86,7 @@ export function alsMonsterkarte(inhalt: string, rueckfallId: string): Monsterkar
     cr: kopf.cr ?? '',
     tp: zahl('tp'),
     rk: zahl('rk'),
+    ge: attributwert(kopf.ge),
     themaId: kopf.thema ?? '',
     rolleId: kopf.rolle ?? ''
   };

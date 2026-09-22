@@ -40,6 +40,7 @@ import { mountMonster } from '../../../monster/src/main/embed';
 import { mountZustaende } from '../../../zustaende/src/main/embed';
 import { mountEncounter } from '../../../encounter/src/main/embed';
 import type { KiQuelle } from './ki';
+import type { Uebergabe } from '@suite/uebergabe';
 import type { Language } from '../shared/i18n';
 import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
 
@@ -51,6 +52,11 @@ export interface MontierteApp {
    * das; alle anderen lassen es weg.
    */
   neueKarte?(name: string, notizen?: readonly { title: string; text: string }[]): void;
+  /**
+   * Nimmt eine Begegnung aus einem anderen Werkzeug an. Nur der Initiative
+   * Tracker kann das; alle anderen lassen es weg.
+   */
+  uebernimmBegegnung?(uebergabe: Uebergabe): Promise<boolean>;
   /**
    * Bringt die Anwendung an eine Stelle zurueck, die der Verlauf kennt.
    * Werkzeuge ohne eigene Stellen lassen das weg.
@@ -169,6 +175,15 @@ export interface MontageHaken {
     name: string,
     notizen: readonly { title: string; text: string }[]
   ) => Promise<boolean>;
+  /**
+   * Holt den Initiative Tracker nach vorn und stellt ihm eine Begegnung zu.
+   *
+   * Derselbe Weg wie `oeffneKarte` und aus demselben Grund: der Encounter
+   * Creator kennt den Tracker nicht, und der Tracker kennt ihn nicht. Was
+   * dort mit der Begegnung geschieht, entscheidet der Tracker — er fragt
+   * erst, ob ein laufender Kampf verlorenginge.
+   */
+  readonly inDenTracker?: (uebergabe: Uebergabe) => Promise<boolean>;
   /**
    * Die KI-Anbindung der Sammlung.
    *
@@ -683,7 +698,11 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
     // Die Suche der Huelle (Strg+K) springt hierher.
     zeigeEintrag: (kennung) =>
-      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung),
+    // Eine Begegnung aus dem Encounter Creator. Angenommen wird sie in der
+    // Oberflaeche des Trackers, und erst nach seiner eigenen Rueckfrage.
+    uebernimmBegegnung: (uebergabe) =>
+      eingebettet.uebernimmBegegnung(sicht.webContents as WebContents, uebergabe)
   };
 }
 
@@ -915,7 +934,8 @@ async function montiereEncounter(id: string, haken: MontageHaken): Promise<Monti
      * anlegt — dieselbe Stelle, an der die Suche lange danebengegriffen
      * hat.
      */
-    monsterordner: join(datenordner('monster'), 'monster')
+    monsterordner: join(datenordner('monster'), 'monster'),
+    inDenTracker: (uebergabe) => haken.inDenTracker?.(uebergabe) ?? Promise.resolve(false)
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);

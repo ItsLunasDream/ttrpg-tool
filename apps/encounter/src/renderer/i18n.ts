@@ -88,6 +88,16 @@ const TEXTE = {
   'umgebung.sg': ['SG', 'DC'],
   'umgebung.schaden': ['Schaden', 'Damage'],
 
+  'tracker.knopf': ['In den Tracker', 'To the tracker'],
+  'tracker.unterwegs': [
+    'Die Begegnung ist im Initiative Tracker.',
+    'The encounter is in the initiative tracker.'
+  ],
+  'tracker.ging-nicht': [
+    'Der Initiative Tracker ließ sich nicht öffnen.',
+    'The initiative tracker could not be opened.'
+  ],
+
   'fehler.speichern': ['Konnte nicht speichern: {detail}', 'Could not save: {detail}'],
   'fehler.lesen': [
     'Diese Begegnung ließ sich nicht öffnen.',

@@ -7,6 +7,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
 import type { Begegnung, Eintrag } from '../shared/ablage';
 import type { Monsterkarte } from '../shared/monsterliste';
+import type { Uebergabe } from '@suite/uebergabe';
 
 const api = {
   /**
@@ -42,6 +43,14 @@ const api = {
   monster: {
     liste: () => ipcRenderer.invoke(kanal('monster:liste')) as Promise<Monsterkarte[]>
   },
+  /**
+   * Schiebt die offene Begegnung in den Initiative Tracker.
+   *
+   * `false` heisst: es ging nicht — die Huelle fehlt, oder der Tracker
+   * liess sich nicht holen. Die Oberflaeche sagt das dann auch.
+   */
+  inDenTracker: (uebergabe: Uebergabe) =>
+    ipcRenderer.invoke(kanal('tracker'), uebergabe) as Promise<boolean>,
   sprache: {
     melde: (sprache: string) => ipcRenderer.send(kanal('sprache:gewechselt'), sprache),
     beiWechsel: (hoerer: (sprache: string) => void) => {
