@@ -220,6 +220,52 @@ app.whenReady().then(async () => {
   pruefe(/"anzahl":2/.test(mitGegnern), 'die Gegner stehen im Kopf der Datei');
   pruefe(/- 2× Bounty Hounter/.test(mitGegnern), 'und lesbar im Leib');
 
+  // --- Die Umgebung in ihren zwei Sorten -----------------------------------
+  //
+  // Der Punkt dieser Stufe: es stehen zwei getrennte Listen da. Was man
+  // sieht ist zum Vorlesen, was wirkt hat eine Zahl. Ein Blatt mit nur
+  // einer der beiden Sorten waere die halbe Arbeit.
+  pruefe(
+    (await js("document.querySelectorAll('.umgebung').length")) === 0,
+    'ohne Wahl steht kein Umgebungsblatt da'
+  );
+  await js(`(() => {
+    const wahl = [...document.querySelectorAll('select')].find(
+      (s) => [...s.options].some((o) => o.value === 'wald')
+    );
+    if (!wahl) return false;
+    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    setzer.call(wahl, 'wald');
+    wahl.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  await warte(350);
+  pruefe(
+    (await js("document.querySelectorAll('.umgebung__teil').length")) === 2,
+    'nach der Wahl stehen beide Sorten da'
+  );
+  pruefe(
+    (await js("document.querySelectorAll('.umgebung__teil:not(.umgebung__teil--regeln) li').length")) > 0,
+    'was man sieht, hat Zeilen'
+  );
+  pruefe(
+    (await js("document.querySelectorAll('.umgebung__teil--regeln li').length")) > 0,
+    'was wirkt, hat Zeilen'
+  );
+  pruefe(
+    (await js("document.querySelectorAll('.umgebung__wert').length")) > 0,
+    'und mindestens eine Regel traegt ihre Zahl als Marke'
+  );
+
+  await js(
+    `[...document.querySelectorAll('button')].find(b => /^(Speichern|Save)$/.test(b.textContent.trim())).click(); true`
+  );
+  await warte(900);
+  pruefe(
+    /^umgebung: /m.test(fs.readFileSync(path.join(ordner, 'hinterhalt-am-fluss.md'), 'utf8')),
+    'die Umgebung steht im Kopf der Datei'
+  );
+
   // --- Zwei gleichnamige ueberschreiben einander nicht ---------------------
   await js(
     `[...document.querySelectorAll('button')].find(b => /Zurück zur Liste|Back to the list/.test(b.textContent)).click(); true`

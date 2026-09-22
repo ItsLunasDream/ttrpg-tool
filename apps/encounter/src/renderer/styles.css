@@ -405,3 +405,57 @@ body {
 .monsterzeile:focus-visible .monsterzeile__dazu {
   opacity: 1;
 }
+
+/* Die Umgebung in zwei Spalten: links was man sieht, rechts was wirkt.
+   Nebeneinander, weil beides zum selben Ort gehoert — untereinander
+   liest man das zweite nicht mehr. Unter 640px stapelt es. */
+.umgebung {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 12px 0 4px;
+}
+
+@media (max-width: 640px) {
+  .umgebung {
+    grid-template-columns: 1fr;
+  }
+}
+
+.umgebung__teil {
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  background: var(--grund-hoch);
+  padding: 10px 14px 12px;
+}
+
+.umgebung__teil h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-leise);
+}
+
+.umgebung__teil ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+/* Was wirkt, faellt an: es ist die Haelfte, die am Tisch gebraucht wird. */
+.umgebung__teil--regeln {
+  border-color: color-mix(in srgb, var(--betont) 40%, var(--rand));
+}
+
+.umgebung__wert {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--betont-leise);
+  color: var(--betont);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

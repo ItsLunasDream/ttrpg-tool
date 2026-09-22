@@ -11,10 +11,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { api } from './api';
-import { setLanguage, t } from './i18n';
+import { getLanguage, setLanguage, t } from './i18n';
 import { finde, type Sortierung } from '../shared/suche';
 import { gegnerzahl, leereBegegnung, type Begegnung, type Eintrag } from '../shared/ablage';
 import { findeMonster, type Monsterkarte } from '../shared/monsterliste';
+import {
+  UMGEBUNGEN,
+  anblickzeilen,
+  umgebungNach,
+  umgebungName,
+  type Sprache,
+  type Umgebung
+} from '@suite/umgebungen';
+
+/** Die Sprache, wie `@suite/umgebungen` sie erwartet. */
+function sprache(): Sprache {
+  return getLanguage() === 'de' ? 'de' : 'en';
+}
 
 export function App() {
   const [, neuZeichnen] = useState(0);
@@ -309,6 +322,37 @@ export function App() {
             </>
           )}
 
+          <h3>{t('umgebung.titel')}</h3>
+          <p className="hinweis hinweis--klein">{t('umgebung.satz')}</p>
+          <div className="leiste">
+            <select
+              className="feld__wahl"
+              value={offen.umgebungId}
+              aria-label={t('umgebung.titel')}
+              onChange={(e) => setOffen({ ...offen, umgebungId: e.target.value })}
+            >
+              <option value="">{t('umgebung.keine')}</option>
+              {UMGEBUNGEN.map((umgebung) => (
+                <option key={umgebung.id} value={umgebung.id}>
+                  {umgebungName(umgebung, sprache())}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="knopf"
+              onClick={() =>
+                setOffen({
+                  ...offen,
+                  umgebungId: UMGEBUNGEN[Math.floor(Math.random() * UMGEBUNGEN.length)].id
+                })
+              }
+            >
+              {t('umgebung.wuerfeln')}
+            </button>
+          </div>
+          <Umgebungsblatt umgebung={umgebungNach(offen.umgebungId)} />
+
           <label className="feld feld--hoch">
             <span className="feld__name">{t('feld.notiz')}</span>
             <textarea
@@ -413,6 +457,49 @@ export function App() {
         </ul>
       )}
       {fehler ? <p className="fehler">{fehler}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * Die Umgebung in ihren ZWEI Sorten.
+ *
+ * Das ist die Entscheidung, die dieses Werkzeug von einer Monsterliste
+ * unterscheidet: was man sieht (zum Vorlesen, Vorlage fuer eine Karte) und
+ * was am Tisch wirkt (eine Regel mit Zahl, spaeter als Terrain im
+ * Tracker). Ohne die zweite Sorte ist die Umgebung Deko, ohne die erste
+ * eine Tabellenzeile — deshalb stehen hier beide, getrennt beschriftet.
+ */
+function Umgebungsblatt({ umgebung }: { readonly umgebung: Umgebung | undefined }) {
+  if (!umgebung) return null;
+  const spr = sprache();
+  return (
+    <div className="umgebung">
+      <section className="umgebung__teil">
+        <h4>{t('umgebung.anblick')}</h4>
+        <ul>
+          {anblickzeilen(umgebung, spr).map((zeile) => (
+            <li key={zeile}>{zeile}</li>
+          ))}
+        </ul>
+      </section>
+      <section className="umgebung__teil umgebung__teil--regeln">
+        <h4>{t('umgebung.regeln')}</h4>
+        <ul>
+          {umgebung.regeln.map((regel) => (
+            <li key={regel.id}>
+              {regel.wirkung[spr === 'de' ? 'de' : 'en']}
+              {/* Die Zahl steht als Marke daneben, nicht im Satz: so sieht
+                  man auf einen Blick, welche Regel ueberhaupt eine hat. */}
+              {typeof regel.wert === 'number' && regel.art ? (
+                <span className="umgebung__wert">
+                  {t(`umgebung.${regel.art}` as 'umgebung.sicht')} {regel.wert}
+                </span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

@@ -74,6 +74,20 @@ const TEXTE = {
   'monster.grad': ['Grad {cr}', 'CR {cr}'],
   'monster.werte': ['{tp} TP · RK {rk}', '{tp} HP · AC {rk}'],
 
+  'umgebung.titel': ['Umgebung', 'Environment'],
+  'umgebung.satz': [
+    'Was man sieht, und was am Tisch wirkt. Ohne das Zweite ist eine Umgebung Deko.',
+    'What you see, and what actually applies at the table. Without the latter an environment is set dressing.'
+  ],
+  'umgebung.keine': ['Keine', 'None'],
+  'umgebung.wuerfeln': ['Würfeln', 'Roll'],
+  'umgebung.anblick': ['Was man sieht', 'What you see'],
+  'umgebung.regeln': ['Was wirkt', 'What applies'],
+  'umgebung.sicht': ['Sicht', 'Sight'],
+  'umgebung.bewegung': ['Bewegung', 'Movement'],
+  'umgebung.sg': ['SG', 'DC'],
+  'umgebung.schaden': ['Schaden', 'Damage'],
+
   'fehler.speichern': ['Konnte nicht speichern: {detail}', 'Could not save: {detail}'],
   'fehler.lesen': [
     'Diese Begegnung ließ sich nicht öffnen.',

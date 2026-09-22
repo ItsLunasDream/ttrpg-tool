@@ -5,10 +5,12 @@ stellt eine Begegnung zusammen: welche Monster, wie viele, wo, und wie hart
 das für diese Gruppe wird — und schiebt das Ergebnis in einem Zug in den
 Initiative Tracker.
 
-**Stand:** Stufe 1 und 2 sind gebaut — die Kachel ist echt, Begegnungen
+**Stand:** Stufe 1 bis 3 sind gebaut — die Kachel ist echt, Begegnungen
 lassen sich anlegen, benennen, mit einer Notiz versehen und in einer
-Sammlung wiederfinden, und die Monster kommen aus der eigenen Sammlung.
-Die Suche der Hülle findet sie. Stufen 3 bis 5 stehen aus.
+Sammlung wiederfinden, die Monster kommen aus der eigenen Sammlung, und
+eine Umgebung aus `packages/umgebungen` hängt mit ihren zwei Sorten daran:
+was man sieht zum Vorlesen, was wirkt mit seiner Zahl. Die Suche der Hülle
+findet sie. Stufen 4 und 5 stehen aus.
 
 ## Wozu
 
