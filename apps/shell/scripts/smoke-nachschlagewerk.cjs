@@ -57,8 +57,8 @@ app.whenReady().then(async () => {
   const eintraege = await hjs('window.shell.suche.eintraege()');
   const regeln = (eintraege ?? []).filter((e) => e.werkzeug === 'nachschlagewerk');
   pruefe(
-    regeln.length === 155 + 258,
-    `die Suche der Huelle kennt das ganze Glossar und alle magischen Gegenstaende (${regeln.length})`
+    regeln.length === 155 + 339 + 258,
+    `die Suche der Huelle kennt Glossar, Zauber und magische Gegenstaende (${regeln.length})`
   );
   pruefe(
     regeln.some((e) => e.kennung === 'gegenstand/bag-of-holding' && /Bag of Holding/.test(e.stichworte)),
@@ -94,8 +94,8 @@ app.whenReady().then(async () => {
   });
 
   pruefe(
-    (await js("document.querySelectorAll('.eintrag').length")) === 155 + 258,
-    'die Liste zeigt alle 155 Eintraege des Glossars und 258 Gegenstaende'
+    (await js("document.querySelectorAll('.eintrag').length")) === 155 + 339 + 258,
+    'die Liste zeigt 155 Eintraege des Glossars, 339 Zauber und 258 Gegenstaende'
   );
   // Die Einfuehrung kann beim ersten Oeffnen davor liegen; sie gehoert der
   // Huelle, nicht dem Werkzeug, und stoert die Pruefungen hier nicht.
@@ -324,6 +324,19 @@ app.whenReady().then(async () => {
       /Bei uns nur im Kampf/.test(await js("document.querySelector('[data-notizen]')?.textContent ?? ''")),
       'der Treffer oeffnet den Eintrag, an dem die Notiz haengt'
     );
+  }
+
+  // --- Ein Zauber ------------------------------------------------------------
+  await hjs(`window.shell.suche.zeige('nachschlagewerk', 'zauber/fireball')`);
+  await warte(700);
+  pruefe(
+    /Evocation|Hervorrufung/.test(await js("document.querySelector('[data-unterzeile]')?.textContent ?? ''")) &&
+      /150 feet|45 Meter/.test(await js("document.querySelector('.regel__fassung')?.textContent ?? ''")),
+    'ein Zauber zeigt Grad, Schule und Reichweite'
+  );
+  if (process.env.BILD_ZAUBER) {
+    const bild = await sicht.webContents.capturePage();
+    fs.writeFileSync(process.env.BILD_ZAUBER, bild.toPNG());
   }
 
   // --- Ein magischer Gegenstand mit Tabelle -----------------------------------

@@ -15,6 +15,11 @@ Darüberfahren zeigt eine Vorschau, ein Klick öffnet. Anders als im Story
 Creator reicht ein einfacher Klick (Strg+Klick geht auch): hier wird nur
 gelesen, nicht geschrieben.
 
+Zauber sind gebaut (Stufe 7, ohne Ausrüstung): alle 339, beide Sprachen,
+mit Grad, Schule und Klassen unter dem Namen und den vier Eigenschaften
+(Zeitaufwand, Reichweite, Komponenten, Wirkungsdauer) vor dem Text. 317
+automatisch gepaart, 25 von Hand. Ausrüstung steht noch aus.
+
 Magische Gegenstände sind gebaut (Stufe 6): alle 258 aus dem SRD 5.2.1,
 beide Sprachen, mit der gedruckten Zeile unter dem Namen („Wundersamer
 Gegenstand, selten (erfordert Einstimmung)"), Tabellen als Tabellen und

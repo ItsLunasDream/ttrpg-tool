@@ -10,8 +10,8 @@ import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 const TEXTE = {
   titel: ['Nachschlagewerk', 'Reference'],
   untertitel: [
-    'Regelglossar und magische Gegenstände des SRD 5.2.1, offline, auf Deutsch und Englisch.',
-    'The rules glossary and magic items of the SRD 5.2.1, offline, in German and English.'
+    'Regelglossar, Zauber und magische Gegenstände des SRD 5.2.1, offline, auf Deutsch und Englisch.',
+    'The rules glossary, spells and magic items of the SRD 5.2.1, offline, in German and English.'
   ],
   suche: ['Suchen', 'Search'],
   'suche.platzhalter': ['Begriff oder Stelle im Text …', 'A term or a phrase in the text …'],

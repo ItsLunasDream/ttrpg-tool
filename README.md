@@ -32,8 +32,8 @@ the provider you entered.
 - **Loot Generator** — write your own random tables, one line per entry,
   with ranges, dice in the text and references to other tables; roll them
   once from the tile or several times without repeats.
-- **Reference** — the whole rules glossary and all 258 magic items of the
-  System Reference Document, offline and in both languages, with cross-references, house
+- **Reference** — the whole rules glossary, all 339 spells and all 258
+  magic items of the System Reference Document, offline and in both languages, with cross-references, house
   rules and notes, in the same Ctrl+K search as everything else.
 - **TTRPG Map Editor** — draw battlemaps and world maps, export as Universal
   VTT.
@@ -624,7 +624,7 @@ What is in `docs/` (all German):
 | `encounter.md` | Encounter Creator: collection, environment, the way into the tracker, difficulty |
 | `austausch.md` | Concept: sharing between the group at the table (not built) |
 | `magicitems.md` | Magic Item Creator: tables, generator, collection, Foundry export, calibration against the SRD |
-| `nachschlagewerk.md` | Reference: the rules glossary and magic items offline in both languages, cross-references, house rules, notes |
+| `nachschlagewerk.md` | Reference: rules glossary, spells and magic items offline in both languages, cross-references, house rules, notes |
 | `loot.md` | Loot Generator: own nested random tables (stages 1 to 3 built; loot by CR open) |
 
 ## License

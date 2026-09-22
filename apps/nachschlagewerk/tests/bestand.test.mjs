@@ -14,8 +14,18 @@ test('der Bestand traegt alle fuenfzehn Zustaende', () => {
 });
 
 test('der Bestand ist das ganze Glossar und alle magischen Gegenstaende', () => {
-  assert.equal(N.alleRegeln().filter((r) => r.art !== 'gegenstand').length, 155);
+  assert.equal(N.alleRegeln().filter((r) => r.art !== 'gegenstand' && r.art !== 'zauber').length, 155);
+  assert.equal(N.alleRegeln().filter((r) => r.art === 'zauber').length, 339);
   assert.equal(N.alleRegeln().filter((r) => r.art === 'gegenstand').length, 258);
+});
+
+test('ein Zauber traegt Gradzeile und Eigenschaften in beiden Sprachen', () => {
+  const f = N.regelNach('zauber/fireball');
+  assert.equal(f.name.de, 'Feuerball');
+  assert.equal(f.unterzeile.en, 'Level 3 Evocation (Sorcerer, Wizard)');
+  assert.equal(f.bloecke[1].text.de, 'Reichweite: 45 Meter');
+  assert.equal(f.bloecke[1].text.en, 'Range: 150 feet');
+  assert.match(f.text.de, /8W6 Feuerschaden/);
 });
 
 test('ein Gegenstand traegt seine Kopfzeile und Tabellen in beiden Sprachen', () => {

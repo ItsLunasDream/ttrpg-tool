@@ -15,6 +15,7 @@
 import type { Paar } from '@suite/srd';
 import { GLOSSAR, type Glossarblock } from '@suite/srd/glossar';
 import { MAGISCHE_GEGENSTAENDE, type MagischerGegenstand } from '@suite/srd/magische-gegenstaende';
+import { ZAUBER, type Zauber } from '@suite/srd/zauber';
 import type { Hausregel } from './hausregeln';
 
 /**
@@ -30,6 +31,7 @@ export const ARTEN = [
   'wirkungsbereich',
   'gefahr',
   'haltung',
+  'zauber',
   'gegenstand'
 ] as const;
 export type Art = (typeof ARTEN)[number];
@@ -42,6 +44,7 @@ export const ART_NAME: Record<Art, Paar> = {
   wirkungsbereich: { de: 'Wirkungsbereich', en: 'Area of Effect' },
   gefahr: { de: 'Gefahr', en: 'Hazard' },
   haltung: { de: 'Haltung', en: 'Attitude' },
+  zauber: { de: 'Zauber', en: 'Spell' },
   gegenstand: { de: 'Magischer Gegenstand', en: 'Magic Item' }
 };
 
@@ -54,6 +57,7 @@ export const ART_GRUPPE: Record<Art, Paar> = {
   wirkungsbereich: { de: 'Wirkungsbereiche', en: 'Areas of Effect' },
   gefahr: { de: 'Gefahren', en: 'Hazards' },
   haltung: { de: 'Haltungen', en: 'Attitudes' },
+  zauber: { de: 'Zauber', en: 'Spells' },
   gegenstand: { de: 'Magische Gegenstände', en: 'Magic Items' }
 };
 
@@ -112,8 +116,9 @@ export function alsRegel(hausregel: Hausregel): Regel {
  * Paket je Sprache, in derselben Folge (dort geprueft); hier werden sie
  * paarweise zusammengelegt, wie das Glossar sie liefert.
  */
-function gegenstandAlsRegel(g: MagischerGegenstand): Regel {
-  const bloecke: Glossarblock[] = g.bloecke.en.map((en, i) => {
+/** Bloecke, die im Paket je Sprache in derselben Folge stehen, paarweise. */
+function paarweise(g: { readonly id: string; readonly bloecke: MagischerGegenstand['bloecke'] }): Glossarblock[] {
+  return g.bloecke.en.map((en, i) => {
     const de = g.bloecke.de[i];
     if (en.typ === 'tabelle' && de.typ === 'tabelle') {
       return {
@@ -129,11 +134,46 @@ function gegenstandAlsRegel(g: MagischerGegenstand): Regel {
     if ('text' in en && 'text' in de) return { typ: en.typ, text: { de: de.text, en: en.text } };
     throw new Error(`Blockfolge verschieden: ${g.id}`);
   });
+}
+
+function gegenstandAlsRegel(g: MagischerGegenstand): Regel {
+  const bloecke = paarweise(g);
   return {
     id: `gegenstand/${g.id}`,
     art: 'gegenstand',
     name: g.name,
     unterzeile: g.kopfzeile,
+    text: { de: flach(bloecke, 'de'), en: flach(bloecke, 'en') },
+    bloecke,
+    verweise: []
+  };
+}
+
+const EIGENSCHAFT_NAME: Record<keyof Zauber['eigenschaften']['de'], Paar> = {
+  zeit: { de: 'Zeitaufwand', en: 'Casting Time' },
+  reichweite: { de: 'Reichweite', en: 'Range' },
+  komponenten: { de: 'Komponenten', en: 'Components' },
+  dauer: { de: 'Wirkungsdauer', en: 'Duration' }
+};
+
+/**
+ * Ein Zauber in der Form eines Eintrags. Die vier Eigenschaften stehen als
+ * fette Kopfzeilen vor dem Text, wie im Buch.
+ */
+function zauberAlsRegel(z: Zauber): Regel {
+  const eigenschaften: Glossarblock[] = (['zeit', 'reichweite', 'komponenten', 'dauer'] as const).map((k) => ({
+    typ: 'stichpunkt',
+    text: {
+      de: `${EIGENSCHAFT_NAME[k].de}: ${z.eigenschaften.de[k]}`,
+      en: `${EIGENSCHAFT_NAME[k].en}: ${z.eigenschaften.en[k]}`
+    }
+  }));
+  const bloecke = [...eigenschaften, ...paarweise(z)];
+  return {
+    id: `zauber/${z.id}`,
+    art: 'zauber',
+    name: z.name,
+    unterzeile: z.gradzeile,
     text: { de: flach(bloecke, 'de'), en: flach(bloecke, 'en') },
     bloecke,
     verweise: []
@@ -153,7 +193,7 @@ export function alleRegeln(): readonly Regel[] {
     bloecke: e.bloecke,
     verweise: e.verweise.map((v) => `${artVon.get(v) ?? 'regel'}/${v}`)
   }));
-  bestand = [...bestand, ...MAGISCHE_GEGENSTAENDE.map(gegenstandAlsRegel)];
+  bestand = [...bestand, ...ZAUBER.map(zauberAlsRegel), ...MAGISCHE_GEGENSTAENDE.map(gegenstandAlsRegel)];
   return bestand;
 }
 
