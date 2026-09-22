@@ -56,7 +56,7 @@ app.whenReady().then(async () => {
   // Gesucht wird ohne dass das Werkzeug je offen war.
   const eintraege = await hjs('window.shell.suche.eintraege()');
   const regeln = (eintraege ?? []).filter((e) => e.werkzeug === 'nachschlagewerk');
-  pruefe(regeln.length === 15, `die Suche der Huelle kennt die fuenfzehn Zustaende (${regeln.length})`);
+  pruefe(regeln.length === 155, `die Suche der Huelle kennt das ganze Glossar (${regeln.length})`);
   const liegend = regeln.find((e) => e.kennung === 'zustand/prone');
   pruefe(Boolean(liegend), 'darunter „Liegend"');
   pruefe(
@@ -87,8 +87,8 @@ app.whenReady().then(async () => {
   });
 
   pruefe(
-    (await js("document.querySelectorAll('.eintrag').length")) === 15,
-    'die Liste zeigt alle fuenfzehn'
+    (await js("document.querySelectorAll('.eintrag').length")) === 155,
+    'die Liste zeigt alle 155'
   );
   // Die Einfuehrung kann beim ersten Oeffnen davor liegen; sie gehoert der
   // Huelle, nicht dem Werkzeug, und stoert die Pruefungen hier nicht.
@@ -114,6 +114,22 @@ app.whenReady().then(async () => {
     /Blinded/.test(await js("document.querySelector('.regel__fassung[data-sprache=\"en\"]')?.innerText ?? ''")) &&
       /Blind/.test(await js("document.querySelector('.regel__fassung[data-sprache=\"de\"]')?.innerText ?? ''")),
     'und zwar wirklich die englische und die deutsche'
+  );
+
+  // --- Tabellen und Verweise -----------------------------------------------
+  await js(`document.querySelector('button[data-daneben]').click(); true`);
+  await js(`document.querySelector('.eintrag[data-regel="regel/breaking-objects"]').click(); true`);
+  await warte(400);
+  pruefe(
+    (await js("document.querySelectorAll('.regel__tabelle').length")) === 2 &&
+      (await js("document.querySelectorAll('.regel__tabelle tbody tr').length")) === 8,
+    'Tabellen stehen als Tabellen da, mit Kopf und Reihen'
+  );
+  await js(`document.querySelector('.verweis[data-verweis]').click(); true`);
+  await warte(400);
+  pruefe(
+    (await js("document.querySelector('.regel')?.dataset.regel ?? ''")) === 'regel/damage-threshold',
+    'ein Verweis fuehrt zum Eintrag, auf den er zeigt'
   );
 
   // --- Suche im Text -------------------------------------------------------

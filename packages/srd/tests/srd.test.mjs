@@ -193,3 +193,34 @@ test('kein Wertekasten traegt Reste der Auslese', () => {
     }
   }
 });
+
+test('das Glossar: 155 Eintraege, jeder in beiden Sprachen', () => {
+  assert.equal(S.GLOSSAR.length, 155);
+  const ids = new Set(S.GLOSSAR.map((e) => e.id));
+  assert.equal(ids.size, 155);
+  for (const e of S.GLOSSAR) {
+    assert.ok(e.name.de && e.name.en, e.id);
+    assert.ok(e.bloecke.length > 0, e.id);
+    for (const v of e.verweise) assert.ok(ids.has(v), `${e.id} verweist auf ${v}`);
+  }
+});
+
+test('Tabellen im Glossar haben gleich viele Spalten in jeder Reihe, in beiden Sprachen', () => {
+  for (const e of S.GLOSSAR) {
+    for (const b of e.bloecke) {
+      if (b.typ !== 'tabelle') continue;
+      for (const sprache of ['de', 'en']) {
+        for (const reihe of b.reihen[sprache]) assert.equal(reihe.length, b.kopf[sprache].length, e.id);
+      }
+      assert.equal(b.reihen.de.length, b.reihen.en.length, e.id);
+    }
+  }
+});
+
+test('im Glossar steht der Zustand Blind so wie in den Zustaenden', () => {
+  const blind = S.GLOSSAR.find((e) => e.id === 'blinded');
+  assert.equal(blind.name.de, 'Blind');
+  assert.equal(blind.tag, 'zustand');
+  const zustand = S.ZUSTAENDE.find((z) => z.id === 'blinded');
+  assert.ok(zustand.text.en.includes(blind.bloecke[1].text.en.slice(0, 30)));
+});

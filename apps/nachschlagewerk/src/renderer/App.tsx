@@ -10,7 +10,17 @@ import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { NAMENSNENNUNG, type Sprache } from '@suite/srd';
 import { api } from './api';
 import { getLanguage, setLanguage, t } from './i18n';
-import { ARTEN, ART_NAME, absaetze, alleRegeln, regelNach, type Regel } from '../shared/bestand';
+import {
+  ARTEN,
+  ART_GRUPPE,
+  ART_NAME,
+  alleRegeln,
+  regelMitNamen,
+  regelNach,
+  unterpunkt,
+  type Regel
+} from '../shared/bestand';
+import type { Glossarblock } from '@suite/srd/glossar';
 import { finde } from '../shared/suche';
 
 function sprache(): Sprache {
@@ -102,7 +112,7 @@ export function App() {
 
           {gruppen.map((gruppe) => (
             <section key={gruppe.art ?? 'treffer'} className="liste__gruppe">
-              {gruppe.art ? <h2>{ART_NAME[gruppe.art][spr]}</h2> : null}
+              {gruppe.art ? <h2>{ART_GRUPPE[gruppe.art][spr]}</h2> : null}
               <ul>
                 {gruppe.treffer.map(({ regel, stelle }) => (
                   <li key={regel.id}>
@@ -130,7 +140,12 @@ export function App() {
 
         <main className="blatt">
           {offen ? (
-            <Blatt regel={offen} daneben={daneben} onDaneben={() => setDaneben(!daneben)} />
+            <Blatt
+              regel={offen}
+              daneben={daneben}
+              onDaneben={() => setDaneben(!daneben)}
+              oeffne={setOffenId}
+            />
           ) : (
             <div className="blatt__leer">
               <h2>{t('leer.titel')}</h2>
@@ -155,11 +170,13 @@ export function App() {
 function Blatt({
   regel,
   daneben,
-  onDaneben
+  onDaneben,
+  oeffne
 }: {
   readonly regel: Regel;
   readonly daneben: boolean;
   readonly onDaneben: () => void;
+  readonly oeffne: (id: string) => void;
 }) {
   const spr = sprache();
   const sprachen: Sprache[] = daneben ? [spr, andere(spr)] : [spr];
@@ -181,17 +198,99 @@ function Blatt({
         {sprachen.map((s) => (
           <section key={s} className="regel__fassung" lang={s} data-sprache={s}>
             {daneben ? <h3>{s === 'de' ? 'Deutsch' : 'English'}</h3> : null}
-            {absaetze(regel.text[s]).map((absatz, index) => (
-              <p key={index} className={absatz.kopf ? 'regel__punkt' : 'regel__einleitung'}>
-                {absatz.kopf ? <strong>{absatz.kopf} </strong> : null}
-                {absatz.rest}
-              </p>
+            {regel.bloecke.map((block, index) => (
+              <Block key={index} block={block} sprache={s} oeffne={oeffne} />
             ))}
           </section>
         ))}
       </div>
 
+      {regel.verweise.length > 0 ? (
+        <nav className="regel__verweise" aria-label={t('verweise')}>
+          <span>{t('verweise')}</span>
+          {regel.verweise.map((id) => {
+            const ziel = regelNach(id);
+            return ziel ? (
+              <button key={id} type="button" className="verweis" data-verweis={id} onClick={() => oeffne(id)}>
+                {ziel.name[spr]}
+              </button>
+            ) : null;
+          })}
+        </nav>
+      ) : null}
+
       {spr === 'de' ? <p className="regel__massgeblich">{t('massgeblich')}</p> : null}
     </article>
+  );
+}
+
+/** Ein Block des Glossars: Absatz, Unterpunkt, Tabelle oder Liste. */
+function Block({
+  block,
+  sprache: s,
+  oeffne
+}: {
+  readonly block: Glossarblock;
+  readonly sprache: Sprache;
+  readonly oeffne: (id: string) => void;
+}) {
+  if (block.typ === 'tabelle') {
+    return (
+      <table className="regel__tabelle">
+        {block.titel[s] ? <caption>{block.titel[s]}</caption> : null}
+        <thead>
+          <tr>
+            {block.kopf[s].map((zelle, i) => (
+              <th key={i} scope="col">
+                {zelle}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {block.reihen[s].map((reihe, i) => (
+            <tr key={i}>
+              {reihe.map((zelle, j) => (
+                <td key={j}>{zelle}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+  if (block.typ === 'liste') {
+    return (
+      <>
+        {block.titel[s] ? <p className="regel__listentitel">{block.titel[s]}</p> : null}
+        <ul className="regel__liste">
+          {block.eintraege[s].map((eintrag) => {
+            // Nennt der Punkt einen Eintrag des Glossars, fuehrt er dorthin.
+            const ziel = regelMitNamen(eintrag, s);
+            return (
+              <li key={eintrag}>
+                {ziel ? (
+                  <button type="button" className="verweis verweis--leise" onClick={() => oeffne(ziel.id)}>
+                    {eintrag}
+                  </button>
+                ) : (
+                  eintrag
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </>
+    );
+  }
+  if (block.typ === 'absatz') {
+    return <p className="regel__einleitung">{block.text[s]}</p>;
+  }
+  const teil = unterpunkt(block.text[s]);
+  return (
+    <p className={block.typ === 'stichpunkt' ? 'regel__punkt regel__punkt--tief' : 'regel__punkt'}>
+      {teil.kopf ? <strong>{teil.kopf} </strong> : null}
+      {teil.rest}
+    </p>
   );
 }

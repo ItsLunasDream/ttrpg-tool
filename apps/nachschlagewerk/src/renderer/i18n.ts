@@ -10,16 +10,13 @@ import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 const TEXTE = {
   titel: ['Nachschlagewerk', 'Reference'],
   untertitel: [
-    'Die Regeln aus dem Systemreferenzdokument — offline und in beiden Sprachen.',
-    'The rules from the System Reference Document — offline and in both languages.'
+    'Das Regelglossar des SRD 5.2.1, offline, auf Deutsch und Englisch.',
+    'The rules glossary of the SRD 5.2.1, offline, in German and English.'
   ],
   suche: ['Suchen', 'Search'],
   'suche.platzhalter': ['Begriff oder Stelle im Text …', 'A term or a phrase in the text …'],
   'suche.anzahl': ['{anzahl} Treffer', '{anzahl} results'],
-  'suche.nichts': [
-    'Nichts gefunden. Gesucht wird in Namen und im Text, in beiden Sprachen.',
-    'Nothing found. The search covers names and text, in both languages.'
-  ],
+  'suche.nichts': ['Nichts gefunden.', 'Nothing found.'],
   'leer.titel': ['Wähle links einen Eintrag.', 'Pick an entry on the left.'],
   'leer.satz': [
     'Oder such nach einem Begriff: „liegend", „prone" oder eine Stelle im Text wie „critical hit".',
@@ -31,7 +28,8 @@ const TEXTE = {
     'Bei einer Abweichung gilt die englische Fassung.',
     'Where the two differ, the English version applies.'
   ],
-  quelle: ['Quelle', 'Source']
+  quelle: ['Quelle', 'Source'],
+  verweise: ['Siehe auch', 'See also']
 } as const;
 
 export type TextKey = keyof typeof TEXTE;

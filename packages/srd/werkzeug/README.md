@@ -6,6 +6,9 @@ Python, nicht Teil des Builds. Gebraucht werden `pypdf` und `pdfplumber`
 ```
 python3 werkzeug/glossar_lesen.py  /tmp/glossar.json   # beide Sprachen auslesen (~1 min)
 python3 werkzeug/glossar_pruefen.py /tmp/glossar.json  # Paarliste pruefen, 0 Widersprueche erwartet
+python3 werkzeug/glossar_erzeugen.py /tmp/glossar.json # schreibt src/glossar.ts
+python3 werkzeug/monster_lesen.py  /tmp/monster.json   # Wertekaesten beider Sprachen (einige Minuten)
+python3 werkzeug/monster_erzeugen.py /tmp/monster.json # paart ueber die Zahlen, schreibt src/monster.ts
 ```
 
 - `glossar_lesen.py`: Eintraege, Absaetze, Unterpunkte nach Schriftart; die

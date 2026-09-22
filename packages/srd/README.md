@@ -9,6 +9,9 @@ zweisprachig, plattformfrei, ohne Abhängigkeiten.
 | --- | --- |
 | `src/namensnennung.ts` | Die wörtlich vorgeschriebene Namensnennung, englisch und deutsch |
 | `src/zustaende.ts` | Die fünfzehn Zustände, wörtlich in beiden Sprachen (**erzeugt**) |
+| `src/glossar.ts` | Das ganze Regelglossar, 155 Einträge, gepaart, mit Tabellen, Listen und Verweisen (**erzeugt**, Einstieg `@suite/srd/glossar`) |
+| `src/monster.ts` | 331 Monster mit ganzem Wertekasten in beiden Sprachen (**erzeugt**, Einstieg `@suite/srd/monster`) |
+| `werkzeug/` | Die Python-Skripte, die auslesen, prüfen und erzeugen; siehe `werkzeug/README.md` |
 | `src/erfahrung.ts` | EP je Grad, EP-Budget je Charakter, Übungsbonus, und die Einordnung einer Begegnung |
 | `quelle/` | Die beiden Sprachfassungen des Dokuments, aus denen alles stammt |
 

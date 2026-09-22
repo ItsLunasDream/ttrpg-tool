@@ -13,10 +13,28 @@ test('der Bestand traegt alle fuenfzehn Zustaende', () => {
   assert.equal(zustaende.length, 15);
 });
 
+test('der Bestand ist das ganze Glossar, 155 Eintraege', () => {
+  assert.equal(N.alleRegeln().length, 155);
+});
+
 test('jede Kennung ist eindeutig und traegt ihre Art', () => {
   const ids = N.alleRegeln().map((r) => r.id);
   assert.equal(new Set(ids).size, ids.length);
-  assert.ok(ids.every((id) => id.startsWith('zustand/')));
+  assert.ok(N.alleRegeln().every((r) => r.id.startsWith(`${r.art}/`)));
+  assert.ok(N.alleRegeln().some((r) => r.art === 'aktion'));
+});
+
+test('Verweise zeigen auf Eintraege, die es gibt', () => {
+  for (const r of N.alleRegeln()) {
+    for (const v of r.verweise) assert.ok(N.regelNach(v), `${r.id} -> ${v}`);
+  }
+  assert.ok(N.regelNach('regel/hit-point-dice').verweise.includes('regel/short-rest'));
+});
+
+test('Listenpunkte fuehren zu ihrem Eintrag, auch wo der Name abweicht', () => {
+  assert.equal(N.regelMitNamen('Blind', 'de').id, 'zustand/blinded');
+  assert.equal(N.regelMitNamen('Magie wirken', 'de').id, 'aktion/magic');
+  assert.equal(N.regelMitNamen('Erschöpft', 'de').id, 'zustand/exhaustion');
 });
 
 test('ein Eintrag laesst sich ueber seine Kennung holen', () => {
@@ -56,12 +74,14 @@ test('Umlaute werden nicht zum Hindernis', () => {
 });
 
 test('gesucht wird auch im Text, und die Fundstelle steht dabei', () => {
-  // „Critical Hit" steht in keinem Namen, aber in Paralyzed und Unconscious.
+  // „Critical Hit" ist ein eigener Eintrag und steht zuerst; im Text steht
+  // es ausserdem in Paralyzed und Unconscious, dort mit Fundstelle.
   const treffer = N.finde(N.alleRegeln(), 'critical hit', 'en');
   const ids = treffer.map((t) => t.regel.id);
+  assert.equal(ids[0], 'regel/critical-hit');
   assert.ok(ids.includes('zustand/paralyzed'));
   assert.ok(ids.includes('zustand/unconscious'));
-  assert.ok(treffer.every((t) => t.stelle && /critical hit/i.test(t.stelle)));
+  assert.ok(treffer.slice(1).every((t) => t.stelle && /critical hit/i.test(t.stelle)));
 });
 
 test('der gerade Apostroph findet den typografischen', () => {
