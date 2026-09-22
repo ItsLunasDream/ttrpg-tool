@@ -114,3 +114,10 @@ test('sortiert wird nach zuletzt geaendert, wenn nichts anderes gesagt ist', () 
   const neu = T.alsEintrag({ ...BEGEGNUNG, id: 'neu', geaendert: '2026-01-01T00:00:00.000Z' });
   assert.deepEqual(T.finde([alt, neu], '').map((e) => e.id), ['neu', 'alt']);
 });
+
+test('ohne Namen bekommt eine Begegnung die kleinste freie Nummer', () => {
+  assert.equal(T.naechsterName([]), 'Encounter_1');
+  assert.equal(T.naechsterName(['Encounter_1', 'Hinterhalt']), 'Encounter_2');
+  // Eine Luecke wird gefuellt, gross und klein zaehlen gleich.
+  assert.equal(T.naechsterName(['encounter_1', 'Encounter_3']), 'Encounter_2');
+});

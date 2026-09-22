@@ -968,12 +968,9 @@ async function montiereEncounter(id: string, haken: MontageHaken): Promise<Monti
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
     // Die Suche der Huelle (Strg+K) springt hierher.
     zeigeEintrag: (kennung) =>
-      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung),
-    // Die Gruppe am Tisch steht in den Einstellungen der Huelle: sie
-    // wechselt selten, und sie je Begegnung einzutippen waere Reibung.
-    werkzeugEinstellungen: () => eingebettet.werkzeugEinstellungen(),
-    setzeWerkzeugEinstellung: (feldId, wert) =>
-      eingebettet.setzeWerkzeugEinstellung(sicht.webContents as WebContents, feldId, wert)
+      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+    // Die Gruppe am Tisch stellt man im Werkzeug selbst ein, nicht im
+    // Dialog der Huelle: sie aendert sich von Abend zu Abend.
   };
 }
 

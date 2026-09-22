@@ -69,7 +69,7 @@ const dateien = () => {
 setTimeout(() => {
   console.log('\nABBRUCH: Zeitwaechter');
   app.exit(2);
-}, 130000);
+}, 180000);
 
 app.whenReady().then(async () => {
   await warte(4500);
@@ -116,10 +116,18 @@ app.whenReady().then(async () => {
   );
 
   // --- Anlegen -------------------------------------------------------------
+  //
+  // Ohne Namensabfrage: der Knopf fuehrt gleich in die Begegnung, und auf
+  // die Platte kommt sie erst mit dem Speichern.
   await js(
     `[...document.querySelectorAll('button')].find(b => /Neue Begegnung|New encounter/.test(b.textContent)).click(); true`
   );
   await warte(500);
+  pruefe(
+    (await js("document.querySelectorAll('.gegnerliste, .hinweis').length")) > 0 &&
+      dateien().length === 0,
+    'der Knopf oeffnet gleich die Begegnung, ohne erst nach dem Namen zu fragen'
+  );
   await js(`(() => {
     const feld = document.querySelector('.feld__eingabe');
     const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
@@ -129,7 +137,7 @@ app.whenReady().then(async () => {
   })()`);
   await warte(300);
   await js(
-    `[...document.querySelectorAll('button')].find(b => /Anlegen|Create/.test(b.textContent)).click(); true`
+    `[...document.querySelectorAll('button')].find(b => /^(Speichern|Save)$/.test(b.textContent.trim())).click(); true`
   );
   await warte(900);
 
@@ -230,17 +238,27 @@ app.whenReady().then(async () => {
     (await js("document.querySelectorAll('.umgebung').length")) === 0,
     'ohne Wahl steht kein Umgebungsblatt da'
   );
-  await js(`(() => {
-    const wahl = [...document.querySelectorAll('select')].find(
-      (s) => [...s.options].some((o) => o.value === 'wald')
-    );
-    if (!wahl) return false;
-    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-    setzer.call(wahl, 'wald');
-    wahl.dispatchEvent(new Event('change', { bubbles: true }));
-    return true;
-  })()`);
+  // Gewaehlt wird an Kacheln mit Zeichen, nicht in einer Auswahlliste.
+  pruefe(
+    (await js("document.querySelectorAll('.umgebungskachel[data-umgebung]').length")) >= 17,
+    'die Umgebungen stehen als Kacheln da'
+  );
+  await js(`document.querySelector('.umgebungskachel[data-umgebung="wald"]').click(); true`);
   await warte(350);
+  pruefe(
+    await js(`document.querySelector('.umgebungskachel[data-umgebung="wald"]').getAttribute('aria-pressed') === 'true'`),
+    'die gewaehlte Kachel ist markiert'
+  );
+  // Zu- und wieder aufklappen; zugeklappt nennt der Kopf die Wahl.
+  await js(`document.querySelector('.klappe[data-klappe="umgebung"] .klappe__kopf').click(); true`);
+  await warte(250);
+  const zu = await js(`document.querySelector('.klappe[data-klappe="umgebung"]').textContent`);
+  pruefe(
+    (await js("document.querySelectorAll('.umgebungswahl').length")) === 0 && /Wald|Forest/i.test(zu),
+    `die Umgebung laesst sich zuklappen und nennt dann die Wahl (${zu.slice(0, 40)})`
+  );
+  await js(`document.querySelector('.klappe[data-klappe="umgebung"] .klappe__kopf').click(); true`);
+  await warte(250);
   pruefe(
     (await js("document.querySelectorAll('.umgebung__teil').length")) === 2,
     'nach der Wahl stehen beide Sorten da'
@@ -285,12 +303,31 @@ app.whenReady().then(async () => {
   })()`);
   await warte(300);
   await js(
-    `[...document.querySelectorAll('button')].find(b => /Anlegen|Create/.test(b.textContent)).click(); true`
+    `[...document.querySelectorAll('button')].find(b => /^(Speichern|Save)$/.test(b.textContent.trim())).click(); true`
   );
   await warte(900);
   pruefe(
     dateien().length === 2,
     `die zweite gleichnamige ueberschreibt die erste nicht (${dateien().join(', ')})`
+  );
+
+  // Ohne Namen gespeichert heisst sie „Encounter_1".
+  await js(
+    `[...document.querySelectorAll('button')].find(b => /Zurück zur Liste|Back to the list/.test(b.textContent)).click(); true`
+  );
+  await warte(500);
+  await js(
+    `[...document.querySelectorAll('button')].find(b => /Neue Begegnung|New encounter/.test(b.textContent)).click(); true`
+  );
+  await warte(400);
+  await js(
+    `[...document.querySelectorAll('button')].find(b => /^(Speichern|Save)$/.test(b.textContent.trim())).click(); true`
+  );
+  await warte(900);
+  pruefe(
+    dateien().includes('encounter-1.md') &&
+      /name: Encounter_1/.test(fs.readFileSync(path.join(ordner, 'encounter-1.md'), 'utf8')),
+    `ohne Namen gespeichert heisst sie Encounter_1 (${dateien().join(', ')})`
   );
 
   // --- Die Sammlung --------------------------------------------------------
@@ -299,14 +336,14 @@ app.whenReady().then(async () => {
   );
   await warte(700);
   pruefe(
-    (await js("document.querySelectorAll('.begegnungskachel').length")) === 2,
-    'beide stehen in der Sammlung'
+    (await js("document.querySelectorAll('.begegnungskachel').length")) === 3,
+    'alle drei stehen in der Sammlung'
   );
 
   // --- Die Suche der Huelle findet sie, ohne dass sie offen war ------------
   const eintraege = await hjs('window.shell.suche.eintraege()');
   const meine = (eintraege ?? []).filter((e) => e.werkzeug === 'encounter');
-  pruefe(meine.length === 2, `die Suche der Huelle kennt sie (${meine.length})`);
+  pruefe(meine.length === 3, `die Suche der Huelle kennt sie (${meine.length})`);
 
   // --- Der Weg in den Initiative Tracker -----------------------------------
   //
@@ -345,18 +382,37 @@ app.whenReady().then(async () => {
     'und ohne Gruppe keine Einordnung'
   );
   pruefe(
-    /Einstellungen|settings/i.test(ohneGruppe),
-    'sondern der Hinweis, wo die Gruppe steht'
+    /fehlt die Gruppe|needs the party/i.test(ohneGruppe),
+    'sondern der Hinweis, dass die Gruppe fehlt'
   );
 
-  // Die Gruppe kommt aus den Einstellungen der Huelle, nicht aus dem
-  // Werkzeug — derselbe Weg, den ein Mensch im Dialog nimmt.
-  const beschreibung = await hjs(`window.shell.werkzeug.setzen('encounter', 'gruppe', '3x4, 1x6')`);
-  pruefe(
-    Boolean(beschreibung) && beschreibung.appId === 'encounter',
-    'die Huelle nimmt die Gruppe entgegen'
-  );
+  // Die Gruppe steht im Werkzeug selbst, nicht in den Einstellungen der
+  // Huelle: sie aendert sich von Abend zu Abend. 3x4 und 1x6 eintragen,
+  // so wie ein Mensch es tut.
+  const setzeZahl = (zeile, stelle, wert) => js(`(() => {
+    const feld = document.querySelectorAll('[data-gruppenzeile="${zeile}"] input')[${stelle}];
+    if (!feld) return false;
+    const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setzer.call(feld, '${wert}');
+    feld.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  })()`);
+  await js(`document.querySelector('[data-gruppe-dazu]').click(); true`);
+  await warte(300);
+  await setzeZahl(0, 0, 3);
+  await warte(200);
+  await setzeZahl(0, 1, 4);
+  await warte(200);
+  await js(`document.querySelector('[data-gruppe-dazu]').click(); true`);
+  await warte(300);
+  await setzeZahl(1, 0, 1);
+  await warte(200);
+  await setzeZahl(1, 1, 6);
   await warte(600);
+  pruefe(
+    /3x4, 1x6/.test(fs.readFileSync(path.join(ordner, 'einstellungen.json'), 'utf8')),
+    'die Gruppe, im Werkzeug eingetragen, liegt so auf der Platte'
+  );
   const mitGruppe = await js("document.querySelector('.verhaeltnis')?.textContent ?? ''");
   pruefe(/4/.test(mitGruppe) && /6/.test(mitGruppe), `die Gruppe steht daneben (${mitGruppe.slice(0, 60)})`);
   pruefe(

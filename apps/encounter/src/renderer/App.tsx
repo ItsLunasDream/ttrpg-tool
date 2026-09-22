@@ -1,19 +1,24 @@
 /**
  * Der Encounter Creator.
  *
- * Erste Stufe: Begegnungen anlegen, benennen, mit einer Notiz versehen und
- * in einer Sammlung wiederfinden. Die Gegner (Stufe 2), die Umgebung
- * (Stufe 3) und der Weg in den Tracker (Stufe 4) kommen danach — die Form
- * der Datei traegt sie schon, damit der Ausbau nichts umbaut.
+ * Begegnungen in einer Sammlung: Gegner aus der eigenen Monstersammlung,
+ * eine Umgebung, die Einordnung gegen die Gruppe am Tisch und der Weg in
+ * den Initiative Tracker.
  *
  * Siehe `docs/encounter.md`.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { api } from './api';
 import { getLanguage, setLanguage, t } from './i18n';
 import { finde, type Sortierung } from '../shared/suche';
-import { gegnerzahl, leereBegegnung, type Begegnung, type Eintrag } from '../shared/ablage';
+import {
+  gegnerzahl,
+  leereBegegnung,
+  naechsterName,
+  type Begegnung,
+  type Eintrag
+} from '../shared/ablage';
 import { findeMonster, type Monsterkarte } from '../shared/monsterliste';
 import {
   UMGEBUNGEN,
@@ -29,6 +34,7 @@ import {
   gruppenstaerke,
   ordneEin,
   punktsumme,
+  schreibeGruppe,
   type Gruppe
 } from '../shared/schwierigkeit';
 import { EINORDNUNG_NAME, budget, text as srdText } from '@suite/srd';
@@ -41,12 +47,13 @@ function sprache(): Sprache {
 export function App() {
   const [, neuZeichnen] = useState(0);
   const [eintraege, setEintraege] = useState<readonly Eintrag[]>([]);
-  /** Die Gruppe am Tisch, aus den Einstellungen der Huelle. */
+  /** Die Gruppe am Tisch. Gilt fuer das ganze Werkzeug, eingestellt wird sie hier. */
   const [gruppe, setGruppe] = useState<Gruppe>([]);
   const [offen, setOffen] = useState<Begegnung | null>(null);
   const [suche, setSuche] = useState('');
   const [sortierung, setSortierung] = useState<Sortierung>('geaendert');
-  const [anlegen, setAnlegen] = useState<string | null>(null);
+  /** Die offene Begegnung liegt noch nicht auf der Platte. */
+  const [istNeu, setIstNeu] = useState(false);
   const [meldung, setMeldung] = useState('');
   const [fehler, setFehler] = useState('');
   const [monster, setMonster] = useState<readonly Monsterkarte[]>([]);
@@ -74,9 +81,7 @@ export function App() {
   /*
    * Die Gruppe am Tisch.
    *
-   * Einmal beim Start gelesen, und danach auf Zuruf: wer sie im Dialog
-   * der Huelle umstellt, soll das Verhaeltnis sofort anders sehen und
-   * nicht erst nach einem Neustart des Werkzeugs.
+   * Einmal beim Start gelesen; geaendert wird sie hier im Werkzeug.
    */
   useEffect(() => {
     void api.gruppe.lesen().then(setGruppe, () => setGruppe([]));
@@ -130,6 +135,30 @@ export function App() {
     return ergebnis.id;
   };
 
+  /** Der Name, der gilt: der eingetragene, sonst „Encounter_N". */
+  const ersatzname = () => naechsterName(eintraege.map((e) => e.name));
+  const nameVon = (begegnung: Begegnung) => begegnung.name.trim() || ersatzname();
+
+  const speichereOffen = async () => {
+    if (!offen) return;
+    const fertig = { ...offen, name: nameVon(offen) };
+    const id = await speichere(fertig, istNeu);
+    if (id === null) return;
+    // Mit der Kennung, die der Hauptprozess vergeben hat — sie kann wegen
+    // eines Namensgleichstands eine andere sein als die geratene.
+    setOffen({ ...fertig, id });
+    setIstNeu(false);
+  };
+
+  const setzeGruppe = async (neu: Gruppe) => {
+    setGruppe(neu);
+    try {
+      setGruppe(await api.gruppe.setzen(schreibeGruppe(neu)));
+    } catch (grund) {
+      setFehler(t('fehler.speichern', { detail: String(grund) }));
+    }
+  };
+
   /**
    * Schiebt die offene Begegnung in den Initiative Tracker.
    *
@@ -150,7 +179,7 @@ export function App() {
     const umgebung = umgebungNach(offen.umgebungId);
     const spr = sprache();
     const uebergabe: Uebergabe = {
-      name: offen.name,
+      name: nameVon(offen),
       quelle: offen.id,
       gegner: offen.gegner.map((einer) => {
         const karte = monster.find((m) => m.id === einer.monsterId);
@@ -178,58 +207,6 @@ export function App() {
     else setFehler(t('tracker.ging-nicht'));
   };
 
-  // --- Eine neue Begegnung --------------------------------------------------
-  if (anlegen !== null) {
-    return (
-      <div className="rahmen">
-        <Kopf />
-        <section className="karte karte--schmal">
-          <h2>{t('neu')}</h2>
-          <label className="feld">
-            <span className="feld__name">{t('neu.name')}</span>
-            <input
-              className="feld__eingabe"
-              autoFocus
-              value={anlegen}
-              placeholder={t('neu.platzhalter')}
-              onChange={(e) => setAnlegen(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && anlegen.trim()) void lege();
-                if (e.key === 'Escape') setAnlegen(null);
-              }}
-            />
-          </label>
-          <div className="knopfreihe">
-            <button
-              type="button"
-              className="knopf knopf--haupt"
-              disabled={!anlegen.trim()}
-              onClick={() => void lege()}
-            >
-              {t('neu.anlegen')}
-            </button>
-            <button type="button" className="knopf" onClick={() => setAnlegen(null)}>
-              {t('abbrechen')}
-            </button>
-          </div>
-          {fehler ? <p className="fehler">{fehler}</p> : null}
-        </section>
-      </div>
-    );
-  }
-
-  async function lege() {
-    const name = (anlegen ?? '').trim();
-    if (!name) return;
-    const neu = leereBegegnung(name, new Date().toISOString());
-    const id = await speichere(neu, true);
-    if (id === null) return;
-    setAnlegen(null);
-    // Mit der Kennung, die der Hauptprozess vergeben hat — sie kann wegen
-    // eines Namensgleichstands eine andere sein als die geratene.
-    setOffen({ ...neu, id });
-  }
-
   // --- Eine offene Begegnung ------------------------------------------------
   if (offen) {
     return (
@@ -241,6 +218,7 @@ export function App() {
             className="knopf"
             onClick={() => {
               setOffen(null);
+              setIstNeu(false);
               setMeldung('');
             }}
           >
@@ -264,7 +242,7 @@ export function App() {
           <button
             type="button"
             className="knopf knopf--haupt"
-            onClick={() => void speichere(offen, false)}
+            onClick={() => void speichereOffen()}
           >
             {t('speichern')}
           </button>
@@ -276,6 +254,9 @@ export function App() {
             <input
               className="feld__eingabe"
               value={offen.name}
+              // Leer lassen darf man: gespeichert wird dann unter dem
+              // Namen, der hier grau steht.
+              placeholder={istNeu ? ersatzname() : undefined}
               onChange={(e) => setOffen({ ...offen, name: e.target.value })}
             />
           </label>
@@ -346,7 +327,7 @@ export function App() {
             </ul>
           )}
 
-          <h3>{t('monster.titel')}</h3>
+          <Klappe id="sammlung" titel={t('monster.titel')}>
           {monster.length === 0 ? (
             <p className="hinweis">{t('monster.leer')}</p>
           ) : (
@@ -407,38 +388,28 @@ export function App() {
             </>
           )}
 
+          </Klappe>
+
+          <Klappe id="gruppe" titel={t('gruppe.titel')} zusatz={gruppeKurz(gruppe)}>
+            <Gruppenfeld gruppe={gruppe} setze={(neu) => void setzeGruppe(neu)} />
+          </Klappe>
+
           <Verhaeltnis offen={offen} monster={monster} gruppe={gruppe} />
 
-          <h3>{t('umgebung.titel')}</h3>
-          <p className="hinweis hinweis--klein">{t('umgebung.satz')}</p>
-          <div className="leiste">
-            <select
-              className="feld__wahl"
-              value={offen.umgebungId}
-              aria-label={t('umgebung.titel')}
-              onChange={(e) => setOffen({ ...offen, umgebungId: e.target.value })}
-            >
-              <option value="">{t('umgebung.keine')}</option>
-              {UMGEBUNGEN.map((umgebung) => (
-                <option key={umgebung.id} value={umgebung.id}>
-                  {umgebungName(umgebung, sprache())}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="knopf"
-              onClick={() =>
-                setOffen({
-                  ...offen,
-                  umgebungId: UMGEBUNGEN[Math.floor(Math.random() * UMGEBUNGEN.length)].id
-                })
-              }
-            >
-              {t('umgebung.wuerfeln')}
-            </button>
-          </div>
-          <Umgebungsblatt umgebung={umgebungNach(offen.umgebungId)} />
+          <Klappe
+            id="umgebung"
+            titel={t('umgebung.titel')}
+            zusatz={(() => {
+              const gewaehlt = umgebungNach(offen.umgebungId);
+              return gewaehlt ? umgebungName(gewaehlt, sprache()) : t('umgebung.keine');
+            })()}
+          >
+            <Umgebungswahl
+              gewaehlt={offen.umgebungId}
+              waehle={(umgebungId) => setOffen({ ...offen, umgebungId })}
+            />
+            <Umgebungsblatt umgebung={umgebungNach(offen.umgebungId)} />
+          </Klappe>
 
           <label className="feld feld--hoch">
             <span className="feld__name">{t('feld.notiz')}</span>
@@ -449,7 +420,6 @@ export function App() {
               onChange={(e) => setOffen({ ...offen, notiz: e.target.value })}
             />
           </label>
-          <p className="hinweis hinweis--klein">{t('feld.notizHinweis')}</p>
 
           {meldung ? <p className="meldung">{meldung}</p> : null}
           {fehler ? <p className="fehler">{fehler}</p> : null}
@@ -463,7 +433,18 @@ export function App() {
     <div className="rahmen">
       <Kopf />
       <div className="leiste">
-        <button type="button" className="knopf knopf--haupt" onClick={() => setAnlegen('')}>
+        <button
+          type="button"
+          className="knopf knopf--haupt"
+          onClick={() => {
+            // Gleich in die Begegnung, ohne erst nach dem Namen zu fragen.
+            // Auf die Platte kommt sie mit dem ersten Speichern.
+            setOffen(leereBegegnung('', new Date().toISOString()));
+            setIstNeu(true);
+            setMeldung('');
+            setFehler('');
+          }}
+        >
           + {t('neu')}
         </button>
         <input
@@ -507,8 +488,10 @@ export function App() {
                 onClick={() => {
                   void (async () => {
                     const geladen = await api.sammlung.lesen(eintrag.id);
-                    if (geladen) setOffen(geladen);
-                    else setFehler(t('fehler.lesen'));
+                    if (geladen) {
+                      setOffen(geladen);
+                      setIstNeu(false);
+                    } else setFehler(t('fehler.lesen'));
                   })();
                 }}
               >
@@ -686,6 +669,170 @@ function Umgebungsblatt({ umgebung }: { readonly umgebung: Umgebung | undefined 
           ))}
         </ul>
       </section>
+    </div>
+  );
+}
+
+/**
+ * Ein Abschnitt zum Auf- und Zuklappen.
+ *
+ * Der Stand bleibt je Abschnitt gemerkt — nur als Bequemlichkeit im
+ * Browser-Speicher der Ansicht; fehlt er, ist alles offen.
+ */
+function Klappe({
+  id,
+  titel,
+  zusatz,
+  children
+}: {
+  readonly id: string;
+  readonly titel: string;
+  readonly zusatz?: string;
+  readonly children: ReactNode;
+}) {
+  const schluessel = `encounter.klappe.${id}`;
+  const [auf, setAuf] = useState(() => {
+    try {
+      return localStorage.getItem(schluessel) !== 'zu';
+    } catch {
+      return true;
+    }
+  });
+  const umschalten = () => {
+    setAuf((vorher) => {
+      try {
+        localStorage.setItem(schluessel, vorher ? 'zu' : 'auf');
+      } catch {
+        // Ohne Speicher klappt es trotzdem, nur ohne Gedaechtnis.
+      }
+      return !vorher;
+    });
+  };
+  return (
+    <section className={auf ? 'klappe is-auf' : 'klappe'} data-klappe={id}>
+      <button type="button" className="klappe__kopf" aria-expanded={auf} onClick={umschalten}>
+        <span className="klappe__pfeil" aria-hidden="true">
+          ▸
+        </span>
+        <span className="klappe__titel">{titel}</span>
+        {zusatz ? <span className="klappe__zusatz">{zusatz}</span> : null}
+      </button>
+      {auf ? <div className="klappe__inhalt">{children}</div> : null}
+    </section>
+  );
+}
+
+/** „4 × Stufe 5" — was im zugeklappten Kopf der Gruppe steht. */
+function gruppeKurz(gruppe: Gruppe): string {
+  if (gruppe.length === 0) return t('verhaeltnis.keineGruppe');
+  return gruppe.map((z) => t('gruppe.kurz', { anzahl: z.anzahl, stufe: z.stufe })).join(', ');
+}
+
+/** Die Gruppe am Tisch: Zeilen aus Anzahl und Stufe. */
+function Gruppenfeld({
+  gruppe,
+  setze
+}: {
+  readonly gruppe: Gruppe;
+  readonly setze: (neu: Gruppe) => void;
+}) {
+  const begrenze = (wert: string, max: number) =>
+    Math.max(1, Math.min(max, Math.round(Number(wert)) || 1));
+  return (
+    <div className="gruppenfeld">
+      {gruppe.length === 0 ? <p className="hinweis">{t('gruppe.leer')}</p> : null}
+      {gruppe.map((zeile, i) => (
+        <div className="gruppenfeld__zeile" key={i} data-gruppenzeile={i}>
+          <input
+            className="gruppenfeld__zahl"
+            type="number"
+            min={1}
+            max={20}
+            value={zeile.anzahl}
+            aria-label={t('gruppe.figuren')}
+            onChange={(e) =>
+              setze(gruppe.map((z, j) => (j === i ? { ...z, anzahl: begrenze(e.target.value, 20) } : z)))
+            }
+          />
+          <span>{t('gruppe.figuren')}</span>
+          <span className="gruppenfeld__mal">·</span>
+          <span>{t('gruppe.stufe')}</span>
+          <input
+            className="gruppenfeld__zahl"
+            type="number"
+            min={1}
+            max={20}
+            value={zeile.stufe}
+            aria-label={t('gruppe.stufe')}
+            onChange={(e) =>
+              setze(gruppe.map((z, j) => (j === i ? { ...z, stufe: begrenze(e.target.value, 20) } : z)))
+            }
+          />
+          <button
+            type="button"
+            className="gegnerzeile__weg"
+            aria-label={t('gruppe.weg')}
+            title={t('gruppe.weg')}
+            onClick={() => setze(gruppe.filter((_, j) => j !== i))}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="knopf"
+        data-gruppe-dazu
+        onClick={() => {
+          const letzte = gruppe[gruppe.length - 1];
+          setze([...gruppe, { anzahl: letzte ? 1 : 4, stufe: letzte?.stufe ?? 1 }]);
+        }}
+      >
+        + {t('gruppe.dazu')}
+      </button>
+    </div>
+  );
+}
+
+/** Die Umgebungen als Kacheln, wie die Zustaende im Status Effect Creator. */
+function Umgebungswahl({
+  gewaehlt,
+  waehle
+}: {
+  readonly gewaehlt: string;
+  readonly waehle: (umgebungId: string) => void;
+}) {
+  const kachel = (id: string, zeichen: string, name: string, farbe?: string) => (
+    <button
+      key={id || 'keine'}
+      type="button"
+      className={gewaehlt === id ? 'umgebungskachel is-an' : 'umgebungskachel'}
+      aria-pressed={gewaehlt === id}
+      data-umgebung={id}
+      style={farbe ? ({ '--marke': farbe } as CSSProperties) : undefined}
+      onClick={() => waehle(id)}
+    >
+      <span className="umgebungskachel__zeichen" aria-hidden="true">
+        {zeichen}
+      </span>
+      <span className="umgebungskachel__name">{name}</span>
+    </button>
+  );
+  return (
+    <div className="umgebungswahl">
+      {kachel('', '∅', t('umgebung.keine'))}
+      {UMGEBUNGEN.map((u) => kachel(u.id, u.zeichen, umgebungName(u, sprache()), u.farbe))}
+      <button
+        type="button"
+        className="umgebungskachel umgebungskachel--wurf"
+        data-umgebung-wuerfeln
+        onClick={() => waehle(UMGEBUNGEN[Math.floor(Math.random() * UMGEBUNGEN.length)].id)}
+      >
+        <span className="umgebungskachel__zeichen" aria-hidden="true">
+          ⚄
+        </span>
+        <span className="umgebungskachel__name">{t('umgebung.wuerfeln')}</span>
+      </button>
     </div>
   );
 }

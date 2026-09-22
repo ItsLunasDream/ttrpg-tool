@@ -535,3 +535,133 @@ body {
 .verhaeltnis[data-einordnung='darueber'] {
   border-left: 3px solid var(--gefahr);
 }
+
+/* ==========================================================================
+   Aufklappbare Abschnitte
+   ========================================================================== */
+
+.klappe {
+  margin-top: 18px;
+}
+
+.klappe__kopf {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--rand);
+  color: var(--text);
+  padding: 4px 0 6px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.klappe__pfeil {
+  display: inline-block;
+  color: var(--text-leise);
+  transition: transform 120ms ease-out;
+}
+
+.klappe.is-auf .klappe__pfeil {
+  transform: rotate(90deg);
+}
+
+.klappe__titel {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.klappe__zusatz {
+  margin-left: auto;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.klappe__inhalt {
+  padding-top: 10px;
+}
+
+/* ==========================================================================
+   Die Gruppe am Tisch
+   ========================================================================== */
+
+.gruppenfeld {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.gruppenfeld__zeile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gruppenfeld__zahl {
+  width: 56px;
+  background: var(--grund);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 4px 6px;
+  font: inherit;
+}
+
+.gruppenfeld__mal {
+  color: var(--text-leise);
+}
+
+/* ==========================================================================
+   Umgebungen als Kacheln
+   ========================================================================== */
+
+.umgebungswahl {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.umgebungskachel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-bottom: 3px solid var(--marke, var(--rand));
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 10px 6px 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.umgebungskachel:hover {
+  border-color: var(--text-leise);
+  border-bottom-color: var(--marke, var(--text-leise));
+}
+
+.umgebungskachel.is-an {
+  background: var(--betont-leise);
+  border-color: var(--marke, var(--betont));
+}
+
+.umgebungskachel__zeichen {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--marke, var(--text-leise));
+}
+
+.umgebungskachel__name {
+  font-size: 12px;
+  text-align: center;
+}
+
+.umgebungskachel--wurf {
+  border-style: dashed;
+}

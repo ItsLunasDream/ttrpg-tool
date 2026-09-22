@@ -49,9 +49,11 @@ reicht: **wie viele Spielfiguren und auf welcher Stufe.** Unterschiedliche
 Stufen innerhalb einer Gruppe kommen vor, also eine kurze Liste statt einer
 Zahl.
 
-Wo das steht: in den Einstellungen des Werkzeugs, über den Dialog der Hülle
-(`packages/einstellungen`). Eine Gruppe wechselt selten; sie jedes Mal neu
-einzutippen wäre die Sorte Reibung, an der ein Werkzeug stirbt.
+Wo das steht: im Werkzeug selbst, als aufklappbarer Abschnitt „Gruppe am
+Tisch" über der Einordnung. Sie gilt für alle Begegnungen, wird also nicht
+je Begegnung neu eingetippt. Ursprünglich stand sie in den Einstellungen
+der Hülle; Rückmeldung: dort gehört hin, was man einmal festlegt, und die
+Gruppe ändert sich öfter.
 
 Offen: ob eine Kampagne im Story Creator ihre Gruppe mitbringen kann. Wäre
 schöner, setzt aber voraus, dass Spielfiguren dort als eigener Notiztyp
@@ -140,11 +142,13 @@ Vier Dinge daran sind Absicht:
   unbekannter Stufe heißen oder eine auf Stufe 4; die Zeile bleibt dann
   ungelesen, und das Werkzeug zeigt im Klartext, was es verstanden hat.
 
-Die Gruppe steht als Zeile in den Einstellungen des Werkzeugs
-(`packages/einstellungen`), in der Schreibweise `Anzahl x Stufe`, mit
-Komma getrennt: `4x5` oder `3x4, 1x6`. Ein Textfeld statt zweier
-Zahlenfelder, weil unterschiedliche Stufen vorkommen und die
-Feldbeschreibung keine Liste kennt.
+Die Gruppe wird als Zeilen aus Anzahl und Stufe eingetragen und in
+`einstellungen.json` im Ordner des Werkzeugs als `Anzahl x Stufe` abgelegt,
+mit Komma getrennt: `4x5` oder `3x4, 1x6`.
+
+Eine neue Begegnung braucht keinen Namen: „Neue Begegnung" öffnet sie
+sofort, und wer ohne Namen speichert, bekommt `Encounter_1`, `Encounter_2`
+usw. (die kleinste freie Nummer).
 
 **Nicht erfinden, was man nicht weiß, und es dazuschreiben.**
 

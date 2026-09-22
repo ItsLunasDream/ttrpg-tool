@@ -92,3 +92,12 @@ test('Anblick und Regeln kommen als Saetze in beiden Sprachen', () => {
   assert.ok(U.anblickzeilen(wald, 'de').every((z) => typeof z === 'string' && z.length > 0));
   assert.notDeepEqual(U.regelzeilen(wald, 'de'), U.regelzeilen(wald, 'en'));
 });
+
+test('jede Umgebung hat ein eigenes Zeichen und eine Farbe fuer die Kachel', () => {
+  const zeichen = U.UMGEBUNGEN.map((u) => u.zeichen);
+  assert.equal(new Set(zeichen).size, zeichen.length);
+  for (const u of U.UMGEBUNGEN) {
+    assert.ok(u.zeichen.length >= 1, u.id);
+    assert.match(u.farbe, /^#[0-9a-f]{6}$/, u.id);
+  }
+});
