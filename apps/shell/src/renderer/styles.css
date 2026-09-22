@@ -1184,3 +1184,246 @@ body {
   border-top: 1px solid var(--rand);
   padding: 8px 16px;
 }
+
+/* ---------- Einstellungen: Bereiche links, einer davon rechts ---------- */
+
+/*
+ * Der breite Zuschnitt. Nur die Einstellungen benutzen ihn, und nur weil
+ * sie die Breite fuellen: eine Spalte fuer die Bereiche, eine fuer den
+ * Inhalt, und die Farbproben nebeneinander. Ein breiter Kasten mit einer
+ * schmalen Liste darin waere leere Flaeche links und rechts gewesen.
+ */
+.dialog--breit {
+  width: min(900px, calc(100vw - 48px));
+  height: min(620px, calc(100vh - 96px));
+  max-height: calc(100vh - 96px);
+}
+
+.einst {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 212px 1fr;
+  min-height: 0;
+}
+
+.einst__nav {
+  background: var(--grund-tief);
+  border-right: 1px solid var(--rand);
+  /* Oben UND unten gerundet: ohne Kopfzeile stoesst die Spalte direkt an
+     beide Ecken des Dialogs. */
+  border-radius: 12px 0 0 0;
+  padding: 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: auto;
+}
+
+.einst__nav-titel {
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-leise);
+  margin: 0 10px 8px;
+  font-weight: 600;
+}
+
+.einst__nav-gruppe {
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-leise);
+  margin: 16px 10px 6px;
+  font-weight: 600;
+}
+
+.einst__nav-knopf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--motion-feedback) var(--motion-ease-standard);
+}
+
+.einst__nav-knopf:hover {
+  background: var(--lasur);
+}
+
+.einst__nav-knopf.is-an {
+  background: var(--betont-leise);
+  color: var(--betont);
+  font-weight: 600;
+}
+
+/* Die Symbole sind verschieden gross gezeichnet; der feste Kasten haelt die
+   Beschriftungen trotzdem auf einer Fluchtlinie. */
+.einst__nav-symbol {
+  flex: 0 0 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+}
+
+.einst__seite {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.einst__kopf {
+  padding: 18px 26px 14px;
+  border-bottom: 1px solid var(--rand);
+}
+
+.einst__kopf h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.einst__inhalt {
+  padding: 20px 26px;
+  overflow: auto;
+  flex: 1;
+}
+
+.einst__gruppe {
+  margin-bottom: 26px;
+}
+
+.einst__gruppe > h3,
+.einst__gruppe .feld__ueberschrift {
+  margin: 0 0 3px;
+  font-size: 14px;
+}
+
+.einst__satz,
+.einst__gruppe .feld__hinweis {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  color: var(--text-leise);
+  max-width: 62ch;
+  line-height: 1.45;
+}
+
+/*
+ * Die Farbproben.
+ *
+ * `auto-fill` statt einer festen Spaltenzahl: bei sieben Themen und
+ * spaeter vielleicht zehn soll die Reihe umbrechen, nicht schrumpfen.
+ */
+.themenwahl {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.themenwahl__probe {
+  border: 1px solid var(--rand);
+  border-radius: 10px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  align-items: center;
+  background: var(--grund-tief);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--motion-feedback) var(--motion-ease-standard);
+}
+
+.themenwahl__probe:hover {
+  border-color: var(--betont);
+}
+
+.themenwahl__probe.is-an {
+  border-color: var(--betont);
+  box-shadow: inset 0 0 0 1px var(--betont);
+}
+
+/* Der Grund des Themas, darauf drei Streifen: Betonung, Gold, Text. Genau
+   die drei, an denen man ein Thema wiedererkennt. */
+.themenwahl__flaeche {
+  width: 100%;
+  height: 38px;
+  border-radius: 6px;
+  border: 1px solid;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 6px;
+}
+
+.themenwahl__flaeche i {
+  display: block;
+  height: 9px;
+  flex: 1;
+  border-radius: 2px;
+}
+
+.themenwahl__name {
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+/* Zwei bis drei Werte nebeneinander statt in einem Klappfeld. */
+.segment {
+  display: inline-flex;
+  background: var(--grund-tief);
+  border: 1px solid var(--rand);
+  border-radius: 9px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.segment__knopf {
+  border: 0;
+  background: none;
+  padding: 6px 18px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+  color: var(--text-leise);
+  transition: background var(--motion-feedback) var(--motion-ease-standard);
+}
+
+.segment__knopf:hover {
+  background: var(--lasur);
+}
+
+.segment__knopf.is-an {
+  background: var(--betont);
+  color: var(--grund);
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  /* Kein Platz fuer zwei Spalten: die Bereiche legen sich als Reihe darueber. */
+  .einst {
+    grid-template-columns: 1fr;
+  }
+
+  .einst__nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-right: 0;
+    border-bottom: 1px solid var(--rand);
+  }
+
+  .einst__nav-titel,
+  .einst__nav-gruppe {
+    width: 100%;
+    margin: 0 10px 4px;
+  }
+}

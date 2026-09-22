@@ -13,9 +13,28 @@ interface Props {
   readonly schliessenText: string;
   readonly onClose: () => void;
   readonly children: ReactNode;
+  /**
+   * Der breite Zuschnitt mit eigener Navigation links.
+   *
+   * Nur fuer die Einstellungen: sie sind der einzige Dialog mit so vielen
+   * Abschnitten, dass eine Liste untereinander zum Scrollen zwingt. Die
+   * anderen bleiben schmal — Breite, die niemand fuellt, ist keine Wahl,
+   * sondern leere Flaeche links und rechts.
+   */
+  readonly breit?: boolean;
+  /**
+   * Steht im Kopf statt der Ueberschrift.
+   *
+   * `null` heisst: gar keine Ueberschrift — der breite Zuschnitt hat seine
+   * eigene, in der Navigation. `undefined` (weggelassen) heisst: die
+   * uebliche. Deshalb wird hier auf `undefined` geprueft und nicht mit
+   * `??` zurueckgefallen: `null ?? x` waere `x`, und der Titel staende
+   * zweimal da.
+   */
+  readonly kopf?: ReactNode;
 }
 
-export function Dialog({ titel, schliessenText, onClose, children }: Props) {
+export function Dialog({ titel, schliessenText, onClose, children, breit, kopf }: Props) {
   const kasten = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,7 +63,7 @@ export function Dialog({ titel, schliessenText, onClose, children }: Props) {
       }}
     >
       <div
-        className="dialog motion-eintritt"
+        className={breit ? 'dialog dialog--breit motion-eintritt' : 'dialog motion-eintritt'}
         role="dialog"
         aria-modal="true"
         aria-label={titel}
@@ -52,8 +71,8 @@ export function Dialog({ titel, schliessenText, onClose, children }: Props) {
         ref={kasten}
         onKeyDown={beiTaste}
       >
-        <h2 className="dialog__titel">{titel}</h2>
-        <div className="dialog__inhalt">{children}</div>
+        {kopf === undefined ? <h2 className="dialog__titel">{titel}</h2> : kopf}
+        {breit ? children : <div className="dialog__inhalt">{children}</div>}
         <div className="dialog__fuss">
           <button type="button" className="dialog__knopf" onClick={onClose}>
             {schliessenText}

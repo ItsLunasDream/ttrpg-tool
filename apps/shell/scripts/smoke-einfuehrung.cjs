@@ -136,6 +136,14 @@ app.whenReady().then(async () => {
   console.log('\nZuruecksetzen in den Einstellungen:');
   await js("document.querySelector('.titelleiste__knopf').click()");
   await warte(400);
+  // Der Knopf liegt seit dem Umbau unter „Daten & Sicherung" und nicht mehr
+  // in einer langen Liste.
+  await js(`(() => {
+    const k = document.querySelector('.einst__nav-knopf[data-bereich="daten"]');
+    if (k) k.click();
+    return Boolean(k);
+  })()`);
+  await warte(500);
   await js(
     "[...document.querySelectorAll('.feld__knoepfe button')].find(b => b.textContent.includes('introduction')).click()"
   );

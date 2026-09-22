@@ -103,13 +103,25 @@ app.whenReady().then(async () => {
   );
   await warte(800);
 
-  const ueberschriften = await js(
-    "[...document.querySelectorAll('.feld__ueberschrift')].map(e => e.textContent)"
+  /*
+   * Seit dem Umbau zeigt der Dialog einen Bereich zur Zeit, und jedes
+   * laufende Werkzeug ist ein eigener Eintrag in der Navigation links. Der
+   * Abschnitt ist also nicht mehr einfach da, sondern einen Klick weit weg.
+   */
+  const bereiche = await js(
+    "[...document.querySelectorAll('.einst__nav-knopf')].map(e => e.dataset.bereich)"
   );
   pruefe(
-    ueberschriften.some((u) => /Story Creator/.test(u)),
-    `der Dialog der Huelle zeigt einen Abschnitt fuer das Werkzeug (${ueberschriften.join(', ')})`
+    bereiche.includes('werkzeug:backstory'),
+    `der Dialog der Huelle zeigt einen Abschnitt fuer das Werkzeug (${bereiche.join(', ')})`
   );
+
+  await js(`(() => {
+    const k = document.querySelector('.einst__nav-knopf[data-bereich="werkzeug:backstory"]');
+    if (k) k.click();
+    return Boolean(k);
+  })()`);
+  await warte(700);
 
   const gruppen = await js(
     "[...document.querySelectorAll('.feld__untertitel')].map(e => e.textContent).join('|')"

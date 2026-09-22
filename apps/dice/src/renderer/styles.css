@@ -19,6 +19,19 @@
 
   --motion-ok: var(--f-gut, #4a9d5f);
   --motion-fehler: var(--f-gefahr, #e5484d);
+  /*
+   * Nachgezogen mit dem Farb-Nachzug: diese Rollen wurden hier bisher als
+   * feste Farben geschrieben, und auf einem hellen Thema war das Ergebnis
+   * dunkel auf dunkel. `--lasur` ist keine Rolle, sondern eine Rechnung auf
+   * der Textfarbe — „etwas heller beim Darueberfahren" ist keine Farbe.
+   */
+  --grund-tief: var(--f-grund-tief, #10121a);
+  --betont-leise: var(--f-betont-leise, #243049);
+  --gut: var(--f-gut, #4a9d5f);
+  --gefahr: var(--f-gefahr, #e5484d);
+  --fest: var(--f-fest, #e0af68);
+  --lasur: color-mix(in srgb, var(--text) 8%, transparent);
+  --lasur-stark: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 * {
@@ -47,7 +60,7 @@ body {
 }
 
 button {
-  background: #262b36;
+  background: var(--grund-tief);
   border: 1px solid var(--rand);
   color: var(--text);
   font: inherit;
@@ -58,7 +71,7 @@ button {
 }
 
 button:hover:not(:disabled) {
-  background: #303646;
+  background: color-mix(in srgb, var(--text) 10%, var(--grund-tief));
 }
 
 button:active:not(:disabled) {
@@ -73,16 +86,16 @@ button:disabled {
 .knopf--haupt {
   background: var(--betont);
   border-color: var(--betont);
-  color: #0d1017;
+  color: var(--grund);
   font-weight: 600;
 }
 
 .knopf--haupt:hover:not(:disabled) {
-  background: #8fb3ff;
+  background: color-mix(in srgb, var(--betont) 80%, var(--text));
 }
 
 input {
-  background: #12141a;
+  background: var(--grund-tief);
   border: 1px solid var(--rand);
   color: var(--text);
   font: inherit;
@@ -193,7 +206,7 @@ input[type='number'] {
 /* Was im Wurf ist, hebt sich ab — sonst muesste man die Zahlen absuchen. */
 .artfeld--aktiv {
   border-color: var(--rand);
-  background: #232833;
+  background: var(--grund-tief);
 }
 
 .artfeld--abzug {
@@ -310,7 +323,7 @@ input[type='number'] {
   padding: 1px 7px;
   border-radius: 999px;
   background: #0b0d13d9;
-  border: 1px solid #ffffff26;
+  border: 1px solid var(--lasur-stark);
   color: #e6ebff;
   font-size: 15px;
   font-weight: 700;
@@ -582,7 +595,7 @@ input[type='number'] {
 }
 
 .verlauf__liste button:hover {
-  background: #232833;
+  background: var(--grund-tief);
   border-color: var(--rand);
 }
 
@@ -658,7 +671,7 @@ input[type='number'] {
 
 .musterknopf--an {
   border-color: var(--betont);
-  background: #232f47;
+  background: var(--betont-leise);
 }
 
 .aussehen__schalter {

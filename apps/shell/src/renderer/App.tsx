@@ -762,6 +762,7 @@ export function App() {
           kiZustand={kiZustand}
           pruefeKi={pruefeKi}
           setzeSchluessel={setzeSchluessel}
+          symbole={symbole}
           symbolordnerOeffnen={() => window.shell.symbole.ordnerOeffnen()}
           symboleNeuLaden={ladeSymboleNeu}
           einfuehrungenZuruecksetzen={setzeEinfuehrungenZurueck}

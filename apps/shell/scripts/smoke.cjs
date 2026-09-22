@@ -590,16 +590,25 @@ app.whenReady().then(async () => {
 
   // Sprache umstellen: der Wert muss auf der Platte landen und die Oberflaeche
   // sofort umschalten.
+  //
+  // Die Sprache steht unter „Aussehen" und ist kein Klappfeld mehr, sondern
+  // zwei Knoepfe. Gesucht wird ueber `data-sprache`, nicht ueber die
+  // Beschriftung — die haengt ja gerade an der Sprache.
   await js(`(() => {
-    const wahl = document.querySelector('.feld__wahl');
-    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-    setzer.call(wahl, 'de');
-    wahl.dispatchEvent(new Event('change', { bubbles: true }));
+    const bereich = document.querySelector('.einst__nav-knopf[data-bereich="aussehen"]');
+    if (bereich) bereich.click();
+    return true;
+  })()`);
+  await warte(400);
+  await js(`(() => {
+    const knopf = document.querySelector('.segment__knopf[data-sprache="de"]');
+    if (!knopf) return false;
+    knopf.click();
     return true;
   })()`);
   await warte(900);
   pruefe(
-    (await js("document.querySelector('.dialog__titel').textContent")) === 'Einstellungen',
+    (await js("document.querySelector('.einst__nav-titel').textContent")) === 'Einstellungen',
     'die Oberflaeche schaltet sofort auf Deutsch'
   );
   const einstellungsDatei = path.join(app.getPath('userData'), 'einstellungen.json');

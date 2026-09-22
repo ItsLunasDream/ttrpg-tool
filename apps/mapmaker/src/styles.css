@@ -15,6 +15,19 @@
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 13px;
   color: var(--text);
+  /*
+   * Nachgezogen mit dem Farb-Nachzug: diese Rollen wurden hier bisher als
+   * feste Farben geschrieben, und auf einem hellen Thema war das Ergebnis
+   * dunkel auf dunkel. `--lasur` ist keine Rolle, sondern eine Rechnung auf
+   * der Textfarbe — „etwas heller beim Darueberfahren" ist keine Farbe.
+   */
+  --grund-tief: var(--f-grund-tief, #10121a);
+  --betont-leise: var(--f-betont-leise, #243049);
+  --gut: var(--f-gut, #4a9d5f);
+  --gefahr: var(--f-gefahr, #e5484d);
+  --fest: var(--f-fest, #e0af68);
+  --lasur: color-mix(in srgb, var(--text) 8%, transparent);
+  --lasur-stark: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 * {
@@ -189,7 +202,7 @@ label {
   flex-shrink: 0;
 }
 .status-message {
-  color: #ffb45c;
+  color: var(--fest);
 }
 
 .divider {
@@ -298,9 +311,9 @@ code {
   width: 18px;
   height: 18px;
   z-index: 4;
-  background: #191b1f;
-  border-right: 1px solid #3a3f47;
-  border-bottom: 1px solid #3a3f47;
+  background: var(--grund-tief);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
 /* Texteingabe schwebt über der Bühne und soll so aussehen wie das Ergebnis:
@@ -420,7 +433,7 @@ code {
   outline: 1px solid var(--accent, #6cf);
 }
 .key-cell.clash {
-  color: #e6a23c;
+  color: var(--fest);
 }
 .hint {
   color: var(--text-dim);
@@ -732,11 +745,11 @@ button.primary {
 }
 button.primary:hover:not(:disabled) {
   background: var(--accent);
-  color: #0d1117;
+  color: var(--bg);
 }
 
 .warn {
-  color: #ffb45c;
+  color: var(--fest);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -802,7 +815,7 @@ button.primary:hover:not(:disabled) {
   border: 2px solid var(--panel);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3c3c4a;
+  background: var(--grund-tief);
 }
 
 /* Generator-Dialog: Regler links, Vorschau rechts. Auf schmalen Fenstern
@@ -830,7 +843,7 @@ button.primary:hover:not(:disabled) {
   width: 100%;
   max-height: 62vh;
   display: block;
-  background: #14141a;
+  background: var(--grund-tief);
   border: 1px solid var(--line);
   border-radius: 4px;
 }
@@ -875,7 +888,7 @@ button.primary:hover:not(:disabled) {
   opacity: 1;
 }
 .prop-card .fav.on {
-  color: #e8c14a;
+  color: var(--fest);
 }
 
 /* Zuordnungsmodus einer Prop-Gruppe: Abzeichen oben links, immer sichtbar
@@ -893,7 +906,7 @@ button.primary:hover:not(:disabled) {
 }
 .prop-card .ingroup-badge.on {
   background: var(--accent);
-  color: #0d1117;
+  color: var(--bg);
 }
 
 /* Zuordnen-Knopf in der Gruppenliste, solange die Zuordnung läuft. */

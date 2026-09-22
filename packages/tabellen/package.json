@@ -13,7 +13,8 @@
     "test": "node scripts/build-tests.mjs && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@suite/dice": "*"
+    "@suite/dice": "*",
+    "@suite/eintraege": "*"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

@@ -161,6 +161,69 @@ dorthin. Eine Hausregel ohne Verweis ist auch in Ordnung; nicht jede Regel
 - **Markdown**, wie überall. Eine Hausregel ist ein Text mit Namen, kein
   Formular.
 
+## Notizen am Text
+
+Neben den Hausregeln, die für sich stehen, gibt es das Kleine: eine
+Bemerkung, die an **einer Stelle** im Regeltext hängt. „Wir würfeln das
+anders", „hier hat Jan letztes Mal nachgefragt", „gilt bei uns nur im
+Kampf".
+
+So soll es gehen: **Textabschnitt auswählen, Notiz schreiben.** Die Stelle
+bleibt danach dezent hinterlegt, und wer darüberfährt, sieht die Notiz.
+Über Sitzungen hinweg gespeichert.
+
+### Warum das neben den Hausregeln steht und sie nicht ersetzt
+
+Es sind zwei verschiedene Dinge, und beide zu haben ist kein Luxus:
+
+- Eine **Hausregel** ist eine Ansage an den Tisch. Sie hat einen Namen, man
+  schickt sie herum, sie steht für sich.
+- Eine **Notiz** ist eine Randbemerkung. Sie hat keinen Namen, sie gehört
+  an genau diese Zeile, und sie geht niemanden außer einen selbst etwas an.
+
+Wer nur Hausregeln hätte, schriebe Randbemerkungen als winzige Hausregeln —
+und die Liste wäre nach einem Monat unbenutzbar.
+
+### Woran eine Notiz hängt
+
+**Das ist der Teil, der schiefgehen kann, und er gehört vor dem Bauen
+entschieden.** Eine Notiz an „Zeichen 214 bis 263" zu hängen ist die
+naheliegende Lösung und die zerbrechliche: sobald der Regeltext einmal neu
+erfasst wird — ein Tippfehler raus, ein Absatz anders umgebrochen —, rutschen
+alle Notizen des Dokuments um ein paar Zeichen und stehen mitten im Wort.
+
+Der haltbarere Weg ist, **den ausgewählten Text mitzuspeichern** und die
+Stelle beim Öffnen wiederzufinden:
+
+1. Die Kennung des Regelabschnitts (nicht des ganzen Dokuments).
+2. Den ausgewählten Text selbst.
+3. Das wievielte Vorkommen dieses Textes im Abschnitt es ist.
+
+Findet sich der Text nicht mehr, ist die Notiz **nicht weg**, sondern hängt
+oben am Abschnitt mit dem Vermerk, dass ihre Stelle verschwunden ist. Eine
+Notiz still fallen zu lassen wäre das Schlimmste — man merkt es erst, wenn
+man sie sucht.
+
+### Wo sie liegen
+
+In der Ablage des Nachschlagewerks, nach Abschnitt, nicht im Regeltext
+selbst. Der offizielle Bestand kommt aus `packages/srd/` und wird beim
+nächsten Update überschrieben; was dort hineingeschrieben wäre, wäre dann
+weg.
+
+Und wie überall: **nicht übersetzen.** Was man hinschreibt, steht so da.
+
+### Was noch zu klären ist
+
+- **Ob Notizen in die Suche gehören.** Dafür spricht viel — „wo war noch
+  die Stelle, zu der ich was geschrieben habe?" ist eine echte Frage. Dagegen
+  spricht, dass eine Randbemerkung ohne Namen in einer Trefferliste schlecht
+  aussieht. Vermutlich: ja, aber mit dem Abschnitt als Namen.
+- **Ob sie mitverschickt werden.** Eher nein, siehe unten: eine Hausregel
+  ist für den Tisch, eine Notiz für einen selbst. Wer eine Bemerkung teilen
+  will, macht eine Hausregel daraus — und genau dieser Knopf wäre die
+  richtige Brücke zwischen beiden.
+
 ## Regeln verschicken
 
 Die Austausch-App (`docs/austausch.md`) soll Regeln an den Tisch schicken
@@ -228,6 +291,10 @@ Name darf keine fremde Marke tragen.
 - **Ob Monster dazukommen.** Der Encounter Creator hätte gern eine Liste
   bekannter Monster zum Vergleich. Das wäre derselbe Bestand, aber deutlich
   mehr Text. Eigene Entscheidung, nicht nebenbei.
+- **Wie eine Notiz auf einem Berührungsbildschirm entsteht.** Auswählen und
+  dann einen Knopf treffen ist mit der Maus selbstverständlich und mit dem
+  Finger fummelig. Das betrifft die ganze Sammlung und nicht nur dieses
+  Werkzeug — gehört zu #61 (Barrierefreiheit) und nicht hierher.
 - **Ob eine Hausregel mehr Form braucht als Text.** „Kritische Treffer:
   doppelte Würfel statt doppeltem Ergebnis" ist ein Satz. „Bei einer langen
   Rast darf man zusätzlich eines von vier Dingen tun" ist eine Liste mit
@@ -250,10 +317,13 @@ Name darf keine fremde Marke tragen.
 3. **Hausregeln.** Ablage, Bearbeiten, der Verweis auf die offizielle Regel
    und die Marke an dieser. Der Teil, der das Werkzeug von einem PDF
    unterscheidet.
-4. **Magische Gegenstände.** Damit steht zugleich die Eichung für
+4. **Notizen am Text.** Auswählen, schreiben, hinterlegt lassen. Baut auf
+   der Ablage aus Stufe 3 auf und ist ohne sie nicht sinnvoll.
+5. **Magische Gegenstände.** Damit steht zugleich die Eichung für
    `docs/magicitems.md`.
-5. **Zauber und Ausrüstung.** Der lange Teil, und der, den man auch erstmal
+6. **Zauber und Ausrüstung.** Der lange Teil, und der, den man auch erstmal
    weglassen kann.
 
 Stufe 1 bis 3 zusammen ergeben schon ein Werkzeug, das man am Tisch aufmacht.
-Das Verschicken kommt mit der Austausch-App, nicht vorher.
+Stufe 4 ist das, was man danach nicht mehr hergeben will. Das Verschicken
+kommt mit der Austausch-App, nicht vorher.

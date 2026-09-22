@@ -21,6 +21,18 @@
   /* Die Rueckmeldefarben des Bewegungspakets an diese Palette angleichen. */
   --motion-ok: var(--f-gut, #4a9d5f);
   --motion-fehler: var(--f-gefahr, #d1635c);
+  /*
+   * Nachgezogen mit dem Farb-Nachzug: diese Rollen wurden hier bisher als
+   * feste Farben geschrieben, und auf einem hellen Thema war das Ergebnis
+   * dunkel auf dunkel. `--lasur` ist keine Rolle, sondern eine Rechnung auf
+   * der Textfarbe — „etwas heller beim Darueberfahren" ist keine Farbe.
+   */
+  --grund-tief: var(--f-grund-tief, #10121a);
+  --betont-leise: var(--f-betont-leise, #243049);
+  --gut: var(--f-gut, #4a9d5f);
+  --gefahr: var(--f-gefahr, #e5484d);
+  --lasur: color-mix(in srgb, var(--text) 8%, transparent);
+  --lasur-stark: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 * {
@@ -98,7 +110,7 @@ button {
   background: var(--betont);
   border: 0;
   border-radius: 8px;
-  color: #0f1117;
+  color: var(--grund);
   font-size: 14px;
   font-weight: 700;
   padding: 9px 14px;
@@ -213,7 +225,7 @@ button {
 /* Ein festgehaltenes Feld bleibt beim naechsten Wurf stehen — das muss man
    sehen, sonst wundert man sich, warum sich nichts aendert. */
 .zeile--fest {
-  background: #e0af6814;
+  background: color-mix(in srgb, var(--fest) 10%, transparent);
   box-shadow: inset 2px 0 0 var(--fest);
 }
 
@@ -248,8 +260,8 @@ button {
  */
 .zeile__knoepfe button[aria-pressed='true'] {
   color: var(--fest);
-  border-color: #e0af6855;
-  background: #e0af6814;
+  border-color: color-mix(in srgb, var(--fest) 34%, transparent);
+  background: color-mix(in srgb, var(--fest) 10%, transparent);
 }
 
 .zeile__knoepfe button[aria-pressed='false'] {
@@ -276,7 +288,7 @@ button {
 }
 
 .stoerung {
-  color: #e5484d;
+  color: var(--gefahr);
   font-size: 13px;
 }
 

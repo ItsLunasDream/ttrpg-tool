@@ -70,6 +70,12 @@ Dabei gilt eine Unterscheidung, die man gleich richtig macht:
   hat denselben Bestand; den Text mitzuschicken wäre Ballast. Es genügt die
   Kennung, und beim Empfänger geht die Stelle auf.
 
+Die **Notizen am Regeltext** (kleine Bemerkungen an einer Stelle, siehe
+`docs/nachschlagewerk.md`) reisen dagegen gar nicht: sie sind für einen
+selbst geschrieben und hängen an einer Textstelle, die beim Empfänger
+womöglich anders verläuft. Wer eine Bemerkung teilen will, macht eine
+Hausregel daraus — und genau dieser Knopf ist die Brücke zwischen beiden.
+
 Das passt ohne Umbau in die Tabelle oben: eine Hausregel ist ein Eintrag mit
 Inhalt, ein Verweis auf eine offizielle Regel einer ohne. Nebenbei erledigt
 sich damit die Frage, ob die vorgeschriebene Namensnennung des SRD

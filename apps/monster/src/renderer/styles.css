@@ -19,6 +19,18 @@
   --hoch: var(--f-gefahr, #d1635c);
   --niedrig: var(--f-verweis, #5c8fd1);
   --radius: 10px;
+  /*
+   * Nachgezogen mit dem Farb-Nachzug: diese Rollen wurden hier bisher als
+   * feste Farben geschrieben, und auf einem hellen Thema war das Ergebnis
+   * dunkel auf dunkel. `--lasur` ist keine Rolle, sondern eine Rechnung auf
+   * der Textfarbe — „etwas heller beim Darueberfahren" ist keine Farbe.
+   */
+  --grund-tief: var(--f-grund-tief, #10121a);
+  --betont-leise: var(--f-betont-leise, #243049);
+  --gefahr: var(--f-gefahr, #e5484d);
+  --fest: var(--f-fest, #e0af68);
+  --lasur: color-mix(in srgb, var(--text) 8%, transparent);
+  --lasur-stark: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 * {
@@ -137,7 +149,7 @@ body {
 }
 
 .knopf {
-  background: #2b3140;
+  background: var(--grund-tief);
   border: 1px solid var(--rand);
   border-radius: 8px;
   color: var(--text);
@@ -147,7 +159,7 @@ body {
 }
 
 .knopf:hover:not(:disabled) {
-  background: #343b4d;
+  background: color-mix(in srgb, var(--text) 10%, var(--grund-tief));
 }
 
 .knopf:disabled {
@@ -158,7 +170,7 @@ body {
 .knopf--haupt {
   background: var(--betont);
   border-color: var(--betont);
-  color: #10121a;
+  color: var(--grund);
   font-weight: 600;
 }
 
@@ -170,7 +182,7 @@ body {
 .knopf--an {
   background: var(--betont);
   border-color: var(--betont);
-  color: #10121a;
+  color: var(--grund);
 }
 
 /* ---------- Steckbrief ---------- */
