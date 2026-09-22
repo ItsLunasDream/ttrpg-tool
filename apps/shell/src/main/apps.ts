@@ -38,6 +38,7 @@ import { mountNpc } from '../../../npc/src/main/embed';
 import { mountInspiration } from '../../../inspiration/src/main/embed';
 import { mountMonster } from '../../../monster/src/main/embed';
 import { mountZustaende } from '../../../zustaende/src/main/embed';
+import { mountEncounter } from '../../../encounter/src/main/embed';
 import type { KiQuelle } from './ki';
 import type { Language } from '../shared/i18n';
 import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
@@ -335,6 +336,7 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'inspiration') return montiereInspiration(id, haken);
   if (id === 'monster') return montiereMonster(id, haken);
   if (id === 'zustaende') return montiereZustaende(id, haken);
+  if (id === 'encounter') return montiereEncounter(id, haken);
   return null;
 }
 
@@ -858,6 +860,47 @@ async function montiereMonster(id: string, haken: MontageHaken): Promise<Montier
     flush: () => eingebettet.flush(),
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
     meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents),
+    // Die Suche der Huelle (Strg+K) springt hierher.
+    zeigeEintrag: (kennung) =>
+      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+  };
+}
+
+async function montiereEncounter(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountEncounter({
+    distDir: appDistDir(id, 'main'),
+    devServerUrl: process.env.ENCOUNTER_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    datenordner: datenordner(id)
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
     // Die Suche der Huelle (Strg+K) springt hierher.
     zeigeEintrag: (kennung) =>
       eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)

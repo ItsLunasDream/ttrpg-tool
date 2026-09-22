@@ -229,9 +229,24 @@ app.whenReady().then(async () => {
       'und ist wieder weg, sobald das Werkzeug offen ist'
     );
     pruefe(await js("Boolean(document.querySelector('.schiene'))"), 'Schiene nach Wechsel da');
+    /*
+     * Geprueft wird die REGEL, nicht eine Anzahl.
+     *
+     * Vorher stand hier „mehr als null gesperrte Eintraege". Das ging
+     * durch, solange es ein geplantes Werkzeug gab — und schlug fehl, als
+     * der Encounter Creator fertig wurde und keines mehr uebrig war.
+     * Gepassthat die Zahl, gemeint war die Regel: gesperrt ist genau das,
+     * was noch nicht zu oeffnen ist.
+     */
+    const gesperrt = await js(
+      "document.querySelectorAll('.schiene__eintrag:disabled').length"
+    );
+    const geplant = await js(
+      "document.querySelectorAll('.schiene__eintrag--geplant').length"
+    );
     pruefe(
-      (await js("document.querySelectorAll('.schiene__eintrag:disabled').length")) > 0,
-      'geplante Werkzeuge bleiben in der Schiene gesperrt'
+      gesperrt === geplant,
+      `gesperrt sind genau die geplanten Werkzeuge (${gesperrt} von ${geplant})`
     );
     await js("document.querySelector('.schiene__heim').click()");
     await warte(500);

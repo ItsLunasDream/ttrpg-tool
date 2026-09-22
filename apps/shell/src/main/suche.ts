@@ -22,6 +22,7 @@ import type { Eintrag } from '@suite/eintraege';
 import { leseEintraege as leseMonster } from '../../../monster/src/main/embed';
 import { leseEintraege as leseZustaende } from '../../../zustaende/src/main/embed';
 import { leseEintraege as leseBegegnungen } from '../../../initiative/src/main/embed';
+import { leseEintraege as leseEncounter } from '../../../encounter/src/main/embed';
 
 /**
  * Die Leser, je Werkzeug einer.
@@ -37,7 +38,8 @@ import { leseEintraege as leseBegegnungen } from '../../../initiative/src/main/e
 const LESER: readonly ((datenordner: string) => Promise<readonly Eintrag[]>)[] = [
   leseMonster,
   leseZustaende,
-  leseBegegnungen
+  leseBegegnungen,
+  leseEncounter
 ];
 
 /**

@@ -29,12 +29,24 @@ function lege(relativ, inhalt) {
  * Die Dateien liegen da, bevor die Anwendung startet — genau der Fall, an
  * dem eine Suche ueber die Oberflaeche gescheitert waere.
  */
+/*
+ * DIE PFADE SIND DOPPELT, UND DAS IST ABSICHT.
+ *
+ * Die Huelle gibt jedem Werkzeug einen eigenen Unterordner im Datenordner,
+ * und die Ablage des Werkzeugs legt darin noch einen an. Ein Monster liegt
+ * also unter `monster/monster/`, nicht unter `monster/`.
+ *
+ * Hier stand frueher der einfache Pfad — und weil die Leser der Suche
+ * denselben Fehler machten, ging der Test durch, waehrend die Suche in der
+ * fertigen Anwendung kein einziges echtes Monster fand. Ein Rauchtest, der
+ * seine Daten woandershin legt, als das Werkzeug schreibt, prueft nichts.
+ */
 lege(
-  'monster/frostwaechter.md',
+  'monster/monster/frostwaechter.md',
   '---\nid: frostwaechter\nname: Frostwächter\ncr: "5"\nthema: elementar\nrolle: brecher\ntp: 90\nrk: 15\ngeaendert: 2026-09-22T09:00:00.000Z\n---\n\n# Frostwächter\n'
 );
 lege(
-  'zustaende/absolute-kaelte.md',
+  'zustaende/zustaende/absolute-kaelte.md',
   '---\nid: absolute-kaelte\nname: Absolute Kälte\nart: koerper\nthema: kaelte\nhaerte: hart\ndauer: stunde\nstufen: 3\ngewicht: 7\nzeichen: "*"\nfarbe: "#88ccff"\ngeaendert: 2026-09-22T09:00:00.000Z\n---\n\n# Absolute Kälte\n'
 );
 /*

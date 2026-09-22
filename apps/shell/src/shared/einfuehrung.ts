@@ -259,6 +259,32 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
         en: 'What it explicitly does NOT say: whether it is too harsh for your table. That depends on how often you get it.'
       }
     ]
+  },
+  {
+    id: 'encounter',
+    titel: { de: 'Encounter Creator', en: 'Encounter Creator' },
+    satz: {
+      de: 'Eine Begegnung zusammenstellen — und sie später in einem Zug in den Initiative Tracker schieben.',
+      en: 'Put an encounter together — and later push it into the initiative tracker in one go.'
+    },
+    punkte: [
+      {
+        de: 'Eine Begegnung anlegen, benennen, eine Notiz dazu: Taktik, Vorlesetext, was sonst dazugehört.',
+        en: 'Create an encounter, name it, add a note: tactics, read-aloud text, whatever else belongs.'
+      },
+      {
+        de: 'Sie liegt als Markdown-Datei da. Wer das Werkzeug nicht mehr benutzt, behält seine Begegnungen.',
+        en: 'It sits there as a Markdown file. If you stop using the tool, you keep your encounters.'
+      },
+      {
+        de: 'Eine Begegnung ist eine Vorlage, kein Spielstand: der Tracker liest sie und schreibt nicht zurück.',
+        en: 'An encounter is a template, not a saved game: the tracker reads it and never writes back.'
+      },
+      {
+        de: 'Noch im Bau: Monster aus deiner Sammlung, die Umgebung und der Weg in den Tracker.',
+        en: 'Still being built: monsters from your collection, the environment, and the way into the tracker.'
+      }
+    ]
   }
 ];
 

@@ -91,6 +91,7 @@ apps/npc/          NPC Creator
 apps/inspiration/  Inspiration
 apps/monster/      Monster Creator
 apps/zustaende/    Status Effect Creator
+apps/encounter/    Encounter Creator
 packages/dice/     Reading and rolling dice expressions
 packages/i18n/     Language choice and text substitution
 packages/motion/   Timings, curves and base animations
@@ -568,7 +569,7 @@ xvfb-run -a npm run verify:package -w apps/backstory -- \
 
 ## State and limits
 
-All seven tools run embedded; `encounter` is planned and not clickable yet.
+All nine tools run embedded.
 
 Known limits:
 

@@ -5,7 +5,9 @@ stellt eine Begegnung zusammen: welche Monster, wie viele, wo, und wie hart
 das für diese Gruppe wird — und schiebt das Ergebnis in einem Zug in den
 Initiative Tracker.
 
-**Stand:** Konzept. Nichts davon ist gebaut.
+**Stand:** Stufe 1 ist gebaut — die Kachel ist echt, Begegnungen lassen
+sich anlegen, benennen, mit einer Notiz versehen und in einer Sammlung
+wiederfinden. Die Suche der Hülle findet sie. Stufen 2 bis 5 stehen aus.
 
 ## Wozu
 

@@ -39,7 +39,19 @@ export interface KiErgebnis<T> {
  * hatte. Genau daran waere eine Loesung ueber die Oberflaeche gescheitert.
  */
 export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]> {
-  const ordner = path.join(datenordner, 'monster');
+  /*
+   * ZWEIMAL `monster`, und das ist kein Tippfehler.
+   *
+   * Die Huelle gibt jedem Werkzeug einen eigenen Unterordner
+   * (`<userData>/monster`), und die Ablage legt darin noch einen an. Der
+   * Bestand liegt also unter `<userData>/monster/monster`.
+   *
+   * Hier stand lange nur ein `monster`, und damit las die Suche den
+   * Elternordner: sie fand kein einziges echtes Monster. Aufgefallen ist
+   * es nicht, weil der Rauchtest seine Testdateien genau dorthin legte,
+   * wo die Suche schaute — und nicht dorthin, wo das Werkzeug schreibt.
+   */
+  const ordner = path.join(datenordner, 'monster', 'monster');
   let dateien: string[];
   try {
     dateien = await readdir(ordner);
