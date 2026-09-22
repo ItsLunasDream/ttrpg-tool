@@ -74,3 +74,21 @@ test('die Fassung wird in den Text eingesetzt', () => {
   assert.match(translate('en', 'menu.version', { version: '0.1.0' }), /0\.1\.0/);
   assert.match(translate('de', 'menu.version', { version: '0.1.0' }), /0\.1\.0/);
 });
+
+/*
+ * Vertauschte Tabellen faellt der Test oben nicht auf: beide Sprachen sind
+ * da, sie stehen nur ueber Kreuz. Genau das war bei der OpenAI-Anbindung
+ * passiert — wer auf Englisch stellte, las „Anderer Dienst (OpenAI-
+ * Schnittstelle)".
+ *
+ * Die Pruefung ist bewusst grob: Umlaute und ein paar Woerter, die es nur
+ * im Deutschen gibt. Sie findet keinen kunstvoll umlautfreien Satz, aber
+ * einen versehentlich in die falsche Spalte gerutschten Text findet sie.
+ */
+const DEUTSCH =
+  /[äöüßÄÖÜ]|\b(der|die|das|und|nicht|ist|ein|eine|mit|keine|wird|sich|auf|für|von|zum|zur|dem|den|man|oder|sind|kann|wenn)\b/i;
+
+test('kein deutscher Text steht in der englischen Tabelle', () => {
+  const verdaechtig = MESSAGE_KEYS.filter((key) => DEUTSCH.test(translate('en', key)));
+  assert.deepEqual(verdaechtig, [], `klingt deutsch: ${verdaechtig.join(', ')}`);
+});

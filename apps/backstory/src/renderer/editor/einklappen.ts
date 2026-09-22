@@ -86,6 +86,15 @@ export function createEinklappExtension(handlers: EinklappHandlers) {
                       knopf.title = handlers.titel(zu);
                       knopf.setAttribute('aria-expanded', zu ? 'false' : 'true');
                       knopf.contentEditable = 'false';
+                      /*
+                       * Aus der Tabulatorfolge heraus. Ein <button> ist von
+                       * sich aus anspringbar, und weil die Pfeile IM Text
+                       * stehen, sprang Tab aus dem Schreiben heraus auf den
+                       * naechsten Pfeil statt einen Tabulator zu setzen.
+                       * Mit der Maus und ueber das Tastenkuerzel bleibt der
+                       * Knopf erreichbar.
+                       */
+                      knopf.tabIndex = -1;
                       knopf.textContent = zu ? '▸' : '▾';
                       knopf.addEventListener('mousedown', (ereignis) => {
                         // Sonst setzt der Klick den Cursor und nimmt dem
