@@ -159,11 +159,21 @@ export function Sammlung({ eintraege, onOeffnen, onLoeschen }: Props) {
               <li key={gruppe.eintrag.id}>{kachel(gruppe.eintrag)}</li>
             ) : (
               /*
-                Ein Paket als eine Kachel, aufklappbar. Zugeklappt nennt sie
-                die Zustaende darin — wer das Paket gewuerfelt hat, erkennt
-                es daran wieder, ohne es oeffnen zu muessen.
+                Ein Paket steht da wie ein einzelner Zustand, solange es zu
+                ist — gleiche Groesse, gleiche Stelle im Raster. Erst beim
+                Aufklappen nimmt es Platz.
+
+                Aufgeklappt stehen die Zustaende NEBEN dem Paket, nicht
+                darunter, und ein Rahmen liegt um beides. Der Rahmen ist die
+                Verbindung: er sagt „das hier gehoert zusammen", auch wenn
+                die Reihe umbricht und die letzten zwei Zustaende eine Zeile
+                tiefer landen. Untereinander waere die Zugehoerigkeit nur
+                aus dem Einzug zu erraten gewesen.
               */
-              <li key={gruppe.id} className="paketkachel">
+              <li
+                key={gruppe.id}
+                className={offen.has(gruppe.id) ? 'paketgruppe paketgruppe--auf' : 'paketgruppe'}
+              >
                 <button
                   type="button"
                   className="paketkachel__kopf"
@@ -188,13 +198,13 @@ export function Sammlung({ eintraege, onOeffnen, onLoeschen }: Props) {
                     {gruppe.eintraege.map((e) => e.name).join(', ')}
                   </span>
                 </button>
-                {offen.has(gruppe.id) ? (
-                  <ul className="paketkachel__inhalt">
-                    {gruppe.eintraege.map((eintrag) => (
-                      <li key={eintrag.id}>{kachel(eintrag)}</li>
-                    ))}
-                  </ul>
-                ) : null}
+                {offen.has(gruppe.id)
+                  ? gruppe.eintraege.map((eintrag) => (
+                      <div className="paketgruppe__glied" key={eintrag.id}>
+                        {kachel(eintrag)}
+                      </div>
+                    ))
+                  : null}
               </li>
             )
           )}

@@ -249,3 +249,36 @@ test('der Weg in den Story Creator nimmt die Kopfzahlen nicht mit', () => {
   assert.ok(!leib.includes('gewicht:'), leib.slice(0, 120));
   assert.equal(datei.slice(datei.indexOf('\n---\n\n') + 6), leib);
 });
+
+test('eine vergebene Kennung wird durchnummeriert, nicht wiederverwendet', () => {
+  // Der Fehler, den das verhindert: Paketnamen sind gewuerfelt, und es gibt
+  // nur sechsunddreissig. Zwei Pakete „The Distant Days" bekamen dieselbe
+  // Kennung und standen in der Sammlung als EINES da — mit den Zustaenden
+  // beider darin.
+  assert.equal(T.freieKennung('paket-the-distant-days', []), 'paket-the-distant-days');
+  assert.equal(
+    T.freieKennung('paket-the-distant-days', ['paket-the-distant-days']),
+    'paket-the-distant-days-2'
+  );
+  assert.equal(
+    T.freieKennung('paket-the-distant-days', [
+      'paket-the-distant-days',
+      'paket-the-distant-days-2'
+    ]),
+    'paket-the-distant-days-3'
+  );
+});
+
+test('die Luecke in der Nummerierung wird wiederbenutzt', () => {
+  // Wer das mittlere Paket loescht, bekommt dessen Platz zurueck. Sonst
+  // zaehlte die Sammlung mit jedem Anlegen und Loeschen weiter hoch.
+  assert.equal(T.freieKennung('kaelte', ['kaelte', 'kaelte-3']), 'kaelte-2');
+});
+
+test('gleichnamige Zustaende ueberschreiben einander nicht mehr', () => {
+  // Haerter als beim Paket: hier war die aeltere Datei weg, ohne Rueckfrage.
+  const vergeben = new Set(['klammfrost']);
+  const zweiter = T.freieKennung(T.zuId('Klammfrost'), vergeben);
+  assert.equal(zweiter, 'klammfrost-2');
+  assert.notEqual(zweiter, T.zuId('Klammfrost'));
+});

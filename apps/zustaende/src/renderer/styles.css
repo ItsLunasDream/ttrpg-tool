@@ -833,15 +833,40 @@ body {
    Ein Paket ist eine Kachel, die sich aufklappt. Zugeklappt nennt sie die
    Zustaende darin, damit man es wiedererkennt, ohne es zu oeffnen. */
 
-.paketkachel {
+/*
+ * Ein Paket in der Sammlung.
+ *
+ * ZUGEKLAPPT ist es eine Kachel wie jede andere: eine Zelle im Raster,
+ * dieselbe Groesse wie ein einzelner Zustand. Nur der gestrichelte Rand und
+ * der Pfeil sagen, dass mehr dahintersteckt.
+ *
+ * AUFGEKLAPPT nimmt es die ganze Breite, und die Zustaende stehen RECHTS
+ * daneben — nicht darunter. Der Rahmen um die ganze Reihe ist die
+ * Verbindung: bricht die Reihe um, weil sechs Zustaende nicht
+ * nebeneinanderpassen, haelt er sie trotzdem sichtbar zusammen. Ein Einzug
+ * allein haette das nicht geleistet, sobald eine zweite Zeile anfaengt.
+ */
+.paketgruppe {
+  min-width: 0;
+}
+
+.paketgruppe--auf {
   grid-column: 1 / -1;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--betont);
+  border-radius: calc(var(--radius) + 4px);
+  /* Ganz leicht abgesetzt, damit der Rahmen nicht als zweite Kachel
+     missverstanden wird: er umfasst, er ist nicht selbst ein Ding. */
+  background: color-mix(in srgb, var(--betont) 7%, transparent);
 }
 
 .paketkachel__kopf {
   width: 100%;
+  height: 100%;
   text-align: left;
   background: var(--grund-hoch);
   border: 1px dashed var(--rand);
@@ -852,7 +877,20 @@ body {
   cursor: pointer;
   display: grid;
   grid-template-columns: auto 1fr auto;
+  align-content: center;
   gap: 2px 8px;
+}
+
+/*
+ * Aufgeklappt ist der Kopf das erste Glied der Reihe und bekommt eine
+ * feste Breite — sonst zoege ihn `flex` auf die Breite seines laengsten
+ * Textes, und die Zustaende daneben wuerden schmal.
+ */
+.paketgruppe--auf .paketkachel__kopf {
+  flex: 0 0 220px;
+  width: auto;
+  border-style: solid;
+  border-color: var(--betont);
 }
 
 .paketkachel__kopf:hover {
@@ -885,15 +923,21 @@ body {
   white-space: nowrap;
 }
 
-.paketkachel__inhalt {
-  list-style: none;
-  margin: 0;
-  padding: 0 0 0 18px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
+/* Aufgeklappt stehen die Namen schon daneben; die Zeile waere doppelt. */
+.paketgruppe--auf .paketkachel__unten {
+  display: none;
 }
 
-.paketkachel__inhalt li {
+/*
+ * Ein Zustand in der aufgeklappten Reihe.
+ *
+ * Dieselbe Mindestbreite wie eine Kachel im Raster, damit die Reihe nicht
+ * anders aussieht als der Rest der Sammlung. `flex: 1 1 200px` laesst sie
+ * die letzte Zeile ausfuellen, statt rechts ein Loch zu lassen.
+ */
+.paketgruppe__glied {
   position: relative;
+  flex: 1 1 200px;
+  min-width: 0;
+  max-width: 320px;
 }

@@ -75,6 +75,34 @@ export function zuId(name: string): string {
   return sauber || 'zustand';
 }
 
+/**
+ * Eine Kennung, die noch niemand hat.
+ *
+ * Aus `wunsch` wird `wunsch-2`, `wunsch-3`, … solange, bis eine frei ist.
+ *
+ * **Warum das noetig ist.** Kennungen kommen hier aus Namen, und Namen sind
+ * gewuerfelt — aus einer endlichen Liste. Zwei Pakete, die denselben Namen
+ * ziehen, bekaemen dieselbe Kennung, und die Sammlung zeigte sie als EIN
+ * Paket mit doppelt so vielen Zustaenden. Bei sechsunddreissig moeglichen
+ * Paketnamen ist das nach einer Handvoll Pakete nicht unwahrscheinlich,
+ * sondern zu erwarten.
+ *
+ * Bei Zustaenden faellt derselbe Zusammenstoss noch haerter aus: die Datei
+ * wird ueberschrieben, und der aeltere Zustand ist weg, ohne dass jemand
+ * gefragt wurde.
+ *
+ * Gilt nur fuers ANLEGEN. Wer einen vorhandenen Zustand bearbeitet, behaelt
+ * seine Kennung — sonst zoege jedes Speichern eine Kopie nach sich.
+ */
+export function freieKennung(wunsch: string, vergeben: Iterable<string>): string {
+  const belegt = new Set(vergeben);
+  if (!belegt.has(wunsch)) return wunsch;
+  for (let n = 2; ; n += 1) {
+    const versuch = `${wunsch}-${n}`;
+    if (!belegt.has(versuch)) return versuch;
+  }
+}
+
 /** YAML-sicher: Werte, die der Leser sonst falsch versteht, kommen in Anfuehrungszeichen. */
 function alsYaml(wert: string): string {
   return /^[A-Za-z0-9äöüÄÖÜß ._-]*$/.test(wert) && wert.trim() === wert && wert !== ''
