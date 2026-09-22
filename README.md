@@ -71,7 +71,9 @@ npm run dist:win        # Windows installer into apps/shell/release/
 Also:
 
 - `scripts\bauen-win.cmd` does `git fetch -p`, `git pull`, `npm install` and
-  `npm run dist:win` in one go on Windows.
+  `npm run dist:win` in one go on Windows. It opens `apps\shell\release` when
+  it is done, keeps the window open either way, and writes which step ran to
+  `bauen-win.log`.
 - Work on one tool alone: `npm run dev:backstory`, `dev:mapmaker`,
   `dev:initiative`, `dev:dice`, `dev:npc`.
 - A command without a suffix always means the suite, not the Story Creator.
