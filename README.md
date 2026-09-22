@@ -103,12 +103,8 @@ packages/farben/   Colour roles and the selectable themes
 packages/eintraege/ What a tool has filed, in a form every tool understands
 packages/tabellen/ Random tables: the format, rolling on one and nesting them
 packages/uebergabe/ The shape an encounter travels in, from one tool to another
+packages/srd/     Everything taken from the SRD 5.2.1, in both languages
 ```
-
-Planned: `packages/srd/` — one place for everything taken from the SRD 5.2,
-shared by the reference work, the Magic Item Creator's calibration and the
-Encounter Creator's difficulty numbers. See
-[docs/nachschlagewerk.md](docs/nachschlagewerk.md).
 
 `packages/*` are platform-free: no `node:*`, no `electron`, no browser
 globals. They are bundled into both processes.
@@ -634,7 +630,7 @@ In short: the monster baselines by challenge rating come from the *Lazy GM's
 and Michael E. Shea, under CC-BY-4.0, which in turn includes material from
 the SRD 5.1. Nothing here is taken from the Dungeon Master's Guide.
 
-Planned use of the SRD 5.2 (CC-BY-4.0) is prepared in
+Planned use of the SRD 5.2.1 (CC-BY-4.0) is prepared in
 [NOTICE.md](NOTICE.md); its attribution statement is prescribed word for
 word, and no further mention of Wizards of the Coast is permitted alongside
 it.

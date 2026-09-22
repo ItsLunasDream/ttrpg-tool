@@ -106,7 +106,7 @@ Lizenz suchen, die Zahlen von dort nehmen, und sie im Über-Dialog nennen.**
 Der Monster Creator macht das bereits mit den Richtwerten je Grad (Lazy
 GM's 5e Monster Builder Resource Document, CC-BY-4.0).
 
-**Diese Frage ist inzwischen beantwortet.** Das SRD 5.2 steht unter
+**Diese Frage ist inzwischen beantwortet.** Das SRD 5.2.1 steht unter
 CC-BY-4.0, und die Zahlen dürfen mit der vorgeschriebenen Namensnennung
 übernommen werden (siehe `NOTICE.md`). Sie gehören nach `packages/srd/`,
 zusammen mit dem, was das Nachschlagewerk und der Magic Item Creator
@@ -209,7 +209,7 @@ darunter. Eine Sammlung mit Kacheln und Suche, dieselbe Handhabung wie
 
 ## Zu klären
 
-- ~~**Woher die Schwierigkeitszahlen kommen dürfen.**~~ Geklärt: SRD 5.2
+- ~~**Woher die Schwierigkeitszahlen kommen dürfen.**~~ Geklärt: SRD 5.2.1
   unter CC-BY-4.0, mit wörtlicher Namensnennung. Siehe oben und `NOTICE.md`.
 - **Ob eine mitgelieferte Monsterliste dazukommt.** Lizenzrechtlich jetzt
   ebenfalls erlaubt; offen ist nur noch, ob sie den Aufwand wert ist. Ohne

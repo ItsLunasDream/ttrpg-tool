@@ -75,7 +75,7 @@ Ein Eintrag kann Würfel enthalten, und zwar an zwei Stellen:
 ## Beute nach Grad
 
 Der zweite Teil, und der kleinere: „die Gruppe hat einen Grad-7-Gegner
-erledigt, was findet sie?" Dafür gibt es Tabellen im SRD 5.2, und die
+erledigt, was findet sie?" Dafür gibt es Tabellen im SRD 5.2.1, und die
 Lizenzfrage ist beantwortet (siehe `NOTICE.md`).
 
 **Das gehört nach `packages/srd/`, nicht in dieses Werkzeug** — dieselbe

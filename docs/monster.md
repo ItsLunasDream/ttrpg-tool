@@ -62,7 +62,7 @@ dieser Stelle fällt bei einem öffentlichen Repository auf.
 Quellen:
 - [Lazy GM's 5e Monster Builder Resource Document](https://slyflourish.com/lazy_5e_monster_building_resource_document.html)
 - [dieselbe Fassung als Markdown](https://github.com/crit-tech/LGMRD/blob/main/5e_Monster_Builder.md)
-- [SRD 5.2 unter CC-BY](https://www.dndbeyond.com/srd) — enthält Monster, aber nicht das Kapitel zum Monsterbau
+- [SRD 5.2.1 unter CC-BY](https://www.dndbeyond.com/srd) — enthält Monster, aber nicht das Kapitel zum Monsterbau
 
 ## Wie die Prüfung rechnet
 
@@ -482,7 +482,7 @@ aushält.
 2. **Die Eichung ist noch keine echte Eichung.** Die sieben Statblocks
    stammen aus derselben Quelle wie die Richtwerte und liegen deshalb
    bauartbedingt auf der Kurve; dass die Prüfung sie besteht, sagt wenig.
-   Eine belastbare Eichung braucht Monster aus dem SRD 5.2 (CC-BY),
+   Eine belastbare Eichung braucht Monster aus dem SRD 5.2.1 (CC-BY),
    quer über die Grade. Die entsprechenden Seiten waren aus der
    Entwicklungsumgebung nicht erreichbar. Bis das nachgeholt ist, gilt die
    Prüfung als plausibel, nicht als belegt.
