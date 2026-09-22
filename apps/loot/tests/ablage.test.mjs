@@ -126,3 +126,23 @@ test('die SRD-Tabelle ist in beiden Sprachen formal sauber und per Verweis errei
     assert.ok(L.wuerfle(bande, [bande, tand], Math.random).text.length > 5);
   }
 });
+
+test('der Bestand des Magic Item Creators wird zu Tabellen, leere Seltenheiten fehlen', () => {
+  const liste = [
+    { name: 'Klinge des Morgenrots', seltenheit: 'rare' },
+    { name: 'Amulett der Stille', seltenheit: 'rare' },
+    { name: 'Stiefel', seltenheit: 'common' }
+  ];
+  const de = L.gegenstandsTabellen(liste, 'de');
+  assert.deepEqual(de.map((t) => t.name), [
+    'Magische Gegenstände',
+    'Magische Gegenstände (Gewöhnlich)',
+    'Magische Gegenstände (Selten)'
+  ]);
+  assert.deepEqual(de[2].eintraege.map((e) => e.text), ['Amulett der Stille', 'Klinge des Morgenrots']);
+  assert.ok(de.every((t) => L.istGegenstandstabelle(t.id)));
+  // Ein Verweis in einer eigenen Tabelle findet sie, Gross- und Kleinschreibung egal.
+  const truhe = { id: 't', name: 'Truhe', eintraege: [{ text: '[magische gegenstände (selten)]' }] };
+  assert.deepEqual(L.pruefe(truhe, de), []);
+  assert.equal(L.gegenstandsTabellen([], 'en').length, 0);
+});

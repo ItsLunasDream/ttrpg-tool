@@ -40,6 +40,8 @@ export interface LootEmbedOptions {
   readonly onLanguageChange?: (language: string) => void;
   /** Legt eine Notiz im Story Creator an. Fehlt sie, meldet der Export es ehrlich. */
   readonly anlegen?: (titel: string, markdown: string) => Promise<{ ok: boolean; text: string }>;
+  /** Die Gegenstaende des Magic Item Creators, von der Huelle durchgereicht. */
+  readonly gegenstaende?: () => Promise<{ name: string; seltenheit: string }[]>;
 }
 
 export interface LootEmbed {
@@ -214,6 +216,14 @@ export async function mountLoot(options: LootEmbedOptions): Promise<LootEmbed> {
     }
   });
 
+  handle('gegenstaende', async (): Promise<{ name: string; seltenheit: string }[]> => {
+    try {
+      return (await options.gegenstaende?.()) ?? [];
+    } catch {
+      return [];
+    }
+  });
+
   /** Ein Wurf als Notiz in den Story Creator. */
   handle('story', async (_e: never, titel: string, markdown: string): Promise<{ ok: boolean; text: string }> => {
     if (!options.anlegen) return { ok: false, text: 'Der Story Creator ist nicht verfügbar.' };
@@ -250,7 +260,7 @@ export async function mountLoot(options: LootEmbedOptions): Promise<LootEmbed> {
 
 /** Meldet alles ab. Fuer Tests und einen sauberen Abbau. */
 export function unmountLoot(): void {
-  for (const name of ['liste', 'alle', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'story']) {
+  for (const name of ['liste', 'alle', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'story', 'gegenstaende']) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));

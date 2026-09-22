@@ -85,6 +85,11 @@ const TEXTE = {
     'Aus dem SRD 5.2.1, schreibgeschützt. Würfeln geht, ändern nur als Kopie.',
     'From the SRD 5.2.1, read-only. You can roll it; to change it, make a copy.'
   ],
+  'mi.marke': ['Magic Items', 'Magic Items'],
+  'mi.hinweis': [
+    'Aus dem Magic Item Creator. Geändert wird dort; hier nur würfeln oder als eigene Tabelle kopieren.',
+    'From the Magic Item Creator. Edit it there; here you can roll it or copy it as your own table.'
+  ],
   'srd.kopie': ['Als eigene Tabelle kopieren', 'Copy as your own table'],
   'srd.kopieName': ['{name} (Kopie)', '{name} (copy)'],
   'fehler.speichern': ['Konnte nicht speichern: {detail}', 'Could not save: {detail}'],

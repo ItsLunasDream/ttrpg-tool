@@ -17,6 +17,15 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'loot-smoke-'));
 const userData = path.join(tmp, 'userData');
 fs.mkdirSync(userData, { recursive: true });
 
+// Ein Gegenstand im Bestand des Magic Item Creators, bevor irgendetwas
+// startet: der Loot Generator soll ihn als Tabelle anbieten.
+const miOrdner = path.join(userData, 'magicitems', 'gegenstaende');
+fs.mkdirSync(miOrdner, { recursive: true });
+fs.writeFileSync(
+  path.join(miOrdner, 'rauchtest-klinge.md'),
+  '---\nname: Rauchtest-Klinge\nart: waffe\nseltenheit: rare\neinstimmung: nein\nwert: 4000\ngeaendert: 2026-01-01\n---\n## Wirkungen\n\n- Glaenzt.\n'
+);
+
 app.setPath('userData', userData);
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
 
@@ -68,8 +77,15 @@ app.whenReady().then(async () => {
   const dateien = () => (fs.existsSync(ordner) ? fs.readdirSync(ordner).sort() : []);
   pruefe(dateien().length === 3, `beim ersten Start liegen drei Beispiele da (${dateien().join(', ')})`);
   pruefe(
-    (await js("document.querySelectorAll('.tabellenkachel').length")) === 4,
-    'und stehen als Kacheln in der Liste, dazu die Tabelle aus dem SRD'
+    (await js("document.querySelectorAll('.tabellenkachel').length")) === 6,
+    'und stehen als Kacheln in der Liste, dazu SRD und zwei aus dem Magic Item Creator'
+  );
+
+  await js(`document.querySelector('[data-schnell="mi-rare"]').click(); true`);
+  await warte(300);
+  pruefe(
+    (await js("document.querySelector('[data-schnellwurf] .ergebnis__text')?.textContent ?? ''")) === 'Rauchtest-Klinge',
+    'der Bestand des Magic Item Creators ist nach Seltenheit wuerfelbar'
   );
 
   // Die SRD-Tabelle: wuerfelbar, aber schreibgeschuetzt, mit Namensnennung.
@@ -160,7 +176,7 @@ app.whenReady().then(async () => {
   // --- Die Sammlung und die Suche -------------------------------------------
   await js(`[...document.querySelectorAll('button')].find(b => /Zurück zur Liste|Back to the list/.test(b.textContent)).click(); true`);
   await warte(500);
-  pruefe((await js("document.querySelectorAll('.tabellenkachel').length")) === 5, 'die Kachel steht in der Sammlung');
+  pruefe((await js("document.querySelectorAll('.tabellenkachel').length")) === 7, 'die Kachel steht in der Sammlung');
   const eintraege = await hjs('window.shell.suche.eintraege()');
   pruefe(
     (eintraege ?? []).some((e) => e.werkzeug === 'loot' && e.name === 'Rauchtest Truhe'),

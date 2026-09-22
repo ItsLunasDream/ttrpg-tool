@@ -34,7 +34,14 @@ wurde:
 - **Story Creator:** „In den Story Creator" legt den Wurf als Notiz in der
   zuletzt benutzten Kampagne an, mit den beteiligten Tabellen darunter.
 
-Noch offen: Verweise auf den Bestand des Magic Item Creators. Denkbar als
+- **Bestand des Magic Item Creators:** die Hülle reicht Name und Seltenheit
+  der abgelegten Gegenstände durch (die Werkzeuge kennen einander nicht).
+  Daraus werden schreibgeschützte Tabellen „Magische Gegenstände" und je
+  vorhandener Seltenheit „Magische Gegenstände (Selten)" usw., erreichbar
+  per Verweis. Leere Seltenheiten fehlen mit Absicht, damit ein Verweis
+  darauf sichtbar ins Leere zeigt.
+
+Noch offen, denkbar als
 Ersatz für Stufe 4, aber nicht gebaut: die SRD-Tabelle „Starting Equipment
 at Higher Levels" (Gold und magische Gegenstände je Stufenbereich) als
 Richtwert für Beute nach Stufe der Gruppe.

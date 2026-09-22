@@ -88,6 +88,18 @@ export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]>
   }));
 }
 
+/**
+ * Name und Seltenheit aller abgelegten Gegenstaende. Fuer den Loot
+ * Generator, dem die Huelle das durchreicht — die Werkzeuge kennen
+ * einander nicht.
+ */
+export async function leseNamenUndSeltenheit(
+  datenordner: string
+): Promise<{ name: string; seltenheit: string }[]> {
+  const alle = await leseAlle(path.join(datenordner, WERKZEUG, ORDNER_NAME));
+  return alle.map((g) => ({ name: g.name, seltenheit: g.seltenheit }));
+}
+
 export async function mountMagicItems(options: MagicItemsEmbedOptions): Promise<MagicItemsEmbed> {
   const ordner = path.join(options.datenordner, ORDNER_NAME);
   await mkdir(ordner, { recursive: true });

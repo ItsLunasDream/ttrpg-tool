@@ -40,7 +40,7 @@ import { mountMonster } from '../../../monster/src/main/embed';
 import { mountZustaende } from '../../../zustaende/src/main/embed';
 import { mountEncounter } from '../../../encounter/src/main/embed';
 import { mountNachschlagewerk } from '../../../nachschlagewerk/src/main/embed';
-import { mountMagicItems } from '../../../magicitems/src/main/embed';
+import { leseNamenUndSeltenheit, mountMagicItems } from '../../../magicitems/src/main/embed';
 import { mountLoot } from '../../../loot/src/main/embed';
 import type { KiQuelle } from './ki';
 import type { Uebergabe } from '@suite/uebergabe';
@@ -1135,7 +1135,10 @@ async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteA
     onLanguageChange: (language) => haken.onLanguageChange(language as Language),
     // Keine Vorlage kennt einen Typ fuer Gegenstaende; wer sich „item"
     // selbst angelegt hat, bekommt ihn, sonst wird es eine Notiz.
-    anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['item', 'note'], haken)
+    anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['item', 'note'], haken),
+    // Der Bestand des Magic Item Creators, gelesen wie fuer die Suche: die
+    // beiden Werkzeuge kennen einander nicht, die Huelle kennt beide.
+    gegenstaende: () => leseNamenUndSeltenheit(app.getPath('userData'))
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);

@@ -3,3 +3,4 @@ export * from '../src/shared/ablage';
 export * from '../src/shared/beispiele';
 export * from '@suite/tabellen';
 export * from '../src/shared/srd';
+export * from '../src/shared/gegenstaende';

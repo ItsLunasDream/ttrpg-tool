@@ -9,7 +9,7 @@
  *
  * Siehe `docs/loot.md`.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { wuerfle, wuerfleReihe, type Ergebnis } from '@suite/tabellen';
 import { api } from './api';
@@ -26,6 +26,7 @@ import {
   alsKachel
 } from '../shared/ablage';
 import { istSrd, srdTabellen } from '../shared/srd';
+import { gegenstandsTabellen, istGegenstandstabelle } from '../shared/gegenstaende';
 
 /** Was im Bearbeiten-Feld steht. Die Zeilen bleiben Text, bis gespeichert wird. */
 interface Entwurf {
@@ -75,6 +76,11 @@ function alsNotiz(ergebnisse: readonly Ergebnis[]): string {
   return [...ergebnisse.map((e) => `- ${e.text}`), '', `*${[...namen].join(' · ')}*`, ''].join('\n');
 }
 
+/** Eingebaut und schreibgeschuetzt: aus dem SRD oder aus dem Magic Item Creator. */
+function istFest(id: string): boolean {
+  return istSrd(id) || istGegenstandstabelle(id);
+}
+
 /** Irgendwo im Baum etwas, das nicht aufging? */
 function hatFehler(e: Ergebnis): boolean {
   return Boolean(e.fehler) || e.teile.some(hatFehler);
@@ -90,6 +96,7 @@ export function App() {
   const [, neuZeichnen] = useState(0);
   const [kacheln, setKacheln] = useState<readonly Kachel[]>([]);
   const [eigene, setEigene] = useState<readonly Gespeichert[]>([]);
+  const [gegenstaende, setGegenstaende] = useState<readonly { name: string; seltenheit: string }[]>([]);
   const [suche, setSuche] = useState('');
   const [offen, setOffen] = useState<Entwurf | null>(null);
   const [istNeu, setIstNeu] = useState(false);
@@ -99,15 +106,30 @@ export function App() {
   const [schnell, setSchnell] = useState<Ergebnis | null>(null);
   const [meldung, setMeldung] = useState('');
   const [fehler, setFehler] = useState('');
+  // Die eingebauten Tabellen fuer `oeffne`, ohne es bei jedem Sprachwechsel neu zu bauen.
+  const festRef = useRef<readonly Gespeichert[]>([]);
 
   const ladeListe = useCallback(async () => {
-    const [k, a] = await Promise.all([api.sammlung.liste(), api.sammlung.alle()]);
+    const [k, a, g] = await Promise.all([api.sammlung.liste(), api.sammlung.alle(), api.gegenstaende()]);
     setKacheln(k);
     setEigene(a);
+    setGegenstaende(g);
   }, []);
 
   useEffect(() => {
     void ladeListe();
+    // Zurueck im Werkzeug: neu lesen. Im Magic Item Creator kann inzwischen
+    // ein Gegenstand dazugekommen sein, und eine Datei kann von Hand
+    // geaendert worden sein.
+    const auffrischen = () => {
+      if (document.visibilityState === 'visible') void ladeListe();
+    };
+    window.addEventListener('focus', auffrischen);
+    document.addEventListener('visibilitychange', auffrischen);
+    return () => {
+      window.removeEventListener('focus', auffrischen);
+      document.removeEventListener('visibilitychange', auffrischen);
+    };
   }, [ladeListe]);
 
   useEffect(() => {
@@ -121,12 +143,16 @@ export function App() {
   const spr = getLanguage() === 'de' ? 'de' : 'en';
   // Die eingebauten Tabellen in der Sprache der Oberflaeche; ueber sie
   // laufen Verweise wie ueber jede eigene.
-  const srd = useMemo(() => srdTabellen(spr), [spr]);
+  // Dazu der Bestand des Magic Item Creators. Beides schreibgeschuetzt.
+  const srd = useMemo(
+    () => [...srdTabellen(spr), ...gegenstandsTabellen(gegenstaende, spr)],
+    [spr, gegenstaende]
+  );
   const srdKacheln = useMemo(() => srd.map(alsKachel), [srd]);
   const alle = useMemo(() => [...eigene, ...srd], [eigene, srd]);
 
   const oeffne = useCallback(async (id: string) => {
-    const geladen = istSrd(id) ? srdTabellen(getLanguage() === 'de' ? 'de' : 'en').find((s) => s.id === id) : await api.sammlung.lesen(id);
+    const geladen = istFest(id) ? festRef.current.find((f) => f.id === id) : await api.sammlung.lesen(id);
     if (!geladen) {
       setFehler(t('fehler.lesen'));
       return;
@@ -138,6 +164,7 @@ export function App() {
     setMeldung('');
     setFehler('');
   }, []);
+  festRef.current = srd;
 
   useEffect(() => api.beiSuchtreffer((kennung) => void oeffne(kennung)), [oeffne]);
 
@@ -165,7 +192,7 @@ export function App() {
 
   // --- Eine Tabelle ---------------------------------------------------------
   if (offen && aktuell) {
-    const nurLesen = istSrd(offen.id);
+    const nurLesen = istFest(offen.id);
     const setze = (teil: Partial<Entwurf>) => {
       setOffen({ ...offen, ...teil });
       setVeraendert(true);
@@ -310,7 +337,7 @@ export function App() {
           {aktuell.eintraege.length === 0 ? <p className="hinweis">{t('wurf.leer')}</p> : null}
           {nurLesen ? (
             <p className="hinweis hinweis--klein srd-hinweis" data-srd-hinweis>
-              {t('srd.hinweis')} {NAMENSNENNUNG[spr]}
+              {istSrd(offen.id) ? `${t('srd.hinweis')} ${NAMENSNENNUNG[spr]}` : t('mi.hinweis')}
             </p>
           ) : null}
           {ergebnisse.length > 0 ? (
@@ -487,7 +514,9 @@ export function App() {
               <button type="button" className="tabellenkachel" data-id={k.id} onClick={() => void oeffne(k.id)}>
                 <span className="tabellenkachel__name">
                   {k.name}
-                  {istSrd(k.id) ? <span className="marke-srd"> {t('srd')}</span> : null}
+                  {istFest(k.id) ? (
+                    <span className="marke-srd"> {istSrd(k.id) ? t('srd') : t('mi.marke')}</span>
+                  ) : null}
                 </span>
                 <span className="tabellenkachel__zahl">
                   {k.wuerfel || t('kachel.gleich')} · {t('kachel.eintraege', { anzahl: k.anzahl })}
