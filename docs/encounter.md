@@ -96,9 +96,15 @@ Schwelle ist schlimmer als gar keine: sie sieht aus wie eine Auskunft.
 Der gangbare Weg ist derselbe wie beim Monster Creator: **eine Quelle mit
 Lizenz suchen, die Zahlen von dort nehmen, und sie im Über-Dialog nennen.**
 Der Monster Creator macht das bereits mit den Richtwerten je Grad (Lazy
-GM's 5e Monster Builder Resource Document, CC-BY-4.0). Wenn dieselbe oder
-eine vergleichbare Quelle Begegnungsschwellen führt, ist die Frage
-beantwortet.
+GM's 5e Monster Builder Resource Document, CC-BY-4.0).
+
+**Diese Frage ist inzwischen beantwortet.** Das SRD 5.2 steht unter
+CC-BY-4.0, und die Zahlen dürfen mit der vorgeschriebenen Namensnennung
+übernommen werden (siehe `NOTICE.md`). Sie gehören nach `packages/srd/`,
+zusammen mit dem, was das Nachschlagewerk und der Magic Item Creator
+brauchen — siehe `docs/nachschlagewerk.md`. Was bleibt, ist Fleißarbeit:
+die Tabellen aus dem Dokument sauber herausholen und gegenlesen. **Der Bau
+ist damit nicht mehr blockiert.**
 
 Bis dahin gibt es eine zweitbeste Lösung, die ehrlich bleibt: **die Summe
 der Grade gegen die Gruppenstärke stellen und das Ergebnis als Verhältnis
@@ -153,12 +159,12 @@ darunter. Eine Sammlung mit Kacheln und Suche, dieselbe Handhabung wie
 
 ## Zu klären
 
-- **Woher die Schwierigkeitszahlen kommen dürfen.** Siehe oben. Dies ist
-  die einzige Frage, die den Bau wirklich blockiert; alles andere lässt
-  sich ohne sie anfangen.
-- **Ob eine mitgelieferte Monsterliste dazukommt.** Dieselbe Lizenzfrage.
-  Ohne sie ist das Werkzeug nur für den brauchbar, der schon Monster gebaut
-  hat — das ist eine echte Einschränkung, aber keine, die den Anfang
+- ~~**Woher die Schwierigkeitszahlen kommen dürfen.**~~ Geklärt: SRD 5.2
+  unter CC-BY-4.0, mit wörtlicher Namensnennung. Siehe oben und `NOTICE.md`.
+- **Ob eine mitgelieferte Monsterliste dazukommt.** Lizenzrechtlich jetzt
+  ebenfalls erlaubt; offen ist nur noch, ob sie den Aufwand wert ist. Ohne
+  sie ist das Werkzeug nur für den brauchbar, der schon Monster gebaut hat
+  — das ist eine echte Einschränkung, aber keine, die den Anfang
   verhindert.
 - **Ob die Gruppe aus einer Kampagne kommen kann.** Siehe oben; erste
   Fassung ohne.
@@ -178,8 +184,8 @@ darunter. Eine Sammlung mit Kacheln und Suche, dieselbe Handhabung wie
    Sorten sichtbar.
 4. **In den Tracker.** Teilnehmer und Terrain in einem Zug, mit der
    Rückfrage bei laufendem Kampf.
-5. **Schwierigkeit.** Erst das Verhältnis, später die Skala — abhängig
-   davon, was die Lizenzfrage ergibt.
+5. **Schwierigkeit.** Erst das Verhältnis, später die Skala mit den Zahlen
+   aus `packages/srd/`.
 
-Stufe 4 ist der Punkt, ab dem sich das Werkzeug lohnt. Stufe 5 macht es
-gut, aber wartet auf eine Antwort, die ich noch nicht habe.
+Stufe 4 ist der Punkt, ab dem sich das Werkzeug lohnt. Stufe 5 macht es gut
+und wartet auf nichts mehr — nur darauf, dass jemand die Tabellen erfasst.

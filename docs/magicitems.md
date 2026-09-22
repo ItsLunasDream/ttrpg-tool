@@ -87,12 +87,19 @@ derselbe mit — er kostet nichts, was die Figur sonst bräuchte.
 
 ## Zu klären
 
-- **Woher die Vergleichsgegenstände kommen dürfen.** Dieselbe Lizenzfrage
-  wie bei den Richtwerten im Monster Creator. Was aus einer CC-BY-Quelle
-  stammt, darf hinein, mit Namensnennung im Über-Dialog. Ohne
-  Vergleichsgegenstände gibt es keine Eichung, und ohne Eichung ist die
-  Skala eine Behauptung — **diese Frage blockiert den interessanten Teil des
-  Werkzeugs, nicht aber den Rest.**
+- ~~**Woher die Vergleichsgegenstände kommen dürfen.**~~ Geklärt: das
+  SRD 5.2 steht unter CC-BY-4.0, die Gegenstände dürfen mit der wörtlich
+  vorgeschriebenen Namensnennung hinein (`NOTICE.md`). Sie gehören nach
+  `packages/srd/`, gemeinsam mit dem Bestand für das Nachschlagewerk
+  (`docs/nachschlagewerk.md`) und den Schwierigkeitszahlen des Encounter
+  Creators.
+
+  **Die Lizenz war aber nie der eigentliche Engpass.** Name, Seltenheit,
+  Art, Einstimmung und Preis eichen nichts — sie sagen „Amulet of Health
+  ist Rare", nicht warum. Für die Skala muss jeder Vergleichsgegenstand auf
+  *unseren* Achsen eingeordnet werden, und das ist Handarbeit, die keine
+  Lizenz abnimmt. Dreißig bis fünfzig eingeordnete Gegenstände tragen die
+  Skala; das sind Stunden, kein Import.
 - **Welche Art Gegenstand.** Waffe, Rüstung, Wundersames, Trank, Schriftrolle.
   Davon hängt ab, was überhaupt einstellbar ist — eine Waffe hat einen
   Schadensbonus, ein Trank nicht.
