@@ -665,3 +665,169 @@ body {
 .umgebungskachel--wurf {
   border-style: dashed;
 }
+
+/* ==========================================================================
+   Der Monsterkatalog
+   ========================================================================== */
+
+.katalog__filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.katalog__suche {
+  flex: 1 1 200px;
+}
+
+.katalog__grad {
+  width: auto;
+}
+
+.katalog__quelle {
+  display: inline-flex;
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.katalog__quelle button {
+  background: var(--grund-hoch);
+  border: 0;
+  color: var(--text-leise);
+  padding: 6px 10px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.katalog__quelle button.is-an {
+  background: var(--betont-leise);
+  color: var(--text);
+}
+
+.katalog__haken {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-leise);
+}
+
+.katalog__tabelle {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.katalog__tabelle th {
+  text-align: left;
+  border-bottom: 1px solid var(--rand);
+  padding: 0;
+}
+
+.katalog__tabelle td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--lasur);
+}
+
+.katalog__sortierer {
+  background: none;
+  border: 0;
+  color: var(--text-leise);
+  font: inherit;
+  font-weight: 600;
+  padding: 6px;
+  cursor: pointer;
+}
+
+.katalog__zahl {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.katalog__name {
+  background: none;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.katalog__name:disabled {
+  cursor: default;
+}
+
+.katalog__name:not(:disabled):hover {
+  text-decoration: underline;
+}
+
+.katalog__marke {
+  margin-left: 6px;
+  color: var(--betont);
+  font-size: 11px;
+}
+
+.katalog__marke--eigen {
+  border: 1px solid var(--rand);
+  border-radius: 4px;
+  padding: 0 4px;
+  color: var(--text-leise);
+}
+
+.katalog__dazu {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 6px;
+  color: var(--text);
+  width: 26px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.katalog__dazu:hover {
+  border-color: var(--betont);
+  color: var(--betont);
+}
+
+.katalog__zeile.is-offen td {
+  background: var(--lasur);
+}
+
+.katalog__unsichtbar {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.wertekasten {
+  padding: 8px 4px 12px;
+  line-height: 1.45;
+}
+
+.wertekasten p {
+  margin: 0 0 4px;
+}
+
+.wertekasten__art {
+  font-style: italic;
+  color: var(--text-leise);
+}
+
+.wertekasten__attribute {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 6px 0;
+}
+
+.wertekasten__abschnitt h5 {
+  margin: 10px 0 4px;
+  font-size: 13px;
+  color: var(--betont);
+  border-bottom: 1px solid var(--rand);
+}

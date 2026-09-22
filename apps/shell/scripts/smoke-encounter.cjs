@@ -166,51 +166,84 @@ app.whenReady().then(async () => {
   pruefe(/Die Bruecke bricht in Runde 3\./.test(aufDerPlatte), 'die Notiz steht in der Datei');
   pruefe(/^---/.test(aufDerPlatte) && /name: /.test(aufDerPlatte), 'mit Kopfzahlen darueber');
 
-  // --- Monster aus der eigenen Sammlung ------------------------------------
+  // --- Der Monsterkatalog --------------------------------------------------
   //
-  // Sie liegen schon auf der Platte, ohne dass der Monster Creator in
-  // dieser Sitzung offen war. Genau das ist der Grundsatz: die Werkzeuge
-  // treffen sich ueber Dateien, nicht ueber einen Kanal.
-  pruefe(
-    (await js("document.querySelectorAll('.monsterzeile').length")) === 1,
-    'das Monster aus der Sammlung steht zur Auswahl'
-  );
-  pruefe(
-    /Bounty Hounter/.test(await js("document.querySelector('.monsterzeile')?.textContent ?? ''")),
-    'und zwar mit seinem Namen'
-  );
-
-  // Suchen: Teilwort, Thema, Grad.
-  for (const [wort, erwartet] of [
-    ['bounty', 1],
-    ['untot', 1],
-    ['cr 5', 1],
-    ['drache', 0]
-  ]) {
-    await js(`(() => {
-      const feld = document.querySelector('input[type=search]');
-      const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-      setzer.call(feld, ${JSON.stringify(wort)});
-      feld.dispatchEvent(new Event('input', { bubbles: true }));
-      return true;
-    })()`);
-    await warte(250);
-    const treffer = await js("document.querySelectorAll('.monsterzeile').length");
-    pruefe(treffer === erwartet, `„${wort}" findet ${erwartet} (${treffer})`);
-  }
-
-  // Zweimal dazu ergibt Anzahl 2, nicht zwei Zeilen.
-  await js(`(() => {
-    const feld = document.querySelector('input[type=search]');
+  // Die eigenen Monster liegen schon auf der Platte, ohne dass der Monster
+  // Creator in dieser Sitzung offen war: die Werkzeuge treffen sich ueber
+  // Dateien. Daneben stehen die offiziellen aus dem SRD.
+  const tippe = (wert) => js(`(() => {
+    const feld = document.querySelector('.katalog__suche');
     const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-    setzer.call(feld, '');
+    setzer.call(feld, ${JSON.stringify(wert)});
     feld.dispatchEvent(new Event('input', { bubbles: true }));
     return true;
   })()`);
+  const zeilen = () => js("document.querySelectorAll('.katalog__zeile').length");
+  const anzahlText = () => js("document.querySelector('.katalog .anzahl')?.textContent ?? ''");
+
+  pruefe(/33[12]/.test(await anzahlText()), `der Katalog fuehrt SRD und eigene (${await anzahlText()})`);
+
+  await js(`document.querySelector('[data-quelle="eigen"]').click(); true`);
   await warte(250);
-  await js("document.querySelector('.monsterzeile').click(); true");
+  pruefe((await zeilen()) === 1, 'nur eigene: das Monster aus der Sammlung');
+  pruefe(
+    /Bounty Hounter/.test(await js("document.querySelector('.katalog__zeile')?.textContent ?? ''")),
+    'und zwar mit seinem Namen'
+  );
+  for (const [wort, erwartet] of [
+    ['bounty', 1],
+    ['untot', 1],
+    ['drache', 0]
+  ]) {
+    await tippe(wort);
+    await warte(250);
+    const treffer = await zeilen();
+    pruefe(treffer === erwartet, `„${wort}" findet ${erwartet} (${treffer})`);
+  }
+  await tippe('');
   await warte(250);
-  await js("document.querySelector('.monsterzeile').click(); true");
+
+  // Offiziell: Typ, legendaer, Sortierung nach Grad.
+  await js(`document.querySelector('[data-quelle="srd"]').click(); true`);
+  await warte(300);
+  pruefe(/331/.test(await anzahlText()), `offiziell sind es 331 (${await anzahlText()})`);
+  await js(`(() => {
+    const wahl = document.querySelector('select[data-filter="typ"]');
+    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    setzer.call(wahl, 'dragon');
+    wahl.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  await js(`document.querySelector('input[data-filter="legendaer"]').click(); true`);
+  await warte(300);
+  const drachen = await zeilen();
+  pruefe(
+    drachen > 5 && (await js("[...document.querySelectorAll('.katalog__zeile')].every(z => z.textContent.includes('★'))")),
+    `Typ und legendaer filtern (${drachen} legendaere Drachen)`
+  );
+  await js(`document.querySelector('[data-sortiere="hg"]').click(); true`);
+  await warte(250);
+  const oberster = await js("document.querySelector('.katalog__zeile td:nth-child(3)')?.textContent");
+  pruefe(oberster === '24', `nach Grad sortiert steht der staerkste oben (HG ${oberster})`);
+  await js(`document.querySelector('.katalog__zeile .katalog__name').click(); true`);
+  await warte(250);
+  const blatt = await js("document.querySelector('.wertekasten')?.textContent ?? ''");
+  pruefe(/Legendary Actions|Legendäre Aktionen/.test(blatt), 'ein Klick auf den Namen zeigt den ganzen Wertekasten');
+
+  // Zurueck auf die eigenen; zweimal dazu ergibt Anzahl 2, nicht zwei Zeilen.
+  await js(`document.querySelector('input[data-filter="legendaer"]').click(); true`);
+  await js(`(() => {
+    const wahl = document.querySelector('select[data-filter="typ"]');
+    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    setzer.call(wahl, '');
+    wahl.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  await js(`document.querySelector('[data-quelle="eigen"]').click(); true`);
+  await warte(300);
+  await js("document.querySelector('.katalog__dazu').click(); true");
+  await warte(250);
+  await js("document.querySelector('.katalog__dazu').click(); true");
   await warte(350);
   pruefe(
     (await js("document.querySelectorAll('.gegnerzeile').length")) === 1,

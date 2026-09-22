@@ -10,3 +10,4 @@ export {
   schreibeGruppe
 } from '../src/shared/schwierigkeit';
 export { punktsumme, ordneEin } from '../src/shared/schwierigkeit';
+export * from '../src/shared/katalog';

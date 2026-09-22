@@ -6,7 +6,8 @@
   "description": "Alles, was aus dem SRD 5.2.1 kommt, an einer Stelle — zweisprachig und plattformfrei",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./monster": "./src/monster.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

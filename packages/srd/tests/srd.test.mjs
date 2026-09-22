@@ -145,3 +145,51 @@ test('weit ueber dem hohen Budget ist eine eigene Antwort, nicht „hoch"', () =
 test('ohne Gruppe gibt es keine Einordnung', () => {
   assert.equal(S.einordnung(1000, []), null);
 });
+
+test('die Monster: 331, jedes in beiden Sprachen, eindeutig', () => {
+  assert.equal(S.SRD_MONSTER.length, 331);
+  const ids = S.SRD_MONSTER.map((m) => m.id);
+  assert.equal(new Set(ids).size, ids.length);
+  for (const m of S.SRD_MONSTER) {
+    assert.ok(m.name.de && m.name.en, m.id);
+    assert.equal(m.attribute.length, 6, m.id);
+    assert.ok(m.rk >= 5 && m.rk <= 25, `${m.id} RK ${m.rk}`);
+    assert.ok(m.tp >= 1, m.id);
+    assert.ok(S.KREATURENTYPEN[m.typ], `${m.id} Typ ${m.typ}`);
+  }
+});
+
+test('die Erfahrungspunkte eines Monsters passen zu seinem Grad', () => {
+  // Eine Gegenprobe der Auslese: EP und HG stehen in derselben Zeile, die
+  // Tabelle der EP je Grad kommt aus einem anderen Kapitel.
+  //
+  // Zwei bekannte Abweichungen, beide so im Dokument selbst:
+  // - Grad 0 gibt 0 EP bei Wesen ohne Angriff (das Regelwerk sagt „0 oder 10").
+  // - Der Archmage steht mit 8.000 EP da, die Tabelle nennt fuer Grad 12
+  //   8.400 — in beiden Sprachfassungen gleich. Uebernommen wird, was im
+  //   Wertekasten steht; dieser Test haelt fest, dass es der einzige Fall ist.
+  const falsch = S.SRD_MONSTER.filter(
+    (m) => S.epFuerGrad(m.hg) !== m.ep && !(m.hg === '0' && m.ep === 0)
+  ).map((m) => `${m.id}: HG ${m.hg}, ${m.ep} EP`);
+  assert.deepEqual(falsch, ['archmage: HG 12, 8000 EP']);
+});
+
+test('legendaere Monster haben einen Abschnitt dafuer, die anderen nicht', () => {
+  for (const m of S.SRD_MONSTER) {
+    assert.equal(m.legendaer, m.abschnitte.some((a) => a.id === 'legendaer'), m.id);
+  }
+  assert.ok(S.SRD_MONSTER.filter((m) => m.legendaer).length > 20);
+});
+
+test('kein Wertekasten traegt Reste der Auslese', () => {
+  for (const m of S.SRD_MONSTER) {
+    for (const a of m.abschnitte) {
+      for (const e of a.eintraege) {
+        for (const t of [e.name.de, e.name.en, e.text.de, e.text.en]) {
+          assert.ok(!/­|System Reference Document|Systemreferenzdokument/.test(t), `${m.id}: ${t.slice(0, 50)}`);
+        }
+        assert.ok(e.name.de && e.name.en, `${m.id}: Eintrag ohne Namen`);
+      }
+    }
+  }
+});

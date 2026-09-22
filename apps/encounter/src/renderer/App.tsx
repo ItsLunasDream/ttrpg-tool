@@ -19,7 +19,9 @@ import {
   type Begegnung,
   type Eintrag
 } from '../shared/ablage';
-import { findeMonster, type Monsterkarte } from '../shared/monsterliste';
+import type { Monsterkarte } from '../shared/monsterliste';
+import { eigeneKarten, srdKarten, type Katalogkarte } from '../shared/katalog';
+import { Katalog } from './Katalog';
 import {
   UMGEBUNGEN,
   anblickzeilen,
@@ -57,7 +59,6 @@ export function App() {
   const [meldung, setMeldung] = useState('');
   const [fehler, setFehler] = useState('');
   const [monster, setMonster] = useState<readonly Monsterkarte[]>([]);
-  const [monstersuche, setMonstersuche] = useState('');
 
   const ladeListe = useCallback(async () => {
     setEintraege(await api.sammlung.liste());
@@ -116,6 +117,17 @@ export function App() {
         })();
       }),
     []
+  );
+
+  /*
+   * Alle Monster, die eine Begegnung kennen kann: die offiziellen und die
+   * eigenen. Nachgeschlagen wird jeder Gegner hier, gleich woher er kommt.
+   */
+  const karten = useMemo<readonly Katalogkarte[]>(
+    () => [...srdKarten(sprache()), ...eigeneKarten(monster)],
+    // Die Sprache aendert die Namen der offiziellen Monster.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [monster, getLanguage()]
   );
 
   const gefunden = useMemo(
@@ -182,13 +194,15 @@ export function App() {
       name: nameVon(offen),
       quelle: offen.id,
       gegner: offen.gegner.map((einer) => {
-        const karte = monster.find((m) => m.id === einer.monsterId);
+        const karte = karten.find((m) => m.id === einer.monsterId);
         return {
           name: einer.name,
           anzahl: einer.anzahl,
           tp: karte?.tp ?? 0,
           rk: karte?.rk ?? 0,
-          iniMod: modifikator(karte?.ge ?? 10)
+          // Das SRD nennt den Zuschlag selbst; eigene Monster haben nur
+          // die Geschicklichkeit.
+          iniMod: karte?.ini ?? modifikator(karte?.ge ?? 10)
         };
       }),
       umgebung: umgebung
@@ -277,7 +291,7 @@ export function App() {
                  * die Begegnung Wochen spaeter aufmacht, soll sehen, was
                  * fehlt, statt sich zu wundern, warum sie duenner ist.
                  */
-                const gibtEs = monster.some((m) => m.id === einer.monsterId);
+                const gibtEs = karten.some((m) => m.id === einer.monsterId);
                 return (
                   <li
                     key={einer.monsterId || einer.name}
@@ -328,73 +342,33 @@ export function App() {
           )}
 
           <Klappe id="sammlung" titel={t('monster.titel')}>
-          {monster.length === 0 ? (
-            <p className="hinweis">{t('monster.leer')}</p>
-          ) : (
-            <>
-              <input
-                className="feld__eingabe"
-                type="search"
-                value={monstersuche}
-                placeholder={t('monster.suche')}
-                aria-label={t('monster.suche')}
-                onChange={(e) => setMonstersuche(e.target.value)}
-              />
-              {findeMonster(monster, monstersuche).length === 0 ? (
-                <p className="hinweis">{t('monster.nichts')}</p>
-              ) : (
-                <ul className="monsterliste">
-                  {findeMonster(monster, monstersuche).map((einer) => (
-                    <li key={einer.id}>
-                      <button
-                        type="button"
-                        className="monsterzeile"
-                        data-monster={einer.id}
-                        onClick={() => {
-                          /*
-                           * Zweimal dasselbe Monster ist keine zweite Zeile,
-                           * sondern eine hoehere Anzahl. „3x Wolf" ist der
-                           * Normalfall, drei Zeilen „Wolf" waeren Rauschen.
-                           */
-                          const schon = offen.gegner.find((g) => g.monsterId === einer.id);
-                          setOffen({
-                            ...offen,
-                            gegner: schon
-                              ? offen.gegner.map((g) =>
-                                  g.monsterId === einer.id
-                                    ? { ...g, anzahl: Math.min(99, g.anzahl + 1) }
-                                    : g
-                                )
-                              : [
-                                  ...offen.gegner,
-                                  { monsterId: einer.id, name: einer.name, anzahl: 1 }
-                                ]
-                          });
-                        }}
-                      >
-                        <span className="monsterzeile__name">{einer.name}</span>
-                        <span className="monsterzeile__grad">
-                          {t('monster.grad', { cr: einer.cr || '?' })}
-                        </span>
-                        <span className="monsterzeile__werte">
-                          {t('monster.werte', { tp: einer.tp, rk: einer.rk })}
-                        </span>
-                        <span className="monsterzeile__dazu">+ {t('monster.dazu')}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
-          )}
-
+            <Katalog
+              karten={karten}
+              sprache={sprache()}
+              dazu={(einer) => {
+                /*
+                 * Zweimal dasselbe Monster ist keine zweite Zeile, sondern
+                 * eine hoehere Anzahl. „3x Wolf" ist der Normalfall, drei
+                 * Zeilen „Wolf" waeren Rauschen.
+                 */
+                const schon = offen.gegner.find((g) => g.monsterId === einer.id);
+                setOffen({
+                  ...offen,
+                  gegner: schon
+                    ? offen.gegner.map((g) =>
+                        g.monsterId === einer.id ? { ...g, anzahl: Math.min(99, g.anzahl + 1) } : g
+                      )
+                    : [...offen.gegner, { monsterId: einer.id, name: einer.name, anzahl: 1 }]
+                });
+              }}
+            />
           </Klappe>
 
           <Klappe id="gruppe" titel={t('gruppe.titel')} zusatz={gruppeKurz(gruppe)}>
             <Gruppenfeld gruppe={gruppe} setze={(neu) => void setzeGruppe(neu)} />
           </Klappe>
 
-          <Verhaeltnis offen={offen} monster={monster} gruppe={gruppe} />
+          <Verhaeltnis offen={offen} monster={karten} gruppe={gruppe} />
 
           <Klappe
             id="umgebung"

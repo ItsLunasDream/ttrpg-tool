@@ -61,6 +61,13 @@ erkennbar sind. **Für die erste Fassung: eigene Einstellung.**
 
 ### Die Monster
 
+**Stand:** Ein Katalog führt die 331 Monster des SRD 5.2.1 (beide Sprachen,
+aus `@suite/srd/monster`) und die eigenen aus dem Monster Creator in einer
+Tabelle. Filter: Quelle (alle, offiziell, eigene), Typ, HG von–bis, nur
+legendäre; sortierbar nach Name, Typ, HG, TP und RK. Ein Klick auf den Namen
+zeigt den ganzen Wertekasten. Offizielle Monster tragen die Kennung
+`srd:<id>` in der Begegnung.
+
 Zwei Quellen, und die Reihenfolge ist Absicht:
 
 1. **Die eigene Sammlung** aus dem Monster Creator. Das ist der Punkt, den
