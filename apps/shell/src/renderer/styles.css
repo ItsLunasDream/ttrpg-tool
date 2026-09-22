@@ -183,10 +183,17 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /*
+   * Mittig, solange es passt; sonst von oben. `center` allein schneidet bei
+   * zu wenig Hoehe oben ab, und der abgeschnittene Teil ist nicht mehr
+   * erreichbar — mit den Gruppen ist das Menue hoch genug, dass der Fall
+   * vorkommt.
+   */
+  justify-content: safe center;
   padding: 24px;
   gap: 4px;
   min-height: 0;
+  overflow-y: auto;
 }
 
 .menue__frage {
@@ -204,6 +211,38 @@ body {
   color: var(--text-leise);
   font-size: 12px;
   margin: 28px 0 0;
+}
+
+/*
+ * Die Gruppen nach Rolle am Tisch.
+ *
+ * Der Abstand zwischen ihnen ist groesser als der zwischen den Kacheln —
+ * sonst saehe man zwei Ueberschriften und trotzdem eine Wand.
+ *
+ * Das Menue rollt jetzt womoeglich: neun Kacheln in zwei Gruppen mit
+ * Ueberschriften brauchen mehr Hoehe als neun in einem Raster. Deshalb
+ * `justify-content: center` nur so lange, wie es passt — darueber beginnt
+ * es oben.
+ */
+.menue__gruppe {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.menue__gruppe + .menue__gruppe {
+  margin-top: 32px;
+}
+
+.menue__gruppenname {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-leise);
+  margin: 0;
 }
 
 .kacheln {

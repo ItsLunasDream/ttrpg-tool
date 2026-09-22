@@ -114,6 +114,32 @@ app.whenReady().then(async () => {
     ),
     'jede Kachel hat ein Symbol'
   );
+
+  /*
+   * Die Kacheln stehen in Gruppen nach Rolle am Tisch.
+   *
+   * Geprueft wird nicht nur, DASS es Ueberschriften gibt, sondern dass
+   * zusammen wieder alle Kacheln herauskommen. Eine Kachel, die in keiner
+   * Gruppe landet, waere von der Startseite verschwunden — und das faellt
+   * an einer blossen Zahl nicht auf.
+   */
+  pruefe(
+    (await js("document.querySelectorAll('.menue__gruppenname').length")) === 2,
+    `zwei Gruppen auf der Kachelseite (${await js("document.querySelectorAll('.menue__gruppenname').length")})`
+  );
+  const inGruppen = await js("document.querySelectorAll('.menue__gruppe .kachel').length");
+  const alleKacheln = await js("document.querySelectorAll('.kachel').length");
+  pruefe(
+    inGruppen === alleKacheln,
+    `jede Kachel steht in einer Gruppe (${inGruppen} von ${alleKacheln})`
+  );
+  const gruppen = await js(
+    "[...document.querySelectorAll('.menue__gruppe')].map((g) => g.querySelectorAll('.kachel').length)"
+  );
+  pruefe(
+    gruppen.every((zahl) => zahl > 0),
+    `keine leere Gruppe (${gruppen.join(', ')})`
+  );
   pruefe((await js("document.querySelectorAll('.fensterknopf').length")) === 3, 'drei Fensterknoepfe');
   // Die Schiene erscheint erst, wenn ein Werkzeug gewaehlt ist.
   pruefe(!(await js("Boolean(document.querySelector('.schiene'))")), 'keine Schiene im Startmenue');
@@ -340,7 +366,16 @@ app.whenReady().then(async () => {
   );
   pruefe(markeVorher.startsWith('translateY('), `der Marker der Schiene steht (${markeVorher})`);
 
-  const kartenEintrag = "[...document.querySelectorAll('.schiene__eintrag')][1]";
+  /*
+   * Ueber den Namen und nicht ueber die Stelle in der Schiene.
+   *
+   * Hier stand `[...][1]`. Das hielt, solange der Karteneditor der zweite
+   * Eintrag war — bis die Kacheln nach Rolle am Tisch sortiert wurden und
+   * an der Stelle die Wuerfel standen. Der Test suchte dann eine
+   * Zeichenflaeche im Wuerfelwerkzeug und meldete sie als fehlend.
+   */
+  const kartenEintrag =
+    "[...document.querySelectorAll('.schiene__eintrag')].find((e) => /Map|Karten/i.test(e.textContent))";
   if (await js(`Boolean(${kartenEintrag})`)) {
     await js(`${kartenEintrag}.click()`);
     // PixiJS baut seinen Renderer auf, das dauert.
@@ -406,7 +441,7 @@ app.whenReady().then(async () => {
       // Hin und her: beide bleiben geladen, keine wird neu aufgebaut.
       await js("document.querySelector('.schiene__eintrag').click()");
       await warte(1500);
-      await js("[...document.querySelectorAll('.schiene__eintrag')][1].click()");
+      await js(`${kartenEintrag}.click()`);
       await warte(1500);
       pruefe(
         fenster.contentView.children.length === 3,

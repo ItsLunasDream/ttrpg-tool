@@ -17,6 +17,8 @@ const en = {
 
   'menu.question': 'What would you like to work on?',
   'menu.hint': 'Everything lives in the same place. Switch any time, nothing gets lost.',
+  'menu.groupGm': 'For running the game',
+  'menu.groupAll': 'For everyone at the table',
   'menu.version': 'Version {version}',
 
   'verlauf.zurueck': 'Back',
@@ -154,6 +156,8 @@ const de: Partial<Record<MessageKey, string>> = {
 
   'menu.question': 'Womit möchtest du arbeiten?',
   'menu.hint': 'Alles liegt im selben Speicherort. Wechseln geht jederzeit, nichts geht dabei verloren.',
+  'menu.groupGm': 'Zum Leiten',
+  'menu.groupAll': 'Für alle am Tisch',
   'menu.version': 'Fassung {version}',
 
   'verlauf.zurueck': 'Zurück',

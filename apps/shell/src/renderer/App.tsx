@@ -11,7 +11,18 @@
  * oder weil es sich nicht oeffnen liess.
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { APPS, CHROME, STATUS_KEY, descriptionKey, findApp, istWaehlbar, nameKey } from '../shared/apps';
+import {
+  APPS,
+  CHROME,
+  ROLLEN,
+  ROLLE_KEY,
+  STATUS_KEY,
+  appsMitRolle,
+  descriptionKey,
+  findApp,
+  istWaehlbar,
+  nameKey
+} from '../shared/apps';
 import {
   DEFAULT_LANGUAGE,
   translate,
@@ -763,31 +774,60 @@ function Startmenue({
       <h1 className="menue__frage">{t('menu.question')}</h1>
       <p className="menue__hinweis">{t('menu.hint')}</p>
 
-      <div className="kacheln">
-        {APPS.map((app, nummer) => {
-          const waehlbar = istWaehlbar(app.status);
+      {/*
+        Nach Rolle am Tisch gruppiert statt alle neun nebeneinander.
+        Neun Kacheln in einer Reihe sind eine Wand; in zwei benannten
+        Gruppen findet man, was man sucht, ohne jedes Mal alle zu lesen.
+
+        Eine Sortierung, keine Sperre: jede Kachel bleibt anklickbar, und
+        wer als Spielleitung am Story Creator schreibt, findet ihn da, wo
+        er immer war.
+
+        Die Verzoegerung laeuft ueber alle Gruppen hinweg weiter — sonst
+        finge die zweite Gruppe wieder bei null an und die Seite baute sich
+        zweimal auf.
+      */}
+      {(() => {
+        let nummer = -1;
+        return ROLLEN.map((rolle) => {
+          const gruppe = appsMitRolle(rolle);
+          if (gruppe.length === 0) return null;
           return (
-            <button
-              key={app.id}
-              type="button"
-              className={`kachel kachel--${app.status} motion-eintritt`}
-              // Gestaffelt, damit das Menue sich aufbaut statt aufzublitzen.
-              // Kurz gehalten: die letzte Kachel darf nicht spuerbar spaeter
-              // da sein als die erste, sonst wartet man auf sie.
-              style={{ animationDelay: `${nummer * 35}ms` }}
-              disabled={!waehlbar}
-              onClick={(ereignis) => setAktiv(app.id, ereignis.currentTarget.getBoundingClientRect())}
-            >
-              <span className="kachel__icon">
-                <AppSymbol id={app.id} size={64} bild={symbole[app.id]} />
-              </span>
-              <span className="kachel__name">{t(nameKey(app.id))}</span>
-              <span className="kachel__text">{t(descriptionKey(app.id))}</span>
-              <span className="kachel__marke">{t(STATUS_KEY[app.status])}</span>
-            </button>
+            <section className="menue__gruppe" key={rolle}>
+              <h2 className="menue__gruppenname">{t(ROLLE_KEY[rolle])}</h2>
+              <div className="kacheln">
+                {gruppe.map((app) => {
+                  const waehlbar = istWaehlbar(app.status);
+                  nummer += 1;
+                  return (
+                    <button
+                      key={app.id}
+                      type="button"
+                      className={`kachel kachel--${app.status} motion-eintritt`}
+                      // Gestaffelt, damit das Menue sich aufbaut statt
+                      // aufzublitzen. Kurz gehalten: die letzte Kachel darf
+                      // nicht spuerbar spaeter da sein als die erste, sonst
+                      // wartet man auf sie.
+                      style={{ animationDelay: `${nummer * 35}ms` }}
+                      disabled={!waehlbar}
+                      onClick={(ereignis) =>
+                        setAktiv(app.id, ereignis.currentTarget.getBoundingClientRect())
+                      }
+                    >
+                      <span className="kachel__icon">
+                        <AppSymbol id={app.id} size={64} bild={symbole[app.id]} />
+                      </span>
+                      <span className="kachel__name">{t(nameKey(app.id))}</span>
+                      <span className="kachel__text">{t(descriptionKey(app.id))}</span>
+                      <span className="kachel__marke">{t(STATUS_KEY[app.status])}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
           );
-        })}
-      </div>
+        });
+      })()}
 
       {version && <p className="menue__version">{t('menu.version', { version })}</p>}
     </main>
