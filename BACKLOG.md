@@ -120,7 +120,7 @@ zufällig gleich, deshalb fällt es nicht auf.
 - Die Eichung der Monsterprüfung läuft gegen sieben Statblocks aus derselben
   CC-BY-Quelle wie die Richtwerte. Die liegen bauartbedingt auf der Kurve, das
   Bestehen sagt also wenig. Eine belastbare Eichung bräuchte Monster aus dem
-  SRD 5.2 quer über die Grade; die Quellen waren aus der Entwicklungsumgebung
+  SRD 5.2.1 quer über die Grade; die Quellen waren aus der Entwicklungsumgebung
   nicht erreichbar
 
 ## Erledigt
@@ -1673,7 +1673,7 @@ Vergleichsgegenständen für die Eichung, der Encounter Creator an den
 Schwierigkeitszahlen. Beide standen mit „das darf ich vielleicht nicht
 benutzen" auf der Bremse.
 
-**Das SRD 5.2 steht unter CC-BY-4.0.** Die Namensnennung ist wörtlich
+**Das SRD 5.2.1 steht unter CC-BY-4.0.** Die Namensnennung ist wörtlich
 vorgeschrieben, und ausdrücklich darf daneben *keine weitere* Nennung von
 Wizards of the Coast stehen — keine Logos, keine Marken, kein „kompatibel
 mit". Beides steht in `NOTICE.md`.

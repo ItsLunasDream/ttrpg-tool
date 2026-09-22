@@ -27,8 +27,11 @@ import { modifikator, type Uebergabe } from '@suite/uebergabe';
 import {
   gradsumme,
   gruppenstaerke,
+  ordneEin,
+  punktsumme,
   type Gruppe
 } from '../shared/schwierigkeit';
+import { EINORDNUNG_NAME, budget, text as srdText } from '@suite/srd';
 
 /** Die Sprache, wie `@suite/umgebungen` sie erwartet. */
 function sprache(): Sprache {
@@ -567,17 +570,39 @@ function Verhaeltnis({
   readonly monster: readonly Monsterkarte[];
   readonly gruppe: Gruppe;
 }) {
-  const summe = gradsumme(
-    offen.gegner.map((einer) => ({
-      anzahl: einer.anzahl,
-      grad: monster.find((m) => m.id === einer.monsterId)?.cr ?? ''
-    }))
-  );
+  const gewertet = offen.gegner.map((einer) => ({
+    anzahl: einer.anzahl,
+    grad: monster.find((m) => m.id === einer.monsterId)?.cr ?? ''
+  }));
+  const summe = gradsumme(gewertet);
+  const punkte = punktsumme(gewertet);
   const staerke = gruppenstaerke(gruppe);
+  const wo = ordneEin(gewertet, gruppe);
+  const spr = sprache();
   if (offen.gegner.length === 0) return null;
 
   return (
-    <div className="verhaeltnis">
+    <div className="verhaeltnis" data-einordnung={wo ?? ''}>
+      {/*
+        Die Einordnung steht oben und gross — sie ist die Antwort, die man
+        sucht. Darunter die beiden Zahlen, aus denen sie entstanden ist:
+        eine Einordnung ohne ihre Grundlage muss man glauben, mit ihr kann
+        man sie nachrechnen.
+      */}
+      {wo ? (
+        <p className="verhaeltnis__urteil">
+          {srdText(EINORDNUNG_NAME[wo], spr)}
+          <span className="verhaeltnis__punkte">
+            {t('verhaeltnis.punkte', {
+              punkte: punkte.summe.toLocaleString(spr === 'de' ? 'de-DE' : 'en-US'),
+              budget: (budget(gruppe, 'mittel') ?? 0).toLocaleString(
+                spr === 'de' ? 'de-DE' : 'en-US'
+              )
+            })}
+          </span>
+        </p>
+      ) : null}
+
       <div className="verhaeltnis__zahlen">
         <span className="verhaeltnis__seite">
           {t('verhaeltnis.grade', { summe: zahl(summe.summe) })}
@@ -598,12 +623,21 @@ function Verhaeltnis({
             : t('verhaeltnis.keineGruppe')}
         </span>
       </div>
+
       {summe.ohneGrad > 0 ? (
         <p className="hinweis hinweis--klein">
           {t('verhaeltnis.ohneGrad', { anzahl: summe.ohneGrad })}
         </p>
       ) : null}
-      <p className="hinweis hinweis--klein">{t('verhaeltnis.kleingedrucktes')}</p>
+      {/*
+        Warum KEINE Einordnung dasteht, ist eine eigene Auskunft. Ohne sie
+        sieht ein fehlendes Urteil aus wie ein Fehler der Anwendung.
+      */}
+      {!wo ? (
+        <p className="hinweis hinweis--klein">
+          {staerke ? t('verhaeltnis.keineGrade') : t('verhaeltnis.gruppeFehlt')}
+        </p>
+      ) : null}
     </div>
   );
 }

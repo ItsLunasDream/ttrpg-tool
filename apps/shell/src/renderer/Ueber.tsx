@@ -7,9 +7,10 @@
  * Software weitergibt, muss sagen, unter welcher Lizenz das geschieht und wo
  * der Quelltext zu finden ist.
  */
-import type { MessageKey, MessageParams } from '../shared/i18n';
+import type { Language, MessageKey, MessageParams } from '../shared/i18n';
 import { Dialog } from './Dialog';
 import { SuiteIcon } from './icons';
+import { NAMENSNENNUNG } from '@suite/srd';
 
 const REPO_URL = 'https://github.com/ItsLunasDream/ttrpg-tool';
 const LICENSE_URL = `${REPO_URL}/blob/main/LICENSE`;
@@ -24,9 +25,11 @@ interface Props {
   readonly version: string;
   readonly onClose: () => void;
   readonly t: (key: MessageKey, params?: MessageParams) => string;
+  /** Entscheidet, welche der beiden vorgeschriebenen Fassungen dasteht. */
+  readonly sprache: Language;
 }
 
-export function Ueber({ version, onClose, t }: Props) {
+export function Ueber({ version, onClose, t, sprache }: Props) {
   return (
     <Dialog titel={t('about.title')} schliessenText={t('dialog.close')} onClose={onClose}>
       <div className="ueber">
@@ -44,6 +47,20 @@ export function Ueber({ version, onClose, t }: Props) {
         <p>{t('about.licenseDetail')}</p>
         <p className="ueber__gewaehr">{t('about.warranty')}</p>
         <p className="ueber__gewaehr">{t('about.notice')}</p>
+
+        {/*
+          DIESER SATZ IST WOERTLICH VORGESCHRIEBEN.
+          =========================================
+          Er ist die Bedingung, unter der das Material aus dem
+          Systemreferenzdokument ueberhaupt benutzt werden darf, und er
+          steht deshalb hier und nicht nur im NOTICE — wer die Anwendung
+          benutzt, sieht das NOTICE nie.
+
+          Er kommt aus `@suite/srd` und nicht aus dem i18n der Huelle:
+          eine Uebersetzung ist hier kein Text, den man verbessern darf.
+          Beide Fassungen stehen so im Dokument selbst.
+        */}
+        <p className="ueber__srd">{NAMENSNENNUNG[sprache === 'de' ? 'de' : 'en']}</p>
 
         <div className="ueber__verweise">
           {/* Kein <a href>: die Ansicht wuerde selbst dorthin navigieren und

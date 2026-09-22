@@ -5,15 +5,12 @@ stellt eine Begegnung zusammen: welche Monster, wie viele, wo, und wie hart
 das für diese Gruppe wird — und schiebt das Ergebnis in einem Zug in den
 Initiative Tracker.
 
-**Stand:** Alle fünf Stufen sind gebaut — mit einer Einschränkung bei der
-letzten. Die Kachel ist echt, Begegnungen lassen sich anlegen, benennen,
-mit einer Notiz versehen und in einer Sammlung wiederfinden, die Monster
-kommen aus der eigenen Sammlung, eine Umgebung hängt mit ihren zwei Sorten
-daran, „In den Tracker" schiebt das Ganze in den Initiative Tracker, und
-unter den Gegnern steht das Verhältnis zur Gruppe. **Was fehlt, ist das
-Urteil:** die Schwellen aus dem Regelwerk liegen noch nicht vor (siehe
-`packages/srd/`), und bis dahin stehen dort zwei Zahlen nebeneinander
-statt „mittelschwer".
+**Stand:** Alle fünf Stufen sind gebaut. Die Kachel ist echt, Begegnungen
+lassen sich anlegen, benennen, mit einer Notiz versehen und in einer
+Sammlung wiederfinden, die Monster kommen aus der eigenen Sammlung, eine
+Umgebung hängt mit ihren zwei Sorten daran, „In den Tracker" schiebt das
+Ganze in den Initiative Tracker, und unter den Gegnern steht die
+Einordnung — aus `packages/srd` und damit aus dem Regelwerk selbst.
 
 ## Wozu
 
@@ -106,7 +103,7 @@ Lizenz suchen, die Zahlen von dort nehmen, und sie im Über-Dialog nennen.**
 Der Monster Creator macht das bereits mit den Richtwerten je Grad (Lazy
 GM's 5e Monster Builder Resource Document, CC-BY-4.0).
 
-**Diese Frage ist inzwischen beantwortet.** Das SRD 5.2 steht unter
+**Diese Frage ist inzwischen beantwortet.** Das SRD 5.2.1 steht unter
 CC-BY-4.0, und die Zahlen dürfen mit der vorgeschriebenen Namensnennung
 übernommen werden (siehe `NOTICE.md`). Sie gehören nach `packages/srd/`,
 zusammen mit dem, was das Nachschlagewerk und der Magic Item Creator
@@ -114,20 +111,31 @@ brauchen — siehe `docs/nachschlagewerk.md`. Was bleibt, ist Fleißarbeit:
 die Tabellen aus dem Dokument sauber herausholen und gegenlesen. **Der Bau
 ist damit nicht mehr blockiert.**
 
-**Gebaut ist die zweitbeste Lösung, die ehrlich bleibt:** die Summe der
-Grade gegen die Gruppenstärke stellen und das Ergebnis als Verhältnis
-zeigen, nicht als Urteil. „Grade zusammen 9 gegen 4 Figuren auf Stufe 5"
-sagt weniger als „mittelschwer", behauptet aber auch nichts Falsches. Eine
-Eichung an bekannten Begegnungen kann daraus später eine Skala machen — so
-wie das Gewicht im Status Effect Creator entstanden ist.
+**Beides steht jetzt da, und das ist Absicht.** Die Einordnung („Mittel")
+kommt aus `packages/srd`: Erfahrungspunkte je Grad, Budget je Charakter
+und Stufe, beides wörtlich aus dem Dokument. Darunter bleibt das
+Verhältnis stehen — „Grade zusammen 9 gegen 4 Figuren auf Stufe 5".
 
-Drei Dinge daran sind Absicht und keine Sparsamkeit:
+Eine Einordnung allein ist eine Behauptung, die man glauben muss; daneben
+die Zahlen zu sehen, aus denen sie entstanden ist, macht sie nachprüfbar.
+Und wenn kein Gegner einen Grad hat, den die Tabelle kennt, ist das
+Verhältnis die einzige Antwort, die dann noch ehrlich ist.
 
-- **Kein Balken, keine Ampel.** Beides wäre ein Urteil in Bildform, und
-  den Bestand dafür gibt es nicht. Zwei Zahlen und ein „gegen" dazwischen.
+Vier Dinge daran sind Absicht:
+
+- **Keine Ampel.** Die Einordnung färbt den Rand, nicht die Schrift, und
+  rot ist nur „über hoch". Rot für „hoch" hieße, eine schwere Begegnung
+  sei ein Fehler — sie ist eine Auskunft, keine Warnung.
+- **„Über hoch" ist eine eigene Antwort.** Das Regelwerk kennt drei
+  Budgets und hört bei „hoch" auf. Eine Begegnung mit dem Dreifachen des
+  hohen Budgets weiter „hoch" zu nennen wäre eine Untertreibung, die am
+  Tisch teuer wird. Wo genau die Grenze liegt, ist gesetzt und nicht
+  abgeleitet; sie steht als benannte Konstante in `packages/srd`.
 - **Ein Gegner ohne lesbaren Grad wird gezählt und genannt**, nicht als
   Null verrechnet. Eine Summe, in der drei Monster fehlen, sieht sonst
-  genauso aus wie eine vollständige.
+  genauso aus wie eine vollständige. Hat *kein* Gegner einen bekannten
+  Grad, gibt es gar keine Einordnung — sonst bekäme eine Begegnung aus
+  lauter selbstgebauten Monstern „unter niedrig", und das wäre gelogen.
 - **Die Gruppe wird nicht geraten.** „4" könnte vier Figuren auf
   unbekannter Stufe heißen oder eine auf Stufe 4; die Zeile bleibt dann
   ungelesen, und das Werkzeug zeigt im Klartext, was es verstanden hat.
@@ -209,7 +217,7 @@ darunter. Eine Sammlung mit Kacheln und Suche, dieselbe Handhabung wie
 
 ## Zu klären
 
-- ~~**Woher die Schwierigkeitszahlen kommen dürfen.**~~ Geklärt: SRD 5.2
+- ~~**Woher die Schwierigkeitszahlen kommen dürfen.**~~ Geklärt: SRD 5.2.1
   unter CC-BY-4.0, mit wörtlicher Namensnennung. Siehe oben und `NOTICE.md`.
 - **Ob eine mitgelieferte Monsterliste dazukommt.** Lizenzrechtlich jetzt
   ebenfalls erlaubt; offen ist nur noch, ob sie den Aufwand wert ist. Ohne
@@ -237,6 +245,5 @@ darunter. Eine Sammlung mit Kacheln und Suche, dieselbe Handhabung wie
 5. **Schwierigkeit.** Erst das Verhältnis, später die Skala mit den Zahlen
    aus `packages/srd/`.
 
-Stufe 4 ist der Punkt, ab dem sich das Werkzeug lohnt. Stufe 5 steht in
-ihrer ersten Hälfte: das Verhältnis ist da, die Skala wartet auf die
-Tabellen.
+Stufe 4 ist der Punkt, ab dem sich das Werkzeug lohnt. Stufe 5 steht
+vollständig, seit die Zahlen aus dem Dokument in `packages/srd` liegen.

@@ -1,23 +1,23 @@
 /**
- * Das Verhaeltnis zwischen Begegnung und Gruppe — und ausdruecklich KEIN
- * Urteil.
+ * Das Verhaeltnis zwischen Begegnung und Gruppe — und jetzt auch die
+ * Einordnung.
  *
- * WARUM HIER NICHTS „MITTELSCHWER" STEHT
- * ======================================
- * Die Rechnung aus dem Regelwerk (Erfahrungspunkte je Grad, ein Faktor
- * fuer die Anzahl, Schwellen je Gruppenstufe) liegt noch nicht vor: sie
- * gehoert nach `packages/srd/`, und dort ist sie noch nicht erfasst. Eine
- * Schwelle aus dem Gedaechtnis waere schlimmer als gar keine — sie saehe
- * aus wie eine Auskunft.
+ * ZWEI ANTWORTEN, NICHT EINE
+ * ==========================
+ * Die Einordnung („mittel") kommt aus `@suite/srd` und damit aus dem
+ * Regelwerk selbst: Erfahrungspunkte je Grad, Budget je Charakter und
+ * Stufe. Sie stand lange nicht zur Verfuegung, und solange stand hier
+ * nur das Verhaeltnis.
  *
- * Also das Zweitbeste, das ehrlich bleibt: die Summe der Grade gegen die
- * Gruppenstaerke stellen und beides nebeneinander zeigen. „Grade zusammen
- * 9 gegen 4 Figuren auf Stufe 5" sagt weniger als „mittelschwer",
- * behauptet aber auch nichts Falsches.
+ * Das Verhaeltnis BLEIBT trotzdem stehen. Eine Einordnung allein ist
+ * eine Behauptung, die man glauben muss; daneben die beiden Zahlen zu
+ * sehen, aus denen sie entstanden ist, macht sie nachpruefbar. Und wenn
+ * ein Monster keinen Grad aus der Tabelle hat, ist das Verhaeltnis die
+ * einzige Antwort, die dann noch ehrlich ist.
  *
- * Alles hier ist eine reine Funktion. Wenn die Zahlen kommen, wird daraus
- * eine Skala, ohne dass an der Oberflaeche viel zu aendern waere.
+ * Alles hier ist eine reine Funktion.
  */
+import { epFuerGrad, einordnung as srdEinordnung, type Einordnung } from '@suite/srd';
 
 /** Eine Zeile der Gruppe: so viele Figuren auf dieser Stufe. */
 export interface Gruppenzeile {
@@ -68,6 +68,54 @@ export interface Gradsumme {
    * der drei Monster fehlen, sieht genauso aus wie eine vollstaendige.
    */
   readonly ohneGrad: number;
+}
+
+/**
+ * Die Erfahrungspunkte einer Begegnung.
+ *
+ * Getrennt von der Gradsumme, obwohl beide ueber dieselben Gegner
+ * laufen: die Gradsumme zaehlt Grade, die hier zaehlt Punkte, und ein
+ * Monster kann einen Grad haben, den die Tabelle nicht kennt. Dann fehlt
+ * es HIER, nicht dort — und das muss sichtbar bleiben.
+ */
+export interface Punktsumme {
+  readonly summe: number;
+  /** Gegnerzeilen, deren Grad die Tabelle nicht kennt. */
+  readonly ohnePunkte: number;
+}
+
+export function punktsumme(gegner: readonly Gewertet[]): Punktsumme {
+  let summe = 0;
+  let ohnePunkte = 0;
+  for (const einer of gegner) {
+    const punkte = epFuerGrad(einer.grad);
+    const anzahl = Math.max(1, Math.floor(einer.anzahl));
+    if (punkte === null) {
+      ohnePunkte += 1;
+      continue;
+    }
+    summe += punkte * anzahl;
+  }
+  return { summe, ohnePunkte };
+}
+
+/**
+ * Die Einordnung einer Begegnung, oder `null`.
+ *
+ * `null` heisst: es laesst sich nichts sagen — keine Gruppe eingetragen,
+ * eine Stufe ausserhalb der Tabelle, oder KEIN EINZIGER Gegner mit
+ * bekanntem Grad. Der letzte Fall ist der wichtige: eine Begegnung aus
+ * lauter selbstgebauten Monstern mit Grad „?" bekaeme sonst die
+ * Einordnung „unter niedrig", und das waere gelogen.
+ */
+export function ordneEin(
+  gegner: readonly Gewertet[],
+  gruppe: Gruppe
+): Einordnung | null {
+  const punkte = punktsumme(gegner);
+  const bekannt = gegner.length - punkte.ohnePunkte;
+  if (bekannt === 0) return null;
+  return srdEinordnung(punkte.summe, gruppe);
 }
 
 export function gradsumme(gegner: readonly Gewertet[]): Gradsumme {

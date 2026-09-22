@@ -30,28 +30,47 @@ Schwierigkeitszahlen des Encounter Creators (`docs/encounter.md`). Das
 Nachschlagewerk ist die sichtbare Seite eines Bestands, den es ohnehin
 geben muss.
 
-## Der Regeltext bleibt englisch
+## Der Regeltext steht zweisprachig da
 
-**Entschieden, und zwar gegen die Linie des übrigen Projekts.** Alles hier
-ist zweisprachig, Paar für Paar. Das SRD 5.2 gibt es nur auf Englisch.
+**Diese Entscheidung ist revidiert.** Sie lautete ursprünglich „der
+Regeltext bleibt englisch", und der Grund war ein sachlicher: das SRD gebe
+es nur auf Englisch, und maschinell übersetzt wäre er genau dort falsch, wo
+es weh tut — bei Zahlen, Bedingungen, Wirkungsdauern und Reichweiten.
 
-Mehrere hundert Seiten Regeltext zu übersetzen ist keine Nebenarbeit, und
-maschinell übersetzt wäre er genau dort falsch, wo es weh tut: bei Zahlen,
-Bedingungen, Wirkungsdauern und Reichweiten. Ein Zustand, dessen deutsche
-Fassung „bis zum Ende deines nächsten Zuges" statt „bis zum Beginn" sagt,
-ist schlimmer als gar keine deutsche Fassung, weil man ihm glaubt.
+**Die Voraussetzung stimmt nicht mehr.** Das Systemreferenzdokument 5.2.1
+liegt in einer offiziellen deutschen Fassung vor, unter derselben Lizenz.
+Damit fällt der einzige Einwand weg: es wird nicht übersetzt, sondern beide
+Fassungen werden wörtlich übernommen. Beide liegen unter
+`packages/srd/quelle/`.
 
 Also:
 
 - **Die Oberfläche** ist zweisprachig wie überall — Knöpfe, Überschriften,
   Kategorien, Suchfeld.
-- **Der Regeltext** steht englisch da, unübersetzt, und ist als solcher
-  erkennbar (eigene Schrift oder eine Marke an der Ecke, nicht bloß
-  stillschweigend).
+- **Der Regeltext** ebenfalls, als `Paar {de, en}` wie jeder andere Text in
+  dieser Sammlung. Er folgt der Sprache der Hülle.
+- **Übersetzt wird nichts selbst.** Was in keiner der beiden Fassungen
+  steht, steht auch hier nicht. Eine selbstgebaute Übersetzung wäre genau
+  der Fehler, den der ursprüngliche Einwand beschrieben hat.
 
-Wer später einzelne Teile übersetzt — die fünfzehn Zustände etwa, die kurz
-sind und ständig gebraucht werden —, trägt die Übersetzung als *zusätzliches*
-Feld nach, nicht als Ersatz. Das Englische bleibt das Maßgebliche.
+Eine Sache bleibt davon übrig und ist wichtig: **die englische Fassung ist
+das Maßgebliche.** Bei einer Abweichung zwischen beiden gilt sie, und die
+deutsche ist eine Übersetzung — das steht so in keinem der beiden
+Dokumente, ist aber die übliche Annahme und die sicherere.
+
+### Woran man merkt, dass die Übernahme stimmt
+
+Der Text wird aus den beiden PDFs ausgelesen, nicht abgetippt. Dabei
+entstehen Fehler, die man nicht sieht, wenn man nicht danach sucht: die
+Zweispaltigkeit trennt Wörter mit Bindestrichen, der Seitenkopf rutscht
+mitten in einen Absatz, ein Eintrag läuft in den nächsten hinein, und in
+Zahlen landen Leerzeichen — „11, 50 0" statt 11.500.
+
+Deshalb prüft `packages/srd` nicht nur Werte, sondern die Übernahme selbst:
+dass beide Sprachfassungen gleich viele Absätze haben, dass kein Eintrag
+Text des nächsten trägt, dass keine Seitenkopfreste darin stehen. **Zwei
+Fassungen zu haben ist dabei der beste Schutz** — eine Zahl, die in beiden
+gleich dasteht, ist mit ziemlicher Sicherheit richtig gelesen.
 
 ## Was hinein soll, und was nicht
 
@@ -343,13 +362,19 @@ Gruppe ansagt, schreibt es hier.
 Wörtlich vorgeschrieben, und die Bedingung, unter der das Material überhaupt
 benutzt werden darf:
 
-> This work includes material from the System Reference Document 5.2
-> ("SRD 5.2") by Wizards of the Coast LLC, available at
-> https://www.dndbeyond.com/srd.
+> This work includes material from the System Reference Document 5.2.1
+> ("SRD 5.2.1") by Wizards of the Coast LLC, available at
+> https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the
+> Creative Commons Attribution 4.0 International License, available at
+> https://creativecommons.org/licenses/by/4.0/legalcode.
 
-Dazu ausdrücklich **keine weitere Nennung** von Wizards — keine Logos, keine
-Marken, kein „kompatibel mit". Steht in `NOTICE.md` und gehört genauso in
-den Über-Dialog.
+Dazu die deutsche Fassung desselben Satzes, wenn die Hülle auf Deutsch
+steht. Beide liegen wörtlich in `packages/srd/src/namensnennung.ts`.
+
+Darüber hinaus ausdrücklich **keine weitere Nennung** von Wizards — keine
+Logos, keine Marken. Erlaubt wäre laut Dokument einzig der Hinweis
+„kompatibel mit der fünften Edition"; die Sammlung macht davon keinen
+Gebrauch. Steht in `NOTICE.md` und gehört genauso in den Über-Dialog.
 
 Für #125 (der Name der Sammlung nach außen) folgt daraus eine Schranke: der
 Name darf keine fremde Marke tragen.

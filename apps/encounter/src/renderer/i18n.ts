@@ -106,9 +106,17 @@ const TEXTE = {
     '{anzahl} Gegner ohne lesbaren Grad sind nicht mitgezählt.',
     '{anzahl} opponents without a readable rating are not counted.'
   ],
-  'verhaeltnis.kleingedrucktes': [
-    'Zwei Zahlen nebeneinander, kein Urteil: die Schwellen aus dem Regelwerk liegen noch nicht vor. Die Gruppe steht in den Einstellungen.',
-    'Two numbers side by side, not a verdict: the thresholds from the rules are not in yet. The party is set in the settings.'
+  'verhaeltnis.punkte': [
+    '{punkte} EP · mittleres Budget {budget} EP',
+    '{punkte} XP · moderate budget {budget} XP'
+  ],
+  'verhaeltnis.keineGrade': [
+    'Keine Einordnung: keiner der Gegner hat einen Grad, den die Tabelle kennt.',
+    'No rating: none of the opponents has a challenge rating the table knows.'
+  ],
+  'verhaeltnis.gruppeFehlt': [
+    'Für eine Einordnung fehlt die Gruppe. Sie steht in den Einstellungen.',
+    'A rating needs the party. It is set in the settings.'
   ],
 
   'tracker.knopf': ['In den Tracker', 'To the tracker'],

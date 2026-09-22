@@ -2,3 +2,7 @@
 # ueber mehrzeilige Bloecke.
 *.cmd text eol=crlf
 *.bat text eol=crlf
+
+# Die beiden SRD-Fassungen sind Binaerdateien; ohne diese Zeile versucht
+# git, sie zu vergleichen, und haelt das Repository unnoetig auf.
+*.pdf binary

@@ -38,27 +38,45 @@ Material aus dem SRD 5.1.
 > is licensed under the Creative Commons Attribution 4.0 International License
 > available at <https://creativecommons.org/licenses/by/4.0/legalcode>.
 
-## System Reference Document 5.2
+## Systemreferenzdokument 5.2.1
 
-Betrifft: `packages/srd/` — die Eichgegenstände des Magic Item Creators, die
-Regeltexte des Nachschlagewerks und die Schwierigkeitszahlen des Encounter
-Creators.
+Betrifft: `packages/srd/` — die Zustände, die Schwierigkeitszahlen des
+Encounter Creators, die Regeltexte des Nachschlagewerks und später die
+Eichgegenstände des Magic Item Creators.
 
 Anders als beim SRD 5.1 oben ist das hier **unmittelbar**: das Material kommt
-direkt aus dem SRD 5.2, nicht über ein drittes Dokument.
+direkt aus dem SRD 5.2.1, nicht über ein drittes Dokument. Beide
+Sprachfassungen des Dokuments liegen unter `packages/srd/quelle/`, damit sich
+jede Zahl und jeder Satz nachprüfen lässt.
 
-> This work includes material from the System Reference Document 5.2
-> ("SRD 5.2") by Wizards of the Coast LLC, available at
-> <https://www.dndbeyond.com/srd>.
+Die vorgeschriebene Namensnennung, englisch:
 
-Dieser Satz ist **wörtlich vorgeschrieben** und steht genauso im Über-Dialog
-der Anwendung. Wizards of the Coast verlangt ausdrücklich, dass darüber
-hinaus **keine weitere Nennung** von Wizards oder seinen Konzerngesellschaften
-erfolgt — keine Logos, keine Marken, kein „kompatibel mit …". Wer hier etwas
-hinzufügt, verletzt die Bedingung, unter der das Material überhaupt benutzt
-werden darf.
+> This work includes material from the System Reference Document 5.2.1
+> ("SRD 5.2.1") by Wizards of the Coast LLC, available at
+> <https://www.dndbeyond.com/srd>. The SRD 5.2.1 is licensed under the
+> Creative Commons Attribution 4.0 International License, available at
+> <https://creativecommons.org/licenses/by/4.0/legalcode>.
 
-Das SRD 5.2 steht unter der
+Und deutsch:
+
+> Dieses Werk enthält Material aus dem Systemreferenzdokument 5.2.1
+> („SRD 5.2.1") von Wizards of the Coast LLC, verfügbar unter
+> <https://www.dndbeyond.com/srd>. Das SRD 5.2.1 ist lizenziert gemäß
+> Creative Commons Namensnennung 4.0 International Public License
+> (verfügbar unter <https://creativecommons.org/licenses/by/4.0/legalcode.de>).
+
+Diese Sätze sind **wörtlich vorgeschrieben** und stehen genauso im Über-Dialog
+der Anwendung; im Code liegen sie in `packages/srd/src/namensnennung.ts`.
+
+Wizards of the Coast verlangt ausdrücklich, dass darüber hinaus **keine
+weitere Nennung** von Wizards oder seinen Konzerngesellschaften erfolgt.
+Ausgenommen ist laut Dokument genau eine Ergänzung: der Hinweis, dass ein
+Werk „kompatibel mit der fünften Edition" oder „5E-kompatibel" ist. Diese
+Sammlung macht davon keinen Gebrauch, weil sie ihn nicht braucht. Wer sonst
+etwas hinzufügt, verletzt die Bedingung, unter der das Material überhaupt
+benutzt werden darf.
+
+Das SRD 5.2.1 steht unter der
 [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/legalcode).
 
 ---

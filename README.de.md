@@ -72,7 +72,9 @@ npm run dist:win        # Windows-Installer nach apps/shell/release/
 Weiteres:
 
 - `scripts\bauen-win.cmd` nimmt unter Windows `git fetch -p`, `git pull`,
-  `npm install`, `npm run dist:win` auf einmal.
+  `npm install`, `npm run dist:win` auf einmal. Am Ende öffnet es
+  `apps\shell\release`, es hält in jedem Fall an, statt das Fenster zu
+  schließen, und schreibt den gelaufenen Schritt nach `bauen-win.log`.
 - Einzeln entwickeln: `npm run dev:backstory`, `dev:mapmaker`,
   `dev:initiative`, `dev:dice`, `dev:npc`.
 - Befehle ohne Zusatz meinen immer die Sammlung, nicht den Story Creator.

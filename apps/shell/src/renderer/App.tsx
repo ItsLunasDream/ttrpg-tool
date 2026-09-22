@@ -854,7 +854,7 @@ export function App() {
         />
       )}
       {dialog === 'ueber' && (
-        <Ueber version={version} onClose={() => zeigeDialog(null)} t={t} />
+        <Ueber version={version} onClose={() => zeigeDialog(null)} t={t} sprache={sprache} />
       )}
       {dialog === 'einfuehrung' && einfuehrungId !== null && (
         <Einfuehrung

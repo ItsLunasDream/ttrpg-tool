@@ -88,7 +88,7 @@ derselbe mit — er kostet nichts, was die Figur sonst bräuchte.
 ## Zu klären
 
 - ~~**Woher die Vergleichsgegenstände kommen dürfen.**~~ Geklärt: das
-  SRD 5.2 steht unter CC-BY-4.0, die Gegenstände dürfen mit der wörtlich
+  SRD 5.2.1 steht unter CC-BY-4.0, die Gegenstände dürfen mit der wörtlich
   vorgeschriebenen Namensnennung hinein (`NOTICE.md`). Sie gehören nach
   `packages/srd/`, gemeinsam mit dem Bestand für das Nachschlagewerk
   (`docs/nachschlagewerk.md`) und den Schwierigkeitszahlen des Encounter
