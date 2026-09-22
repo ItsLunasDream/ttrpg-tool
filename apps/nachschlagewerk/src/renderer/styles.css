@@ -1,0 +1,283 @@
+/*
+ * Aussehen des Nachschlagewerks.
+ *
+ * Die Farben kommen aus dem Thema der Huelle (`--f-*`, siehe
+ * packages/farben). Die Rueckfallwerte gelten nur, wenn das Werkzeug einmal
+ * ohne Huelle laeuft — fest eingetragene Farben daneben waeren genau der
+ * Fehler, der die hellen Themen unlesbar gemacht hat.
+ *
+ * Ein Nachschlagewerk wird gelesen, nicht bedient. Deshalb ist der Text
+ * etwas groesser als in den anderen Werkzeugen und die Zeile schmaler:
+ * ueber 75 Zeichen hinweg verliert das Auge die naechste Zeile.
+ */
+
+:root {
+  --grund: var(--f-grund, #14161c);
+  --grund-hoch: var(--f-grund-hoch, #1b1e26);
+  --grund-tief: var(--f-grund-tief, #10121a);
+  --rand: var(--f-rand, #2a2e39);
+  --text: var(--f-text, #e6e8ee);
+  --text-leise: var(--f-text-leise, #939aab);
+  --betont: var(--f-betont, #7aa2f7);
+  --betont-leise: var(--f-betont-leise, #243049);
+  --radius: 10px;
+  --lasur: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--grund);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--betont);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.rahmen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 24px 12px;
+}
+
+.kopf h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.kopf p {
+  margin: 4px 0 16px;
+  color: var(--text-leise);
+}
+
+/* Zwei Spalten, und beide scrollen fuer sich: wer im Eintrag nach unten
+   liest, verliert die Liste nicht, und umgekehrt. */
+.spalten {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 720px) {
+  .spalten {
+    grid-template-columns: 1fr;
+  }
+}
+
+.liste {
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.liste__suche {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  background: var(--grund-tief);
+  color: var(--text);
+  font: inherit;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.liste__anzahl {
+  margin: 8px 2px 4px;
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.liste__gruppe h2 {
+  margin: 14px 2px 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-leise);
+}
+
+.liste__gruppe ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.eintrag {
+  width: 100%;
+  display: grid;
+  gap: 1px;
+  text-align: left;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.eintrag:hover {
+  background: var(--lasur);
+}
+
+.eintrag--offen {
+  background: var(--betont-leise);
+  border-color: color-mix(in srgb, var(--betont) 40%, transparent);
+}
+
+.eintrag__name {
+  font-weight: 600;
+}
+
+.eintrag__anders {
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.eintrag__stelle {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text-leise);
+  line-height: 1.4;
+}
+
+.blatt {
+  overflow-y: auto;
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  background: var(--grund-hoch);
+  padding: 22px 26px;
+}
+
+.blatt__leer {
+  color: var(--text-leise);
+  max-width: 60ch;
+}
+
+.blatt__leer h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.regel__kopf {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.regel__art {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--betont);
+}
+
+.regel__kopf h2 {
+  margin: 2px 0 0;
+  font-size: 24px;
+}
+
+.regel__anders {
+  margin: 2px 0 0;
+  color: var(--text-leise);
+}
+
+.regel__fassungen {
+  max-width: 72ch;
+}
+
+/* Nebeneinander, wenn beide Sprachen gezeigt werden. Dann darf es breiter
+   werden: jede Spalte fuer sich bleibt schmal genug zum Lesen. */
+.regel__fassungen--zwei {
+  max-width: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .regel__fassungen--zwei {
+    grid-template-columns: 1fr;
+  }
+}
+
+.regel__fassung h3 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-leise);
+}
+
+.regel__fassung p {
+  margin: 0 0 10px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.regel__einleitung {
+  color: var(--text-leise);
+}
+
+.regel__punkt strong {
+  color: var(--text);
+}
+
+.regel__massgeblich {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.knopf {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  background: var(--grund-tief);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.knopf:hover {
+  border-color: var(--betont);
+}
+
+/* Die Namensnennung: klein, aber lesbar. Sie ist die Bedingung, unter der
+   der Inhalt dieses Werkzeugs ueberhaupt dasteht. */
+.fuss {
+  margin-top: 10px;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--text-leise);
+}
+
+.fuss__marke {
+  font-weight: 600;
+}

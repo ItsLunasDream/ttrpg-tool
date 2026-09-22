@@ -111,10 +111,11 @@ test('jede Gruppe hat eine Ueberschrift in beiden Sprachen', () => {
   }
 });
 
-test('die Wuerfel und der Story Creator gehoeren allen', () => {
+test('Wuerfel, Story Creator und Nachschlagewerk gehoeren allen', () => {
   // Die eine inhaltliche Festlegung, die es hier gibt: an der Kampagne
-  // schreiben beide Seiten mit, und gewuerfelt wird von allen. Alles andere
-  // ist Vorbereitung oder Leitung.
+  // schreiben beide Seiten mit, gewuerfelt wird von allen, und
+  // nachgeschlagen auch — am Tisch meist von jemand anderem als dem, der
+  // leitet. Alles andere ist Vorbereitung oder Leitung.
   const fuerAlle = appsMitRolle('alle').map((a) => a.id).sort();
-  assert.deepEqual(fuerAlle, ['backstory', 'dice']);
+  assert.deepEqual(fuerAlle, ['backstory', 'dice', 'nachschlagewerk']);
 });

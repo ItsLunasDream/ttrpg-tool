@@ -23,6 +23,11 @@ the provider you entered.
   tables, from your keyboard or from an AI.
 - **Status Effect Creator** — custom conditions with levels, weighed against
   the ones everyone knows, with a card to read aloud at the table.
+- **Encounter Creator** — encounters from your own monsters, with an
+  environment, pushed into the initiative tracker in one go. The difficulty
+  is worked out from the rules.
+- **Reference** — the rules from the System Reference Document, offline and
+  in both languages, in the same Ctrl+K search as everything else.
 - **TTRPG Map Editor** — draw battlemaps and world maps, export as Universal
   VTT.
 
@@ -94,6 +99,7 @@ apps/inspiration/  Inspiration
 apps/monster/      Monster Creator
 apps/zustaende/    Status Effect Creator
 apps/encounter/    Encounter Creator
+apps/nachschlagewerk/ Reference (the rules, offline)
 packages/dice/     Reading and rolling dice expressions
 packages/i18n/     Language choice and text substitution
 packages/motion/   Timings, curves and base animations
@@ -606,10 +612,10 @@ What is in `docs/` (all German):
 | `inspirationshilfe.md` | Concept and open points of the Inspiration tool (built) |
 | `monster.md` | Monster Creator: baselines, calibration, Foundry export |
 | `statuseffekte.md` | Status Effect Creator: effects, weight, Foundry export |
-| `encounter.md` | Concept: Encounter Creator (not built) |
+| `encounter.md` | Encounter Creator: collection, environment, the way into the tracker, difficulty |
 | `austausch.md` | Concept: sharing between the group at the table (not built) |
 | `magicitems.md` | Concept: Magic Item Creator (not built) |
-| `nachschlagewerk.md` | Concept: the rules offline plus house rules, in the same search (not built) |
+| `nachschlagewerk.md` | Reference: the rules offline in both languages (conditions built; house rules and cross-references planned) |
 | `loot.md` | Concept: Loot Generator, own nested random tables (not built) |
 
 ## License

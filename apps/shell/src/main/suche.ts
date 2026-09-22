@@ -24,6 +24,7 @@ import { leseEintraege as leseZustaende } from '../../../zustaende/src/main/embe
 import { leseEintraege as leseBegegnungen } from '../../../initiative/src/main/embed';
 import { leseEintraege as leseEncounter } from '../../../encounter/src/main/embed';
 import { leseEintraege as leseNotizen } from '../../../backstory/src/main/embed';
+import { leseEintraege as leseRegeln } from '../../../nachschlagewerk/src/main/embed';
 
 /**
  * Die Leser, je Werkzeug einer.
@@ -41,7 +42,11 @@ const LESER: readonly ((datenordner: string) => Promise<readonly Eintrag[]>)[] =
   leseZustaende,
   leseBegegnungen,
   leseEncounter,
-  leseNotizen
+  leseNotizen,
+  // Der einzige Leser, der nichts von der Platte liest: der offizielle
+  // Bestand steht fest. Er steht trotzdem hier, damit die Suche ihn
+  // genauso findet wie alles Selbstgebaute.
+  leseRegeln
 ];
 
 /**

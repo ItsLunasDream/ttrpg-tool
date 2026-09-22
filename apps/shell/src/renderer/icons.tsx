@@ -103,6 +103,24 @@ export const EncounterIcon = (p: IconProps) => (
   </Rahmen>
 );
 
+/**
+ * Ein aufgeschlagenes Buch mit Lesezeichen.
+ *
+ * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
+ * `resources/symbole/nachschlagewerk.png` eines liegt.
+ */
+export const NachschlagewerkIcon = (p: IconProps) => (
+  <Rahmen {...p}>
+    <path d="M24,14 C19,11 12,11 7,13 L7,37 C12,35 19,35 24,38" />
+    <path d="M24,14 C29,11 36,11 41,13 L41,37 C36,35 29,35 24,38" />
+    <line x1="24" y1="14" x2="24" y2="38" />
+    <path d="M33,11.6 L33,22 L35.5,19.5 L38,22 L38,12" />
+    <line x1="11" y1="19" x2="20" y2="19" />
+    <line x1="11" y1="24" x2="20" y2="24" />
+    <line x1="11" y1="29" x2="18" y2="29" />
+  </Rahmen>
+);
+
 /** Die Marke der Sammlung: ein Sechseck mit Stern. */
 export const SuiteIcon = (p: IconProps) => (
   <Rahmen {...p}>
@@ -191,7 +209,8 @@ const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
   inspiration: InspirationIcon,
   monster: MonsterIcon,
   zustaende: ZustaendeIcon,
-  encounter: EncounterIcon
+  encounter: EncounterIcon,
+  nachschlagewerk: NachschlagewerkIcon
 };
 
 /**

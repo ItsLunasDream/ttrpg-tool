@@ -281,8 +281,38 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
         en: 'An encounter is a template, not a saved game: the tracker reads it and never writes back.'
       },
       {
-        de: 'Noch im Bau: Monster aus deiner Sammlung, die Umgebung und der Weg in den Tracker.',
-        en: 'Still being built: monsters from your collection, the environment, and the way into the tracker.'
+        de: 'Die Monster kommen aus deiner eigenen Sammlung, und „In den Tracker" schiebt alles in einem Zug hinüber.',
+        en: 'The monsters come from your own collection, and “To the tracker” pushes everything across in one go.'
+      },
+      {
+        de: 'Mit der Gruppe aus den Einstellungen steht darunter die Schwierigkeit — gerechnet nach dem Regelwerk.',
+        en: 'With the party from the settings, the difficulty appears underneath — worked out from the rules.'
+      }
+    ]
+  },
+  {
+    id: 'nachschlagewerk',
+    titel: { de: 'Nachschlagewerk', en: 'Reference' },
+    satz: {
+      de: 'Die Regeln aus dem Systemreferenzdokument — offline, zweisprachig und in derselben Suche wie alles andere.',
+      en: 'The rules from the System Reference Document — offline, in both languages, and in the same search as everything else.'
+    },
+    punkte: [
+      {
+        de: 'Gesucht wird auch im Text: „critical hit" findet die Zustände, in denen es steht.',
+        en: 'The search covers the text too: “critical hit” finds the conditions it appears in.'
+      },
+      {
+        de: 'Beide Sprachen gleichzeitig: wer auf Deutsch steht und „prone" tippt, findet „Liegend".',
+        en: 'Both languages at once: typing “liegend” finds Prone even when the tool is in English.'
+      },
+      {
+        de: 'Bei einer Abweichung gilt die englische Fassung — „Andere Sprache daneben" zeigt sie neben der deutschen.',
+        en: 'Where the two differ, the English version applies — “Other language alongside” shows both.'
+      },
+      {
+        de: 'Strg+K findet die offiziellen Zustände jetzt neben deinen eigenen aus dem Status Effect Creator.',
+        en: 'Ctrl+K now finds the official conditions next to your own from the Status Effect Creator.'
       }
     ]
   }

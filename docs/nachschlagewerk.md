@@ -1,9 +1,14 @@
-# Nachschlagewerk (Konzept)
+# Nachschlagewerk
 
 Die Regeln offline dabei haben — die offiziellen und die eigenen —, in
 derselben Suche wie alles andere.
 
-**Stand:** Konzept. Nichts davon ist gebaut.
+**Stand:** Stufe 1 und 2 sind gebaut. `packages/srd` trägt die fünfzehn
+Zustände wörtlich in beiden Sprachen, und das Werkzeug zeigt sie: Liste mit
+Suche im Namen *und* im Text, der Eintrag rechts, auf Wunsch beide
+Sprachfassungen nebeneinander. Strg+K findet die offiziellen Zustände neben
+den selbstgebauten. Hausregeln, Querverweise und Notizen am Text stehen aus;
+das übrige Regel-Glossar ebenfalls.
 
 ## Wofür es da ist — und wofür nicht
 

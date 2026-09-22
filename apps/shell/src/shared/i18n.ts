@@ -164,7 +164,9 @@ const en = {
   'app.inspiration.name': 'Inspiration',
   'app.inspiration.description': 'Build a campaign scaffold: hooks, factions, places, ties',
   'app.encounter.name': 'Encounters',
-  'app.encounter.description': 'Plan and balance fights'
+  'app.encounter.description': 'Plan and balance fights',
+  'app.nachschlagewerk.name': 'Reference',
+  'app.nachschlagewerk.description': 'The rules, offline and in both languages'
 };
 
 export type MessageKey = keyof typeof en;
@@ -326,7 +328,9 @@ const de: Partial<Record<MessageKey, string>> = {
   'app.inspiration.name': 'Inspirationshilfe',
   'app.inspiration.description': 'Ein Gerüst für die Kampagne: Aufhänger, Fraktionen, Orte, Verbindungen',
   'app.encounter.name': 'Begegnungen',
-  'app.encounter.description': 'Kämpfe planen und ausbalancieren'
+  'app.encounter.description': 'Kämpfe planen und ausbalancieren',
+  'app.nachschlagewerk.name': 'Nachschlagewerk',
+  'app.nachschlagewerk.description': 'Die Regeln, offline und in beiden Sprachen'
 };
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { en, de };

@@ -39,6 +39,7 @@ import { mountInspiration } from '../../../inspiration/src/main/embed';
 import { mountMonster } from '../../../monster/src/main/embed';
 import { mountZustaende } from '../../../zustaende/src/main/embed';
 import { mountEncounter } from '../../../encounter/src/main/embed';
+import { mountNachschlagewerk } from '../../../nachschlagewerk/src/main/embed';
 import type { KiQuelle } from './ki';
 import type { Uebergabe } from '@suite/uebergabe';
 import type { Language } from '../shared/i18n';
@@ -385,6 +386,7 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'monster') return montiereMonster(id, haken);
   if (id === 'zustaende') return montiereZustaende(id, haken);
   if (id === 'encounter') return montiereEncounter(id, haken);
+  if (id === 'nachschlagewerk') return montiereNachschlagewerk(id, haken);
   return null;
 }
 
@@ -972,6 +974,53 @@ async function montiereEncounter(id: string, haken: MontageHaken): Promise<Monti
     werkzeugEinstellungen: () => eingebettet.werkzeugEinstellungen(),
     setzeWerkzeugEinstellung: (feldId, wert) =>
       eingebettet.setzeWerkzeugEinstellung(sicht.webContents as WebContents, feldId, wert)
+  };
+}
+
+/**
+ * Das Nachschlagewerk.
+ *
+ * Kein Datenordner, noch nicht: der Bestand ist der offizielle und kommt aus
+ * `@suite/srd`. Der Ordner kommt mit den Hausregeln.
+ */
+async function montiereNachschlagewerk(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountNachschlagewerk({
+    distDir: appDistDir(id, 'main'),
+    devServerUrl: process.env.NACHSCHLAGEWERK_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    // Die Suche der Huelle (Strg+K) springt hierher — und das ist bei
+    // diesem Werkzeug der haeufigste Weg hinein.
+    zeigeEintrag: (kennung) =>
+      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
   };
 }
 

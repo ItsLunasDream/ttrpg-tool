@@ -108,6 +108,10 @@ export const STATUS_KEY: Record<AppStatus, MessageKey> = {
 export const APPS: readonly AppEntry[] = [
   { id: 'backstory', status: 'bereit', rolle: 'alle' },
   { id: 'dice', status: 'bereit', rolle: 'alle' },
+  // Bei „alle", nicht bei „leitung": ein Nachschlagewerk brauchen Spielende
+  // genauso, und am Tisch schlaegt meist jemand anderes nach als der, der
+  // leitet.
+  { id: 'nachschlagewerk', status: 'bereit', rolle: 'alle' },
   { id: 'monster', status: 'bereit', rolle: 'leitung' },
   { id: 'zustaende', status: 'bereit', rolle: 'leitung' },
   { id: 'initiative', status: 'bereit', rolle: 'leitung' },

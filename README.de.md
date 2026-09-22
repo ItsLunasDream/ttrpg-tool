@@ -23,6 +23,11 @@ auch die spricht nur mit dem eingetragenen Anbieter.
   von der Tastatur oder von einer KI kam.
 - **Status Effect Creator** — eigene Zustände mit Stufen, gewogen an denen,
   die jeder kennt, mit einer Karte zum Vorlesen am Tisch.
+- **Encounter Creator** — Begegnungen aus den eigenen Monstern, mit
+  Umgebung, in einem Zug in den Initiative Tracker geschoben. Die
+  Schwierigkeit wird nach dem Regelwerk gerechnet.
+- **Nachschlagewerk** — die Regeln aus dem Systemreferenzdokument, offline
+  und in beiden Sprachen, in derselben Strg+K-Suche wie alles andere.
 - **TTRPG Map Editor** — Battlemaps und Weltkarten zeichnen, Export als
   Universal VTT.
 
@@ -94,10 +99,20 @@ apps/npc/          NPC Creator
 apps/inspiration/  Inspirationshilfe
 apps/monster/      Monster Creator
 apps/zustaende/    Status Effect Creator
+apps/encounter/    Encounter Creator
+apps/nachschlagewerk/ Nachschlagewerk (die Regeln, offline)
 packages/dice/     Würfelausdrücke lesen und werfen
 packages/i18n/     Sprachwahl und Textersetzung
 packages/motion/   Zeiten, Kurven und Grundanimationen
 packages/ki/       Anbindung an Sprachmodelle (Ollama, Claude)
+packages/umgebungen/ Umgebungen: was man sieht, und was mit einer Zahl wirkt
+packages/einstellungen/ Wie ein Werkzeug seine Einstellungen für die Hülle beschreibt
+packages/foundry/  Monster und Zustände als JSON, das Foundry VTT liest
+packages/farben/   Farbrollen und die wählbaren Themen
+packages/eintraege/ Was ein Werkzeug abgelegt hat, in einer Form, die alle verstehen
+packages/tabellen/ Zufallstabellen: das Format, darauf würfeln, verschachteln
+packages/uebergabe/ Die Form, in der eine Begegnung von einem Werkzeug ins andere wandert
+packages/srd/      Alles aus dem SRD 5.2.1, in beiden Sprachen
 ```
 
 `packages/*` sind plattformfrei: kein `node:*`, kein `electron`, keine
