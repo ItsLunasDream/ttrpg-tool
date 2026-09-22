@@ -68,6 +68,15 @@ legendäre; sortierbar nach Name, Typ, HG, TP und RK. Ein Klick auf den Namen
 zeigt den ganzen Wertekasten. Offizielle Monster tragen die Kennung
 `srd:<id>` in der Begegnung.
 
+**Zusammenstellen lassen:** Ziel als HG oder EP, optional die Zahl der
+Gegner, Quelle (offiziell, eigene, gemischt) und Typ. Gegner, die schon in
+der Begegnung stehen, bleiben auf Wunsch drin; so legt man Pflichtmonster
+fest. Gesucht wird zufällig aus ein bis drei Monsterarten, der beste Treffer
+gewinnt, unter gleich guten wird gelost. Ein HG als Ziel heißt „so viele EP
+wie ein Monster dieses Grades"; das Regelwerk kennt keinen Grad für eine
+ganze Begegnung, diese Übersetzung ist eine Lesehilfe. Weicht das Ergebnis
+um mehr als 10 % ab oder landet es bei einem anderen Grad, steht das dabei.
+
 Zwei Quellen, und die Reihenfolge ist Absicht:
 
 1. **Die eigene Sammlung** aus dem Monster Creator. Das ist der Punkt, den

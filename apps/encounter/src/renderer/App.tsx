@@ -22,6 +22,7 @@ import {
 import type { Monsterkarte } from '../shared/monsterliste';
 import { eigeneKarten, srdKarten, type Katalogkarte } from '../shared/katalog';
 import { Katalog } from './Katalog';
+import { Zusammensteller } from './Zusammensteller';
 import {
   UMGEBUNGEN,
   anblickzeilen,
@@ -340,6 +341,15 @@ export function App() {
               })}
             </ul>
           )}
+
+          <Klappe id="bauen" titel={t('bau.titel')}>
+            <Zusammensteller
+              karten={karten}
+              gegner={offen.gegner}
+              sprache={sprache()}
+              setzeGegner={(gegner) => setOffen({ ...offen, gegner })}
+            />
+          </Klappe>
 
           <Klappe id="sammlung" titel={t('monster.titel')}>
             <Katalog

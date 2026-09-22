@@ -831,3 +831,39 @@ body {
   color: var(--betont);
   border-bottom: 1px solid var(--rand);
 }
+
+/* ==========================================================================
+   Zusammenstellen lassen
+   ========================================================================== */
+
+.zusammensteller {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.zusammensteller__reihe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.zusammensteller__feld {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-leise);
+}
+
+.zusammensteller__ep {
+  width: 90px;
+}
+
+.zusammensteller__ergebnis {
+  margin: 0;
+}
+
+.zusammensteller__ergebnis.is-abweichend b {
+  color: var(--gefahr);
+}

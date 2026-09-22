@@ -363,6 +363,38 @@ app.whenReady().then(async () => {
     `ohne Namen gespeichert heisst sie Encounter_1 (${dateien().join(', ')})`
   );
 
+  // --- Zusammenstellen lassen -------------------------------------------------
+  //
+  // Die umgekehrte Richtung: Ziel HG 5, vier Gegner, nur offizielle.
+  await js(`(() => {
+    const wahl = document.querySelector('select[data-bau="grad"]');
+    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    setzer.call(wahl, '5');
+    wahl.dispatchEvent(new Event('change', { bubbles: true }));
+    const feld = document.querySelector('input[data-bau="anzahl"]');
+    const zahl = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    zahl.call(feld, '4');
+    feld.dispatchEvent(new Event('input', { bubbles: true }));
+    document.querySelector('[data-bau-quelle="srd"]').click();
+    return true;
+  })()`);
+  await warte(300);
+  await js(`document.querySelector('[data-bau="los"]').click(); true`);
+  await warte(600);
+  const gebaut = await js(
+    "[...document.querySelectorAll('.gegnerzeile__anzahl')].reduce((s, e) => s + Number(e.value), 0)"
+  );
+  const bericht = await js("document.querySelector('[data-bau-ergebnis]')?.textContent ?? ''");
+  pruefe(gebaut === 4, `zusammengestellt: genau vier Gegner (${gebaut})`);
+  pruefe(
+    /1[.,]800/.test(bericht) && /(HG|CR) 5/.test(bericht),
+    `mit Ziel und Ergebnis daneben (${bericht.slice(0, 80)})`
+  );
+  pruefe(
+    await js("[...document.querySelectorAll('.gegnerzeile')].every(z => z.dataset.monster.startsWith('srd:'))"),
+    'und nur aus den offiziellen, wie gewaehlt'
+  );
+
   // --- Die Sammlung --------------------------------------------------------
   await js(
     `[...document.querySelectorAll('button')].find(b => /Zurück zur Liste|Back to the list/.test(b.textContent)).click(); true`

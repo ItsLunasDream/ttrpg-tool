@@ -69,6 +69,31 @@ const TEXTE = {
   'katalog.mehr': ['{anzahl} weitere zeigen', 'Show {anzahl} more'],
   'katalog.eigen': ['eigen', 'homebrew'],
 
+  'bau.titel': ['Zusammenstellen lassen', 'Build automatically'],
+  'bau.ziel': ['Ziel', 'Target'],
+  'bau.hg': ['HG', 'CR'],
+  'bau.ep': ['EP', 'XP'],
+  'bau.anzahl': ['Gegner', 'Opponents'],
+  'bau.beliebig': ['egal', 'any'],
+  'bau.quelle.srd': ['Offiziell', 'Official'],
+  'bau.quelle.eigen': ['Eigene', 'Homebrew'],
+  'bau.quelle.gemischt': ['Gemischt', 'Mixed'],
+  'bau.behalten': ['Vorhandene Gegner behalten', 'Keep current opponents'],
+  'bau.los': ['Zusammenstellen', 'Build'],
+  'bau.hinweis': [
+    'Ein HG als Ziel heißt: so viele EP wie ein Monster dieses Grades. Gegner, die schon in der Begegnung stehen, bleiben drin, wenn der Haken gesetzt ist.',
+    'A CR target means as much XP as one monster of that CR. Opponents already in the encounter stay if the box is checked.'
+  ],
+  'bau.ergebnis': [
+    'Ziel {ziel} EP (HG {zielGrad}), erreicht {ep} EP (etwa HG {grad}).',
+    'Target {ziel} XP (CR {zielGrad}), reached {ep} XP (about CR {grad}).'
+  ],
+  'bau.abweichung': ['Weicht um {prozent} % ab.', 'Off by {prozent}%.'],
+  'bau.nichts': [
+    'Keine passenden Monster gefunden. Quelle oder Typ weiter fassen.',
+    'No matching monsters. Try a wider source or type.'
+  ],
+
   'umgebung.titel': ['Umgebung', 'Environment'],
   'umgebung.keine': ['Keine', 'None'],
   'umgebung.wuerfeln': ['Würfeln', 'Roll'],
