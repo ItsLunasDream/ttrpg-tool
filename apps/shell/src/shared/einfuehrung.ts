@@ -337,6 +337,28 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
         en: 'Nothing is stored until you “Save”; “Reroll” discards the draft.'
       }
     ]
+  },
+  {
+    id: 'loot',
+    titel: { de: 'Loot Generator', en: 'Loot Generator' },
+    satz: {
+      de: 'Eigene Zufallstabellen schreiben und würfeln.',
+      en: 'Write and roll your own random tables.'
+    },
+    punkte: [
+      {
+        de: 'Eine Zeile je Eintrag, auf Wunsch mit Spanne davor: „1-3: 2d6 × 10 Kupfer".',
+        en: 'One line per entry, optionally with a range in front: “1-3: 2d6 × 10 copper”.'
+      },
+      {
+        de: 'Eine andere Tabelle in eckigen Klammern wird mitgewürfelt: „[Taschenkram]".',
+        en: 'Another table in square brackets is rolled too: “[Pocket Junk]”.'
+      },
+      {
+        de: 'Der Würfel auf einer Kachel würfelt sofort, ohne die Tabelle zu öffnen.',
+        en: 'The die on a tile rolls right away, without opening the table.'
+      }
+    ]
   }
 ];
 

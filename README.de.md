@@ -29,6 +29,9 @@ auch die spricht nur mit dem eingetragenen Anbieter.
   eine Begegnung zu einem Ziel-HG zusammen.
 - **Magic Item Creator** — magische Gegenstände nach Art und Seltenheit
   würfeln, anpassen und ablegen. Der Wert folgt der Tabelle des SRD.
+- **Loot Generator** — eigene Zufallstabellen schreiben, eine Zeile je
+  Eintrag, mit Spannen, Würfeln im Text und Verweisen auf andere Tabellen;
+  von der Kachel einmal würfeln oder mehrmals ohne Wiederholung.
 - **Nachschlagewerk** — das ganze Regelglossar des Systemreferenzdokuments,
   offline und in beiden Sprachen, mit Querverweisen, Hausregeln und Notizen,
   in derselben Strg+K-Suche wie alles andere.
@@ -106,6 +109,7 @@ apps/zustaende/    Status Effect Creator
 apps/encounter/    Encounter Creator
 apps/nachschlagewerk/ Nachschlagewerk (die Regeln, offline)
 apps/magicitems/   Magic Item Creator
+apps/loot/         Loot Generator
 packages/dice/     Würfelausdrücke lesen und werfen
 packages/i18n/     Sprachwahl und Textersetzung
 packages/motion/   Zeiten, Kurven und Grundanimationen

@@ -50,7 +50,19 @@ export interface Tabelle {
    */
   readonly wuerfel?: string;
   readonly eintraege: readonly Eintrag[];
+  /**
+   * Ohne Zuruecklegen: innerhalb einer Wurfreihe kommt kein Eintrag zweimal,
+   * bis die Tabelle erschoepft ist. Eine Eigenschaft der Tabelle, nicht des
+   * Wurfs — „die zwoelf Wirtshausgaeste sind zwoelf verschiedene".
+   */
+  readonly ohneZuruecklegen?: boolean;
 }
+
+/**
+ * Was in einer Wurfreihe schon gezogen wurde: je Tabelle die Nummern der
+ * Eintraege. Nur Tabellen mit `ohneZuruecklegen` tragen hier etwas ein.
+ */
+export type Gezogen = Map<string, Set<number>>;
 
 /**
  * Ein Verweis im Text: `[Taschenkram]`.
@@ -73,7 +85,15 @@ const VERWEIS = /\[([^\]\[]+)\]/g;
  * Die Wortgrenzen sind wichtig: ohne sie faende der Ausdruck auch das `3d6`
  * mitten in einer Kennung.
  */
-const WUERFEL_IM_TEXT = /\b(\d*d\d+(?:\s*[+-]\s*\d+)?)(?:\s*[×x*]\s*(\d+))?\b/gi;
+const WUERFEL_IM_TEXT = /\b(\d*[dw]\d+(?:\s*[+-]\s*\d+)?)(?:\s*[×x*]\s*(\d+))?\b/gi;
+
+/**
+ * Die deutsche Schreibweise in die, die `@suite/dice` liest: `2W6` → `2d6`.
+ * Am Tisch schreibt man, wie man spricht; das Werkzeug soll beides nehmen.
+ */
+export function alsWuerfel(ausdruck: string): string {
+  return ausdruck.replace(/(\d*)[wW](\d)/g, '$1d$2');
+}
 
 /** Wie tief verschachtelt gewuerfelt wird, bevor abgebrochen wird. */
 export const TIEFE_DECKEL = 10;
@@ -133,11 +153,11 @@ export function verweise(text: string): readonly string[] {
 export function setzeWuerfel(text: string, rng: RandomSource): string {
   return text.replace(WUERFEL_IM_TEXT, (ganz, ausdruck: string, faktor?: string) => {
     try {
-      parseDiceExpression(ausdruck);
+      parseDiceExpression(alsWuerfel(ausdruck));
     } catch {
       return ganz;
     }
-    const summe = rollExpression(ausdruck, rng).total;
+    const summe = rollExpression(alsWuerfel(ausdruck), rng).total;
     return String(faktor ? summe * Number(faktor) : summe);
   });
 }
@@ -153,35 +173,56 @@ export function setzeWuerfel(text: string, rng: RandomSource): string {
  */
 export function waehle(
   tabelle: Tabelle,
-  rng: RandomSource
-): { eintrag: Eintrag; wurf?: number } | null {
+  rng: RandomSource,
+  gesperrt?: ReadonlySet<number>
+): { eintrag: Eintrag; nummer: number; wurf?: number } | null {
   if (tabelle.eintraege.length === 0) return null;
+  const nummerVon = (eintrag: Eintrag) => tabelle.eintraege.indexOf(eintrag);
+
+  // Ohne Zuruecklegen: nur, was noch frei ist. Ist alles gezogen, beginnt
+  // die Tabelle von vorn — am Tisch ist ein dreizehnter Gast besser als
+  // keiner.
+  if (gesperrt && gesperrt.size > 0 && gesperrt.size < tabelle.eintraege.length) {
+    const frei = tabelle.eintraege.map((eintrag, nummer) => ({ eintrag, nummer })).filter((x) => !gesperrt.has(x.nummer));
+    // Mit Spannen bleibt die Gewichtung erhalten: eine Spanne 1-3 zaehlt dreifach.
+    const gewicht = (e: Eintrag) =>
+      tabelle.wuerfel && typeof e.von === 'number' ? Math.max(1, (e.bis ?? e.von) - e.von + 1) : 1;
+    const summe = frei.reduce((s, x) => s + gewicht(x.eintrag), 0);
+    let rest = rng() * summe;
+    for (const x of frei) {
+      rest -= gewicht(x.eintrag);
+      if (rest < 0) return { eintrag: x.eintrag, nummer: x.nummer };
+    }
+    const letzter = frei[frei.length - 1];
+    return { eintrag: letzter.eintrag, nummer: letzter.nummer };
+  }
 
   const mitSpanne = tabelle.eintraege.filter((eintrag) => typeof eintrag.von === 'number');
   if (mitSpanne.length === 0 || !tabelle.wuerfel) {
-    const nummer = Math.floor(rng() * tabelle.eintraege.length);
-    return { eintrag: tabelle.eintraege[Math.min(nummer, tabelle.eintraege.length - 1)] };
+    const nummer = Math.min(Math.floor(rng() * tabelle.eintraege.length), tabelle.eintraege.length - 1);
+    return { eintrag: tabelle.eintraege[nummer], nummer };
   }
 
   let wurf: number;
   try {
-    wurf = rollExpression(tabelle.wuerfel, rng).total;
+    wurf = rollExpression(alsWuerfel(tabelle.wuerfel), rng).total;
   } catch {
-    const nummer = Math.floor(rng() * tabelle.eintraege.length);
-    return { eintrag: tabelle.eintraege[Math.min(nummer, tabelle.eintraege.length - 1)] };
+    const nummer = Math.min(Math.floor(rng() * tabelle.eintraege.length), tabelle.eintraege.length - 1);
+    return { eintrag: tabelle.eintraege[nummer], nummer };
   }
 
   const getroffen = mitSpanne.find(
     (eintrag) => wurf >= (eintrag.von as number) && wurf <= (eintrag.bis ?? (eintrag.von as number))
   );
-  if (getroffen) return { eintrag: getroffen, wurf };
+  if (getroffen) return { eintrag: getroffen, nummer: nummerVon(getroffen), wurf };
 
   // Ein Loch in der Tabelle: der naechstkleinere Eintrag faengt es auf.
   const darunter = [...mitSpanne]
     .filter((eintrag) => (eintrag.von as number) <= wurf)
     .sort((a, b) => (a.von as number) - (b.von as number))
     .pop();
-  return { eintrag: darunter ?? mitSpanne[0], wurf };
+  const aufgefangen = darunter ?? mitSpanne[0];
+  return { eintrag: aufgefangen, nummer: nummerVon(aufgefangen), wurf };
 }
 
 /**
@@ -208,11 +249,22 @@ export function wuerfle(
   tabelle: Tabelle,
   tabellen: readonly Tabelle[],
   rng: RandomSource,
-  tiefe = 0
+  tiefe = 0,
+  gezogen?: Gezogen
 ): Ergebnis {
-  const gewaehlt = waehle(tabelle, rng);
+  const gesperrt = tabelle.ohneZuruecklegen ? gezogen?.get(tabelle.id) : undefined;
+  const gewaehlt = waehle(tabelle, rng, gesperrt);
   if (!gewaehlt) {
     return { tabelle: tabelle.name, text: '', teile: [] };
+  }
+  if (tabelle.ohneZuruecklegen && gezogen) {
+    let menge = gezogen.get(tabelle.id);
+    // Erschoepft: von vorn, mit dem eben gezogenen als erstem.
+    if (!menge || menge.size >= tabelle.eintraege.length) {
+      menge = new Set();
+      gezogen.set(tabelle.id, menge);
+    }
+    menge.add(gewaehlt.nummer);
   }
 
   const teile: Ergebnis[] = [];
@@ -231,7 +283,7 @@ export function wuerfle(
       teile.push({ tabelle: name.trim(), text: '', teile: [], fehler: 'fehlt' });
       return ganz;
     }
-    const unten = wuerfle(ziel, tabellen, rng, tiefe + 1);
+    const unten = wuerfle(ziel, tabellen, rng, tiefe + 1, gezogen);
     teile.push(unten);
     return unten.text;
   });
@@ -242,6 +294,27 @@ export function wuerfle(
     ...(gewaehlt.wurf === undefined ? {} : { wurf: gewaehlt.wurf }),
     teile
   };
+}
+
+/**
+ * Mehrmals auf dieselbe Tabelle, als eine Reihe.
+ *
+ * In einer Reihe gilt „ohne Zuruecklegen" fuer jede beteiligte Tabelle,
+ * auch fuer verwiesene: fuenf Wuerfe auf eine Bande ziehen fuenf
+ * verschiedene Stuecke Taschenkram, solange es genug gibt.
+ */
+export function wuerfleReihe(
+  tabelle: Tabelle,
+  tabellen: readonly Tabelle[],
+  anzahl: number,
+  rng: RandomSource
+): readonly Ergebnis[] {
+  const gezogen: Gezogen = new Map();
+  const heraus: Ergebnis[] = [];
+  for (let i = 0; i < Math.max(0, Math.floor(anzahl)); i += 1) {
+    heraus.push(wuerfle(tabelle, tabellen, rng, 0, gezogen));
+  }
+  return heraus;
 }
 
 /**

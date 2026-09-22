@@ -29,6 +29,9 @@ the provider you entered.
   for a target CR.
 - **Magic Item Creator** — roll magic items by type and rarity, adjust them,
   store them. Values follow the SRD table.
+- **Loot Generator** — write your own random tables, one line per entry,
+  with ranges, dice in the text and references to other tables; roll them
+  once from the tile or several times without repeats.
 - **Reference** — the whole rules glossary of the System Reference
   Document, offline and in both languages, with cross-references, house
   rules and notes, in the same Ctrl+K search as everything else.
@@ -105,6 +108,7 @@ apps/zustaende/    Status Effect Creator
 apps/encounter/    Encounter Creator
 apps/nachschlagewerk/ Reference (the rules, offline)
 apps/magicitems/   Magic Item Creator
+apps/loot/         Loot Generator
 packages/dice/     Reading and rolling dice expressions
 packages/i18n/     Language choice and text substitution
 packages/motion/   Timings, curves and base animations
@@ -619,9 +623,9 @@ What is in `docs/` (all German):
 | `statuseffekte.md` | Status Effect Creator: effects, weight, Foundry export |
 | `encounter.md` | Encounter Creator: collection, environment, the way into the tracker, difficulty |
 | `austausch.md` | Concept: sharing between the group at the table (not built) |
-| `magicitems.md` | Magic Item Creator: tables, generator, collection (built); calibration and Foundry export planned |
+| `magicitems.md` | Magic Item Creator: tables, generator, collection, Foundry export, calibration against the SRD |
 | `nachschlagewerk.md` | Reference: the rules glossary offline in both languages, cross-references, house rules, notes |
-| `loot.md` | Concept: Loot Generator, own nested random tables (not built) |
+| `loot.md` | Loot Generator: own nested random tables (stages 1 to 3 built; loot by CR open) |
 
 ## License
 

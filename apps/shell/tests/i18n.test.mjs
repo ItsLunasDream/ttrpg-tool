@@ -35,7 +35,6 @@ test('jeder englische Schluessel hat eine deutsche Entsprechung', () => {
 // Wenige Texte sind in beiden Sprachen gleich, das ist kein Fehler.
 const GLEICH_ERLAUBT = new Set([
   // Der Name der Sammlung.
-  'app.magicitems.name',
   'menu.title',
   // Eigennamen der Werkzeuge, die in beiden Sprachen gleich heissen.
   'app.backstory.name',
@@ -43,6 +42,8 @@ const GLEICH_ERLAUBT = new Set([
   'app.npc.name',
   'app.monster.name',
   'app.zustaende.name',
+  'app.magicitems.name',
+  'app.loot.name',
   // Der Name des Anbieters und das Muster eines Anthropic-Schluessels: beides
   // ist keine Sprache, sondern eine Schreibweise.
   'settings.aiClaude',

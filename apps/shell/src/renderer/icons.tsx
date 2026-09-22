@@ -137,6 +137,21 @@ export const MagicItemsIcon = (p: IconProps) => (
   </Rahmen>
 );
 
+/**
+ * Eine Truhe mit Deckel und Schloss.
+ *
+ * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
+ * `resources/symbole/loot.png` eines liegt.
+ */
+export const LootIcon = (p: IconProps) => (
+  <Rahmen {...p}>
+    <path d="M9,21 L39,21 L39,37 L9,37 Z" />
+    <path d="M9,21 C9,13 14,11 24,11 C34,11 39,13 39,21" />
+    <path d="M9,27 L39,27" />
+    <path d="M21,24 L27,24 L27,30 L21,30 Z" />
+  </Rahmen>
+);
+
 /** Die Marke der Sammlung: ein Sechseck mit Stern. */
 export const SuiteIcon = (p: IconProps) => (
   <Rahmen {...p}>
@@ -227,7 +242,8 @@ const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
   zustaende: ZustaendeIcon,
   encounter: EncounterIcon,
   nachschlagewerk: NachschlagewerkIcon,
-  magicitems: MagicItemsIcon
+  magicitems: MagicItemsIcon,
+  loot: LootIcon
 };
 
 /**

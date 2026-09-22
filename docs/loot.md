@@ -2,7 +2,31 @@
 
 Eigene Zufallstabellen, verschachtelbar, und Beute nach Grad.
 
-**Stand:** Konzept. Nichts davon ist gebaut.
+**Stand:** Stufe 1 bis 3 sind gebaut (`packages/tabellen`, `apps/loot`),
+Stufe 4 (Beute nach Grad) steht aus. Was beim Bauen entschieden wurde:
+
+- **Eingabe als Zeilen.** Eine Zeile je Eintrag, die Spanne davor ist
+  freiwillig (`1-3: 2d6 × 10 Kupfer`). Die Datei auf der Platte ist
+  dieselbe Liste als Markdown, lesbar in jedem Texteditor.
+- **Weitergeben:** die Ablagedatei genügt, kein eigenes Format.
+  „Weitergeben" schreibt sie irgendwohin, „Einlesen" holt fremde herein,
+  ohne etwas zu überschreiben.
+- **Ohne Zurücklegen je Tabelle**, gültig innerhalb einer Wurfreihe und
+  auch für verwiesene Tabellen. Ist eine Tabelle erschöpft, beginnt sie von
+  vorn. Mit Spannen bleibt die Gewichtung erhalten.
+- **Drei Beispieltabellen** beim allerersten Start, in der dann
+  eingestellten Sprache. Bewusst als Ausnahme von „wir schreiben keine
+  Tabellen": ein leeres Werkzeug ist eine hohe Hürde. Wer sie löscht,
+  bekommt sie nicht wieder. Umkehrbar, falls unerwünscht.
+- **Deutsche Würfel** (`2W6`) gelten wie `2d6`, im Text und als Würfel der
+  Tabelle.
+- **Formprüfung beim Tippen:** Lücken, doppelte Zahlen, Zahlen außerhalb
+  des Würfels, unlesbarer Würfel, Verweise ins Leere und auf sich selbst.
+- **Herkunft:** jedes Ergebnis hat ein aufklappbares „Woher" mit dem Baum
+  der Würfe.
+
+Noch offen: die Brücke in den Story Creator (Ergebnis als Notiz), Verweise
+auf den Bestand des Magic Item Creators, und Stufe 4.
 
 ## Warum das kein weiterer Erzeuger ist
 

@@ -122,3 +122,49 @@ test('eine leere Tabelle liefert nichts, statt zu werfen', () => {
   const leer = { id: 'l', name: 'Leer', eintraege: [] };
   assert.equal(T.wuerfle(leer, [leer], folge(0)).text, '');
 });
+
+test('ohne Zuruecklegen kommt in einer Reihe kein Eintrag doppelt, bis alle dran waren', () => {
+  const gaeste = {
+    id: 'g',
+    name: 'Gaeste',
+    ohneZuruecklegen: true,
+    eintraege: [{ text: 'A' }, { text: 'B' }, { text: 'C' }]
+  };
+  // Der Zufall liefert immer 0: mit Zuruecklegen waere das dreimal A.
+  const reihe = T.wuerfleReihe(gaeste, [gaeste], 4, () => 0).map((e) => e.text);
+  assert.deepEqual(reihe.slice(0, 3).sort(), ['A', 'B', 'C']);
+  assert.equal(reihe.length, 4, 'erschoepft beginnt die Tabelle von vorn');
+});
+
+test('mit Zuruecklegen darf sich eine Reihe wiederholen', () => {
+  const reihe = T.wuerfleReihe(TASCHENKRAM, [TASCHENKRAM], 3, () => 0).map((e) => e.text);
+  assert.deepEqual(reihe, ['Ein Kamm aus Knochen', 'Ein Kamm aus Knochen', 'Ein Kamm aus Knochen']);
+});
+
+test('ohne Zuruecklegen gilt auch fuer verwiesene Tabellen', () => {
+  const kram = { ...TASCHENKRAM, ohneZuruecklegen: true };
+  const bande = { id: 'b', name: 'Bande', eintraege: [{ text: '[Taschenkram]' }] };
+  const reihe = T.wuerfleReihe(bande, [bande, kram], 2, () => 0).map((e) => e.text);
+  assert.deepEqual(reihe.sort(), ['Drei Spielsteine', 'Ein Kamm aus Knochen']);
+});
+
+test('ohne Zuruecklegen haelt die Gewichtung der Spannen', () => {
+  const t = {
+    id: 'w',
+    name: 'W',
+    wuerfel: '1d4',
+    ohneZuruecklegen: true,
+    eintraege: [{ text: 'X', von: 1, bis: 3 }, { text: 'Y', von: 4 }, { text: 'Z', von: 5, bis: 6 }]
+  };
+  // Erster Wurf trifft Y (Wuerfel 4), danach bleiben X (3) und Z (2): 0,5 * 5 = 2,5 < 3 -> X.
+  const reihe = T.wuerfleReihe(t, [t], 2, T && ((werte) => { let i = 0; return () => werte[i++]; })([0.75, 0.5])).map((e) => e.text);
+  assert.deepEqual(reihe, ['Y', 'X']);
+});
+
+test('die deutsche Schreibweise 2W6 wird gewuerfelt wie 2d6', () => {
+  assert.equal(T.setzeWuerfel('2W6 Silber', () => 0), '2 Silber');
+  const t = { id: 'w', name: 'W', wuerfel: '1W4', eintraege: [{ text: 'A', von: 1, bis: 2 }, { text: 'B', von: 3, bis: 4 }] };
+  assert.equal(T.wuerfle(t, [t], () => 0.99).text, 'B');
+  // Ein Wort mit w bleibt ein Wort.
+  assert.equal(T.setzeWuerfel('Schwert', () => 0), 'Schwert');
+});

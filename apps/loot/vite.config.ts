@@ -14,6 +14,6 @@ export default defineConfig({
   },
   // Jedes Werkzeug hat seinen eigenen Port: 5173 Story Creator, 5273 Huelle,
   // 5373 Initiative, 5473 NPC und Wuerfel, 5573 Inspiration, 5673 Monster,
-  // 5773 Zustaende, 5873 Encounter, 5973 Nachschlagewerk, 6073 hier, 6173 Loot.
-  server: { port: 6073, strictPort: true }
+  // 5773 Zustaende, 5873 Encounter, 5973 Nachschlagewerk, 6073 Magic Items, 6173 hier.
+  server: { port: 6173, strictPort: true }
 });

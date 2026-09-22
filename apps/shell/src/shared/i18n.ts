@@ -167,7 +167,9 @@ const en = {
   'app.nachschlagewerk.name': 'Reference',
   'app.nachschlagewerk.description': 'The rules, offline and in both languages',
   'app.magicitems.name': 'Magic Item Creator',
-  'app.magicitems.description': 'Roll and adjust magic items'
+  'app.magicitems.description': 'Roll and adjust magic items',
+  'app.loot.name': 'Loot Generator',
+  'app.loot.description': 'Your own random tables, nested and rolled'
 };
 
 export type MessageKey = keyof typeof en;
@@ -332,7 +334,9 @@ const de: Partial<Record<MessageKey, string>> = {
   'app.nachschlagewerk.name': 'Nachschlagewerk',
   'app.nachschlagewerk.description': 'Die Regeln, offline und in beiden Sprachen',
   'app.magicitems.name': 'Magic Item Creator',
-  'app.magicitems.description': 'Magische Gegenstände würfeln und anpassen'
+  'app.magicitems.description': 'Magische Gegenstände würfeln und anpassen',
+  'app.loot.name': 'Loot Generator',
+  'app.loot.description': 'Eigene Zufallstabellen, verschachtelt und gewürfelt'
 };
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { en, de };
