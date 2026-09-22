@@ -180,6 +180,22 @@ const api = {
     setzeSchluessel: (schluessel: string) =>
       ipcRenderer.invoke('ki:schluessel-setzen', schluessel) as Promise<boolean>
   },
+  /** Eine Sicherung der ganzen Sammlung — alle Werkzeuge, nicht nur eines. */
+  sicherung: {
+    /**
+     * Fragt nach einem Ort und schreibt dorthin. `ok: false` mit leerem
+     * `text` heisst: abgebrochen. Das ist kein Fehler, sondern eine
+     * Entscheidung.
+     */
+    schreiben: () =>
+      ipcRenderer.invoke('sicherung:schreiben') as Promise<{
+        ok: boolean;
+        text: string;
+        dateien: number;
+      }>,
+    /** Oeffnet den Datenordner im Dateimanager. */
+    ordnerOeffnen: () => ipcRenderer.invoke('sicherung:ordner') as Promise<string>
+  },
   einstellungen: {
     lesen: () => ipcRenderer.invoke('einstellungen:lesen') as Promise<ShellSettings>,
     /**

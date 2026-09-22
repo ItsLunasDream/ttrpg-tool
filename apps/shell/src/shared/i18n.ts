@@ -87,6 +87,15 @@ const en = {
   'settings.aiReady': 'Ready: {detail}',
   'settings.aiNotReady': 'Not ready: {detail}',
 
+  'settings.backup': 'Backup',
+  'settings.backupHint':
+    'One ZIP with everything: campaigns, monsters, conditions, encounters, maps, your own icons and the settings. The API key is left out — it is encrypted with this machine\u2019s keychain and would be useless anywhere else.',
+  'settings.backupNow': 'Back up now',
+  'settings.backupRunning': 'Backing up…',
+  'settings.backupDone': 'Done, {count} files:',
+  'settings.backupFolder': 'Open data folder',
+  'settings.backupRestore':
+    'To restore: close the app, unpack the ZIP into the data folder, start again. Doing it while tools are running would overwrite what they still hold in memory.',
   'settings.intro': 'Introductions',
   'settings.introHint':
     'Each tool explains itself the first time you open it. Show those windows again from the start.',
@@ -226,6 +235,15 @@ const de: Partial<Record<MessageKey, string>> = {
   'settings.aiReady': 'Bereit: {detail}',
   'settings.aiNotReady': 'Nicht bereit: {detail}',
 
+  'settings.backup': 'Sicherung',
+  'settings.backupHint':
+    'Ein ZIP mit allem: Kampagnen, Monster, Zustände, Begegnungen, Karten, eigene Symbole und die Einstellungen. Der API-Schlüssel bleibt draußen — er ist mit dem Schlüsselbund dieses Rechners verschlüsselt und wäre anderswo ohnehin wertlos.',
+  'settings.backupNow': 'Jetzt sichern',
+  'settings.backupRunning': 'Wird gesichert…',
+  'settings.backupDone': 'Fertig, {count} Dateien:',
+  'settings.backupFolder': 'Datenordner öffnen',
+  'settings.backupRestore':
+    'Zurückspielen: Anwendung schließen, das ZIP in den Datenordner entpacken, neu starten. Im laufenden Betrieb überschriebe es, was die Werkzeuge noch im Speicher halten.',
   'settings.intro': 'Einführungen',
   'settings.introHint':
     'Jedes Werkzeug erklärt sich beim ersten Öffnen selbst. Diese Fenster lassen sich wieder von vorn zeigen.',

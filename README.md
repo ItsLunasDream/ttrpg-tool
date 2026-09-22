@@ -110,6 +110,13 @@ globals. They are bundled into both processes.
 shell across the full area, with the tool's view on top of it, leaving room
 for the title bar and the rail.
 
+- One backup for everything. Settings → Backup writes a single ZIP of the
+  whole data folder: campaigns, monsters, conditions, encounters, maps, your
+  own icons and the settings. Before packing, every open tool is asked to
+  write what it still holds. The API key is left out — it is encrypted with
+  this machine's keychain and would be useless anywhere else, and a backup
+  is the last place a key belongs. Restoring is manual and deliberately so:
+  close the app, unpack into the data folder, start again.
 - Colours live in one place. `packages/farben` holds fourteen colour *roles*
   („the ground everything sits on“, not „dark blue“) and seven themes that
   fill them — five dark, two light, which is what covers light mode. The

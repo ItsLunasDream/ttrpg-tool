@@ -719,6 +719,8 @@ export function App() {
           symbolordnerOeffnen={() => window.shell.symbole.ordnerOeffnen()}
           symboleNeuLaden={ladeSymboleNeu}
           einfuehrungenZuruecksetzen={setzeEinfuehrungenZurueck}
+          sichern={() => window.shell.sicherung.schreiben()}
+          datenordnerOeffnen={() => window.shell.sicherung.ordnerOeffnen()}
           offeneWerkzeuge={APPS.filter((app) => montierte.has(app.id)).map((app) => ({
             id: app.id,
             name: t(nameKey(app.id))

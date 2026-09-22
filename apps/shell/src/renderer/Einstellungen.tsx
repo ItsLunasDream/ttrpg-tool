@@ -42,6 +42,10 @@ interface Props {
   readonly symboleNeuLaden: () => Promise<void>;
   /** Vergisst, welche Einfuehrungen schon gesehen sind. */
   readonly einfuehrungenZuruecksetzen: () => Promise<void>;
+  /** Schreibt eine Sicherung der ganzen Sammlung. */
+  readonly sichern: () => Promise<{ ok: boolean; text: string; dateien: number }>;
+  /** Oeffnet den Datenordner — von Hand zurueckspielen geht nur dort. */
+  readonly datenordnerOeffnen: () => Promise<string>;
   /**
    * Die gerade laufenden Werkzeuge, mit ihrem uebersetzten Namen.
    *
@@ -79,6 +83,8 @@ export function Einstellungen({
   symbolordnerOeffnen,
   symboleNeuLaden,
   einfuehrungenZuruecksetzen,
+  sichern,
+  datenordnerOeffnen,
   offeneWerkzeuge,
   werkzeugEinstellungen,
   werkzeugSetzen,
@@ -90,6 +96,9 @@ export function Einstellungen({
   const [schluessel, setSchluessel] = useState('');
   const [pruefend, setPruefend] = useState(false);
   const [einfuehrungenZurueck, setEinfuehrungenZurueck] = useState(false);
+  /** Was die letzte Sicherung ergeben hat, oder `null`, solange keine lief. */
+  const [gesichert, setGesichert] = useState<{ pfad: string; dateien: number } | null>(null);
+  const [sichertGerade, setSichertGerade] = useState(false);
 
   /**
    * Der Fehler wird angezeigt und nicht verschluckt: eine Einstellung, die
@@ -312,6 +321,55 @@ export function Einstellungen({
           {t('settings.iconsReload')}
         </button>
       </div>
+
+      {/*
+        Die Sicherung der ganzen Sammlung.
+
+        Bisher sicherte nur der Story Creator, und auch nur seine Kampagne.
+        Hier geht alles hinein — bis auf den API-Schluessel: der liegt mit
+        dem Schluesselbund DIESES Rechners verschluesselt da und waere
+        anderswo ohnehin wertlos.
+      */}
+      <h3 className="feld__ueberschrift">{t('settings.backup')}</h3>
+      <p className="feld__hinweis">{t('settings.backupHint')}</p>
+      <div className="feld__knoepfe">
+        <button
+          type="button"
+          disabled={sichertGerade}
+          onClick={() => {
+            setSichertGerade(true);
+            setFehler(null);
+            setGesichert(null);
+            void sichern()
+              .then((ergebnis) => {
+                // Abgebrochen ist kein Fehler: dann bleibt die Zeile leer,
+                // statt nach Missgeschick zu klingen.
+                if (ergebnis.ok) {
+                  setGesichert({ pfad: ergebnis.text, dateien: ergebnis.dateien });
+                } else if (ergebnis.text) {
+                  setFehler(t('settings.saveFailed', { detail: ergebnis.text }));
+                }
+              })
+              .catch((grund: unknown) =>
+                setFehler(t('settings.saveFailed', { detail: String(grund) }))
+              )
+              .finally(() => setSichertGerade(false));
+          }}
+        >
+          {sichertGerade ? t('settings.backupRunning') : t('settings.backupNow')}
+        </button>
+        <button type="button" onClick={() => melde(datenordnerOeffnen())}>
+          {t('settings.backupFolder')}
+        </button>
+      </div>
+      {gesichert ? (
+        <p className="feld__hinweis">
+          {t('settings.backupDone', { count: gesichert.dateien })}
+          <br />
+          <code className="feld__pfad">{gesichert.pfad}</code>
+        </p>
+      ) : null}
+      <p className="feld__hinweis">{t('settings.backupRestore')}</p>
 
       <h3 className="feld__ueberschrift">{t('settings.intro')}</h3>
       <p className="feld__hinweis">{t('settings.introHint')}</p>

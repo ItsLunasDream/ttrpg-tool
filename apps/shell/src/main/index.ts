@@ -17,7 +17,7 @@
  * steht fuer sich. Die Aufteilung ist aber schon so angelegt, dass das
  * Einbetten spaeter nichts daran umstellt.
  */
-import { app, BaseWindow, WebContentsView, ipcMain, screen, shell, type IpcMainInvokeEvent, type WebContents } from 'electron';
+import { app, BaseWindow, WebContentsView, dialog, ipcMain, screen, shell, type IpcMainInvokeEvent, type WebContents } from 'electron';
 /**
  * Startzeit messen, wenn TTRPG_TOOLS_STARTZEIT gesetzt ist.
  *
@@ -55,6 +55,8 @@ import { berechneAppFlaeche } from '../shared/apps';
 import { mountApp, registerSchemes, type MontageHaken, type MontierteApp } from './apps';
 import type { Wert } from '@suite/einstellungen';
 import { beobachteFarbe, setzeThema as setzeFarbthema } from './farbe';
+import { schreibeSicherung } from './sicherung';
+import { sicherungsname } from '../shared/sicherung';
 import { brichFahrtAb, fahreEin } from './fahrt';
 import {
   DEFAULT_SETTINGS,
@@ -755,6 +757,39 @@ function registriereKanaele(): void {
       return (await montiert?.werkzeugBefehl?.(befehlId, wert)) ?? null;
     }
   );
+
+  /**
+   * Eine Sicherung der ganzen Sammlung.
+   *
+   * Bisher sicherte nur der Story Creator, und auch nur seine Kampagne.
+   * Hier geht der ganze Datenordner hinein: Kampagnen, Monster, Zustaende,
+   * Begegnungen, Karten, eigene Symbole und die Einstellungen.
+   *
+   * Vor dem Packen wird geschrieben, was noch im Speicher haengt — sonst
+   * fehlt in der Sicherung genau die Notiz, an der man gerade sass.
+   */
+  handle('sicherung:schreiben', async () => {
+    const vorschlag = sicherungsname(new Date());
+    const frage = {
+      defaultPath: vorschlag,
+      filters: [{ name: 'ZIP', extensions: ['zip'] }]
+    };
+    const ergebnis = fenster
+      ? await dialog.showSaveDialog(fenster, frage)
+      : await dialog.showSaveDialog(frage);
+    if (ergebnis.canceled || !ergebnis.filePath) return { ok: false, text: '', dateien: 0 };
+
+    for (const montiert of offen.values()) await montiert.flush();
+    const bericht = await schreibeSicherung(app.getPath('userData'), ergebnis.filePath);
+    return { ok: true, text: ergebnis.filePath, dateien: bericht.dateien };
+  });
+
+  /** Oeffnet den Datenordner — von Hand zurueckspielen geht nur dort. */
+  handle('sicherung:ordner', async () => {
+    const ordner = app.getPath('userData');
+    await shell.openPath(ordner);
+    return ordner;
+  });
 
   /**
    * Bereitschaft der KI.
