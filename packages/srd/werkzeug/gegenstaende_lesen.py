@@ -99,10 +99,14 @@ def lies(sprache, alle):
                 # „… Rare / (+2), or Very Rare (+3)": die naechste Zeile setzt
                 # die Seltenheiten fort.
                 or re.match(r'\((?:\+\d|erfordert|Requires)|or\b|oder\b', alle[j]['text'].strip())
+                # „… Very Rare / (Bronze), or Legendary (Iron)": eine Klammer
+                # am Zeilenanfang, und die Zeile nennt eine Seltenheit.
+                or (alle[j]['text'].strip().startswith('(') and seltenheiten(alle[j]['text'], sprache))
             ):
                 kopf += ' ' + alle[j]['text'].strip()
                 j += 1
             text = []
+            roh = []
             while j < len(alle):
                 w = alle[j]
                 if w['art'] == 'kopf' and j + 1 < len(alle) and alle[j + 1]['art'] == 'text' and \
@@ -111,11 +115,13 @@ def lies(sprache, alle):
                     # zum naechsten Gegenstand, nicht zu diesem.
                     if name_von(alle, j + 1) != w['text'].strip() and text:
                         text.pop()
+                        roh.pop()
                     break
                 # Ein Kapitelwechsel beendet den Bestand.
                 if w['art'] == 'kopf' and w['text'].strip() in ('Monsters', 'Monster', 'Monsters A–Z', 'Monster von A–Z'):
                     break
                 text.append(w['text'])
+                roh.append(w)
                 j += 1
             kopf = zusammensetzen(kopf)
             if not seltenheiten(kopf, sprache):
@@ -130,6 +136,9 @@ def lies(sprache, alle):
                 'seltenheiten': seltenheiten(kopf, sprache),
                 'einstimmung': ATTUNE[sprache].lower() in kopf.lower(),
                 'text': zusammensetzen('\n'.join(text)),
+                # Die Zeilen mit Schrift und Ort, fuer den Bau der Bloecke
+                # (gegenstaende_text.py). Nicht Teil der Ausgabe.
+                '_roh': roh,
             })
             i = j
             continue
@@ -150,9 +159,6 @@ def zahlen(text):
 ABWEICHUNGEN = {
     # Im deutschen PDF steht als Kategorie „Zauberstab", im englischen „Staff".
     'Staff of Withering': 'kategorie',
-    # Die englische Seltenheitszeile bricht so um, dass „Legendary" in den
-    # Text rutscht; die deutsche nennt alle drei.
-    'Horn of Valhalla': 'seltenheiten',
 }
 
 
@@ -206,6 +212,8 @@ if __name__ == '__main__':
     handdatei = os.path.join(os.path.dirname(__file__), 'gegenstaende_paare.json')
     hand = json.load(open(handdatei, encoding='utf8')) if os.path.exists(handdatei) else {}
     p = paare(en, de, hand)
+    for g in en + de:
+        g.pop('_roh', None)
     json.dump({'en': en, 'de': de, 'paare': p}, open(sys.argv[3], 'w', encoding='utf8'),
               ensure_ascii=False, indent=1)
     print(len(en), 'englisch,', len(de), 'deutsch,', len(p), 'gepaart', f'({len(hand)} von Hand)')

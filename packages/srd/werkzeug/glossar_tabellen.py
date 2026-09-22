@@ -43,7 +43,7 @@ def _pdf(datei):
     return _offen[datei]
 
 
-def _woerter(datei, roh):
+def _woerter(datei, roh, breit=False):
     """Die Woerter der Tabelle, gesammelt ueber die Orte ihrer Zeilen.
 
     Eine Tabelle kann ueber eine Spalte oder Seite umbrechen. Deshalb
@@ -53,7 +53,9 @@ def _woerter(datei, roh):
     abschnitte = []
     for z in roh:
         seite = z['seite']
-        spalte = 0 if z['x'] < 300 else 1
+        # Eine seitenbreite Tabelle (bei den magischen Gegenstaenden) liegt
+        # ueber beiden Satzspalten; dann zaehlt nur die Seite.
+        spalte = 2 if breit else (0 if z['x'] < 300 else 1)
         if not abschnitte or abschnitte[-1]['ort'] != (seite, spalte):
             abschnitte.append({'ort': (seite, spalte), 'y': []})
         abschnitte[-1]['y'].append(z['y'])
@@ -62,7 +64,7 @@ def _woerter(datei, roh):
         seite, spalte = a['ort']
         p = _pdf(datei).pages[seite]
         hoch, tief = max(a['y']) + 4, min(a['y']) - 4
-        links, rechts = (0, 300) if spalte == 0 else (300, p.width)
+        links, rechts = {0: (0, 300), 1: (300, p.width), 2: (0, p.width)}[spalte]
         stueck = []
         for w in p.extract_words(extra_attrs=['fontname']):
             if 'GillSans' not in w['fontname']:
@@ -127,6 +129,58 @@ def _verteile(kanten, zeile):
     return [' '.join(z) for z in zellen]
 
 
+def _feine_kanten(kanten, kopfzeilen, rumpf):
+    """Spalten aus den Luecken im Rumpf, wo der Kopf sie nicht zeigt.
+
+    „1W100 Effekt" steht so eng, dass der Abstand im Kopf keine zwei Zellen
+    zeigt, und mehrzeilige Koepfe („HP / Regained") haben Woerter an
+    Stellen, die keine Spalte sind. Verlaesslich ist der Rumpf: zwischen
+    zwei Spalten gibt es einen senkrechten Streifen, den in KEINER Zeile ein
+    Wort beruehrt. Ein Wortabstand ist schmaler als 6 Punkt; ein solcher
+    Streifen ist breiter.
+
+    Nur fuer die magischen Gegenstaende; das Glossar bleibt, wie es geprueft ist.
+    """
+    woerter = [w for z in rumpf for w in z['w']]
+    if len(rumpf) < 2 or not woerter:
+        return kanten
+    links = min(w['x0'] for w in woerter)
+    rechts = max(w['x1'] for w in woerter)
+    bedeckt = [False] * (int(rechts - links) + 2)
+    for w in woerter:
+        for x in range(int(w['x0'] - links), int(w['x1'] - links) + 1):
+            bedeckt[x] = True
+    neu = [links]
+    frei = 0
+    for x, b in enumerate(bedeckt):
+        if not b:
+            frei += 1
+        else:
+            if frei >= 6 and x > 0:
+                neu.append(links + x - 0.5)
+            frei = 0
+    return neu if len(neu) >= 2 else kanten
+
+
+def _verteile_kopf(kanten, zeile):
+    """Die Woerter einer Kopfzeile auf die Spalten, wenn die Kanten aus dem
+    Rumpf stammen. Koepfe stehen nicht immer genau ueber ihrer Spalte;
+    Woerter bleiben deshalb zusammen, bis zwischen zweien eine Kante liegt,
+    und eine Gruppe geht an die Kante, die ihrem Anfang am naechsten ist."""
+    gruppen = []
+    for w in zeile['w']:
+        if gruppen and not any(gruppen[-1]['x1'] < k <= w['x1'] for k in kanten[1:]):
+            gruppen[-1]['text'] += ' ' + w['text']
+            gruppen[-1]['x1'] = w['x1']
+        else:
+            gruppen.append({'x0': w['x0'], 'x1': w['x1'], 'text': w['text']})
+    zellen = [''] * len(kanten)
+    for g in gruppen:
+        i = min(range(len(kanten)), key=lambda n: abs(kanten[n] - g['x0']))
+        zellen[i] = (zellen[i] + ' ' + g['text']).strip()
+    return zellen
+
+
 def _abschnitt(zeilen, kopftext):
     """Kopf und Reihen EINES Abschnitts (Seite und Satzspalte).
 
@@ -148,7 +202,7 @@ def baue(datei, tabelle, glaetten):
     als Argument, damit die beiden Dateien einander nicht importieren.
     """
     abschnitte = []
-    for stueck in _woerter(datei, tabelle['roh']):
+    for stueck in _woerter(datei, tabelle['roh'], tabelle.get('breit', False)):
         zeilen = [z for z in _zeilen(stueck)
                   if ' '.join(c['text'] for c in z['zellen']) != tabelle['titel']]
         if zeilen:
@@ -189,9 +243,12 @@ def baue(datei, tabelle, glaetten):
         if kopfzeilen:
             breiteste = max(kopfzeilen, key=lambda z: len(z['zellen']))
             kanten = [c['x0'] for c in breiteste['zellen']]
+            if tabelle.get('feine_spalten'):
+                kanten = _feine_kanten(kanten, kopfzeilen, rumpf)
             spalten = [[] for _ in kanten]
+            verteile = _verteile_kopf if tabelle.get('feine_spalten') else _verteile
             for z in kopfzeilen:
-                for i, t in enumerate(_verteile(kanten, z)):
+                for i, t in enumerate(verteile(kanten, z)):
                     if t:
                         spalten[i].append(t)
             neu = [glaetten('\n'.join(t)) for t in spalten]

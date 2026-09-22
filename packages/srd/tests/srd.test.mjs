@@ -260,3 +260,23 @@ test('die Requisiten-Tabelle hat hundert Paare, ohne Reste aus dem Satz', () => 
   assert.equal(S.TAND[0].en, 'A mummified goblin hand');
   assert.equal(S.TAND[99].de, 'Metallene Urne mit der Asche eines Helden');
 });
+
+test('die magischen Gegenstaende: alle 258, gepaart, mit gleicher Tabellenform in beiden Sprachen', () => {
+  const G = S.MAGISCHE_GEGENSTAENDE;
+  assert.equal(G.length, 258);
+  assert.equal(new Set(G.map((g) => g.id)).size, 258);
+  const nach = Object.fromEntries(G.map((g) => [g.id, g]));
+  assert.equal(nach['bag-of-holding'].name.de, 'Nimmervoller Beutel');
+  const krabbe = nach['apparatus-of-the-crab'];
+  for (const sprache of ['de', 'en']) {
+    const t = krabbe.bloecke[sprache].find((b) => b.typ === 'tabelle');
+    assert.equal(t.kopf.length, 3, sprache);
+    assert.equal(t.reihen.length, 10, sprache);
+  }
+  for (const g of G) {
+    const form = (s) => g.bloecke[s].filter((b) => b.typ === 'tabelle').map((b) => `${b.kopf.length}x${b.reihen.length}`);
+    assert.deepEqual(form('de'), form('en'), g.id);
+    assert.ok(g.bloecke.de.length > 0 && g.bloecke.en.length > 0, g.id);
+    assert.doesNotMatch(JSON.stringify(g), /­/, g.id);
+  }
+});

@@ -10,7 +10,8 @@
     "./monster": "./src/monster.ts",
     "./glossar": "./src/glossar.ts",
     "./verweise": "./src/verweisbegriffe.ts",
-    "./tand": "./src/tand.ts"
+    "./tand": "./src/tand.ts",
+    "./magische-gegenstaende": "./src/magische-gegenstaende.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

@@ -13,6 +13,8 @@ python3 werkzeug/monster_erzeugen.py /tmp/monster.json # paart ueber die Zahlen,
 python3 -c "import pickle,sys; sys.path.insert(0,'werkzeug'); from monster_lesen import lies_zeilen as z; [pickle.dump(z(s),open(f'/tmp/zeilen_{s}.pkl','wb')) for s in ('en','de')]"
 python3 werkzeug/gegenstaende_lesen.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tmp/gegenstaende.json
 python3 werkzeug/gegenstaende_eichung.py /tmp/gegenstaende.json ../../apps/magicitems/src/shared/eichpunkte.ts
+python3 werkzeug/gegenstaende_text.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tmp/gegenstaende.json /tmp/gtext.json
+python3 werkzeug/gegenstaende_erzeugen.py /tmp/gtext.json   # schreibt src/magische-gegenstaende.ts
 python3 werkzeug/tand_lesen.py src/tand.ts             # Trinkets / Requisiten, 1W100, beide Sprachen
 ```
 
@@ -32,3 +34,11 @@ python3 werkzeug/tand_lesen.py src/tand.ts             # Trinkets / Requisiten, 
   die Zahlen kommen aus dem PDF.
 - `tand_lesen.py`: die Tabelle „Trinkets" / „Requisiten", gepaart ueber die
   Nummer; bricht ab, wenn eine der hundert Nummern fehlt.
+- `gegenstaende_text.py`: der Text der Gegenstaende als Bloecke wie im
+  Glossar. Tabellen ueber den Tabellenbau des Glossars, mit Spalten aus den
+  Luecken im Rumpf (`feine_spalten`, nur hier); nebeneinander gesetzte
+  Tabellen werden eine, umbrechende mit wiederholtem Kopf auch; Wertekaesten
+  zeilentreu; weiche Trennzeichen mitten in der Zeile nach dem Folgezeichen.
+  Eine frei stehende Tabelle wird per `VERSCHIEBUNGEN` umgehaengt.
+- `gegenstaende_erzeugen.py`: prueft (Paarung, Blockarten, Tabellenform
+  beider Sprachen, keine weichen Trennzeichen) und schreibt die Datei.
