@@ -289,3 +289,24 @@ test('die Bloecke der Gegenstaende stehen in beiden Sprachen in derselben Folge'
   const i = figur.bloecke.en.findIndex((b) => b.typ === 'punkt' && b.text.startsWith('Golden Lions'));
   assert.match(figur.bloecke.de[i].text, /^Goldene Löwen/);
 });
+
+test('die Zauber: alle 339, gepaart, in beiden Sprachen gleich gebaut', () => {
+  const Z = S.ZAUBER;
+  assert.equal(Z.length, 339);
+  assert.equal(new Set(Z.map((z) => z.id)).size, 339);
+  const feuerball = Z.find((z) => z.id === 'fireball');
+  assert.equal(feuerball.name.de, 'Feuerball');
+  assert.equal(feuerball.grad, 3);
+  assert.equal(feuerball.schule, 'hervorrufung');
+  assert.deepEqual([...feuerball.klassen], ['magier', 'zauberer']);
+  assert.equal(feuerball.eigenschaften.de.reichweite, '45 Meter');
+  assert.match(feuerball.eigenschaften.de.komponenten, /Fledermaus-Guano/);
+  assert.equal(Z.filter((z) => z.grad === 0).length, 27);
+  for (const z of Z) {
+    assert.deepEqual(z.bloecke.de.map((b) => b.typ), z.bloecke.en.map((b) => b.typ), z.id);
+    for (const s of ['de', 'en']) {
+      for (const k of ['zeit', 'reichweite', 'komponenten', 'dauer']) assert.ok(z.eigenschaften[s][k], `${z.id} ${s} ${k}`);
+    }
+    assert.doesNotMatch(JSON.stringify(z), /­/, z.id);
+  }
+});

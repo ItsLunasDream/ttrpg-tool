@@ -15,6 +15,8 @@ python3 werkzeug/gegenstaende_lesen.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tm
 python3 werkzeug/gegenstaende_eichung.py /tmp/gegenstaende.json ../../apps/magicitems/src/shared/eichpunkte.ts
 python3 werkzeug/gegenstaende_text.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tmp/gegenstaende.json /tmp/gtext.json
 python3 werkzeug/gegenstaende_erzeugen.py /tmp/gtext.json   # schreibt src/magische-gegenstaende.ts
+python3 werkzeug/zauber_lesen.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tmp/zauber.json
+python3 werkzeug/zauber_erzeugen.py /tmp/zauber.json   # schreibt src/zauber.ts
 python3 werkzeug/tand_lesen.py src/tand.ts             # Trinkets / Requisiten, 1W100, beide Sprachen
 ```
 
@@ -42,3 +44,10 @@ python3 werkzeug/tand_lesen.py src/tand.ts             # Trinkets / Requisiten, 
   Eine frei stehende Tabelle wird per `VERSCHIEBUNGEN` umgehaengt.
 - `gegenstaende_erzeugen.py`: prueft (Paarung, Blockarten, Tabellenform
   beider Sprachen, keine weichen Trennzeichen) und schreibt die Datei.
+- `zauber_lesen.py`: die 339 Zauber beider Sprachen. Die Zeilen des Kapitels
+  werden erst nach Lage geordnet (im deutschen PDF steht auf Seite 144 die
+  rechte Spalte im Datenstrom vor der linken). Gepaart ueber Grad, Schule,
+  Klassen, Komponenten, Konzentration, Ritual und Zahlen (317 automatisch),
+  der Rest aus `zauber_paare.json` (25, gegen denselben Rahmen geprueft;
+  eine begruendete Ausnahme: Hypnotic Pattern hat verschiedene Komponenten).
+- `zauber_erzeugen.py`: prueft und schreibt `src/zauber.ts`.

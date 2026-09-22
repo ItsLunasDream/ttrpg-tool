@@ -87,7 +87,11 @@ def _neue_tabelle(tabelle, x):
     return x['x'] <= min(gleiche_spalte) + 3
 
 
+UNTERPUNKT = re.compile(r'^[^.:]{2,80}[.:](\s|$)')
 SATZENDE = re.compile(r'[.:!?)”"]\s*$')
+# Die Abschnittskoepfe in einem Wertekasten.
+KASTEN_ABSCHNITTE = {'Traits', 'Actions', 'Bonus Actions', 'Reactions',
+                     'Merkmale', 'Aktionen', 'Bonusaktionen', 'Reaktionen'}
 # Die erste Zeile eines Wertekastens unter seinem Namen.
 WERTEKASTEN = re.compile(r'^(AC|RK) \d')
 
@@ -109,7 +113,7 @@ def bloecke(datei, roh):
         # Auszeichnung setzt (Kopf, fett, fett-kursiv); sonst geht die
         # Zeile weiter.
         if kasten is None and art == 'kopf' and any(
-                WERTEKASTEN.match(z['text'].strip()) for z in roh[i + 1:i + 3]):
+                WERTEKASTEN.match(z['text'].strip()) for z in roh[i + 1:i + 5]):
             kasten = {'typ': 'wertekasten', 'titel': t.strip(), 'eintraege': []}
             heraus_kasten = kasten
             kasten_arten = []
@@ -129,7 +133,14 @@ def bloecke(datei, roh):
                     heraus[-1]['text'] += '\n' + t
                     continue
             else:
-                neu = art in ('kopf', 'punkt', 'stichpunkt') or not kasten['eintraege']
+                # Neu nur, wenn der vorige Eintrag fertig ist: „Healing Touch
+                # (…; Recharges after a Long / Rest)." bleibt beisammen.
+                # Fette Werteangaben („AC 11", „Senses …") beginnen immer eine
+                # Zeile, fett-kursive Merkmalsnamen nur nach einem Satzende.
+                neu = (not kasten['eintraege'] or art in ('kopf', 'stichpunkt')
+                       or t.strip() in KASTEN_ABSCHNITTE
+                       or kasten['eintraege'][-1] in KASTEN_ABSCHNITTE
+                       or (art == 'punkt' and SATZENDE.search(kasten['eintraege'][-1])))
                 if neu:
                     kasten['eintraege'].append(t.strip())
                     kasten_arten.append(art)
@@ -141,9 +152,15 @@ def bloecke(datei, roh):
             # Fliesstext wie jeder andere.
             art = 'text'
         # Ein fetter Zeilenanfang nach einem unvollstaendigen Satz ist die
-        # Fortsetzung („Water Ele- / mental)"), kein neuer Unterpunkt.
+        # Fortsetzung („Water Ele- / mental)"), kein neuer Unterpunkt — und
+        # ebenso einer, der nicht wie ein Unterpunkt aussieht (kein „Kopf:"
+        # oder „Kopf." vorn): Hervorhebung im Fliesstext, etwa die fett
+        # gesetzte Tierliste in „Vertrauten finden".
         if (art in ('punkt', 'stichpunkt') and heraus and heraus[-1]['typ'] in ('absatz', 'punkt', 'stichpunkt')
-                and not SATZENDE.search(heraus[-1]['text'])):
+                and (not SATZENDE.search(heraus[-1]['text'])
+                     # Nur rein fett (nicht fett-kursiv): echte Unterpunkte
+                     # sind fett-kursiv, und ihr Kopf darf umbrechen.
+                     or (art == 'stichpunkt' and not UNTERPUNKT.match(t.strip())))):
             heraus[-1]['text'] += '\n' + t
             tabelle = None
             continue
@@ -160,8 +177,10 @@ def bloecke(datei, roh):
                 # Zelle ist, nicht mit einem Wuerfel anfaengt und danach
                 # noch etwas Tabellenartiges kommt.
                 naechste = roh[i + 1] if i + 1 < len(roh) else None
+                # Ein Titel endet nie mit Trennstrich: „Reihen-" ist schon Kopf.
                 if (art == 'kopf' and naechste and naechste['art'] in ('kopf', 'zelle')
-                        and not WUERFEL_KOPF.match(t.strip()) and _einzelzelle(datei, x)):
+                        and not WUERFEL_KOPF.match(t.strip()) and not t.strip().endswith('-')
+                        and _einzelzelle(datei, x)):
                     tabelle['titel'] = t.strip()
                     tabelle['breit'] = _breit(datei, roh, i)
                     continue
@@ -203,6 +222,11 @@ MITTE = re.compile(r'(\w)[ \t]*\u00ad[ \t]*(?=\S)')
 
 
 def weich_mitten(text):
+    # Am Zeilenende vor einem grossgeschriebenen Wort ist es ebenfalls ein
+    # Bindestrich („Fledermaus- / Guano"); vor kleinem bleibt es der
+    # Silbentrennung ueberlassen, die zusammensetzen() aufloest.
+    text = re.sub(r'(\w)[ \t]*\u00ad[ \t]*\n[ \t]*(?=[A-ZÄÖÜ])', r'\1-', text)
+
     def ersetze(m):
         rest = text[m.end():]
         if re.match(r'(und|oder)\b', rest):
@@ -241,6 +265,34 @@ def zellen_glaetten(b, paare):
 
 
 BEREICH = re.compile(r'^(\d+(?:[–-]\d+)?)\s+(.*)$', re.S)
+
+
+def reihen_ordnen(b):
+    """Zwei Nacharbeiten an einer fertigen Tabelle.
+
+    - Eine Reihe, in der nur die erste Spalte etwas hat, ist die umbrochene
+      Fortsetzung der Reihe davor („… (du hast von dem" / „Ziel gehört)").
+    - Eine Reihe, deren letzte Zelle der letzte Kopf ist, ist der Kopf einer
+      zweiten Tabelle, die ohne Abstand folgt („Du hast etwas vom Ziel, und
+      zwar … | Rettungswurf-Modifikator").
+
+    Liefert eine oder mehrere Tabellen.
+    """
+    if b['typ'] != 'tabelle' or len(b['kopf']) < 2:
+        return [b]
+    heraus = [{**b, 'reihen': []}]
+    for r in b['reihen']:
+        t = heraus[-1]
+        if r[-1] == t['kopf'][-1] and r[0] and all(not c for c in r[1:-1]):
+            heraus.append({**b, 'titel': '', 'kopf': list(r), 'reihen': []})
+            continue
+        if t['reihen'] and r[0] and all(not c for c in r[1:]):
+            vorige = list(t['reihen'][-1])
+            vorige[0] = zusammensetzen(vorige[0] + '\n' + r[0])
+            t['reihen'][-1] = vorige
+            continue
+        t['reihen'].append(r)
+    return heraus
 
 
 def verbinde(bloecke_):
@@ -289,6 +341,7 @@ def baue(sprache, gegenstaende):
                 fertig.append({**b, 'text': zusammensetzen(weich_mitten(b['text']))})
         geglaettet = []
         paare = belegte_paare(g['_roh'])
+        fertig = [t for b in fertig for t in reihen_ordnen(b)]
         for b in verbinde(fertig):
             b, n = zellen_glaetten(b, paare)
             WEICH_ZAEHLER[sprache] += n

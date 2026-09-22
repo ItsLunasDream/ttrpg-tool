@@ -6728,8 +6728,10 @@ export const MAGISCHE_GEGENSTAENDE: readonly MagischerGegenstand[] = [
       "Immunitäten Bewusstlos, Bezaubert, Erschöpft, Gelähmt, Gift, Nekrotisch, Verängstigt, Vergiftet, Versteinert",
       "Sinne Wahrer Blick 18 m, Passive Wahrnehmung 13",
       "Sprachen Alle Sprachen, die sein Beschwörer kennt",
-      "HG − (EP 0; ÜB wie der seines Beschwörers) Merkmale",
-      "Körperlose Bewegung: Der Avatar kann sich durch andere Kreaturen und Gegenstände bewegen, als wären sie schwieriges Gelände. Er erleidet 5 (1W10) Energieschaden, wenn er den Zug in einem Gegenstand beendet. Aktionen",
+      "HG − (EP 0; ÜB wie der seines Beschwörers)",
+      "Merkmale",
+      "Körperlose Bewegung: Der Avatar kann sich durch andere Kreaturen und Gegenstände bewegen, als wären sie schwieriges Gelände. Er erleidet 5 (1W10) Energieschaden, wenn er den Zug in einem Gegenstand beendet.",
+      "Aktionen",
       "Mehrfachangriff: Der Avatar führt eine Anzahl von Sense-schwingen-Angriffen in Höhe der Hälfte des Übungsbonus (aufgerundet) des Beschwörers aus.",
       "Sense schwingen: Nahkampfangriffswurf: Automatischer Treffer, Reichweite 1,5 m. Treffer: 7 (1W8+3) Hiebschaden plus 4 (1W8) nekrotischer Schaden."
      ]
@@ -6966,8 +6968,10 @@ export const MAGISCHE_GEGENSTAENDE: readonly MagischerGegenstand[] = [
       "Immunities Necrotic, Poison; Charmed, Exhaustion, Frightened, Paralyzed, Petrified, Poisoned, Unconscious",
       "Senses Truesight 60 ft., Passive Perception 13",
       "Languages All languages known to its summoner",
-      "CR None (XP 0; PB equals its summoner’s) Traits",
-      "Incorporeal Movement. The avatar can move through other creatures and objects as if they were Difficult Terrain. It takes 5 (1d10) Force damage if it ends its turn inside an object. Actions",
+      "CR None (XP 0; PB equals its summoner’s)",
+      "Traits",
+      "Incorporeal Movement. The avatar can move through other creatures and objects as if they were Difficult Terrain. It takes 5 (1d10) Force damage if it ends its turn inside an object.",
+      "Actions",
       "Multiattack. The avatar makes a number of Reaping Scythe attacks equal to half the summoner’s Proficiency Bonus (rounded up).",
       "Reaping Scythe. Melee Attack Roll: Automatic hit, reach 5 ft. Hit: 7 (1d8 + 3) Slashing damage plus 4 (1d8) Necrotic damage."
      ]
