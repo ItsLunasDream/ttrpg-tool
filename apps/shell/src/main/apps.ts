@@ -905,7 +905,17 @@ async function montiereEncounter(id: string, haken: MontageHaken): Promise<Monti
     devServerUrl: process.env.ENCOUNTER_DEV_SERVER_URL,
     language: haken.language,
     onLanguageChange: (language) => haken.onLanguageChange(language as Language),
-    datenordner: datenordner(id)
+    datenordner: datenordner(id),
+    /*
+     * Der Ordner des Monster Creators.
+     *
+     * Die Huelle kennt beide Werkzeuge und reicht den Pfad durch; keines
+     * von beiden soll ueber das andere Bescheid wissen. Zweimal `monster`,
+     * weil die Ablage im Datenordner des Werkzeugs noch einen Ordner
+     * anlegt — dieselbe Stelle, an der die Suche lange danebengegriffen
+     * hat.
+     */
+    monsterordner: join(datenordner('monster'), 'monster')
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);

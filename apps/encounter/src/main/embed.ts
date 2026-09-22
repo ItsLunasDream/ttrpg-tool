@@ -18,6 +18,7 @@ import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import { kanal } from '../shared/kanaele';
+import { alsMonsterkarte, type Monsterkarte } from '../shared/monsterliste';
 import {
   alsEintrag,
   alsMarkdown,
@@ -38,6 +39,15 @@ export interface EncounterEmbedOptions {
   readonly onLanguageChange?: (language: string) => void;
   /** Wohin die Begegnungen gehoeren. Ueblicherweise der Datenordner der Huelle. */
   readonly datenordner: string;
+  /**
+   * Wo die Monster des Monster Creators liegen.
+   *
+   * Die Huelle reicht den Pfad durch, weil sie beide Werkzeuge kennt und
+   * dieses hier keines von beiden ueber das andere wissen soll. Fehlt er,
+   * bleibt die Auswahlliste leer — das ist kein Fehler, sondern der Fall
+   * „noch kein Monster gebaut".
+   */
+  readonly monsterordner?: string;
 }
 
 export interface EncounterEmbed {
@@ -185,6 +195,35 @@ export async function mountEncounter(
     }
   );
 
+  /*
+   * Die Monster, aus denen man waehlen kann.
+   *
+   * Direkt von der Platte, bei jedem Oeffnen frisch. Kein Kanal zwischen
+   * den beiden Werkzeugen und kein zweiter Bestand: wer sein Monster
+   * gerade eben gebaut hat, soll es hier sofort finden.
+   */
+  handle('monster:liste', async (): Promise<Monsterkarte[]> => {
+    if (!options.monsterordner) return [];
+    let dateien: string[];
+    try {
+      dateien = await readdir(options.monsterordner);
+    } catch {
+      // Noch kein Monster gebaut.
+      return [];
+    }
+    const heraus: Monsterkarte[] = [];
+    for (const name of dateien) {
+      if (!name.endsWith('.md')) continue;
+      try {
+        const inhalt = await readFile(path.join(options.monsterordner, name), 'utf8');
+        heraus.push(alsMonsterkarte(inhalt, name.slice(0, -3)));
+      } catch {
+        // Eine kaputte Datei nimmt nicht die ganze Liste mit.
+      }
+    }
+    return heraus;
+  });
+
   handle('loeschen', async (_e: never, id: string): Promise<boolean> => {
     try {
       await unlink(dateiVon(ordner, id));
@@ -225,7 +264,7 @@ export async function mountEncounter(
 
 /** Meldet alles ab. Fuer Tests und einen sauberen Abbau. */
 export function unmountEncounter(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'loeschen']) {
+  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'monster:liste']) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));

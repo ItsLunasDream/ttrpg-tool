@@ -51,10 +51,28 @@ const TEXTE = {
   ],
 
   'gegner.keine': [
-    'Noch keine Gegner. Die kommen im nächsten Schritt aus deiner Monstersammlung.',
-    'No creatures yet. Those come from your monster collection in the next step.'
+    'Noch keine Gegner. Such dir unten welche aus deiner Monstersammlung.',
+    'No creatures yet. Pick some from your monster collection below.'
   ],
   'gegner.zahl': ['{anzahl} Wesen', '{anzahl} creatures'],
+  'gegner.titel': ['Gegner', 'Creatures'],
+  'gegner.weg': ['Entfernen', 'Remove'],
+  'gegner.fehlt': [
+    'Dieses Monster gibt es nicht mehr.',
+    'This monster no longer exists.'
+  ],
+  'gegner.fehltKurz': ['fehlt', 'missing'],
+
+  'monster.titel': ['Aus deiner Sammlung', 'From your collection'],
+  'monster.suche': ['Monster suchen', 'Search monsters'],
+  'monster.leer': [
+    'Im Monster Creator liegt noch nichts. Bau dir eines, dann steht es hier.',
+    'Nothing in the Monster Creator yet. Build one and it shows up here.'
+  ],
+  'monster.nichts': ['Kein Monster passt dazu.', 'No monster matches that.'],
+  'monster.dazu': ['Dazu', 'Add'],
+  'monster.grad': ['Grad {cr}', 'CR {cr}'],
+  'monster.werte': ['{tp} TP · RK {rk}', '{tp} HP · AC {rk}'],
 
   'fehler.speichern': ['Konnte nicht speichern: {detail}', 'Could not save: {detail}'],
   'fehler.lesen': [

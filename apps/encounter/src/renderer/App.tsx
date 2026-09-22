@@ -14,6 +14,7 @@ import { api } from './api';
 import { setLanguage, t } from './i18n';
 import { finde, type Sortierung } from '../shared/suche';
 import { gegnerzahl, leereBegegnung, type Begegnung, type Eintrag } from '../shared/ablage';
+import { findeMonster, type Monsterkarte } from '../shared/monsterliste';
 
 export function App() {
   const [, neuZeichnen] = useState(0);
@@ -24,6 +25,8 @@ export function App() {
   const [anlegen, setAnlegen] = useState<string | null>(null);
   const [meldung, setMeldung] = useState('');
   const [fehler, setFehler] = useState('');
+  const [monster, setMonster] = useState<readonly Monsterkarte[]>([]);
+  const [monstersuche, setMonstersuche] = useState('');
 
   const ladeListe = useCallback(async () => {
     setEintraege(await api.sammlung.liste());
@@ -32,6 +35,17 @@ export function App() {
   useEffect(() => {
     void ladeListe();
   }, [ladeListe]);
+
+  /*
+   * Die Monster bei jedem Start frisch.
+   *
+   * Wer eben ein Monster gebaut hat, soll es hier sofort finden — und ein
+   * geloeschtes soll verschwinden. Ein gemerkter Stand waere die zweite
+   * Stelle, an der dieselbe Wahrheit steht.
+   */
+  useEffect(() => {
+    void api.monster.liste().then(setMonster, () => setMonster([]));
+  }, []);
 
   /*
    * Die Sprache kommt aus der Huelle, nicht aus einem eigenen Waehler.
@@ -168,17 +182,131 @@ export function App() {
             />
           </label>
 
-          <h3>{t('gegner.zahl', { anzahl: gegnerzahl(offen.gegner) })}</h3>
+          <h3>
+            {t('gegner.titel')} · {t('gegner.zahl', { anzahl: gegnerzahl(offen.gegner) })}
+          </h3>
           {offen.gegner.length === 0 ? (
             <p className="hinweis">{t('gegner.keine')}</p>
           ) : (
             <ul className="gegnerliste">
-              {offen.gegner.map((einer) => (
-                <li key={einer.monsterId || einer.name}>
-                  {einer.anzahl}× {einer.name}
-                </li>
-              ))}
+              {offen.gegner.map((einer) => {
+                /*
+                 * Ein geloeschtes Monster verschwindet NICHT stillschweigend.
+                 *
+                 * Der Name steht mit in der Datei, also bleibt die Zeile
+                 * stehen und sagt, dass es das Monster nicht mehr gibt. Wer
+                 * die Begegnung Wochen spaeter aufmacht, soll sehen, was
+                 * fehlt, statt sich zu wundern, warum sie duenner ist.
+                 */
+                const gibtEs = monster.some((m) => m.id === einer.monsterId);
+                return (
+                  <li
+                    key={einer.monsterId || einer.name}
+                    className={gibtEs ? 'gegnerzeile' : 'gegnerzeile gegnerzeile--fehlt'}
+                    data-monster={einer.monsterId}
+                  >
+                    <input
+                      className="gegnerzeile__anzahl"
+                      type="number"
+                      min={1}
+                      max={99}
+                      value={einer.anzahl}
+                      aria-label={einer.name}
+                      onChange={(e) => {
+                        const anzahl = Math.max(1, Math.min(99, Number(e.target.value) || 1));
+                        setOffen({
+                          ...offen,
+                          gegner: offen.gegner.map((g) =>
+                            g.monsterId === einer.monsterId ? { ...g, anzahl } : g
+                          )
+                        });
+                      }}
+                    />
+                    <span className="gegnerzeile__name">{einer.name}</span>
+                    {gibtEs ? null : (
+                      <span className="gegnerzeile__marke" title={t('gegner.fehlt')}>
+                        {t('gegner.fehltKurz')}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="gegnerzeile__weg"
+                      aria-label={t('gegner.weg')}
+                      title={t('gegner.weg')}
+                      onClick={() =>
+                        setOffen({
+                          ...offen,
+                          gegner: offen.gegner.filter((g) => g.monsterId !== einer.monsterId)
+                        })
+                      }
+                    >
+                      ×
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
+          )}
+
+          <h3>{t('monster.titel')}</h3>
+          {monster.length === 0 ? (
+            <p className="hinweis">{t('monster.leer')}</p>
+          ) : (
+            <>
+              <input
+                className="feld__eingabe"
+                type="search"
+                value={monstersuche}
+                placeholder={t('monster.suche')}
+                aria-label={t('monster.suche')}
+                onChange={(e) => setMonstersuche(e.target.value)}
+              />
+              {findeMonster(monster, monstersuche).length === 0 ? (
+                <p className="hinweis">{t('monster.nichts')}</p>
+              ) : (
+                <ul className="monsterliste">
+                  {findeMonster(monster, monstersuche).map((einer) => (
+                    <li key={einer.id}>
+                      <button
+                        type="button"
+                        className="monsterzeile"
+                        data-monster={einer.id}
+                        onClick={() => {
+                          /*
+                           * Zweimal dasselbe Monster ist keine zweite Zeile,
+                           * sondern eine hoehere Anzahl. „3x Wolf" ist der
+                           * Normalfall, drei Zeilen „Wolf" waeren Rauschen.
+                           */
+                          const schon = offen.gegner.find((g) => g.monsterId === einer.id);
+                          setOffen({
+                            ...offen,
+                            gegner: schon
+                              ? offen.gegner.map((g) =>
+                                  g.monsterId === einer.id
+                                    ? { ...g, anzahl: Math.min(99, g.anzahl + 1) }
+                                    : g
+                                )
+                              : [
+                                  ...offen.gegner,
+                                  { monsterId: einer.id, name: einer.name, anzahl: 1 }
+                                ]
+                          });
+                        }}
+                      >
+                        <span className="monsterzeile__name">{einer.name}</span>
+                        <span className="monsterzeile__grad">
+                          {t('monster.grad', { cr: einer.cr || '?' })}
+                        </span>
+                        <span className="monsterzeile__werte">
+                          {t('monster.werte', { tp: einer.tp, rk: einer.rk })}
+                        </span>
+                        <span className="monsterzeile__dazu">+ {t('monster.dazu')}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
 
           <label className="feld feld--hoch">

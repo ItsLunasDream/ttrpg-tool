@@ -17,6 +17,35 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'encounter-smoke-'));
 const userData = path.join(tmp, 'userData');
 fs.mkdirSync(userData, { recursive: true });
 
+/*
+ * Ein Monster, das schon da liegt, bevor die Anwendung startet.
+ *
+ * Zweimal `monster` im Pfad: die Huelle gibt dem Werkzeug seinen eigenen
+ * Unterordner, und die Ablage legt darin noch einen an. Genau die Stelle,
+ * an der die Suche der Huelle lange danebengegriffen hat.
+ */
+const monsterordner = path.join(userData, 'monster', 'monster');
+fs.mkdirSync(monsterordner, { recursive: true });
+fs.writeFileSync(
+  path.join(monsterordner, 'bounty-hounter.md'),
+  [
+    '---',
+    'id: bounty-hounter',
+    'name: Bounty Hounter',
+    'cr: "5"',
+    'thema: untot',
+    'rolle: jaeger',
+    'tp: 90',
+    'rk: 15',
+    'geaendert: 2026-09-22T09:00:00.000Z',
+    '---',
+    '',
+    '# Bounty Hounter',
+    ''
+  ].join('\n'),
+  'utf8'
+);
+
 app.setPath('userData', userData);
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
 
@@ -127,6 +156,69 @@ app.whenReady().then(async () => {
   const aufDerPlatte = fs.readFileSync(path.join(ordner, 'hinterhalt-am-fluss.md'), 'utf8');
   pruefe(/Die Bruecke bricht in Runde 3\./.test(aufDerPlatte), 'die Notiz steht in der Datei');
   pruefe(/^---/.test(aufDerPlatte) && /name: /.test(aufDerPlatte), 'mit Kopfzahlen darueber');
+
+  // --- Monster aus der eigenen Sammlung ------------------------------------
+  //
+  // Sie liegen schon auf der Platte, ohne dass der Monster Creator in
+  // dieser Sitzung offen war. Genau das ist der Grundsatz: die Werkzeuge
+  // treffen sich ueber Dateien, nicht ueber einen Kanal.
+  pruefe(
+    (await js("document.querySelectorAll('.monsterzeile').length")) === 1,
+    'das Monster aus der Sammlung steht zur Auswahl'
+  );
+  pruefe(
+    /Bounty Hounter/.test(await js("document.querySelector('.monsterzeile')?.textContent ?? ''")),
+    'und zwar mit seinem Namen'
+  );
+
+  // Suchen: Teilwort, Thema, Grad.
+  for (const [wort, erwartet] of [
+    ['bounty', 1],
+    ['untot', 1],
+    ['cr 5', 1],
+    ['drache', 0]
+  ]) {
+    await js(`(() => {
+      const feld = document.querySelector('input[type=search]');
+      const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      setzer.call(feld, ${JSON.stringify(wort)});
+      feld.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    })()`);
+    await warte(250);
+    const treffer = await js("document.querySelectorAll('.monsterzeile').length");
+    pruefe(treffer === erwartet, `„${wort}" findet ${erwartet} (${treffer})`);
+  }
+
+  // Zweimal dazu ergibt Anzahl 2, nicht zwei Zeilen.
+  await js(`(() => {
+    const feld = document.querySelector('input[type=search]');
+    const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setzer.call(feld, '');
+    feld.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  })()`);
+  await warte(250);
+  await js("document.querySelector('.monsterzeile').click(); true");
+  await warte(250);
+  await js("document.querySelector('.monsterzeile').click(); true");
+  await warte(350);
+  pruefe(
+    (await js("document.querySelectorAll('.gegnerzeile').length")) === 1,
+    'zweimal dasselbe Monster ist eine Zeile'
+  );
+  pruefe(
+    (await js("document.querySelector('.gegnerzeile__anzahl')?.value")) === '2',
+    'und zwar mit der Anzahl zwei'
+  );
+
+  await js(
+    `[...document.querySelectorAll('button')].find(b => /^(Speichern|Save)$/.test(b.textContent.trim())).click(); true`
+  );
+  await warte(900);
+  const mitGegnern = fs.readFileSync(path.join(ordner, 'hinterhalt-am-fluss.md'), 'utf8');
+  pruefe(/"anzahl":2/.test(mitGegnern), 'die Gegner stehen im Kopf der Datei');
+  pruefe(/- 2× Bounty Hounter/.test(mitGegnern), 'und lesbar im Leib');
 
   // --- Zwei gleichnamige ueberschreiben einander nicht ---------------------
   await js(

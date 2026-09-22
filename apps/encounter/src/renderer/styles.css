@@ -273,3 +273,135 @@ body {
   background: var(--gefahr);
   color: #fff;
 }
+
+/* ---------- Gegner und Monsterauswahl ---------- */
+
+.gegnerliste {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.gegnerzeile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--grund-tief);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+}
+
+/*
+ * Ein Monster, das es nicht mehr gibt, bleibt sichtbar stehen.
+ *
+ * Es stillschweigend wegzulassen waere der schlimmere Weg: wer die
+ * Begegnung Wochen spaeter aufmacht, soll sehen, was fehlt, statt sich zu
+ * wundern, warum sie duenner ist als erinnert.
+ */
+.gegnerzeile--fehlt {
+  border-style: dashed;
+  border-color: var(--gefahr);
+}
+
+.gegnerzeile__anzahl {
+  width: 56px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  color: var(--text);
+  font: inherit;
+  padding: 4px 6px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.gegnerzeile__name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.gegnerzeile__marke {
+  font-size: 12px;
+  color: var(--gefahr);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.gegnerzeile__weg {
+  border: 0;
+  background: none;
+  color: var(--text-leise);
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.gegnerzeile__weg:hover {
+  background: var(--gefahr);
+  color: #fff;
+}
+
+.monsterliste {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  /* Gedeckelt, damit die Auswahl die Begegnung nicht vom Schirm schiebt. */
+  max-height: 320px;
+  overflow: auto;
+}
+
+.monsterzeile {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  background: var(--grund-tief);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  padding: 7px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.monsterzeile:hover {
+  border-color: var(--betont);
+  background: var(--betont-leise);
+}
+
+.monsterzeile__name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.monsterzeile__grad {
+  font-size: 12px;
+  color: var(--betont);
+}
+
+.monsterzeile__werte {
+  font-size: 12px;
+  color: var(--text-leise);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Erst beim Darueberfahren: immer sichtbar waere es ein Hinweis, den
+   niemand braucht, sobald man die Zeile einmal angeklickt hat. */
+.monsterzeile__dazu {
+  font-size: 12px;
+  color: var(--betont);
+  opacity: 0;
+}
+
+.monsterzeile:hover .monsterzeile__dazu,
+.monsterzeile:focus-visible .monsterzeile__dazu {
+  opacity: 1;
+}

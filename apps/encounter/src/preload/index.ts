@@ -6,6 +6,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
 import type { Begegnung, Eintrag } from '../shared/ablage';
+import type { Monsterkarte } from '../shared/monsterliste';
 
 const api = {
   /**
@@ -36,6 +37,10 @@ const api = {
         text: string;
       }>,
     loeschen: (id: string) => ipcRenderer.invoke(kanal('loeschen'), id) as Promise<boolean>
+  },
+  /** Die Monster des Monster Creators, direkt von der Platte. */
+  monster: {
+    liste: () => ipcRenderer.invoke(kanal('monster:liste')) as Promise<Monsterkarte[]>
   },
   sprache: {
     melde: (sprache: string) => ipcRenderer.send(kanal('sprache:gewechselt'), sprache),
