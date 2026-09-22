@@ -39,10 +39,46 @@ export function istWaehlbar(status: AppStatus): boolean {
 
 
 
+/**
+ * Wer ein Werkzeug am Tisch benutzt.
+ *
+ * `leitung` — fast nur die Spielleitung: Monster, Zustaende, Begegnungen,
+ *             Karten, der Tracker, die Inspirationshilfe, Randfiguren.
+ * `alle`    — beide Seiten gleichermassen. Die Kampagne lesen und
+ *             mitschreiben tun alle; wuerfeln erst recht.
+ *
+ * Wozu die Unterscheidung? Neun Kacheln nebeneinander sind eine Wand. In
+ * zwei benannten Gruppen findet man, was man sucht, ohne jedes Mal alle zu
+ * lesen — und wer als Spieler dazukommt, sieht sofort, was ihn angeht.
+ *
+ * Es ist eine Sortierung, keine Sperre: jede Kachel bleibt anklickbar.
+ */
+export type Rolle = 'leitung' | 'alle';
+
+/**
+ * Die Reihenfolge der Gruppen auf der Startseite.
+ *
+ * „Fuer alle" zuerst, obwohl es die kleinere Gruppe ist und die Sammlung
+ * ueberwiegend Werkzeuge zum Leiten hat. Zwei Gruende: die beiden sind die,
+ * die jede Sitzung anfasst, und der Story Creator bleibt damit die erste
+ * Kachel — dort hat er immer gestanden.
+ *
+ * Sieben Kacheln zuerst und die beiden meistbenutzten darunter waere die
+ * Wand gewesen, gegen die die Gruppierung angetreten ist.
+ */
+export const ROLLEN: readonly Rolle[] = ['alle', 'leitung'];
+
+/** Schluessel der Ueberschrift ueber einer Gruppe. */
+export const ROLLE_KEY: Record<Rolle, MessageKey> = {
+  leitung: 'menu.groupGm',
+  alle: 'menu.groupAll'
+};
+
 export interface AppEntry {
   /** Stabiler Bezeichner. Wird zum Praefix der IPC-Kanaele und zum Schluessel im Fensterzustand. */
   readonly id: string;
   readonly status: AppStatus;
+  readonly rolle: Rolle;
 }
 
 /** Schluessel des Anzeigenamens. Arbeitstitel — die endgueltigen Namen kommen spaeter. */
@@ -62,17 +98,34 @@ export const STATUS_KEY: Record<AppStatus, MessageKey> = {
   geplant: 'status.planned'
 };
 
+/*
+ * Die Reihenfolge ist die der Kacheln, innerhalb der Gruppen.
+ *
+ * Der Story Creator und die Wuerfel stehen bei „alle": an der Kampagne
+ * schreiben beide Seiten mit, und gewuerfelt wird ohnehin von allen. Alles
+ * andere ist Vorbereitung oder Leitung am Tisch.
+ */
 export const APPS: readonly AppEntry[] = [
-  { id: 'backstory', status: 'bereit' },
-  { id: 'mapmaker', status: 'bereit' },
-  { id: 'initiative', status: 'bereit' },
-  { id: 'dice', status: 'bereit' },
-  { id: 'npc', status: 'bereit' },
-  { id: 'inspiration', status: 'bereit' },
-  { id: 'monster', status: 'bereit' },
-  { id: 'zustaende', status: 'bereit' },
-  { id: 'encounter', status: 'geplant' }
+  { id: 'backstory', status: 'bereit', rolle: 'alle' },
+  { id: 'dice', status: 'bereit', rolle: 'alle' },
+  { id: 'monster', status: 'bereit', rolle: 'leitung' },
+  { id: 'zustaende', status: 'bereit', rolle: 'leitung' },
+  { id: 'initiative', status: 'bereit', rolle: 'leitung' },
+  { id: 'mapmaker', status: 'bereit', rolle: 'leitung' },
+  { id: 'npc', status: 'bereit', rolle: 'leitung' },
+  { id: 'inspiration', status: 'bereit', rolle: 'leitung' },
+  { id: 'encounter', status: 'geplant', rolle: 'leitung' }
 ];
+
+/**
+ * Die Werkzeuge einer Rolle, in der Reihenfolge der Liste.
+ *
+ * Ueber `APPS` gefiltert und nicht als zweite Liste gefuehrt: zwei Listen
+ * laufen auseinander, sobald ein Werkzeug dazukommt.
+ */
+export function appsMitRolle(rolle: Rolle): readonly AppEntry[] {
+  return APPS.filter((eintrag) => eintrag.rolle === rolle);
+}
 
 /** Liefert den Eintrag zu einer ID, oder `undefined`, wenn es ihn nicht gibt. */
 export function findApp(id: string): AppEntry | undefined {

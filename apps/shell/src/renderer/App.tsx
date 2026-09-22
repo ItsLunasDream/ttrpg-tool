@@ -11,7 +11,18 @@
  * oder weil es sich nicht oeffnen liess.
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { APPS, CHROME, STATUS_KEY, descriptionKey, findApp, istWaehlbar, nameKey } from '../shared/apps';
+import {
+  APPS,
+  CHROME,
+  ROLLEN,
+  ROLLE_KEY,
+  STATUS_KEY,
+  appsMitRolle,
+  descriptionKey,
+  findApp,
+  istWaehlbar,
+  nameKey
+} from '../shared/apps';
 import {
   DEFAULT_LANGUAGE,
   translate,
@@ -32,7 +43,10 @@ import {
 } from '../shared/verlauf';
 import { AppSymbol, SuiteIcon } from './icons';
 import { KI_VOREINSTELLUNGEN, type KiEinstellungen } from '@suite/ki/einstellungen';
+import { VORGABE_THEMA } from '@suite/farben';
+import type { Eintrag } from '@suite/eintraege';
 import { Einstellungen, type KiZustandAnsicht } from './Einstellungen';
+import { Suche } from './Suche';
 import { Ueber } from './Ueber';
 import { Einfuehrung } from './Einfuehrung';
 import { WILLKOMMEN, einfuehrungFuer, stehtAus } from '../shared/einfuehrung';
@@ -126,6 +140,28 @@ export function App() {
    */
   const [ki, setKi] = useState<KiEinstellungen>(KI_VOREINSTELLUNGEN);
   const [kiZustand, setKiZustand] = useState<KiZustandAnsicht | null>(null);
+  /**
+   * Das Farbthema. Die Werkzeuge bekommen es als eingespritzte Regel vom
+   * Hauptprozess (`farbe.ts`); die Huelle faerbt sich hier selbst.
+   */
+  const [thema, setThema] = useState(VORGABE_THEMA);
+  /**
+   * Welche Werkzeuge schon einmal wirklich offen waren.
+   *
+   * Nur die koennen ihre eigenen Einstellungen beantworten — was nie montiert
+   * wurde, hat sie noch nicht geladen. Der Einstellungen-Dialog fragt deshalb
+   * genau diese ab. Einmal montiert, bleibt ein Werkzeug montiert, also
+   * wandert hier auch nichts wieder heraus.
+   */
+  const [montierte, setMontierte] = useState<ReadonlySet<string>>(new Set());
+  /**
+   * Was die Werkzeuge abgelegt haben — fuer die Suche mit Strg+K.
+   *
+   * Bei jedem Oeffnen frisch geholt und nicht beim Start: wer sucht, will
+   * finden, was er gerade eben angelegt hat.
+   */
+  const [eintraege, setEintraege] = useState<readonly Eintrag[]>([]);
+  const [sucheLaedt, setSucheLaedt] = useState(false);
   const [wenigerBewegung, setWenigerBewegung] = useState(false);
   /**
    * Eigene Symbole aus dem Symbolordner, als data:-URL je Kennung.
@@ -146,7 +182,7 @@ export function App() {
     phase: 'waechst' | 'wartet';
   } | null>(null);
   /** Welcher Dialog offen ist, oder `null`. Es ist immer hoechstens einer. */
-  const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | 'einfuehrung' | null>(null);
+  const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | null>(null);
   /**
    * Ob zurueck und vorwaerts gerade moeglich sind.
    *
@@ -178,7 +214,7 @@ export function App() {
    * liegt unter den Anwendungen. Ohne diese Meldung waere ein geoeffneter
    * Dialog hinter der laufenden Anwendung nicht zu sehen.
    */
-  const zeigeDialog = useCallback((welcher: 'einstellungen' | 'ueber' | 'einfuehrung' | null) => {
+  const zeigeDialog = useCallback((welcher: 'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | null) => {
     setDialog(welcher);
     void window.shell.app.dialog(welcher !== null);
   }, []);
@@ -190,7 +226,7 @@ export function App() {
    * Hauptprozesses heraus aufgerufen wird und dort der Zustand von vorhin
    * stuende.
    */
-  const dialogRef = useRef<'einstellungen' | 'ueber' | 'einfuehrung' | null>(null);
+  const dialogRef = useRef<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | null>(null);
   dialogRef.current = dialog;
 
   /**
@@ -252,6 +288,7 @@ export function App() {
     void window.shell.einstellungen.lesen().then((e) => {
       setSprache(e.language);
       setKi(e.ki);
+      setThema(e.thema);
       setGesehen(e.einfuehrungGesehen);
       // Das Willkommen beim allerersten Start. Es steht hier und nicht in
       // einem eigenen Effekt, weil es genau die Antwort braucht, die gerade
@@ -439,7 +476,14 @@ export function App() {
    * die Ansicht ueber die Huelle; hier wird nur noch gemerkt, was sichtbar
    * ist.
    */
-  const waehle = useCallback((id: string | null, von?: DOMRect, ausVerlauf = false) => {
+  /*
+   * Antwortet, wenn das Werkzeug wirklich steht.
+   *
+   * Fast alle Aufrufer werfen die Antwort weg — sie wollen nur hinwechseln.
+   * Die Suche nicht: ihr Sprung kommt ins Leere, wenn er vor der Montage
+   * ankommt, und stillschweigend.
+   */
+  const waehle = useCallback((id: string | null, von?: DOMRect, ausVerlauf = false): Promise<void> => {
     setAktiv(id);
     // Ein Schritt aus dem Verlauf traegt sich nicht selbst wieder ein, sonst
     // haenge man beim Zurueckgehen fest.
@@ -448,8 +492,7 @@ export function App() {
     if (id === null) {
       setBuehne({ zustand: 'laedt' });
       setUebergang(null);
-      void window.shell.app.startmenue();
-      return;
+      return window.shell.app.startmenue().then(() => undefined);
     }
     setBuehne({ zustand: 'laedt' });
 
@@ -467,14 +510,17 @@ export function App() {
     const mitBewegung = Boolean(von) && !wenigerBewegung;
     if (mitBewegung && von) setUebergang({ id, von, phase: 'waechst' });
 
-    window.shell.app
+    return window.shell.app
       .zeigen(id, mitBewegung ? UEBERGANG_MS : 0)
       .then((ergebnis) => {
         setUebergang(null);
         setBuehne(ergebnis);
         // Erst wenn das Werkzeug wirklich da ist. Eine Einfuehrung vor einer
         // Fehlermeldung waere die falsche Reihenfolge.
-        if (ergebnis.zustand === 'offen') zeigeEinfuehrung(id);
+        if (ergebnis.zustand === 'offen') {
+          zeigeEinfuehrung(id);
+          setMontierte((vorher) => (vorher.has(id) ? vorher : new Set(vorher).add(id)));
+        }
       })
       // Der Hauptprozess faengt Montagefehler selbst ab und meldet sie als
       // Zustand. Bleibt trotzdem eine Ablehnung uebrig, ist etwas an der
@@ -492,6 +538,56 @@ export function App() {
 
   waehleRef.current = waehle;
   aktivRef.current = aktiv;
+
+  /*
+   * Gefaerbt wird NICHT hier.
+   *
+   * Der Hauptprozess spritzt die Regel in jede Ansicht — auch in diese. Ein
+   * zweiter Weg nur fuer die Huelle ging schief, sobald die Einstellung von
+   * woanders kam (aus einem Skript, aus dem Rauchtest): das Werkzeug wurde
+   * hell, die Huelle blieb dunkel. Hier steht nur noch die Kennung, damit
+   * der Waehler weiss, was gerade gilt.
+   */
+  useEffect(
+    () => window.shell.einstellungen.beiThemawechselVonAussen(setThema),
+    []
+  );
+
+  const setzeThema = useCallback(async (neu: string) => {
+    // Nur schreiben. Das Faerben und die Rueckmeldung kommen vom
+    // Hauptprozess, auf demselben Weg wie bei jeder anderen Aenderung.
+    await window.shell.einstellungen.schreiben({ thema: neu });
+  }, []);
+
+  /*
+   * Strg+K oeffnet die Suche.
+   *
+   * Am `window` der Huelle und zusaetzlich aus den Werkzeugen gemeldet: die
+   * Tastendruecke einer eingebetteten Ansicht erreichen die Huelle nicht,
+   * wenn dort der Fokus liegt. Denselben Weg gehen schon die Daumentasten
+   * der Maus.
+   */
+  const oeffneSuche = useCallback(() => {
+    setSucheLaedt(true);
+    zeigeDialog('suche');
+    void window.shell.suche
+      .eintraege()
+      .then(setEintraege, () => setEintraege([]))
+      .finally(() => setSucheLaedt(false));
+  }, [zeigeDialog]);
+
+  useEffect(() => {
+    const beiTaste = (ereignis: KeyboardEvent) => {
+      if ((ereignis.ctrlKey || ereignis.metaKey) && ereignis.key.toLowerCase() === 'k') {
+        ereignis.preventDefault();
+        oeffneSuche();
+      }
+    };
+    window.addEventListener('keydown', beiTaste);
+    return () => window.removeEventListener('keydown', beiTaste);
+  }, [oeffneSuche]);
+
+  useEffect(() => window.shell.suche.beiTastenkuerzel(oeffneSuche), [oeffneSuche]);
 
   const ladeSymboleNeu = useCallback(async () => {
     setSymbole(await window.shell.symbole.lesen());
@@ -659,6 +755,8 @@ export function App() {
         <Einstellungen
           sprache={sprache}
           setzeSprache={setzeSprache}
+          thema={thema}
+          setzeThema={setzeThema}
           ki={ki}
           setzeKi={setzeKi}
           kiZustand={kiZustand}
@@ -667,6 +765,36 @@ export function App() {
           symbolordnerOeffnen={() => window.shell.symbole.ordnerOeffnen()}
           symboleNeuLaden={ladeSymboleNeu}
           einfuehrungenZuruecksetzen={setzeEinfuehrungenZurueck}
+          sichern={() => window.shell.sicherung.schreiben()}
+          datenordnerOeffnen={() => window.shell.sicherung.ordnerOeffnen()}
+          offeneWerkzeuge={APPS.filter((app) => montierte.has(app.id)).map((app) => ({
+            id: app.id,
+            name: t(nameKey(app.id))
+          }))}
+          werkzeugEinstellungen={(appId) => window.shell.werkzeug.einstellungen(appId)}
+          werkzeugSetzen={(appId, feldId, wert) =>
+            window.shell.werkzeug.setzen(appId, feldId, wert)
+          }
+          werkzeugBefehl={(appId, befehlId, wert) =>
+            window.shell.werkzeug.befehl(appId, befehlId, wert)
+          }
+          onClose={() => zeigeDialog(null)}
+          t={t}
+        />
+      )}
+      {dialog === 'suche' && (
+        <Suche
+          eintraege={eintraege}
+          laedt={sucheLaedt}
+          onWahl={(eintrag) => {
+            // Erst hin, dann zeigen — und zwar abgewartet: die Huelle
+            // schickt den Sprung an das montierte Werkzeug, und montiert
+            // ist es erst, wenn `waehle` antwortet. Ohne das `await` kam
+            // der Sprung vor der Montage an und fiel lautlos weg.
+            void waehle(eintrag.werkzeug).then(() =>
+              window.shell.suche.zeige(eintrag.werkzeug, eintrag.kennung)
+            );
+          }}
           onClose={() => zeigeDialog(null)}
           t={t}
         />
@@ -711,31 +839,65 @@ function Startmenue({
       <h1 className="menue__frage">{t('menu.question')}</h1>
       <p className="menue__hinweis">{t('menu.hint')}</p>
 
-      <div className="kacheln">
-        {APPS.map((app, nummer) => {
-          const waehlbar = istWaehlbar(app.status);
+      {/*
+        Nach Rolle am Tisch gruppiert statt alle neun nebeneinander.
+        Neun Kacheln in einer Reihe sind eine Wand; in zwei benannten
+        Gruppen findet man, was man sucht, ohne jedes Mal alle zu lesen.
+
+        Eine Sortierung, keine Sperre: jede Kachel bleibt anklickbar, und
+        wer als Spielleitung am Story Creator schreibt, findet ihn da, wo
+        er immer war.
+
+        Die Verzoegerung laeuft ueber alle Gruppen hinweg weiter — sonst
+        finge die zweite Gruppe wieder bei null an und die Seite baute sich
+        zweimal auf.
+      */}
+      {(() => {
+        let nummer = -1;
+        return ROLLEN.map((rolle) => {
+          const gruppe = appsMitRolle(rolle);
+          if (gruppe.length === 0) return null;
           return (
-            <button
-              key={app.id}
-              type="button"
-              className={`kachel kachel--${app.status} motion-eintritt`}
-              // Gestaffelt, damit das Menue sich aufbaut statt aufzublitzen.
-              // Kurz gehalten: die letzte Kachel darf nicht spuerbar spaeter
-              // da sein als die erste, sonst wartet man auf sie.
-              style={{ animationDelay: `${nummer * 35}ms` }}
-              disabled={!waehlbar}
-              onClick={(ereignis) => setAktiv(app.id, ereignis.currentTarget.getBoundingClientRect())}
-            >
-              <span className="kachel__icon">
-                <AppSymbol id={app.id} size={64} bild={symbole[app.id]} />
-              </span>
-              <span className="kachel__name">{t(nameKey(app.id))}</span>
-              <span className="kachel__text">{t(descriptionKey(app.id))}</span>
-              <span className="kachel__marke">{t(STATUS_KEY[app.status])}</span>
-            </button>
+            <section className="menue__gruppe" key={rolle}>
+              <h2 className="menue__gruppenname">{t(ROLLE_KEY[rolle])}</h2>
+              <div className="kacheln">
+                {gruppe.map((app) => {
+                  const waehlbar = istWaehlbar(app.status);
+                  nummer += 1;
+                  return (
+                    <button
+                      key={app.id}
+                      type="button"
+                      // Damit die Rauchtests eine Kachel ueber ihr Werkzeug
+                      // finden und nicht ueber die Position: die Reihenfolge
+                      // hat sich schon zweimal geaendert, und beide Male
+                      // klickten Tests danach auf das falsche Werkzeug.
+                      data-app={app.id}
+                      className={`kachel kachel--${app.status} motion-eintritt`}
+                      // Gestaffelt, damit das Menue sich aufbaut statt
+                      // aufzublitzen. Kurz gehalten: die letzte Kachel darf
+                      // nicht spuerbar spaeter da sein als die erste, sonst
+                      // wartet man auf sie.
+                      style={{ animationDelay: `${nummer * 35}ms` }}
+                      disabled={!waehlbar}
+                      onClick={(ereignis) =>
+                        setAktiv(app.id, ereignis.currentTarget.getBoundingClientRect())
+                      }
+                    >
+                      <span className="kachel__icon">
+                        <AppSymbol id={app.id} size={64} bild={symbole[app.id]} />
+                      </span>
+                      <span className="kachel__name">{t(nameKey(app.id))}</span>
+                      <span className="kachel__text">{t(descriptionKey(app.id))}</span>
+                      <span className="kachel__marke">{t(STATUS_KEY[app.status])}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
           );
-        })}
-      </div>
+        });
+      })()}
 
       {version && <p className="menue__version">{t('menu.version', { version })}</p>}
     </main>

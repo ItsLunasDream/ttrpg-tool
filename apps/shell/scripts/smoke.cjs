@@ -114,6 +114,32 @@ app.whenReady().then(async () => {
     ),
     'jede Kachel hat ein Symbol'
   );
+
+  /*
+   * Die Kacheln stehen in Gruppen nach Rolle am Tisch.
+   *
+   * Geprueft wird nicht nur, DASS es Ueberschriften gibt, sondern dass
+   * zusammen wieder alle Kacheln herauskommen. Eine Kachel, die in keiner
+   * Gruppe landet, waere von der Startseite verschwunden — und das faellt
+   * an einer blossen Zahl nicht auf.
+   */
+  pruefe(
+    (await js("document.querySelectorAll('.menue__gruppenname').length")) === 2,
+    `zwei Gruppen auf der Kachelseite (${await js("document.querySelectorAll('.menue__gruppenname').length")})`
+  );
+  const inGruppen = await js("document.querySelectorAll('.menue__gruppe .kachel').length");
+  const alleKacheln = await js("document.querySelectorAll('.kachel').length");
+  pruefe(
+    inGruppen === alleKacheln,
+    `jede Kachel steht in einer Gruppe (${inGruppen} von ${alleKacheln})`
+  );
+  const gruppen = await js(
+    "[...document.querySelectorAll('.menue__gruppe')].map((g) => g.querySelectorAll('.kachel').length)"
+  );
+  pruefe(
+    gruppen.every((zahl) => zahl > 0),
+    `keine leere Gruppe (${gruppen.join(', ')})`
+  );
   pruefe((await js("document.querySelectorAll('.fensterknopf').length")) === 3, 'drei Fensterknoepfe');
   // Die Schiene erscheint erst, wenn ein Werkzeug gewaehlt ist.
   pruefe(!(await js("Boolean(document.querySelector('.schiene'))")), 'keine Schiene im Startmenue');
@@ -340,7 +366,16 @@ app.whenReady().then(async () => {
   );
   pruefe(markeVorher.startsWith('translateY('), `der Marker der Schiene steht (${markeVorher})`);
 
-  const kartenEintrag = "[...document.querySelectorAll('.schiene__eintrag')][1]";
+  /*
+   * Ueber den Namen und nicht ueber die Stelle in der Schiene.
+   *
+   * Hier stand `[...][1]`. Das hielt, solange der Karteneditor der zweite
+   * Eintrag war — bis die Kacheln nach Rolle am Tisch sortiert wurden und
+   * an der Stelle die Wuerfel standen. Der Test suchte dann eine
+   * Zeichenflaeche im Wuerfelwerkzeug und meldete sie als fehlend.
+   */
+  const kartenEintrag =
+    "[...document.querySelectorAll('.schiene__eintrag')].find((e) => /Map|Karten/i.test(e.textContent))";
   if (await js(`Boolean(${kartenEintrag})`)) {
     await js(`${kartenEintrag}.click()`);
     // PixiJS baut seinen Renderer auf, das dauert.
@@ -406,7 +441,7 @@ app.whenReady().then(async () => {
       // Hin und her: beide bleiben geladen, keine wird neu aufgebaut.
       await js("document.querySelector('.schiene__eintrag').click()");
       await warte(1500);
-      await js("[...document.querySelectorAll('.schiene__eintrag')][1].click()");
+      await js(`${kartenEintrag}.click()`);
       await warte(1500);
       pruefe(
         fenster.contentView.children.length === 3,
@@ -489,23 +524,41 @@ app.whenReady().then(async () => {
         'die Huelle selbst hat ebenfalls auf Deutsch umgeschaltet'
       );
 
-      // Und zurueck, diesmal ausgeloest im Story Creator.
+      /*
+       * Und zurueck, diesmal ueber die Sprache DES STORY CREATORS.
+       *
+       * Die steht jetzt im Einstellungen-Dialog der Huelle, im Abschnitt des
+       * Werkzeugs — der eigene Dialog im Werkzeug faellt eingebettet weg.
+       * Frueher lief dieser Schritt dort; als er wegfiel, blieb der Rauchtest
+       * an `document.querySelector('.field select')` haengen, das es nicht
+       * mehr gab. Die gepruefte Sache ist dieselbe geblieben: eine Umstellung
+       * am Werkzeug erreicht die Huelle und alle anderen Werkzeuge.
+       */
       await js("[...document.querySelectorAll('.schiene__eintrag')][0].click()");
       await warte(1000);
-      await bs.webContents.executeJavaScript(`(() => {
-        const knopf = [...document.querySelectorAll('button')].find((b) =>
-          /^(Settings|Einstellungen)$/.test(b.textContent.trim())
-        );
-        knopf?.click();
-      })()`);
-      await warte(700);
-      await bs.webContents.executeJavaScript(`(() => {
-        const wahl = document.querySelector('.field select');
+      await js(
+        `[...document.querySelectorAll('.titelleiste__knopf')].find(b => /^(Settings|Einstellungen)$/.test(b.textContent.trim())).click(); true`
+      );
+      await warte(900);
+      const sprachwahlGesetzt = await js(`(() => {
+        const wahl = [...document.querySelectorAll('.werkzeugfelder__gruppe select')]
+          .find((s) => [...s.options].some((o) => o.value === 'en'));
+        if (!wahl) return false;
         const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
         setzer.call(wahl, 'en');
         wahl.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
       })()`);
-      await warte(1200);
+      pruefe(
+        sprachwahlGesetzt,
+        'die Sprache des Story Creators steht im Dialog der Huelle'
+      );
+      await warte(1500);
+      // Den Dialog wieder zu, sonst liegt er ueber dem naechsten Abschnitt.
+      await js(
+        `[...document.querySelectorAll('button')].find(b => /^(Close|Schließen)$/.test(b.textContent.trim()))?.click(); true`
+      );
+      await warte(500);
 
       pruefe(
         (await js("document.querySelector('.titelleiste__knopf').textContent")) === 'Settings',

@@ -310,6 +310,34 @@ Fällt weitgehend nebenbei ab, sobald der einzelne Zustand steht — das
 Verteilen ist derselbe Erzeuger mit einem gemeinsamen Vorrat statt sechs
 Einzelwürfen.
 
+### In der Sammlung bleibt es ein Paket
+
+Die vier Zustände landeten anfangs einzeln in der Sammlung, jeder an seiner
+alphabetischen Stelle zwischen fremden Einträgen — und damit war die
+Abstimmung, der ganze Grund für das Paket, nach dem Speichern nicht mehr zu
+sehen.
+
+Jeder Zustand trägt jetzt einen Verweis auf sein Paket im Dateikopf
+(`paket` und `paket_name`). **Nicht** als eigene Paketdatei: ein Paket ist
+kein Gegenstand für sich, sondern eine Zusammengehörigkeit, und jeder
+Zustand bleibt einzeln brauchbar — man kann einen herauslösen, umbenennen
+oder löschen, ohne dass die anderen etwas merken. Eine eigene Datei müsste
+bei jedem Löschen nachgeführt werden und wäre die zweite Stelle, an der
+dieselbe Wahrheit steht.
+
+In der Sammlung wird daraus eine Kachel, die sich aufklappt. Zugeklappt
+nennt sie die Zustände darin, damit man das Paket wiedererkennt, ohne es zu
+öffnen. Zwei Regeln, die das Verhalten erträglich machen:
+
+- **Ein Paket steht dort, wo sein erster Zustand stünde.** Sonst sprängen
+  die Kacheln beim Tippen im Suchfeld hin und her.
+- **Ein Paket mit nur noch einem Zustand ist keines mehr.** Wer die anderen
+  gelöscht hat — oder wessen Suche nur einen trifft — will keine Kachel
+  aufklappen müssen, um an den letzten zu kommen.
+
+Gesucht wird auch über den Paketnamen: wer „Arktis" tippt, meint die vier
+Zustände darin.
+
 ## Die Eichung: das Gewicht braucht einen Maßstab
 
 Oben steht ein Punktesystem, dessen Werte geschätzt sind. Geschätzte Werte
@@ -597,3 +625,20 @@ Eichung des Monster Creators, und dort steht es ebenso dabei.
   Paket stehen die Zustände nebeneinander, nicht auseinander folgend.
 - **Ein Zähler außerhalb des Kampfes.** Wie im Konzept entschieden: der
   Auslöser bleibt Text, und die Spielleitung wendet ihn an.
+
+## Export nach Foundry VTT
+
+Neben „In den Story Creator" steht „Für Foundry (JSON)". Geschrieben wird ein
+Gegenstand vom Typ `feat` für das System `dnd5e` — dieselbe Bauart, die ein
+selbstgebauter Zustand aus einer laufenden Welt hat.
+
+Die ganze Regel steht im HTML der Beschreibung: Kurzsatz, je Stufe eine
+Überschrift mit ihren Wirkungen, dann Dauer, Verschlimmerung und Linderung.
+Leere Felder erzeugen keine leeren Zeilen.
+
+**Ohne `ActiveEffect`, und das ist Absicht.** „Bewegung um 10 Fuß verringert"
+ließe sich als Änderung an `system.attributes.movement.walk` schreiben. Unsere
+Wirkungen sind aber Sätze, keine Feldnamen — aus einem Satz den richtigen
+Schlüssel zu raten hieße, Regeln zu erfinden, die am Tisch dann falsch wirken.
+Der Text steht da, wo ihn jemand liest, und wer einen Effekt automatisieren
+will, baut ihn in Foundry mit einem Klick dazu.

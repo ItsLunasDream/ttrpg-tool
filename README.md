@@ -96,6 +96,10 @@ packages/i18n/     Language choice and text substitution
 packages/motion/   Timings, curves and base animations
 packages/ki/       Connection to language models (Ollama, Claude)
 packages/umgebungen/ Environments: what you see, and what has a numbered effect
+packages/einstellungen/ How a tool describes its own settings for the shell
+packages/foundry/  Monsters and conditions as JSON that Foundry VTT reads
+packages/farben/   Colour roles and the selectable themes
+packages/eintraege/ What a tool has filed, in a form every tool understands
 ```
 
 `packages/*` are platform-free: no `node:*`, no `electron`, no browser
@@ -107,6 +111,37 @@ globals. They are bundled into both processes.
 shell across the full area, with the tool's view on top of it, leaving room
 for the title bar and the rail.
 
+- One search across everything. Ctrl+K opens a field that searches monsters,
+  conditions and encounters at once, and a hit takes you to where it lives.
+  The entries are read straight from disk, not collected from the running
+  interfaces: otherwise you would only find what you had already opened in
+  this session, and what you have not touched for a while is exactly what you
+  search for. They are fetched fresh on every open rather than kept in an
+  index, because an index that is not maintained shows things that no longer
+  exist. A tool joins in by answering two questions (`packages/eintraege`):
+  „give me your entries" and „show me this entry". One that answers neither
+  simply does not appear.
+- One backup for everything. Settings → Backup writes a single ZIP of the
+  whole data folder: campaigns, monsters, conditions, encounters, maps, your
+  own icons and the settings. Before packing, every open tool is asked to
+  write what it still holds. The API key is left out — it is encrypted with
+  this machine's keychain and would be useless anywhere else, and a backup
+  is the last place a key belongs. Restoring is manual and deliberately so:
+  close the app, unpack into the data folder, start again.
+- Colours live in one place. `packages/farben` holds fourteen colour *roles*
+  („the ground everything sits on“, not „dark blue“) and seven themes that
+  fill them — five dark, two light, which is what covers light mode. The
+  shell injects them as a `:root` rule into every view, its own included, so
+  a tool needs no code for it: its styles.css derives its own variable names
+  from the roles and keeps a fallback for each. The themes are tested for
+  contrast, not just for looking nice.
+- Settings live in one place. The shell's settings dialog shows its own
+  entries (language, AI, icons, introductions) and, underneath, a section per
+  running tool. A tool does not draw that section itself — it runs in its own
+  view — but describes its fields (`packages/einstellungen`), and the shell
+  draws them. A new tool joins in by answering `werkzeugEinstellungen`; the
+  shell needs to know nothing about it. Started on its own, a tool keeps its
+  own settings dialog: there is no shell to hold it.
 - A tool stays loaded once opened and is only hidden when you switch away.
   Everything is still there when you come back; the price is memory, roughly
   130 MB per tool.
@@ -557,6 +592,17 @@ autocomplete. Contributions are welcome, with or without AI assistance.
 Code comments, commit messages and the project documents
 (`KONVENTIONEN.md`, `BACKLOG.md`, `docs/`) are in German. The interface is
 available in German and English.
+
+What is in `docs/` (all German):
+
+| File | What it holds |
+|---|---|
+| `inspirationshilfe.md` | Concept and open points of the Inspiration tool (built) |
+| `monster.md` | Monster Creator: baselines, calibration, Foundry export |
+| `statuseffekte.md` | Status Effect Creator: effects, weight, Foundry export |
+| `encounter.md` | Concept: Encounter Creator (not built) |
+| `austausch.md` | Concept: sharing between the group at the table (not built) |
+| `magicitems.md` | Concept: Magic Item Creator (not built) |
 
 ## License
 

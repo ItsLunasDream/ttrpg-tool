@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import type { Eintrag } from '../shared/ablage';
 import { alsLeib, zuId } from '../shared/ablage';
+import { alsFoundryDatei } from '../shared/foundry';
 import {
   erzeugeZustand,
   pruefeZustand,
@@ -37,7 +38,7 @@ import {
   type Wirkrichtung
 } from '../shared/tabellen';
 import { bogen } from '../shared/karte';
-import { erzeugePaket, ueberschneidung, type Paket } from '../shared/paket';
+import { erzeugePaket, paketId, ueberschneidung, type Paket } from '../shared/paket';
 import { zuId as kennung } from '../shared/ablage';
 import { api } from './api';
 import { Blatt } from './Blatt';
@@ -266,6 +267,25 @@ export function App() {
   };
 
   /**
+   * Den Zustand als JSON fuer Foundry wegschreiben.
+   *
+   * Ein eigener Knopf neben dem Export in den Story Creator: das eine ist
+   * ein Text zum Lesen, das andere eine Datei zum Einlesen.
+   */
+  const nachFoundry = async () => {
+    if (!zustand) return;
+    const datei = alsFoundryDatei(zustand, getLanguage() === 'en' ? 'en' : 'de', Math.random);
+    const ergebnis = await api.foundry(datei.name, datei.inhalt);
+    // Abgebrochen ist kein Fehler: dann bleibt die Leiste still.
+    if (!ergebnis.ok && !ergebnis.text) return;
+    setMeldung(
+      ergebnis.ok
+        ? t('meldung.foundry', { name: zustand.name })
+        : t('meldung.fehler', { detail: ergebnis.text })
+    );
+  };
+
+  /**
    * Die Karte als PDF.
    *
    * Das HTML entsteht hier, gedruckt wird im Hauptprozess — der Renderer
@@ -297,13 +317,29 @@ export function App() {
     );
   };
 
-  /** Ein ganzes Paket in die Sammlung. */
+  /**
+   * Ein ganzes Paket in die Sammlung — und dort bleibt es eines.
+   *
+   * Jeder Zustand traegt den Verweis aufs Paket in seinem Kopf. Damit
+   * stehen sie in der Sammlung beieinander, statt einzeln an ihre
+   * alphabetische Stelle zwischen fremde Eintraege zu rutschen. Der Grund,
+   * warum man ein Paket wuerfelt, ist ja die Abstimmung untereinander; die
+   * waere nach dem Speichern sonst nicht mehr zu sehen.
+   */
   const speicherePaket = async () => {
     if (!paket) return;
+    const kennung = paketId(paket.name);
+    const zeitpunkt = new Date().toISOString();
     let gespeichert = 0;
     for (const einzelner of paket.zustaende) {
       const ergebnis = await api.sammlung.speichern(
-        { ...einzelner, id: zuId(einzelner.name), geaendert: new Date().toISOString() },
+        {
+          ...einzelner,
+          id: zuId(einzelner.name),
+          geaendert: zeitpunkt,
+          paketId: kennung,
+          paketName: paket.name
+        },
         getLanguage()
       );
       if (ergebnis.ok) gespeichert += 1;
@@ -355,6 +391,15 @@ export function App() {
     setStufen(Math.max(1, eintrag.stufen));
     setReiter('bauen');
   };
+
+  /*
+   * Ein Treffer aus der Suche der Huelle (Strg+K).
+   *
+   * Derselbe Weg wie ein Klick in der eigenen Sammlung — `oeffnen` wechselt
+   * auch den Reiter. Wer von aussen kommt, soll dasselbe sehen wie jemand,
+   * der von innen klickt.
+   */
+  useEffect(() => api.beiSuchtreffer((kennung) => void oeffnen(kennung)));
 
   const loeschen = async (eintrag: Eintrag) => {
     if (!window.confirm(`${eintrag.name}?`)) return;
@@ -545,6 +590,9 @@ export function App() {
                 </button>
                 <button type="button" className="knopf" onClick={() => void exportieren()}>
                   {t('knopf.export')}
+                </button>
+                <button type="button" className="knopf" onClick={() => void nachFoundry()}>
+                  {t('knopf.foundry')}
                 </button>
                 <button type="button" className="knopf" onClick={() => setKarte([zustand])}>
                   {t('knopf.karte')}

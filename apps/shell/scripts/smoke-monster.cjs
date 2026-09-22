@@ -304,6 +304,24 @@ app.whenReady().then(async () => {
     })()`);
     pruefe(geklickt === true, 'der Knopf „In den Story Creator" ist da');
     await warte(1500);
+    /*
+     * Der Knopf fuer Foundry.
+     *
+     * Geklickt wird er NICHT: er oeffnet einen Dateidialog des Systems, und
+     * der bliebe im Rauchtest offen stehen. Dass die erzeugte Datei stimmt,
+     * pruefen die Modultests (packages/foundry und apps/monster/tests/foundry).
+     * Hier geht es um die Verdrahtung: steht der Knopf da, und bietet die
+     * Bruecke den Kanal an, den er ruft?
+     */
+    const foundryKnopf = await js(
+      `[...document.querySelectorAll('.knopf')].some((k) => /Foundry/i.test(k.textContent))`
+    );
+    pruefe(foundryKnopf === true, 'der Knopf „Für Foundry (JSON)" ist da');
+    pruefe(
+      (await js("typeof window.monster.foundry")) === 'function',
+      'und die Bruecke bietet den Kanal dafuer an'
+    );
+
 
     const meldung = await js("document.querySelector('.meldung')?.textContent ?? ''");
     pruefe(

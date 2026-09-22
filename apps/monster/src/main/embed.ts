@@ -12,7 +12,7 @@
  */
 import path from 'node:path';
 import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
-import { ipcMain } from 'electron';
+import { dialog, ipcMain, BrowserWindow } from 'electron';
 import type { WebContents } from 'electron';
 import { baueAnbieter, KiFehler, leseJsonAntwort } from '@suite/ki';
 import type { KiEinstellungen } from '@suite/ki/einstellungen';
@@ -20,6 +20,7 @@ import { kanal } from '../shared/kanaele';
 import { alsEintrag, alsMarkdown, zuId, type Abgelegt, type Eintrag } from '../shared/ablage';
 import { anweisung, systemAnweisung, uebernehmbar, type Frage } from '../shared/kiAufgaben';
 import type { Sprache } from '../shared/tabellen';
+import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 
 export type KiQuelle = () => { einstellungen: KiEinstellungen; schluessel: string };
 
@@ -28,6 +29,42 @@ export interface KiErgebnis<T> {
   readonly wert: T | null;
   /** Ein Textschluessel, kein fertiger Satz — die Oberflaeche uebersetzt. */
   readonly grund: string;
+}
+
+/**
+ * Was dieses Werkzeug abgelegt hat, fuer die Suche der Huelle.
+ *
+ * Liest direkt von der Platte und braucht KEINE geladene Ansicht: die Suche
+ * soll auch Monster finden, die man in dieser Sitzung noch nicht offen
+ * hatte. Genau daran waere eine Loesung ueber die Oberflaeche gescheitert.
+ */
+export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]> {
+  const ordner = path.join(datenordner, 'monster');
+  let dateien: string[];
+  try {
+    dateien = await readdir(ordner);
+  } catch {
+    return [];
+  }
+  const heraus: SuchEintrag[] = [];
+  for (const name of dateien) {
+    if (!name.endsWith('.md')) continue;
+    try {
+      const eintrag = alsEintrag(await readFile(path.join(ordner, name), 'utf8'), name.slice(0, -3));
+      heraus.push({
+        werkzeug: 'monster',
+        kennung: eintrag.id,
+        name: eintrag.name,
+        art: 'Monster',
+        // Der Grad gehoert dazu: „ghul 5" ist die Art, wie man am Tisch
+        // sucht.
+        stichworte: [eintrag.themaId, eintrag.rolleId, `cr ${eintrag.cr}`].join(' ')
+      });
+    } catch {
+      // Eine kaputte Datei nimmt nicht die ganze Suche mit.
+    }
+  }
+  return heraus;
 }
 
 export interface MonsterEmbedOptions {
@@ -52,6 +89,13 @@ export interface MonsterEmbed {
   flush(): Promise<void>;
   setLanguage(webContents: WebContents, language: string): Promise<void>;
   meldeKiWechsel(webContents: WebContents): void;
+  /**
+   * Zeigt einen Eintrag, den die Suche der Huelle gefunden hat.
+   *
+   * Antwortet `false`, wenn die Ansicht weg ist. Ob es den Eintrag noch
+   * gibt, entscheidet die Oberflaeche — sie hat die Liste.
+   */
+  zeigeEintrag(webContents: WebContents, kennung: string): Promise<boolean>;
 }
 
 /**
@@ -160,6 +204,33 @@ export async function mountMonster(options: MonsterEmbedOptions): Promise<Monste
     }
   });
 
+  /*
+   * Eine Datei fuer Foundry wegschreiben.
+   *
+   * Der Inhalt kommt fertig aus der Oberflaeche (packages/foundry baut ihn);
+   * hier wird nur gefragt, wohin, und geschrieben. Derselbe kurze Handler
+   * steht im Status Effect Creator — ihn zu teilen hiesse, ein Paket mit
+   * `electron` darin anzulegen, und Regel 4 haelt packages/ davon frei.
+   */
+  ipcMain.removeHandler(kanal('foundry'));
+  ipcMain.handle(
+    kanal('foundry'),
+    async (ereignis, vorschlag: string, inhalt: string) => {
+      try {
+        const fenster = BrowserWindow.fromWebContents(ereignis.sender);
+        const frage = { defaultPath: vorschlag, filters: [{ name: 'JSON', extensions: ['json'] }] };
+        const ergebnis = fenster
+          ? await dialog.showSaveDialog(fenster, frage)
+          : await dialog.showSaveDialog(frage);
+        if (ergebnis.canceled || !ergebnis.filePath) return { ok: false, text: '' };
+        await writeFile(ergebnis.filePath, inhalt, 'utf8');
+        return { ok: true, text: ergebnis.filePath };
+      } catch (fehler) {
+        return { ok: false, text: String(fehler instanceof Error ? fehler.message : fehler) };
+      }
+    }
+  );
+
   /* ---------- KI ---------- */
 
   const anbieter = () => {
@@ -205,6 +276,11 @@ export async function mountMonster(options: MonsterEmbedOptions): Promise<Monste
   });
 
   return {
+    zeigeEintrag: async (webContents, kennung) => {
+      if (webContents.isDestroyed()) return false;
+      webContents.send(kanal('suche:zeigen'), kennung);
+      return true;
+    },
     preloadPath: path.join(options.distDir, 'preload.js'),
     indexFile: options.devServerUrl
       ? null

@@ -7,20 +7,20 @@
  */
 
 :root {
-  --grund: #14161c;
-  --grund-hoch: #1b1e26;
-  --grund-tisch: #10121a;
-  --rand: #2a2e39;
-  --linie: #2a2e39;
-  --text: #e6e8ee;
-  --text-leise: #939aab;
-  --betont: #7aa2f7;
-  --fest: #e0af68;
+  --grund: var(--f-grund, #14161c);
+  --grund-hoch: var(--f-grund-hoch, #1b1e26);
+  --grund-tisch: var(--f-grund-tief, #10121a);
+  --rand: var(--f-rand, #2a2e39);
+  --linie: var(--f-rand, #2a2e39);
+  --text: var(--f-text, #e6e8ee);
+  --text-leise: var(--f-text-leise, #939aab);
+  --betont: var(--f-betont, #7aa2f7);
+  --fest: var(--f-fest, #e0af68);
   --radius: 10px;
 
   /* Die Rueckmeldefarben des Bewegungspakets an diese Palette angleichen. */
-  --motion-ok: #4a9d5f;
-  --motion-fehler: #d1635c;
+  --motion-ok: var(--f-gut, #4a9d5f);
+  --motion-fehler: var(--f-gefahr, #d1635c);
 }
 
 * {

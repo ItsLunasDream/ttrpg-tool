@@ -159,6 +159,41 @@ app.whenReady().then(async () => {
     [...document.querySelectorAll('.dialog__knoepfe button')].pop().click(); return true; })()`);
   await warte(700);
 
+  // --- Rechtsklick auf die freie Flaeche -----------------------------------
+  /*
+   * Aus dem Gebrauch: „Wenn ich in Initiative Rechtsklick in die freie
+   * Flaeche unter den Participants klicke erwarte ich wieder ein Pop-Up
+   * Menue mit dem neue Participants/Terrain hinzugefuegt werden koennen."
+   */
+  await js(`(() => { const liste = document.querySelector('.liste');
+    const k = liste.getBoundingClientRect();
+    liste.dispatchEvent(new MouseEvent('contextmenu', {
+      bubbles: true, clientX: k.left + 20, clientY: k.bottom - 10 }));
+    return true; })()`);
+  await warte(400);
+  pruefe(
+    await js("Boolean(document.querySelector('.kontextmenue'))"),
+    'der Rechtsklick auf die freie Flaeche oeffnet ein Menue'
+  );
+  const flaechenEintraege = await js(
+    "[...document.querySelectorAll('.kontextmenue button')].map(k => k.textContent).join('|')"
+  );
+  pruefe(
+    /Participant|Teilnehmer/.test(flaechenEintraege) && /Terrain|Gelände/.test(flaechenEintraege),
+    `mit Teilnehmer und Gelaende (${flaechenEintraege})`
+  );
+
+  const vorDemMenue = await js("document.querySelectorAll('.zeile').length");
+  await js(`[...document.querySelectorAll('.kontextmenue button')].shift().click(); true`);
+  await warte(600);
+  pruefe(
+    (await js("document.querySelectorAll('.zeile').length")) === vorDemMenue + 1,
+    'und der erste Eintrag legt wirklich einen Teilnehmer an'
+  );
+  // Wieder weg, damit die naechsten Schritte dieselbe Liste sehen.
+  await js("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true })); true");
+  await warte(500);
+
   // --- Rueckgaengig -------------------------------------------------------
   /*
    * Der Fall aus dem Gebrauch: „Wenn man ein Participant löscht soll hier
@@ -265,7 +300,7 @@ app.whenReady().then(async () => {
    * Namen der Teilnehmer, nicht nur ueber den der Begegnung.
    */
   await js(`[...document.querySelectorAll('button')].find(
-    b => /Open encounter|Begegnung öffnen|Öffnen|Open/.test(b.textContent)).click(); true`);
+    b => /^(Collection|Sammlung)$/.test(b.textContent.trim())).click(); true`);
   await warte(600);
   pruefe(await js("Boolean(document.querySelector('.kacheln'))"), 'die Sammlung zeigt Kacheln');
   pruefe(

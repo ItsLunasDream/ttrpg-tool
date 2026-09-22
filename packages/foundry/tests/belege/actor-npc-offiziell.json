@@ -1,0 +1,893 @@
+{
+ "_woher": "Feldgeruest eines offiziellen Monsters. Nur Schluessel und Typen, keine Inhalte.",
+ "_geruest": {
+  "_stats": {
+   "compendiumSource": "str",
+   "coreVersion": "str",
+   "createdTime": "int",
+   "duplicateSource": "null",
+   "exportSource": {
+    "coreVersion": "str",
+    "systemId": "str",
+    "systemVersion": "str",
+    "uuid": "str",
+    "worldId": "str"
+   },
+   "lastModifiedBy": "str",
+   "modifiedTime": "int",
+   "systemId": "str",
+   "systemVersion": "str"
+  },
+  "effects": [
+   {
+    "_id": "str",
+    "_stats": {
+     "compendiumSource": "str",
+     "coreVersion": "str",
+     "createdTime": "int",
+     "duplicateSource": "null",
+     "exportSource": "null",
+     "lastModifiedBy": "str",
+     "modifiedTime": "int",
+     "systemId": "str",
+     "systemVersion": "str"
+    },
+    "description": "str",
+    "disabled": "bool",
+    "duration": {
+     "expired": "bool",
+     "expiry": "str",
+     "units": "str",
+     "value": "int"
+    },
+    "flags": {},
+    "folder": "null",
+    "img": "str",
+    "name": "str",
+    "origin": "str",
+    "showIcon": "int",
+    "sort": "int",
+    "start": {
+     "combat": "null",
+     "combatant": "null",
+     "initiative": "null",
+     "round": "null",
+     "time": "int",
+     "turn": "null"
+    },
+    "statuses": [],
+    "system": {
+     "changes": [
+      {
+       "key": "str",
+       "phase": "str",
+       "priority": "null",
+       "type": "str",
+       "value": "str"
+      }
+     ]
+    },
+    "tint": "str",
+    "transfer": "bool",
+    "type": "str"
+   }
+  ],
+  "flags": {},
+  "folder": "null",
+  "img": "str",
+  "items": [
+   {
+    "_id": "str",
+    "_stats": {
+     "compendiumSource": "str",
+     "coreVersion": "str",
+     "createdTime": "int",
+     "duplicateSource": "null",
+     "exportSource": "null",
+     "lastModifiedBy": "str",
+     "modifiedTime": "int",
+     "systemId": "str",
+     "systemVersion": "str"
+    },
+    "effects": [],
+    "flags": {},
+    "folder": "str",
+    "img": "str",
+    "name": "str",
+    "ownership": {
+     "default": "int"
+    },
+    "sort": "int",
+    "system": {
+     "activities": {},
+     "armor": {
+      "dex": "null",
+      "value": "null"
+     },
+     "attuned": "bool",
+     "attunement": "str",
+     "container": "null",
+     "cover": "null",
+     "crew": {
+      "value": []
+     },
+     "description": {
+      "chat": "str",
+      "value": "str"
+     },
+     "equipped": "bool",
+     "hp": {
+      "conditions": "str",
+      "dt": "null",
+      "max": "null",
+      "value": "null"
+     },
+     "identified": "bool",
+     "identifier": "str",
+     "price": {
+      "denomination": "str",
+      "value": "int"
+     },
+     "proficient": "null",
+     "properties": [
+      "str"
+     ],
+     "quantity": "int",
+     "rarity": "str",
+     "source": {
+      "book": "str",
+      "custom": "str",
+      "license": "str",
+      "revision": "int",
+      "rules": "str"
+     },
+     "speed": {
+      "conditions": "str",
+      "units": "str",
+      "value": "null"
+     },
+     "strength": "null",
+     "type": {
+      "baseItem": "str",
+      "value": "str"
+     },
+     "unidentified": {
+      "description": "str"
+     },
+     "uses": {
+      "max": "str",
+      "recovery": [],
+      "spent": "int"
+     },
+     "weight": {
+      "units": "str",
+      "value": "int"
+     }
+    },
+    "type": "str"
+   }
+  ],
+  "name": "str",
+  "ownership": {
+   "default": "int"
+  },
+  "prototypeToken": {
+   "actorLink": "bool",
+   "alpha": "int",
+   "appendNumber": "bool",
+   "bar1": {
+    "attribute": "str"
+   },
+   "bar2": {
+    "attribute": "null"
+   },
+   "depth": "int",
+   "detectionModes": {},
+   "displayBars": "int",
+   "displayName": "int",
+   "disposition": "int",
+   "flags": {},
+   "height": "int",
+   "light": {
+    "alpha": "float",
+    "angle": "int",
+    "animation": {
+     "intensity": "int",
+     "reverse": "bool",
+     "speed": "int",
+     "type": "null"
+    },
+    "attenuation": "float",
+    "bright": "int",
+    "color": "null",
+    "coloration": "int",
+    "contrast": "int",
+    "darkness": {
+     "max": "int",
+     "min": "int"
+    },
+    "dim": "int",
+    "luminosity": "float",
+    "negative": "bool",
+    "priority": "int",
+    "saturation": "int",
+    "shadows": "int"
+   },
+   "lockRotation": "bool",
+   "movementAction": "null",
+   "name": "str",
+   "occludable": {
+    "radius": "int"
+   },
+   "prependAdjective": "bool",
+   "randomImg": "bool",
+   "ring": {
+    "colors": {
+     "background": "null",
+     "ring": "null"
+    },
+    "effects": "int",
+    "enabled": "bool",
+    "subject": {
+     "scale": "int",
+     "texture": "null"
+    }
+   },
+   "rotation": "int",
+   "sight": {
+    "angle": "int",
+    "attenuation": "float",
+    "brightness": "int",
+    "color": "null",
+    "contrast": "int",
+    "enabled": "bool",
+    "range": "int",
+    "saturation": "int",
+    "visionMode": "str"
+   },
+   "texture": {
+    "alphaThreshold": "float",
+    "anchorX": "float",
+    "anchorY": "float",
+    "fit": "str",
+    "scaleX": "int",
+    "scaleY": "int",
+    "src": "str",
+    "tint": "str"
+   },
+   "turnMarker": {
+    "animation": "null",
+    "disposition": "bool",
+    "mode": "int",
+    "src": "null"
+   },
+   "width": "int"
+  },
+  "system": {
+   "abilities": {
+    "cha": {
+     "bonuses": {
+      "check": "str",
+      "save": "str"
+     },
+     "check": {
+      "roll": {
+       "max": "null",
+       "min": "null",
+       "mode": "int"
+      }
+     },
+     "max": "null",
+     "proficient": "int",
+     "save": {
+      "roll": {
+       "max": "null",
+       "min": "null",
+       "mode": "int"
+      }
+     },
+     "value": "int"
+    },
+    "con": {
+     "bonuses": {
+      "check": "str",
+      "save": "str"
+     },
+     "check": {
+      "roll": {
+       "max": "null",
+       "min": "null",
+       "mode": "int"
+      }
+     },
+     "max": "null",
+     "proficient": "int",
+     "save": {
+      "roll": {
+       "max": "null",
+       "min": "null",
+       "mode": "int"
+      }
+     },
+     "value": "int"
+    },
+    "dex": {
+     "bonuses": {
+      "check": "str",
+      "save": "str"
+     },
+     "check": {
+      "roll": {
+       "max": "null",
+       "min": "null",
+       "mode": "int"
+      }
+     },
+     "max": "null",
+     "proficient": "int",
+     "save": {
+      "roll": {
+       "max": "null",
+       "min": "null",
+       "mode": "int"
+      }
+     },
+     "value": "int"
+    },
+    "int": {
+     "bonuses": {
+      "check": "str",
+      "save": "str"
+     },
+     "check": {
+      "roll": {
+       "max": "null",
+       "min": "null",
+       "mode": "int"
+      }
+     },
+     "max": "null",
+     "proficient": "int",
+     "save": {
+      "roll": {
+       "max": "null",
+       "min": "null",
+       "mode": "int"
+      }
+     },
+     "value": "int"
+    },
+    "str": {
+     "bonuses": {
+      "check": "str",
+      "save": "str"
+     },
+     "check": {
+      "roll": {
+       "max": "null",
+       "min": "null",
+       "mode": "int"
+      }
+     },
+     "max": "null",
+     "proficient": "int",
+     "save": {
+      "roll": {
+       "max": "null",
+       "min": "null",
+       "mode": "int"
+      }
+     },
+     "value": "int"
+    },
+    "wis": {
+     "bonuses": {
+      "check": "str",
+      "save": "str"
+     },
+     "check": {
+      "roll": {
+       "max": "null",
+       "min": "null",
+       "mode": "int"
+      }
+     },
+     "max": "null",
+     "proficient": "int",
+     "save": {
+      "roll": {
+       "max": "null",
+       "min": "null",
+       "mode": "int"
+      }
+     },
+     "value": "int"
+    }
+   },
+   "attributes": {
+    "ac": {
+     "calc": "str",
+     "flat": "int"
+    },
+    "attunement": {
+     "max": "int"
+    },
+    "concentration": {
+     "ability": "str",
+     "bonuses": {
+      "save": "str"
+     },
+     "limit": "int",
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     }
+    },
+    "death": {
+     "bonuses": {
+      "save": "str"
+     },
+     "failure": "int",
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "success": "int"
+    },
+    "exhaustion": "int",
+    "hd": {
+     "spent": "int"
+    },
+    "hp": {
+     "formula": "str",
+     "max": "int",
+     "temp": "null",
+     "tempmax": "null",
+     "value": "int"
+    },
+    "init": {
+     "ability": "str",
+     "bonus": "str",
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     }
+    },
+    "loyalty": {
+     "value": "null"
+    },
+    "movement": {
+     "hover": "bool",
+     "ignoredDifficultTerrain": [],
+     "units": "null",
+     "walk": "str"
+    },
+    "price": {
+     "denomination": "str",
+     "value": "null"
+    },
+    "senses": {
+     "ranges": {
+      "blindsight": "null",
+      "darkvision": "null",
+      "tremorsense": "null",
+      "truesight": "null"
+     },
+     "special": "str",
+     "units": "null"
+    },
+    "spell": {
+     "level": "int"
+    },
+    "spellcasting": "str"
+   },
+   "bonuses": {
+    "abilities": {
+     "check": "str",
+     "save": "str",
+     "skill": "str"
+    },
+    "msak": {
+     "attack": "str",
+     "damage": "str"
+    },
+    "mwak": {
+     "attack": "str",
+     "damage": "str"
+    },
+    "rsak": {
+     "attack": "str",
+     "damage": "str"
+    },
+    "rwak": {
+     "attack": "str",
+     "damage": "str"
+    },
+    "spell": {
+     "dc": "str"
+    }
+   },
+   "currency": {
+    "cp": "int",
+    "ep": "int",
+    "gp": "int",
+    "pp": "int",
+    "sp": "int"
+   },
+   "details": {
+    "alignment": "str",
+    "biography": {
+     "public": "str",
+     "value": "str"
+    },
+    "bond": "str",
+    "cr": "int",
+    "flaw": "str",
+    "habitat": {
+     "custom": "str",
+     "value": [
+      {
+       "type": "str"
+      }
+     ]
+    },
+    "ideal": "str",
+    "race": "null",
+    "treasure": {
+     "value": [
+      "str"
+     ]
+    },
+    "type": {
+     "custom": "str",
+     "subtype": "str",
+     "swarm": "str",
+     "value": "str"
+    }
+   },
+   "resources": {
+    "lair": {
+     "initiative": "null",
+     "inside": "bool",
+     "value": "bool"
+    },
+    "legact": {
+     "max": "int",
+     "spent": "int"
+    },
+    "legres": {
+     "max": "int",
+     "spent": "int"
+    }
+   },
+   "skills": {
+    "acr": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "ani": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "arc": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "ath": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "dec": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "his": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "ins": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "inv": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "itm": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "med": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "nat": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "per": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "prc": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "prf": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "rel": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "slt": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "ste": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    },
+    "sur": {
+     "ability": "str",
+     "bonuses": {
+      "check": "str",
+      "passive": "str"
+     },
+     "roll": {
+      "max": "null",
+      "min": "null",
+      "mode": "int"
+     },
+     "value": "int"
+    }
+   },
+   "source": {
+    "book": "str",
+    "license": "str",
+    "revision": "int",
+    "rules": "str"
+   },
+   "spells": {
+    "pact": {
+     "override": "null",
+     "value": "int"
+    },
+    "spell1": {
+     "override": "null",
+     "value": "int"
+    },
+    "spell2": {
+     "override": "null",
+     "value": "int"
+    },
+    "spell3": {
+     "override": "null",
+     "value": "int"
+    },
+    "spell4": {
+     "override": "null",
+     "value": "int"
+    },
+    "spell5": {
+     "override": "null",
+     "value": "int"
+    },
+    "spell6": {
+     "override": "null",
+     "value": "int"
+    },
+    "spell7": {
+     "override": "null",
+     "value": "int"
+    },
+    "spell8": {
+     "override": "null",
+     "value": "int"
+    },
+    "spell9": {
+     "override": "null",
+     "value": "int"
+    }
+   },
+   "tools": {},
+   "traits": {
+    "ci": {
+     "custom": "str",
+     "value": []
+    },
+    "di": {
+     "bypasses": [],
+     "custom": "str",
+     "value": [
+      "str"
+     ]
+    },
+    "dm": {
+     "amount": {},
+     "bypasses": []
+    },
+    "dr": {
+     "bypasses": [],
+     "custom": "str",
+     "value": []
+    },
+    "dv": {
+     "bypasses": [],
+     "custom": "str",
+     "value": []
+    },
+    "important": "bool",
+    "languages": {
+     "communication": {
+      "telepathy": {
+       "units": "str",
+       "value": "null"
+      }
+     },
+     "custom": "str",
+     "value": []
+    },
+    "size": "str"
+   }
+  },
+  "type": "str"
+ }
+}

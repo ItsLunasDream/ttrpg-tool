@@ -12,7 +12,7 @@
 import { useMemo, useState } from 'react';
 import type { Eintrag } from '../shared/ablage';
 import { betragVon } from '../shared/gewicht';
-import { finde, type Sortierung } from '../shared/suche';
+import { finde, gruppiere, type Sortierung } from '../shared/suche';
 import { ARTEN, HAERTEN, THEMEN, text } from '../shared/tabellen';
 import { getLanguage, t } from './i18n';
 
@@ -28,6 +28,8 @@ export function Sammlung({ eintraege, onOeffnen, onLoeschen }: Props) {
   const [themaId, setThemaId] = useState('');
   const [sortierung, setSortierung] = useState<Sortierung>('gewicht');
   const [alsKacheln, setAlsKacheln] = useState(true);
+  /** Welche Pakete aufgeklappt sind. Zugeklappt ist die Vorgabe. */
+  const [offen, setOffen] = useState<ReadonlySet<string>>(new Set());
 
   const sprache = getLanguage() === 'en' ? 'en' : 'de';
   const gefunden = useMemo(
@@ -39,6 +41,43 @@ export function Sammlung({ eintraege, onOeffnen, onLoeschen }: Props) {
         sprache
       ),
     [eintraege, suche, artId, themaId, sortierung, sprache]
+  );
+
+  // Gebuendelt wird ueber die GEFUNDENEN Eintraege: wer nach „kaelte" sucht,
+  // soll im Paket die Kaelte sehen und nicht die drei anderen dazu.
+  const gruppen = useMemo(() => gruppiere(gefunden), [gefunden]);
+
+  /** Eine Kachel fuer einen einzelnen Zustand — in einem Paket wie ausserhalb. */
+  const kachel = (eintrag: Eintrag) => (
+    <>
+      <button
+        type="button"
+        className="zustandskachel"
+        style={{ ['--marke' as string]: eintrag.farbe }}
+        onClick={() => onOeffnen(eintrag.id)}
+      >
+        <span className="zustandskachel__zeichen" aria-hidden="true">
+          {eintrag.zeichen}
+        </span>
+        <span className="zustandskachel__name">{eintrag.name}</span>
+        <span className="zustandskachel__unten">
+          {name(THEMEN, eintrag.themaId)} ·{' '}
+          {eintrag.stufen > 1
+            ? t('sammlung.stufen', { anzahl: eintrag.stufen })
+            : t('sammlung.eineStufe')}{' '}
+          · {t('gewicht.titel')} {betragVon(eintrag.gewicht)}
+        </span>
+      </button>
+      <button
+        type="button"
+        className="zustandskachel__weg"
+        aria-label={t('knopf.loeschen')}
+        title={t('knopf.loeschen')}
+        onClick={() => onLoeschen(eintrag)}
+      >
+        ×
+      </button>
+    </>
   );
 
   const name = (liste: readonly { id: string; name: { de: string; en: string } }[], id: string) => {
@@ -115,37 +154,50 @@ export function Sammlung({ eintraege, onOeffnen, onLoeschen }: Props) {
         <p className="hinweis">{t('sammlung.nichts')}</p>
       ) : alsKacheln ? (
         <ul className="kacheln">
-          {gefunden.map((eintrag) => (
-            <li key={eintrag.id}>
-              <button
-                type="button"
-                className="zustandskachel"
-                style={{ ['--marke' as string]: eintrag.farbe }}
-                onClick={() => onOeffnen(eintrag.id)}
-              >
-                <span className="zustandskachel__zeichen" aria-hidden="true">
-                  {eintrag.zeichen}
-                </span>
-                <span className="zustandskachel__name">{eintrag.name}</span>
-                <span className="zustandskachel__unten">
-                  {name(THEMEN, eintrag.themaId)} ·{' '}
-                  {eintrag.stufen > 1
-                    ? t('sammlung.stufen', { anzahl: eintrag.stufen })
-                    : t('sammlung.eineStufe')}{' '}
-                  · {t('gewicht.titel')} {betragVon(eintrag.gewicht)}
-                </span>
-              </button>
-              <button
-                type="button"
-                className="zustandskachel__weg"
-                aria-label={t('knopf.loeschen')}
-                title={t('knopf.loeschen')}
-                onClick={() => onLoeschen(eintrag)}
-              >
-                ×
-              </button>
-            </li>
-          ))}
+          {gruppen.map((gruppe) =>
+            gruppe.art === 'einzeln' ? (
+              <li key={gruppe.eintrag.id}>{kachel(gruppe.eintrag)}</li>
+            ) : (
+              /*
+                Ein Paket als eine Kachel, aufklappbar. Zugeklappt nennt sie
+                die Zustaende darin — wer das Paket gewuerfelt hat, erkennt
+                es daran wieder, ohne es oeffnen zu muessen.
+              */
+              <li key={gruppe.id} className="paketkachel">
+                <button
+                  type="button"
+                  className="paketkachel__kopf"
+                  aria-expanded={offen.has(gruppe.id)}
+                  onClick={() =>
+                    setOffen((vorher) => {
+                      const neu = new Set(vorher);
+                      if (neu.has(gruppe.id)) neu.delete(gruppe.id);
+                      else neu.add(gruppe.id);
+                      return neu;
+                    })
+                  }
+                >
+                  <span className="paketkachel__pfeil" aria-hidden="true">
+                    {offen.has(gruppe.id) ? '▾' : '▸'}
+                  </span>
+                  <span className="paketkachel__name">{gruppe.name}</span>
+                  <span className="paketkachel__zahl">
+                    {t('paket.zustaende', { anzahl: gruppe.eintraege.length })}
+                  </span>
+                  <span className="paketkachel__unten">
+                    {gruppe.eintraege.map((e) => e.name).join(', ')}
+                  </span>
+                </button>
+                {offen.has(gruppe.id) ? (
+                  <ul className="paketkachel__inhalt">
+                    {gruppe.eintraege.map((eintrag) => (
+                      <li key={eintrag.id}>{kachel(eintrag)}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            )
+          )}
         </ul>
       ) : (
         <table className="zustandsliste">

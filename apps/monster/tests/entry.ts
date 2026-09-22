@@ -14,3 +14,4 @@ export * from '../src/shared/widerstaende';
 export * from '../src/shared/schadensarten';
 export * from '../src/shared/platzhalter';
 export * from '../src/shared/umgebungen';
+export * from '../src/shared/foundry';

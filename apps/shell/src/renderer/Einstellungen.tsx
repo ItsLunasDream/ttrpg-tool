@@ -13,7 +13,10 @@
 import { useState } from 'react';
 import { LANGUAGES, type Language, type MessageKey, type MessageParams } from '../shared/i18n';
 import type { KiEinstellungen } from '@suite/ki/einstellungen';
+import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
+import { THEMEN, text as farbtext } from '@suite/farben';
 import { Dialog } from './Dialog';
+import { Werkzeugfelder } from './Werkzeugfelder';
 
 /** Was die Bereitschaftspruefung zurueckmeldet. Der Schluessel selbst nie. */
 export interface KiZustandAnsicht {
@@ -26,6 +29,8 @@ export interface KiZustandAnsicht {
 interface Props {
   readonly sprache: Language;
   readonly setzeSprache: (sprache: Language) => Promise<void>;
+  readonly thema: string;
+  readonly setzeThema: (thema: string) => Promise<void>;
   readonly ki: KiEinstellungen;
   readonly setzeKi: (aenderung: Partial<KiEinstellungen>) => Promise<void>;
   readonly kiZustand: KiZustandAnsicht | null;
@@ -37,6 +42,30 @@ interface Props {
   readonly symboleNeuLaden: () => Promise<void>;
   /** Vergisst, welche Einfuehrungen schon gesehen sind. */
   readonly einfuehrungenZuruecksetzen: () => Promise<void>;
+  /** Schreibt eine Sicherung der ganzen Sammlung. */
+  readonly sichern: () => Promise<{ ok: boolean; text: string; dateien: number }>;
+  /** Oeffnet den Datenordner — von Hand zurueckspielen geht nur dort. */
+  readonly datenordnerOeffnen: () => Promise<string>;
+  /**
+   * Die gerade laufenden Werkzeuge, mit ihrem uebersetzten Namen.
+   *
+   * Nur laufende: was noch nie offen war, hat seine Einstellungen noch nicht
+   * geladen und koennte nichts beantworten. Das ist kein Mangel, sondern die
+   * Regel dieses Fensters — man stellt ein Werkzeug ein, waehrend man darin
+   * arbeitet.
+   */
+  readonly offeneWerkzeuge: readonly { readonly id: string; readonly name: string }[];
+  readonly werkzeugEinstellungen: (appId: string) => Promise<Werkzeugeinstellungen | null>;
+  readonly werkzeugSetzen: (
+    appId: string,
+    feldId: string,
+    wert: Wert
+  ) => Promise<Werkzeugeinstellungen | null>;
+  readonly werkzeugBefehl: (
+    appId: string,
+    befehlId: string,
+    wert?: string
+  ) => Promise<Werkzeugeinstellungen | null>;
   readonly onClose: () => void;
   readonly t: (key: MessageKey, params?: MessageParams) => string;
 }
@@ -44,6 +73,8 @@ interface Props {
 export function Einstellungen({
   sprache,
   setzeSprache,
+  thema,
+  setzeThema,
   ki,
   setzeKi,
   kiZustand,
@@ -52,6 +83,12 @@ export function Einstellungen({
   symbolordnerOeffnen,
   symboleNeuLaden,
   einfuehrungenZuruecksetzen,
+  sichern,
+  datenordnerOeffnen,
+  offeneWerkzeuge,
+  werkzeugEinstellungen,
+  werkzeugSetzen,
+  werkzeugBefehl,
   onClose,
   t
 }: Props) {
@@ -59,6 +96,9 @@ export function Einstellungen({
   const [schluessel, setSchluessel] = useState('');
   const [pruefend, setPruefend] = useState(false);
   const [einfuehrungenZurueck, setEinfuehrungenZurueck] = useState(false);
+  /** Was die letzte Sicherung ergeben hat, oder `null`, solange keine lief. */
+  const [gesichert, setGesichert] = useState<{ pfad: string; dateien: number } | null>(null);
+  const [sichertGerade, setSichertGerade] = useState(false);
 
   /**
    * Der Fehler wird angezeigt und nicht verschluckt: eine Einstellung, die
@@ -89,6 +129,27 @@ export function Einstellungen({
         </select>
       </label>
       <p className="feld__hinweis">{t('settings.languageHint')}</p>
+
+      {/*
+        Das Thema gilt fuer das ganze Fenster, Werkzeuge eingeschlossen —
+        anders als die Sprache, die jedes Werkzeug fuer sich fuehrt. Ein
+        Fenster in zwei Farben waere keine Wahl, sondern ein Fehler.
+      */}
+      <label className="feld">
+        <span className="feld__name">{t('settings.theme')}</span>
+        <select
+          className="feld__wahl"
+          value={thema}
+          onChange={(event) => melde(setzeThema(event.target.value))}
+        >
+          {THEMEN.map((eintrag) => (
+            <option key={eintrag.id} value={eintrag.id}>
+              {farbtext(eintrag.name, sprache === 'de' ? 'de' : 'en')}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="feld__hinweis">{t('settings.themeHint')}</p>
 
       <h3 className="feld__ueberschrift">{t('settings.ai')}</h3>
 
@@ -232,6 +293,24 @@ export function Einstellungen({
         </>
       ) : null}
 
+      {/*
+        Die Werkzeuge selbst. Sie stehen hier und nicht in einem eigenen
+        Dialog im Werkzeug: zwei Stellen fuer Einstellungen heisst, dass man
+        immer zuerst in der falschen nachsieht.
+      */}
+      {offeneWerkzeuge.map((werkzeug) => (
+        <Werkzeugfelder
+          key={werkzeug.id}
+          appId={werkzeug.id}
+          titel={werkzeug.name}
+          sprache={sprache === 'de' ? 'de' : 'en'}
+          lade={werkzeugEinstellungen}
+          setze={werkzeugSetzen}
+          befehl={werkzeugBefehl}
+          onFehler={(grund) => setFehler(t('settings.saveFailed', { detail: String(grund) }))}
+        />
+      ))}
+
       <h3 className="feld__ueberschrift">{t('settings.icons')}</h3>
       <p className="feld__hinweis">{t('settings.iconsHint')}</p>
       <div className="feld__knoepfe">
@@ -242,6 +321,55 @@ export function Einstellungen({
           {t('settings.iconsReload')}
         </button>
       </div>
+
+      {/*
+        Die Sicherung der ganzen Sammlung.
+
+        Bisher sicherte nur der Story Creator, und auch nur seine Kampagne.
+        Hier geht alles hinein — bis auf den API-Schluessel: der liegt mit
+        dem Schluesselbund DIESES Rechners verschluesselt da und waere
+        anderswo ohnehin wertlos.
+      */}
+      <h3 className="feld__ueberschrift">{t('settings.backup')}</h3>
+      <p className="feld__hinweis">{t('settings.backupHint')}</p>
+      <div className="feld__knoepfe">
+        <button
+          type="button"
+          disabled={sichertGerade}
+          onClick={() => {
+            setSichertGerade(true);
+            setFehler(null);
+            setGesichert(null);
+            void sichern()
+              .then((ergebnis) => {
+                // Abgebrochen ist kein Fehler: dann bleibt die Zeile leer,
+                // statt nach Missgeschick zu klingen.
+                if (ergebnis.ok) {
+                  setGesichert({ pfad: ergebnis.text, dateien: ergebnis.dateien });
+                } else if (ergebnis.text) {
+                  setFehler(t('settings.saveFailed', { detail: ergebnis.text }));
+                }
+              })
+              .catch((grund: unknown) =>
+                setFehler(t('settings.saveFailed', { detail: String(grund) }))
+              )
+              .finally(() => setSichertGerade(false));
+          }}
+        >
+          {sichertGerade ? t('settings.backupRunning') : t('settings.backupNow')}
+        </button>
+        <button type="button" onClick={() => melde(datenordnerOeffnen())}>
+          {t('settings.backupFolder')}
+        </button>
+      </div>
+      {gesichert ? (
+        <p className="feld__hinweis">
+          {t('settings.backupDone', { count: gesichert.dateien })}
+          <br />
+          <code className="feld__pfad">{gesichert.pfad}</code>
+        </p>
+      ) : null}
+      <p className="feld__hinweis">{t('settings.backupRestore')}</p>
 
       <h3 className="feld__ueberschrift">{t('settings.intro')}</h3>
       <p className="feld__hinweis">{t('settings.introHint')}</p>

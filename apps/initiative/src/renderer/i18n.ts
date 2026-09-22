@@ -40,7 +40,9 @@ export const texte = {
   'dialog.umbenennen': ['Teilnehmende umbenennen', 'Rename participant'],
   'knopf.entfernen': ['Entfernen', 'Remove'],
   'knopf.speichern': ['Begegnung speichern', 'Save encounter'],
-  'knopf.oeffnen': ['Öffnen', 'Open'],
+  // Heisst wie in den anderen Werkzeugen „Sammlung": derselbe Ort, derselbe
+  // Name. „Oeffnen" sagte nicht, was aufgeht.
+  'knopf.oeffnen': ['Sammlung', 'Collection'],
   'knopf.neueBegegnung': ['Neue Begegnung', 'New encounter'],
   'knopf.verwerfen': ['Verwerfen', 'Discard'],
   'knopf.bild': ['Bild wählen', 'Choose image'],

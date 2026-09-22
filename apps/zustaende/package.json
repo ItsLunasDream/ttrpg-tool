@@ -27,6 +27,8 @@
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@suite/motion": "*",
-    "@suite/ki": "*"
+    "@suite/ki": "*",
+    "@suite/foundry": "*",
+    "@suite/eintraege": "*"
   }
 }

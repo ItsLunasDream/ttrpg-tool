@@ -5,13 +5,13 @@
  */
 
 :root {
-  --grund: #14161c;
-  --grund-hoch: #1b1e26;
-  --rand: #2a2e39;
-  --text: #e6e8ee;
-  --text-leise: #939aab;
-  --betont: #7aa2f7;
-  --schliessen: #e5484d;
+  --grund: var(--f-grund, #14161c);
+  --grund-hoch: var(--f-grund-hoch, #1b1e26);
+  --rand: var(--f-rand, #2a2e39);
+  --text: var(--f-text, #e6e8ee);
+  --text-leise: var(--f-text-leise, #939aab);
+  --betont: var(--f-betont, #7aa2f7);
+  --schliessen: var(--f-gefahr, #e5484d);
 }
 
 * {
@@ -183,10 +183,17 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /*
+   * Mittig, solange es passt; sonst von oben. `center` allein schneidet bei
+   * zu wenig Hoehe oben ab, und der abgeschnittene Teil ist nicht mehr
+   * erreichbar — mit den Gruppen ist das Menue hoch genug, dass der Fall
+   * vorkommt.
+   */
+  justify-content: safe center;
   padding: 24px;
   gap: 4px;
   min-height: 0;
+  overflow-y: auto;
 }
 
 .menue__frage {
@@ -204,6 +211,38 @@ body {
   color: var(--text-leise);
   font-size: 12px;
   margin: 28px 0 0;
+}
+
+/*
+ * Die Gruppen nach Rolle am Tisch.
+ *
+ * Der Abstand zwischen ihnen ist groesser als der zwischen den Kacheln —
+ * sonst saehe man zwei Ueberschriften und trotzdem eine Wand.
+ *
+ * Das Menue rollt jetzt womoeglich: neun Kacheln in zwei Gruppen mit
+ * Ueberschriften brauchen mehr Hoehe als neun in einem Raster. Deshalb
+ * `justify-content: center` nur so lange, wie es passt — darueber beginnt
+ * es oben.
+ */
+.menue__gruppe {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.menue__gruppe + .menue__gruppe {
+  margin-top: 32px;
+}
+
+.menue__gruppenname {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-leise);
+  margin: 0;
 }
 
 .kacheln {
@@ -718,6 +757,56 @@ body {
   margin-top: 8px;
 }
 
+/*
+ * Felder, die ein Werkzeug beschreibt. Sie sollen sich nicht von denen der
+ * Huelle unterscheiden — wer den Dialog aufmacht, soll eine Liste sehen und
+ * nicht zwei Bauarten.
+ */
+
+/* Kaestchen: Text rechts vom Haken, nicht am anderen Ende der Zeile. */
+.feld--inline {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.feld__untertitel {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-leise);
+  margin: 16px 0 8px;
+}
+
+.werkzeugfelder__gruppe > div + div {
+  margin-top: 12px;
+}
+
+/* Ein Pfad ist zum Lesen da, nicht zum Tippen: schmal und umbrechend. */
+.feld__pfad {
+  font-size: 12px;
+  color: var(--text-leise);
+  word-break: break-all;
+  text-align: right;
+}
+
+.feld__sammlung {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.feld__sammlung li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 /* ---------- Ueber ---------- */
 
 .ueber {
@@ -956,4 +1045,119 @@ body {
   margin: 16px 0 0;
   color: var(--text-leise);
   font-size: 12px;
+}
+
+/* ---------- Suche ueber alle Werkzeuge (Strg+K) ---------- */
+
+/*
+ * Sie liegt ueber allem, auch ueber der Ansicht des offenen Werkzeugs. Das
+ * geht, weil die Huelle beim Oeffnen zuruecktritt — derselbe Weg, den die
+ * Dialoge schon gehen.
+ *
+ * Oben statt mittig: eine Liste, die beim Tippen waechst, soll nach unten
+ * wachsen und nicht in beide Richtungen auseinanderlaufen.
+ */
+.suche__schirm {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12vh;
+  z-index: 40;
+}
+
+.suche {
+  width: min(560px, 90vw);
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.suche__feld {
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-bottom: 1px solid var(--rand);
+  font: inherit;
+  font-size: 16px;
+  padding: 14px 16px;
+}
+
+.suche__feld:focus {
+  outline: none;
+}
+
+.suche__liste {
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.suche__liste ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.suche__werkzeug {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-leise);
+  margin: 10px 16px 4px;
+}
+
+.suche__treffer {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  padding: 7px 16px;
+  cursor: pointer;
+}
+
+/*
+ * Die Auswahl wird gefaerbt und nicht umrandet: ein Rahmen ruecke den Text
+ * um einen Punkt, und beim Durchlaufen mit den Pfeiltasten zuckte die ganze
+ * Liste.
+ */
+.suche__treffer.is-active {
+  background: var(--betont);
+  color: var(--grund);
+}
+
+.suche__art {
+  color: var(--text-leise);
+  font-size: 12px;
+  flex: 0 0 auto;
+}
+
+.suche__treffer.is-active .suche__art {
+  color: var(--grund);
+  opacity: 0.75;
+}
+
+.suche__hinweis,
+.suche__fuss {
+  color: var(--text-leise);
+  font-size: 12px;
+  margin: 0;
+  padding: 14px 16px;
+}
+
+.suche__fuss {
+  border-top: 1px solid var(--rand);
+  padding: 8px 16px;
 }

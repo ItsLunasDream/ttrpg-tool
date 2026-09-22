@@ -22,7 +22,11 @@ interface Props {
   onToggleGraph: () => void;
   onOpenHelp: () => void;
   onOpenAbout: () => void;
-  onOpenSettings: () => void;
+  /**
+   * `null`, wenn eine Huelle die Einstellungen fuehrt: dann steht der Knopf
+   * dort und hier gar nicht.
+   */
+  onOpenSettings: (() => void) | null;
 }
 
 /**
@@ -107,9 +111,11 @@ export function CampaignBar(props: Props) {
       <button type="button" onClick={props.onOpenAbout}>
         {t('bar.about')}
       </button>
-      <button type="button" onClick={props.onOpenSettings}>
-        {t('bar.settings')}
-      </button>
+      {props.onOpenSettings ? (
+        <button type="button" onClick={props.onOpenSettings}>
+          {t('bar.settings')}
+        </button>
+      ) : null}
     </header>
   );
 }

@@ -1180,33 +1180,19 @@ Zwei Dinge vorher prüfen:
    `z.B. 132`, bei „Pronouns" `z.B. sie/ihr`, auch wenn die Oberfläche auf
    Englisch steht. Die Beispiele gehören in beide Sprachen.
 
-## Vorgemerkt: ein Paket bleibt in der Sammlung ein Paket
+## Erledigt: ein Paket bleibt in der Sammlung ein Paket
 
-Beim Status Effect Creator lässt sich ein Paket erzeugen — mehrere Zustände,
-die zusammen abgestimmt sind (`paket.ts`: gemeinsamer Vorrat, damit nicht
-dreimal derselbe Nachteil greift). In die Sammlung wandert davon aber nur
-das Ergebnis: vier einzelne Zustände, jeder als eigene Datei, jeder an
-seiner alphabetischen Stelle zwischen fremden Einträgen. Die Zusammen­
-gehörigkeit ist nach dem Speichern weg, und damit auch der Grund, warum man
-das Paket überhaupt gewürfelt hat.
+Jeder Zustand trägt den Verweis auf sein Paket im Dateikopf (`paket`,
+`paket_name`), nicht in einer eigenen Paketdatei — ein Zustand bleibt so
+einzeln brauchbar, und es gibt keine zweite Stelle, die beim Löschen
+nachgeführt werden müsste. In der Sammlung wird daraus eine aufklappbare
+Kachel; zugeklappt nennt sie die Zustände darin. Gesucht wird auch über den
+Paketnamen. Einzelheiten in `docs/statuseffekte.md`.
 
-Das Paket soll die Sammlung als Einheit erreichen: eine Kachel für das
-Paket, aufklappbar zu seinen Zuständen, und die Suche findet es über den
-Paketnamen wie über die Namen der einzelnen Zustände.
-
-Zu klären, bevor gebaut wird:
-
-- **Ablage.** Heute kennt `ablage.ts` nur `Abgelegt` je Zustand. Entweder
-  bekommt jeder Zustand ein Feld `paket` im Kopf (kleiner Eingriff, die
-  Gruppe ergibt sich beim Einlesen) oder das Paket wird ein eigener
-  Eintragstyp mit Verweisen. Das erste passt besser dazu, dass ein Zustand
-  auch einzeln brauchbar bleibt.
-- **Einzeln herauslösen.** Man muss einen Zustand aus dem Paket weiter
-  einzeln benutzen, umbenennen und löschen können, ohne dass der Rest
-  kaputtgeht.
-- **Dasselbe Muster anderswo.** Monster-Varianten und Begegnungen haben die
-  gleiche Frage. Wenn die Gruppierung gebaut wird, dann so, dass die anderen
-  Werkzeuge sie übernehmen können.
+**Dasselbe Muster für Monster-Varianten und Begegnungen** steht weiter aus.
+Die Gruppierung ist als reine Funktion gebaut (`gruppiere` in
+`suche.ts`) und arbeitet nur mit zwei Feldern am Eintrag — sie lässt sich
+übernehmen, ohne sie neu zu schreiben.
 
 ## Vorgemerkt: Export nach Foundry, Encounter Creator, Austausch-App
 
@@ -1295,6 +1281,10 @@ Der Export bleibt zusätzlich, nicht anstelle von Markdown.
 
 ### 2. Konzept: Encounter Creator
 
+**Geschrieben: `docs/encounter.md`.** Was unten steht, war die Sammlung der
+Anforderungen; das Konzept selbst steht dort, mitsamt der Stelle, an der es
+auf eine Lizenzfrage wartet (die Schwierigkeitszahlen).
+
 Die Kachel `encounter` sagt heute „später". Das Konzept gehört geschrieben,
 bevor gebaut wird; im Backlog steht der Punkt schon grob (Monster wählen,
 Schwierigkeit gegen die Gruppe rechnen, in den Tracker schieben).
@@ -1347,6 +1337,10 @@ als zwei Stände, die auseinanderlaufen.
 
 ### 3. Konzept: Austausch-App für die Gruppe am Tisch
 
+**Geschrieben: `docs/austausch.md`.** Wichtigstes Ergebnis: die gemeinsame
+Schnittstelle zwischen den Werkzeugen ist der größere Brocken, nicht die
+Verbindung — und sie lohnt sich auch ohne jedes Netz.
+
 Eine eigene App für den Austausch, wenn eine Gruppe in Person spielt und
 alle die Sammlung haben: Notizen, Monster, Nachrichten und mehr hin- und
 herschicken. Zuerst nur im selben Netzwerk, später möglicherweise über das
@@ -1387,6 +1381,10 @@ Das ist noch Konzept, deshalb hier nur, was vorher geklärt sein muss:
   darf Vorhandenes nicht überschreiben.
 
 ## Vorgemerkt: Magic Item Creator
+
+**Geschrieben: `docs/magicitems.md`.** Wichtigstes Ergebnis: die Punkteskala
+ist eine Eichung, keine Ableitung — eine offizielle Formel dafür gibt es
+nicht, und das gehört überall so benannt.
 
 Ein weiteres Werkzeug in derselben Form wie der Monster Creator und der
 Status Effect Creator: magische Gegenstände erzeugen, in einer Sammlung

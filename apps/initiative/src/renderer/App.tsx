@@ -45,6 +45,7 @@ import {
 import { zuId } from '../shared/format';
 import type { Begegnung, Kampf } from '../shared/types';
 import { BILD_SCHEMA } from '../shared/kanaele';
+import { Kontextmenue } from './Kontextmenue';
 import { Zeile } from './Zeile';
 import { Begegnungen } from './Begegnungen';
 import { Dialog } from './Dialog';
@@ -64,6 +65,8 @@ export function App() {
   const [zeigeBegegnungen, setZeigeBegegnungen] = useState(false);
   /** Teilnehmer, dessen Zeile gerade aufgeklappt ist. */
   const [offen, setOffen] = useState<string | null>(null);
+  /** Rechtsklick auf die freie Flaeche unter der Liste. */
+  const [flaechenmenue, setFlaechenmenue] = useState<{ x: number; y: number } | null>(null);
   /**
    * Der Rumpf der geladenen Begegnung: Taktik, Plan, was der Tisch braucht.
    *
@@ -334,6 +337,16 @@ export function App() {
     [setzeUndSichere, melde]
   );
 
+  /*
+   * Ein Treffer aus der Suche der Huelle (Strg+K).
+   *
+   * Derselbe Weg wie ein Klick in der eigenen Sammlung. Ein laufender Kampf
+   * wuerde dabei ueberschrieben — das ist derselbe Fall wie beim Laden von
+   * Hand, und die Rueckfrage dafuer gehoert in eine eigene Runde, nicht
+   * hier nebenbei.
+   */
+  useEffect(() => api.beiSuchtreffer((kennung) => void ladeBegegnung(kennung)), [ladeBegegnung]);
+
   const aktive = useMemo(() => sortiert.filter(istAktiv).length, [sortiert]);
 
   if (!geladen) return <div className="laedt" />;
@@ -440,7 +453,23 @@ export function App() {
         />
       ) : null}
 
-      <main className="liste">
+      {/*
+        Rechtsklick auf die freie Flaeche unter der Liste bietet an, was man
+        dort erwartet: etwas hinzufuegen.
+
+        Eine Zeile hat ihr eigenes Menue, laesst das Ereignis aber weiter nach
+        oben laufen. Deshalb die Abfrage auf `currentTarget`: nur ein Klick,
+        der wirklich ins Leere geht, oeffnet dieses Menue — sonst staenden
+        beide zugleich offen.
+      */}
+      <main
+        className="liste"
+        onContextMenu={(ereignis) => {
+          if (ereignis.target !== ereignis.currentTarget) return;
+          ereignis.preventDefault();
+          setFlaechenmenue({ x: ereignis.clientX, y: ereignis.clientY });
+        }}
+      >
         {sortiert.length === 0 ? (
           <div className="leer motion-eintritt">
             <p className="leer__titel">{t('leer.titel')}</p>
@@ -577,6 +606,18 @@ export function App() {
               );
             }
           }}
+        />
+      ) : null}
+
+      {flaechenmenue ? (
+        <Kontextmenue
+          x={flaechenmenue.x}
+          y={flaechenmenue.y}
+          onSchliessen={() => setFlaechenmenue(null)}
+          eintraege={[
+            { text: t('knopf.neu'), onWahl: neu },
+            { text: t('knopf.terrain'), onWahl: neuesGelaende }
+          ]}
         />
       ) : null}
 

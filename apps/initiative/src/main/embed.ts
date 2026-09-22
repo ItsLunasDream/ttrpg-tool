@@ -12,6 +12,7 @@
  * jeder pflegen muesste.
  */
 import path from 'node:path';
+import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import { Ablage } from './ablage';
@@ -43,6 +44,13 @@ export interface InitiativeEmbed {
   /** Sichert Ungespeichertes. Der Tracker schreibt laufend, hier bleibt wenig. */
   flush(): Promise<void>;
   setLanguage(webContents: WebContents, language: string): Promise<void>;
+  /**
+   * Zeigt einen Eintrag, den die Suche der Huelle gefunden hat.
+   *
+   * Antwortet `false`, wenn die Ansicht weg ist. Ob es den Eintrag noch
+   * gibt, entscheidet die Oberflaeche — sie hat die Liste.
+   */
+  zeigeEintrag(webContents: WebContents, kennung: string): Promise<boolean>;
 }
 
 /**
@@ -65,6 +73,32 @@ const CSP = [
   "base-uri 'none'"
 ].join('; ');
 
+/**
+ * Was dieses Werkzeug abgelegt hat, fuer die Suche der Huelle.
+ *
+ * Nur die Begegnungen: der laufende Kampf ist kein Eintrag, den man sucht,
+ * sondern der Zustand des Abends. Die Teilnehmer gehoeren als Stichworte
+ * dazu — wer eine Begegnung sucht, weiss oft nur noch, wer darin vorkam.
+ */
+export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]> {
+  try {
+    // `datenordner` ist die Wurzel der Huelle, nicht der Ordner dieses
+    // Werkzeugs: jedes Werkzeug haengt seinen eigenen Unterordner an (siehe
+    // `datenordner(id)` in der Huelle). Ohne das `initiative` hier laese die
+    // Ablage in der Wurzel — und faende stumm nichts.
+    const begegnungen = await new Ablage(path.join(datenordner, 'initiative')).listeBegegnungen();
+    return begegnungen.map((begegnung) => ({
+      werkzeug: 'initiative',
+      kennung: begegnung.id,
+      name: begegnung.name,
+      art: 'Begegnung',
+      stichworte: begegnung.teilnehmer.map((teilnehmer) => teilnehmer.name).join(' ')
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function mountInitiative(
   options: InitiativeEmbedOptions
 ): Promise<InitiativeEmbed> {
@@ -81,6 +115,11 @@ export async function mountInitiative(
   });
 
   return {
+    zeigeEintrag: async (webContents, kennung) => {
+      if (webContents.isDestroyed()) return false;
+      webContents.send(kanal('suche:zeigen'), kennung);
+      return true;
+    },
     // Das Preload liegt neben dem gebuendelten Hauptprozessteil, die
     // Oberflaeche eine Ebene darueber.
     preloadPath: path.join(options.distDir, 'preload.js'),

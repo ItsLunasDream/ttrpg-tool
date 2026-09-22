@@ -1,0 +1,178 @@
+{
+ "_woher": "Feldgeruest eines Tranks (Item, consumable, type.value potion) mit einer heal-Taetigkeit und Selbstverbrauch. Nur Schluessel und Typen, keine Inhalte.",
+ "_geruest": {
+  "_stats": {
+   "compendiumSource": "str",
+   "coreVersion": "str",
+   "createdTime": "int",
+   "duplicateSource": "null",
+   "exportSource": {
+    "coreVersion": "str",
+    "systemId": "str",
+    "systemVersion": "str",
+    "uuid": "str",
+    "worldId": "str"
+   },
+   "lastModifiedBy": "str",
+   "modifiedTime": "int",
+   "systemId": "str",
+   "systemVersion": "str"
+  },
+  "effects": [],
+  "flags": {},
+  "folder": "null",
+  "img": "str",
+  "name": "str",
+  "ownership": {
+   "default": "int"
+  },
+  "system": {
+   "activities": {
+    "ZyWmXem7zzQwFFcF": {
+     "_id": "str",
+     "activation": {
+      "condition": "str",
+      "override": "bool",
+      "type": "str",
+      "value": "null"
+     },
+     "consumption": {
+      "scaling": {
+       "allowed": "bool"
+      },
+      "spellSlot": "bool",
+      "targets": [
+       {
+        "scaling": {},
+        "target": "str",
+        "type": "str",
+        "value": "str"
+       }
+      ]
+     },
+     "description": {
+      "chatFlavor": "str"
+     },
+     "duration": {
+      "concentration": "bool",
+      "override": "bool",
+      "units": "str"
+     },
+     "effects": [],
+     "flags": {},
+     "healing": {
+      "bonus": "str",
+      "custom": {
+       "enabled": "bool"
+      },
+      "denomination": "int",
+      "number": "int",
+      "scaling": {
+       "number": "int"
+      },
+      "types": [
+       "str"
+      ]
+     },
+     "img": "str",
+     "name": "str",
+     "range": {
+      "override": "bool",
+      "special": "str",
+      "units": "str"
+     },
+     "sort": "int",
+     "target": {
+      "affects": {
+       "choice": "bool",
+       "count": "str",
+       "special": "str",
+       "type": "str"
+      },
+      "override": "bool",
+      "prompt": "bool",
+      "template": {
+       "contiguous": "bool",
+       "stationary": "bool",
+       "type": "str",
+       "units": "str"
+      }
+     },
+     "type": "str",
+     "uses": {
+      "max": "str",
+      "recovery": [],
+      "spent": "int"
+     },
+     "visibility": {
+      "identifier": "str",
+      "level": {
+       "max": "null",
+       "min": "null"
+      },
+      "requireAttunement": "bool",
+      "requireIdentification": "bool",
+      "requireMagic": "bool"
+     }
+    }
+   },
+   "attuned": "bool",
+   "attunement": "str",
+   "container": "null",
+   "damage": {
+    "base": {
+     "custom": {
+      "enabled": "bool"
+     },
+     "denomination": "null",
+     "number": "null",
+     "scaling": {
+      "number": "int"
+     },
+     "types": []
+    },
+    "replace": "bool"
+   },
+   "description": {
+    "chat": "str",
+    "value": "str"
+   },
+   "equipped": "bool",
+   "identified": "bool",
+   "identifier": "str",
+   "price": {
+    "denomination": "str",
+    "value": "int"
+   },
+   "properties": [
+    "str"
+   ],
+   "quantity": "int",
+   "rarity": "str",
+   "source": {
+    "book": "str",
+    "license": "str",
+    "revision": "int",
+    "rules": "str"
+   },
+   "type": {
+    "subtype": "str",
+    "value": "str"
+   },
+   "unidentified": {
+    "description": "str"
+   },
+   "uses": {
+    "autoDestroy": "bool",
+    "max": "str",
+    "recovery": [],
+    "spent": "int"
+   },
+   "weight": {
+    "units": "str",
+    "value": "num"
+   }
+  },
+  "type": "str"
+ }
+}

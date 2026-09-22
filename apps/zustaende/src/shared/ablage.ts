@@ -28,6 +28,21 @@ export interface Abgelegt extends Zustand {
   readonly id: string;
   /** ISO-Zeitpunkt. Fuers Sortieren nach „zuletzt". */
   readonly geaendert: string;
+  /**
+   * Zu welchem Paket dieser Zustand gehoert — leer, wenn er allein steht.
+   *
+   * **Warum das im Kopf steht und nicht in einer eigenen Datei.** Ein Paket
+   * ist kein Gegenstand fuer sich, sondern eine Zusammengehoerigkeit: die
+   * vier Zustaende sind ueber einen gemeinsamen Vorrat gezogen worden und
+   * sollen zusammen gelesen werden. Jeder von ihnen bleibt aber fuer sich
+   * brauchbar — man kann einen einzeln nehmen, umbenennen oder loeschen,
+   * ohne dass die anderen etwas merken. Ein Verweis im Kopf traegt genau
+   * das; eine eigene Paketdatei muesste bei jedem Loeschen nachgefuehrt
+   * werden und waere die zweite Stelle, an der dieselbe Wahrheit steht.
+   */
+  readonly paketId?: string;
+  /** Der Name des Pakets, wie er auf der Kachel steht. */
+  readonly paketName?: string;
 }
 
 /** Was die Sammlung von einer Datei wissen muss, ohne sie ganz zu lesen. */
@@ -43,6 +58,9 @@ export interface Eintrag {
   readonly zeichen: string;
   readonly farbe: string;
   readonly geaendert: string;
+  /** Leer, wenn der Zustand allein steht. */
+  readonly paketId: string;
+  readonly paketName: string;
 }
 
 export function zuId(name: string): string {
@@ -135,6 +153,11 @@ function kopfzeilen(zustand: Abgelegt): string[] {
     // Die Kennung dazu: an ihr haengt die Zeitskala, und an der haengt, ob
     // Linderung und Verschlimmerung zusammenpassen.
     `dauer_id: ${alsYaml(zustand.dauerId)}`,
+    // Der Verweis aufs Paket. Steht nur da, wo es eines gibt — eine Zeile
+    // `paket: ""` in jeder Datei waere Rauschen.
+    ...(zustand.paketId
+      ? [`paket: ${alsYaml(zustand.paketId)}`, `paket_name: ${alsYaml(zustand.paketName ?? '')}`]
+      : []),
     `geaendert: ${zustand.geaendert}`,
     `schemaVersion: ${SCHEMA_VERSION}`,
     '---',
@@ -281,6 +304,10 @@ export function alsEintrag(inhalt: string, rueckfallId: string): Eintrag {
     gewicht: skaliertesGewicht(zahl('gewicht'), zahl('schemaVersion')),
     zeichen: kopf.zeichen || '◈',
     farbe: kopf.farbe || '#7a8ca8',
-    geaendert: kopf.geaendert || ''
+    geaendert: kopf.geaendert || '',
+    paketId: kopf.paket || '',
+    // Aeltere Dateien kennen nur die Kennung; dann steht sie auch als Name
+    // da, statt dass die Kachel „ohne Namen" sagt.
+    paketName: kopf.paket_name || kopf.paket || ''
   };
 }

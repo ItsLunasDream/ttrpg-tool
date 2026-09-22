@@ -47,6 +47,8 @@ export interface IpcContext {
    * ihren KI-Abschnitt aus.
    */
   kiQuelle?: KiQuelle;
+  /** Ob eine Huelle einbettet. Sie fuehrt dann die Einstellungen. */
+  inHuelle?: boolean;
 }
 
 /** Fehler aus dem Main-Prozess kommen im Renderer als lesbare Meldung an. */
@@ -99,6 +101,15 @@ export function registerIpc(context: IpcContext): void {
   const handleWithEvent = makeEventHandler(context);
 
   handle<[], AppSettings>('settings:get', async () => context.settings);
+
+  /**
+   * Ob eine Huelle die Einstellungen fuehrt.
+   *
+   * Die Oberflaeche laesst ihren eigenen Einstellungen-Knopf dann weg: die
+   * Felder stehen im Dialog der Huelle, und zwei Stellen fuer dieselbe Sache
+   * heisst, dass man immer zuerst in der falschen nachsieht.
+   */
+  handle<[], boolean>('app:inHuelle', async () => Boolean(context.inHuelle));
 
   /** Fuer den Über-Dialog: welche Fassung gerade läuft. */
   handle<[], string>('app:version', async () => app.getVersion());

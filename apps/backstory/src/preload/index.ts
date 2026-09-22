@@ -32,7 +32,9 @@ const api = {
     chooseVaultRoot: () => invoke<AppSettings | null>('settings:chooseVaultRoot')
   },
   app: {
-    version: () => invoke<string>('app:version')
+    version: () => invoke<string>('app:version'),
+    /** Ob eine Huelle einbettet und damit die Einstellungen fuehrt. */
+    inHuelle: () => invoke<boolean>('app:inHuelle')
   },
   vault: {
     reveal: () => invoke<void>('vault:reveal')
@@ -95,6 +97,30 @@ const api = {
     ipcRenderer.on(channel('app:fremde-aenderung'), listener);
     return () => {
       ipcRenderer.off(channel('app:fremde-aenderung'), listener);
+    };
+  },
+  /**
+   * Die Einstellungen wurden von aussen geaendert — im Dialog der Huelle.
+   * Mitgeliefert wird der ganze neue Stand. Liefert eine Funktion zum
+   * Abmelden zurueck.
+   */
+  onEinstellungen: (callback: (einstellungen: AppSettings) => void): (() => void) => {
+    const listener = (_e: unknown, einstellungen: AppSettings) => callback(einstellungen);
+    ipcRenderer.on(channel('app:einstellungen'), listener);
+    return () => {
+      ipcRenderer.off(channel('app:einstellungen'), listener);
+    };
+  },
+  /**
+   * Der Speicherort wurde von aussen gewechselt. Kampagnen und Notizen im
+   * Speicher der Oberflaeche stimmen danach nicht mehr. Liefert eine
+   * Funktion zum Abmelden zurueck.
+   */
+  onSpeicherortWechsel: (callback: () => void): (() => void) => {
+    const listener = () => callback();
+    ipcRenderer.on(channel('app:speicherort'), listener);
+    return () => {
+      ipcRenderer.off(channel('app:speicherort'), listener);
     };
   },
   /**

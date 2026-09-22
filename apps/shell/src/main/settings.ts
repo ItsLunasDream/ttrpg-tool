@@ -12,6 +12,7 @@
  * soll das gleich erfahren und nicht erst dann.
  */
 import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
+import { VORGABE_THEMA, themaMit } from '@suite/farben';
 import { dirname } from 'node:path';
 import { istAnbieterId, KI_VOREINSTELLUNGEN, type KiEinstellungen } from '@suite/ki/einstellungen';
 import { DEFAULT_LANGUAGE, isLanguage, type Language } from '../shared/i18n';
@@ -42,13 +43,22 @@ export interface ShellSettings {
    * sie in einer Datei, die er kennt.
    */
   einfuehrungGesehen: string[];
+  /**
+   * Das Farbthema der ganzen Sammlung.
+   *
+   * Wie die KI und anders als die Sprache: ein Fenster in zwei Farben waere
+   * keine Wahl, sondern ein Fehler. Die Kennung steht in `@suite/farben`;
+   * hier steht nur, welche gerade gilt.
+   */
+  thema: string;
 }
 
 export const DEFAULT_SETTINGS: ShellSettings = {
   language: DEFAULT_LANGUAGE,
   ki: KI_VOREINSTELLUNGEN,
   claudeSchluessel: '',
-  einfuehrungGesehen: []
+  einfuehrungGesehen: [],
+  thema: VORGABE_THEMA
 };
 
 /** Erzwingt gueltige Werte, egal was in der Datei stand. */
@@ -59,6 +69,13 @@ export function sanitizeSettings(roh: unknown): ShellSettings {
     language: isLanguage(wert.language) ? wert.language : DEFAULT_SETTINGS.language,
     ki: sanitizeKi(wert.ki),
     claudeSchluessel: typeof wert.claudeSchluessel === 'string' ? wert.claudeSchluessel : '',
+    /*
+     * Ueber `themaMit` und nicht roh uebernommen: eine Datei aus einer
+     * aelteren Fassung, oder eine von Hand geaenderte, koennte eine Kennung
+     * nennen, die es nicht gibt. `themaMit` faellt dann auf die Vorgabe
+     * zurueck — besser als eine Oberflaeche ohne Farben.
+     */
+    thema: themaMit(typeof wert.thema === 'string' ? wert.thema : '').id,
     // Nur Zeichenketten, und jede nur einmal: die Liste waechst sonst bei
     // jedem Start um denselben Eintrag.
     einfuehrungGesehen: Array.isArray(wert.einfuehrungGesehen)

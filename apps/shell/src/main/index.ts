@@ -17,7 +17,7 @@
  * steht fuer sich. Die Aufteilung ist aber schon so angelegt, dass das
  * Einbetten spaeter nichts daran umstellt.
  */
-import { app, BaseWindow, WebContentsView, ipcMain, screen, shell, type IpcMainInvokeEvent } from 'electron';
+import { app, BaseWindow, WebContentsView, dialog, ipcMain, screen, shell, type IpcMainInvokeEvent, type WebContents } from 'electron';
 /**
  * Startzeit messen, wenn TTRPG_TOOLS_STARTZEIT gesetzt ist.
  *
@@ -53,6 +53,11 @@ import { join } from 'node:path';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { berechneAppFlaeche } from '../shared/apps';
 import { mountApp, registerSchemes, type MontageHaken, type MontierteApp } from './apps';
+import type { Wert } from '@suite/einstellungen';
+import { beobachteFarbe, setzeThema as setzeFarbthema } from './farbe';
+import { schreibeSicherung } from './sicherung';
+import { alleEintraege } from './suche';
+import { sicherungsname } from '../shared/sicherung';
 import { brichFahrtAb, fahreEin } from './fahrt';
 import {
   DEFAULT_SETTINGS,
@@ -295,6 +300,20 @@ function meldeVerlauf(richtung: 'zurueck' | 'vorwaerts', woher = '?'): void {
   huelle?.webContents.send('verlauf:befehl', richtung);
 }
 
+/**
+ * Das Thema an alle Ansichten — die der Huelle eingeschlossen.
+ *
+ * Ein Weg und nicht zwei: die Huelle faerbte sich anfangs selbst im
+ * Renderer, und das ging schief, sobald die Einstellung von woanders kam
+ * (aus einem Skript, aus dem Rauchtest). Jetzt bekommt sie dieselbe
+ * eingespritzte Regel wie jedes Werkzeug, und die Oberflaeche erfaehrt nur
+ * noch die Kennung fuer ihren Waehler.
+ */
+async function verteileThema(themaId: string): Promise<void> {
+  await setzeFarbthema(themaId);
+  huelle?.webContents.send('einstellungen:thema-extern', themaId);
+}
+
 function meldeKiWechsel(): void {
   for (const montiert of offen.values()) montiert.meldeKiWechsel?.();
 }
@@ -468,6 +487,11 @@ async function erzeugeFenster(): Promise<void> {
     return { action: 'deny' };
   });
 
+  // Anmelden statt faerben: gefaerbt wird bei `dom-ready`, und das kommt
+  // gleich. Vor dem Laden einzuspritzen haelt den Start an — siehe farbe.ts.
+  await setzeFarbthema(gemerkteEinstellungen.thema);
+  beobachteFarbe(huelle.webContents as WebContents);
+
   if (devServerUrl) {
     await huelle.webContents.loadURL(devServerUrl);
   } else {
@@ -554,6 +578,7 @@ async function starteMitWerkzeug(): Promise<void> {
     console.error(`[shell] Unbekanntes Werkzeug in TTRPG_TOOLS_START_APP: ${id}`);
     return;
   }
+  beobachteFarbe(montiert.sicht.webContents as WebContents);
   await montiert.nachladen();
   offen.set(id, montiert);
   aktiveApp = id;
@@ -692,7 +717,101 @@ function registriereKanaele(): void {
     if (aktualisiert.language !== vorher.language) {
       for (const montiert of offen.values()) void montiert.setLanguage?.(aktualisiert.language);
     }
+    // Das Thema gilt fuer das ganze Fenster. Die Huelle faerbt sich selbst
+    // (sie hat die Einstellungen ja gerade geschrieben); die Werkzeuge
+    // bekommen die Regel eingespritzt, siehe farbe.ts.
+    if (aktualisiert.thema !== vorher.thema) {
+      void verteileThema(aktualisiert.thema);
+    }
     return ohneSchluessel(aktualisiert);
+  });
+
+  /*
+   * Die Einstellungen der einzelnen Werkzeuge.
+   *
+   * Die Huelle kennt sie nicht und soll sie nicht kennen. Sie fragt das
+   * Werkzeug, was es einzustellen gibt, malt das in ihren eigenen Dialog und
+   * schickt Aenderungen zurueck. Ein Werkzeug ohne eigene Einstellungen
+   * liefert `null`, und der Dialog laesst den Abschnitt dann weg.
+   *
+   * Nur montierte Werkzeuge antworten: was noch nie offen war, hat auch noch
+   * keine Einstellungen geladen. Der Dialog fragt deshalb genau die ab, die
+   * gerade laufen.
+   */
+  handle('werkzeug:einstellungen', async (_event, appId: string) => {
+    const montiert = offen.get(appId);
+    return (await montiert?.werkzeugEinstellungen?.()) ?? null;
+  });
+
+  handle(
+    'werkzeug:einstellung-setzen',
+    async (_event, appId: string, feldId: string, wert: Wert) => {
+      const montiert = offen.get(appId);
+      return (await montiert?.setzeWerkzeugEinstellung?.(feldId, wert)) ?? null;
+    }
+  );
+
+  handle(
+    'werkzeug:einstellung-befehl',
+    async (_event, appId: string, befehlId: string, wert?: string) => {
+      const montiert = offen.get(appId);
+      return (await montiert?.werkzeugBefehl?.(befehlId, wert)) ?? null;
+    }
+  );
+
+  /**
+   * Was alle Werkzeuge abgelegt haben — fuer die Suche mit Strg+K.
+   *
+   * Bei jedem Oeffnen frisch von der Platte. Siehe suche.ts, warum kein
+   * Verzeichnis gefuehrt wird.
+   */
+  handle('suche:eintraege', () => alleEintraege(app.getPath('userData')));
+
+  /**
+   * Zeigt einen Treffer in seinem Werkzeug.
+   *
+   * Nur, wenn es schon montiert ist — die Oberflaeche wechselt vorher
+   * dorthin, und erst dann kommt der Sprung. Dieselbe Reihenfolge wie beim
+   * Verlauf, und aus demselben Grund: ein Sprung in eine Anwendung, die
+   * noch gar nicht laeuft, kaeme vor ihrem ersten Zeichnen an.
+   */
+  handle('suche:zeigen', async (_event, werkzeug: string, kennung: string) => {
+    const montiert = offen.get(werkzeug);
+    if (!montiert) return false;
+    return (await montiert.zeigeEintrag?.(kennung)) ?? false;
+  });
+
+  /**
+   * Eine Sicherung der ganzen Sammlung.
+   *
+   * Bisher sicherte nur der Story Creator, und auch nur seine Kampagne.
+   * Hier geht der ganze Datenordner hinein: Kampagnen, Monster, Zustaende,
+   * Begegnungen, Karten, eigene Symbole und die Einstellungen.
+   *
+   * Vor dem Packen wird geschrieben, was noch im Speicher haengt — sonst
+   * fehlt in der Sicherung genau die Notiz, an der man gerade sass.
+   */
+  handle('sicherung:schreiben', async () => {
+    const vorschlag = sicherungsname(new Date());
+    const frage = {
+      defaultPath: vorschlag,
+      filters: [{ name: 'ZIP', extensions: ['zip'] }]
+    };
+    const ergebnis = fenster
+      ? await dialog.showSaveDialog(fenster, frage)
+      : await dialog.showSaveDialog(frage);
+    if (ergebnis.canceled || !ergebnis.filePath) return { ok: false, text: '', dateien: 0 };
+
+    for (const montiert of offen.values()) await montiert.flush();
+    const bericht = await schreibeSicherung(app.getPath('userData'), ergebnis.filePath);
+    return { ok: true, text: ergebnis.filePath, dateien: bericht.dateien };
+  });
+
+  /** Oeffnet den Datenordner — von Hand zurueckspielen geht nur dort. */
+  handle('sicherung:ordner', async () => {
+    const ordner = app.getPath('userData');
+    await shell.openPath(ordner);
+    return ordner;
   });
 
   /**
@@ -787,6 +906,7 @@ function registriereKanaele(): void {
       // Werkzeug waere bis zum Neustart der Huelle unbrauchbar, selbst wenn
       // die fehlenden Dateien inzwischen da sind.
       offen.set(id, montiert);
+      beobachteFarbe(montiert.sicht.webContents as WebContents);
       fenster.contentView.addChildView(montiert.sicht);
     }
 
@@ -893,6 +1013,15 @@ function registriereKanaele(): void {
    * es nur in einer Darstellung. Der Hauptprozess braucht die Auskunft fuer
    * die Einfahrt der Ansichten, die er selbst treibt.
    */
+  /*
+   * Strg+K in einem Werkzeug.
+   *
+   * Dasselbe Muster wie bei den Daumentasten der Maus: das Preload jedes
+   * Werkzeugs hoert mit und meldet hierher, weil die Huelle den
+   * Tastendruck sonst nicht sieht.
+   */
+  ipcMain.on('suche:taste', () => huelle?.webContents.send('suche:oeffnen'));
+
   ipcMain.on('bewegung:reduziert', (_event, reduziert: boolean) => {
     wenigerBewegung = Boolean(reduziert);
     if (wenigerBewegung) brichFahrtAb();

@@ -40,6 +40,7 @@ import { mountMonster } from '../../../monster/src/main/embed';
 import { mountZustaende } from '../../../zustaende/src/main/embed';
 import type { KiQuelle } from './ki';
 import type { Language } from '../shared/i18n';
+import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
 
 export interface MontierteApp {
   readonly id: string;
@@ -104,6 +105,35 @@ export interface MontierteApp {
    * saehe davon nichts.
    */
   meldeKiWechsel?(): void;
+  /**
+   * Was dieses Werkzeug an eigenen Einstellungen hat, damit die Huelle es in
+   * ihrem Dialog zeigen kann.
+   *
+   * Warum nicht einfach ein eigener Dialog im Werkzeug? Weil es dann zwei
+   * Stellen gaebe, an denen man Einstellungen sucht, und man immer in der
+   * falschen zuerst nachsieht. Das Werkzeug beschreibt, WAS es gibt, die
+   * Huelle malt es — das Feldschema steht in @suite/einstellungen.
+   *
+   * Fehlt bei Werkzeugen ohne eigene Einstellungen.
+   */
+  werkzeugEinstellungen?(): Promise<Werkzeugeinstellungen | null>;
+  /**
+   * Nimmt einen geaenderten Wert entgegen und liefert den Stand danach.
+   *
+   * Der Stand danach ist nicht die Eingabe: das Werkzeug darf Werte
+   * zurechtruecken, und ein Schalter kann andere Felder sperren. Die Huelle
+   * zeigt, was zurueckkommt.
+   */
+  setzeWerkzeugEinstellung?(feldId: string, wert: Wert): Promise<Werkzeugeinstellungen | null>;
+  /** Loest einen Knopf aus (Ordner waehlen, Wort entfernen, ...). */
+  werkzeugBefehl?(befehlId: string, wert?: string): Promise<Werkzeugeinstellungen | null>;
+  /**
+   * Zeigt einen Eintrag, den die Suche gefunden hat.
+   *
+   * Antwortet `false`, wenn es ihn nicht (mehr) gibt. Fehlt bei Werkzeugen,
+   * die nichts ablegen — die tauchen in der Suche ohnehin nicht auf.
+   */
+  zeigeEintrag?(kennung: string): Promise<boolean>;
 }
 
 /** Was die Huelle jeder Anwendung beim Montieren mitgibt. */
@@ -615,7 +645,10 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
     },
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
-    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    // Die Suche der Huelle (Strg+K) springt hierher.
+    zeigeEintrag: (kennung) =>
+      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
   };
 }
 
@@ -650,7 +683,9 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
     uebernahmeKandidaten: fruehereSpeicherorte(id),
     // In der Huelle wird die KI einmal fuer alle eingerichtet. Der eigene
     // Abschnitt in den Einstellungen dieser Anwendung verschwindet dadurch.
-    kiQuelle: haken.kiQuelle
+    kiQuelle: haken.kiQuelle,
+    // Die Huelle fuehrt die Einstellungen; der eigene Dialog faellt weg.
+    inHuelle: true
   });
 
   // Fuer den NPC Creator: er legt Figuren hier ab, ohne den Vault zu kennen.
@@ -691,7 +726,14 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)    ,
     // Die KI wird in der Huelle eingerichtet; dieses Werkzeug muss es
     // erfahren, sonst fragt es den Zustand nur beim Laden ab.
-    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents),
+    // Seine eigenen Einstellungen stehen im Dialog der Huelle, nicht in einem
+    // zweiten Dialog im Werkzeug.
+    werkzeugEinstellungen: () => eingebettet.werkzeugEinstellungen(sicht.webContents as WebContents),
+    setzeWerkzeugEinstellung: (feldId, wert) =>
+      eingebettet.setzeWerkzeugEinstellung(sicht.webContents as WebContents, feldId, wert),
+    werkzeugBefehl: (befehlId, wert) =>
+      eingebettet.werkzeugBefehl(sicht.webContents as WebContents, befehlId, wert)
   };
 }
 
@@ -815,7 +857,10 @@ async function montiereMonster(id: string, haken: MontageHaken): Promise<Montier
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
-    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents),
+    // Die Suche der Huelle (Strg+K) springt hierher.
+    zeigeEintrag: (kennung) =>
+      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
   };
 }
 
@@ -880,6 +925,9 @@ async function montiereZustaende(id: string, haken: MontageHaken): Promise<Monti
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
-    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents),
+    // Die Suche der Huelle (Strg+K) springt hierher.
+    zeigeEintrag: (kennung) =>
+      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
   };
 }

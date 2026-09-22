@@ -17,6 +17,8 @@ const en = {
 
   'menu.question': 'What would you like to work on?',
   'menu.hint': 'Everything lives in the same place. Switch any time, nothing gets lost.',
+  'menu.groupGm': 'For running the game',
+  'menu.groupAll': 'For everyone at the table',
   'menu.version': 'Version {version}',
 
   'verlauf.zurueck': 'Back',
@@ -41,10 +43,19 @@ const en = {
 
   'dialog.close': 'Close',
 
+  'search.title': 'Search everything',
+  'search.placeholder': 'Search monsters, conditions, encounters…',
+  'search.hint': 'Type to search across all tools.',
+  'search.loading': 'Reading…',
+  'search.nothing': 'Nothing found.',
+  'search.keys': '↑ ↓ to move, Enter to open, Esc to close',
   'settings.title': 'Settings',
   'settings.language': 'Language',
   'settings.languageHint':
     'Applies to this window — its title bar, the start menu and the rail. Each tool keeps its own language setting.',
+  'settings.theme': 'Colour theme',
+  'settings.themeHint':
+    'Applies to the whole window, tools included. Mostly dark; the light ones cover light mode.',
   'settings.saveFailed': 'Could not save the settings: {detail}',
 
   'settings.icons': 'Tool icons',
@@ -59,11 +70,11 @@ const en = {
   'settings.aiProvider': 'Connection',
   'settings.aiNone': 'None',
   'settings.aiOllama': 'Ollama (local)',
-  'settings.aiOpen': 'Anderer Dienst (OpenAI-Schnittstelle)',
-  'settings.openUrl': 'Adresse des Dienstes',
-  'settings.openModel': 'Modell',
+  'settings.aiOpen': 'Other service (OpenAI interface)',
+  'settings.openUrl': 'Service address',
+  'settings.openModel': 'Model',
   'settings.openHint':
-    'Für Dienste, die wie OpenAI antworten — etwa Groq, Mistral, Together, OpenRouter oder ein lokales LM Studio. Die Adresse steht in deren Dokumentation, meist endet sie auf /v1.',
+    'For services that answer like OpenAI — Groq, Mistral, Together, OpenRouter or a local LM Studio, for example. The address is in their documentation and usually ends in /v1.',
   'settings.aiClaude': 'Claude API',
   'settings.ollamaUrl': 'Ollama address',
   'settings.ollamaModel': 'Ollama model',
@@ -82,6 +93,15 @@ const en = {
   'settings.aiReady': 'Ready: {detail}',
   'settings.aiNotReady': 'Not ready: {detail}',
 
+  'settings.backup': 'Backup',
+  'settings.backupHint':
+    'One ZIP with everything: campaigns, monsters, conditions, encounters, maps, your own icons and the settings. The API key is left out — it is encrypted with this machine\u2019s keychain and would be useless anywhere else.',
+  'settings.backupNow': 'Back up now',
+  'settings.backupRunning': 'Backing up…',
+  'settings.backupDone': 'Done, {count} files:',
+  'settings.backupFolder': 'Open data folder',
+  'settings.backupRestore':
+    'To restore: close the app, unpack the ZIP into the data folder, start again. Doing it while tools are running would overwrite what they still hold in memory.',
   'settings.intro': 'Introductions',
   'settings.introHint':
     'Each tool explains itself the first time you open it. Show those windows again from the start.',
@@ -151,6 +171,8 @@ const de: Partial<Record<MessageKey, string>> = {
 
   'menu.question': 'Womit möchtest du arbeiten?',
   'menu.hint': 'Alles liegt im selben Speicherort. Wechseln geht jederzeit, nichts geht dabei verloren.',
+  'menu.groupGm': 'Zum Leiten',
+  'menu.groupAll': 'Für alle am Tisch',
   'menu.version': 'Fassung {version}',
 
   'verlauf.zurueck': 'Zurück',
@@ -175,10 +197,19 @@ const de: Partial<Record<MessageKey, string>> = {
 
   'dialog.close': 'Schließen',
 
+  'search.title': 'Alles durchsuchen',
+  'search.placeholder': 'Monster, Zustände, Begegnungen durchsuchen…',
+  'search.hint': 'Tippen, um über alle Werkzeuge zu suchen.',
+  'search.loading': 'Wird gelesen…',
+  'search.nothing': 'Nichts gefunden.',
+  'search.keys': '↑ ↓ bewegen, Enter öffnet, Esc schließt',
   'settings.title': 'Einstellungen',
   'settings.language': 'Sprache',
   'settings.languageHint':
     'Gilt für dieses Fenster — seine Titelleiste, das Startmenü und die Schiene. Jedes Werkzeug behält seine eigene Spracheinstellung.',
+  'settings.theme': 'Farbthema',
+  'settings.themeHint':
+    'Gilt für das ganze Fenster, Werkzeuge eingeschlossen. Überwiegend dunkel; die hellen decken den Light Mode ab.',
   'settings.saveFailed': 'Die Einstellungen ließen sich nicht speichern: {detail}',
 
   'settings.icons': 'Symbole der Werkzeuge',
@@ -193,11 +224,11 @@ const de: Partial<Record<MessageKey, string>> = {
   'settings.aiProvider': 'Anbindung',
   'settings.aiNone': 'Keine',
   'settings.aiOllama': 'Ollama (lokal)',
-  'settings.aiOpen': 'Other service (OpenAI interface)',
-  'settings.openUrl': 'Service address',
-  'settings.openModel': 'Model',
+  'settings.aiOpen': 'Anderer Dienst (OpenAI-Schnittstelle)',
+  'settings.openUrl': 'Adresse des Dienstes',
+  'settings.openModel': 'Modell',
   'settings.openHint':
-    'For services that answer like OpenAI — Groq, Mistral, Together, OpenRouter or a local LM Studio, for example. The address is in their documentation and usually ends in /v1.',
+    'Für Dienste, die wie OpenAI antworten — etwa Groq, Mistral, Together, OpenRouter oder ein lokales LM Studio. Die Adresse steht in deren Dokumentation, meist endet sie auf /v1.',
   'settings.aiClaude': 'Claude API',
   'settings.ollamaUrl': 'Ollama-Adresse',
   'settings.ollamaModel': 'Ollama-Modell',
@@ -216,6 +247,15 @@ const de: Partial<Record<MessageKey, string>> = {
   'settings.aiReady': 'Bereit: {detail}',
   'settings.aiNotReady': 'Nicht bereit: {detail}',
 
+  'settings.backup': 'Sicherung',
+  'settings.backupHint':
+    'Ein ZIP mit allem: Kampagnen, Monster, Zustände, Begegnungen, Karten, eigene Symbole und die Einstellungen. Der API-Schlüssel bleibt draußen — er ist mit dem Schlüsselbund dieses Rechners verschlüsselt und wäre anderswo ohnehin wertlos.',
+  'settings.backupNow': 'Jetzt sichern',
+  'settings.backupRunning': 'Wird gesichert…',
+  'settings.backupDone': 'Fertig, {count} Dateien:',
+  'settings.backupFolder': 'Datenordner öffnen',
+  'settings.backupRestore':
+    'Zurückspielen: Anwendung schließen, das ZIP in den Datenordner entpacken, neu starten. Im laufenden Betrieb überschriebe es, was die Werkzeuge noch im Speicher halten.',
   'settings.intro': 'Einführungen',
   'settings.introHint':
     'Jedes Werkzeug erklärt sich beim ersten Öffnen selbst. Diese Fenster lassen sich wieder von vorn zeigen.',

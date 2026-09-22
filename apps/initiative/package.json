@@ -23,7 +23,8 @@
   },
   "dependencies": {
     "@suite/dice": "*",
-    "@suite/motion": "*"
+    "@suite/motion": "*",
+    "@suite/eintraege": "*"
   },
   "author": {
     "name": "ItsLunasDream"

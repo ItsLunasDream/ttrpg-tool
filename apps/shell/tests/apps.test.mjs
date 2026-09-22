@@ -3,7 +3,18 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { APPS, CHROME, STATUS_KEY, findApp, istWaehlbar, berechneAppFlaeche } =
+const {
+  APPS,
+  CHROME,
+  ROLLEN,
+  ROLLE_KEY,
+  STATUS_KEY,
+  appsMitRolle,
+  findApp,
+  istWaehlbar,
+  berechneAppFlaeche,
+  translate
+} =
   require('../dist/tests/entry.cjs');
 
 test('jede App hat eine eindeutige ID', () => {
@@ -60,4 +71,50 @@ test('jeder Zustand hat einen Textschluessel fuer die Kachel', () => {
   for (const app of APPS) {
     assert.ok(STATUS_KEY[app.status], `kein Schluessel fuer ${app.status}`);
   }
+});
+
+/*
+ * Die Rolle am Tisch.
+ *
+ * Neun Kacheln nebeneinander sind eine Wand; gruppiert findet man, was man
+ * sucht. Geprueft wird, dass die Einteilung vollstaendig ist und die
+ * Gruppen zusammen wieder alle Werkzeuge ergeben — eine Kachel, die in
+ * keiner Gruppe landet, waere von der Startseite verschwunden.
+ */
+test('jedes Werkzeug hat eine Rolle, und es gibt nur die beiden', () => {
+  for (const app of APPS) {
+    assert.ok(ROLLEN.includes(app.rolle), `${app.id}: ${app.rolle}`);
+  }
+});
+
+test('die Gruppen ergeben zusammen wieder alle Werkzeuge', () => {
+  const ausGruppen = ROLLEN.flatMap((rolle) => appsMitRolle(rolle).map((a) => a.id));
+  assert.deepEqual(ausGruppen.sort(), APPS.map((a) => a.id).sort());
+  // Und keines doppelt: sonst stuende eine Kachel zweimal da.
+  assert.equal(new Set(ausGruppen).size, ausGruppen.length);
+});
+
+test('keine Gruppe ist leer', () => {
+  // Eine leere Gruppe waere eine Ueberschrift ohne Inhalt.
+  for (const rolle of ROLLEN) {
+    assert.ok(appsMitRolle(rolle).length > 0, `${rolle} ist leer`);
+  }
+});
+
+test('jede Gruppe hat eine Ueberschrift in beiden Sprachen', () => {
+  for (const rolle of ROLLEN) {
+    const schluessel = ROLLE_KEY[rolle];
+    assert.ok(schluessel, rolle);
+    for (const sprache of ['de', 'en']) {
+      assert.notEqual(translate(sprache, schluessel), schluessel, `${rolle} in ${sprache}`);
+    }
+  }
+});
+
+test('die Wuerfel und der Story Creator gehoeren allen', () => {
+  // Die eine inhaltliche Festlegung, die es hier gibt: an der Kampagne
+  // schreiben beide Seiten mit, und gewuerfelt wird von allen. Alles andere
+  // ist Vorbereitung oder Leitung.
+  const fuerAlle = appsMitRolle('alle').map((a) => a.id).sort();
+  assert.deepEqual(fuerAlle, ['backstory', 'dice']);
 });

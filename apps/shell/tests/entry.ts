@@ -15,3 +15,5 @@ export {
   kannVorwaerts,
   aktuelleStelle
 } from '../src/shared/verlauf';
+export * from '../src/shared/sicherung';
+export * from '../src/main/sicherung';

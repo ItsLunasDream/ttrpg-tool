@@ -215,6 +215,48 @@ app.whenReady().then(async () => {
     `die Wirkungen sind ueber das Paket verteilt (${abgestimmt.slice(0, 60)})`
   );
 
+  /*
+   * Und in der Sammlung bleibt das Paket eines.
+   *
+   * Aus dem Gebrauch: die vier Zustaende landeten einzeln an ihrer
+   * alphabetischen Stelle zwischen fremden Eintraegen, und die Abstimmung —
+   * der ganze Grund, ein Paket zu wuerfeln — war nicht mehr zu sehen.
+   */
+  await js(`[...document.querySelectorAll('.knopf')].find(
+    k => /All to the collection|Alle in die Sammlung/.test(k.textContent)).click(); true`);
+  await warte(1200);
+  await js("[...document.querySelectorAll('.reiter__knopf')].find(k => /Collection|Sammlung/.test(k.textContent)).click(); true");
+  await warte(700);
+
+  pruefe(
+    (await js("document.querySelectorAll('.paketkachel').length")) === 1,
+    'das Paket steht als eine Kachel in der Sammlung'
+  );
+  const kopfText = await js("document.querySelector('.paketkachel__name')?.textContent ?? ''");
+  pruefe(kopfText === paketname, `die Kachel traegt den Paketnamen (${kopfText})`);
+  pruefe(
+    !(await js("Boolean(document.querySelector('.paketkachel__inhalt'))")),
+    'zugeklappt ist die Vorgabe'
+  );
+
+  await js("document.querySelector('.paketkachel__kopf').click(); true");
+  await warte(400);
+  pruefe(
+    (await js("document.querySelectorAll('.paketkachel__inhalt .zustandskachel').length")) >= 2,
+    'aufgeklappt stehen die Zustaende darin'
+  );
+
+  // Ueber den Paketnamen laesst es sich auch finden.
+  await js(`(() => { const f = document.querySelector('.sammlung__suche');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(
+      f, ${JSON.stringify(paketname)});
+    f.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+  await warte(400);
+  pruefe(
+    (await js("document.querySelectorAll('.paketkachel').length")) === 1,
+    'und der Paketname findet es in der Suche'
+  );
+
   // --- Die Karte zum Vorlesen ----------------------------------------------
   console.log('\nDie Karte:');
   await js("[...document.querySelectorAll('.reiter__knopf')].find(k => /Build|Bauen/.test(k.textContent)).click(); true");
@@ -298,6 +340,24 @@ app.whenReady().then(async () => {
     })()`);
     pruefe(geklickt === true, 'der Knopf „In den Story Creator" ist da');
     await warte(1500);
+    /*
+     * Der Knopf fuer Foundry.
+     *
+     * Geklickt wird er NICHT: er oeffnet einen Dateidialog des Systems, und
+     * der bliebe im Rauchtest offen stehen. Dass die erzeugte Datei stimmt,
+     * pruefen die Modultests (packages/foundry und apps/zustaende/tests/foundry).
+     * Hier geht es um die Verdrahtung: steht der Knopf da, und bietet die
+     * Bruecke den Kanal an, den er ruft?
+     */
+    const foundryKnopf = await js(
+      `[...document.querySelectorAll('.knopf')].some((k) => /Foundry/i.test(k.textContent))`
+    );
+    pruefe(foundryKnopf === true, 'der Knopf „Für Foundry (JSON)" ist da');
+    pruefe(
+      (await js("typeof window.zustaende.foundry")) === 'function',
+      'und die Bruecke bietet den Kanal dafuer an'
+    );
+
 
     const meldung = await js("document.querySelector('.meldung')?.textContent ?? ''");
     pruefe(

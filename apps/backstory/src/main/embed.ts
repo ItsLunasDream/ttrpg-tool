@@ -14,7 +14,8 @@
  * ungespeicherter Aenderungen vor dem Schliessen.
  */
 import path from 'node:path';
-import { dialog, ipcMain } from 'electron';
+import fs from 'node:fs/promises';
+import { dialog, ipcMain, shell } from 'electron';
 import type { BaseWindow } from 'electron';
 import type { IpcMainEvent, WebContents } from 'electron';
 import { Vault, readSettings, writeSettings } from './vault';
@@ -23,8 +24,16 @@ import { handleAssetProtocol, registerAssetScheme } from './assetProtocol';
 import { findeUebernahme } from './uebernahme';
 import { channel } from '../shared/channels';
 import { richteRechtschreibungEin, setzePruefsprache } from './rechtschreibung';
+import {
+  baueBeschreibung,
+  frageNachOrdner,
+  fuehreBefehlAus,
+  setzeWert,
+  type Umgebung as EinstellungsUmgebung
+} from './werkzeugeinstellungen';
 import type { KiQuelle } from './ai';
 import type { AppSettings } from '../shared/types';
+import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
 
 export { registerAssetScheme };
 export { CHANNEL_PREFIX } from '../shared/channels';
@@ -103,6 +112,15 @@ export interface BackstoryEmbedOptions {
    * soll das im naechsten Klick merken.
    */
   readonly kiQuelle?: KiQuelle;
+  /**
+   * Ob eine Huelle diese Anwendung einbettet.
+   *
+   * Entscheidet ueber den eigenen Einstellungen-Dialog: in der Huelle stehen
+   * die Einstellungen in DEREN Dialog, und ein zweiter hier waere die
+   * zweite Stelle, an der man dasselbe sucht. Allein gestartet gibt es keine
+   * Huelle, dann bleibt der eigene Dialog der einzige Weg.
+   */
+  readonly inHuelle?: boolean;
 }
 
 export interface BackstoryEmbed {
@@ -193,6 +211,24 @@ export interface BackstoryEmbed {
    */
   beobachteVerlauf(webContents: WebContents, beiOrt: (ort: string | null) => void): () => void;
   springeZuOrt(webContents: WebContents, ort: string | null): void;
+
+  /**
+   * Die eigenen Einstellungen, beschrieben fuer den Dialog der Huelle.
+   *
+   * Der eigene Dialog bleibt fuer den eigenstaendigen Start; eingebettet
+   * waere er die zweite Stelle, an der man dasselbe sucht.
+   */
+  werkzeugEinstellungen(webContents: WebContents): Promise<Werkzeugeinstellungen>;
+  setzeWerkzeugEinstellung(
+    webContents: WebContents,
+    feldId: string,
+    wert: Wert
+  ): Promise<Werkzeugeinstellungen>;
+  werkzeugBefehl(
+    webContents: WebContents,
+    befehlId: string,
+    wert?: string
+  ): Promise<Werkzeugeinstellungen>;
 }
 
 /**
@@ -231,11 +267,91 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
     settingsFile,
     settings,
     onLanguageChange: options.onLanguageChange,
-    kiQuelle: options.kiQuelle
+    kiQuelle: options.kiQuelle,
+    inHuelle: Boolean(options.inHuelle)
   };
   registerIpc(kontext);
 
   const distDir = options.distDir ?? __dirname;
+
+  /*
+   * Was der Einstellungs-Abschnitt in der Huelle braucht.
+   *
+   * Jede Aenderung von dort meldet sich anschliessend bei der Oberflaeche:
+   * sie haelt die Einstellungen im Speicher, und ohne die Meldung schriebe
+   * sie weiter mit der alten Wartezeit und zeigte den alten Ordner. Die
+   * Sprache geht ueber ihren eigenen Kanal, den es dafuer schon gibt.
+   */
+  const umgebungFuer = (webContents: WebContents | null): EinstellungsUmgebung => ({
+    einstellungen: () => kontext.settings,
+    sitzung: () => (webContents && !webContents.isDestroyed() ? webContents.session : null),
+    schreibe: async (teil) => {
+      const vorherigeSprache = kontext.settings.language;
+      // Der Speicherort wird hier bewusst nicht mitgeschrieben: er haengt am
+      // Vault und geht ueber `waehleSpeicherort`.
+      kontext.settings = await writeSettings(settingsFile, {
+        ...kontext.settings,
+        ...teil,
+        vaultRoot: kontext.settings.vaultRoot
+      });
+      vault.setHistoryOptions({
+        enabled: kontext.settings.historyEnabled,
+        maxVersions: kontext.settings.historyMaxVersions
+      });
+      if (kontext.settings.language !== vorherigeSprache) {
+        if (webContents && !webContents.isDestroyed()) {
+          // Die Pruefung muss mitwandern, sonst streicht sie den halben Text an.
+          setzePruefsprache(webContents.session, kontext.settings.language);
+          webContents.send(channel('app:sprache'), kontext.settings.language);
+        }
+        /*
+         * Und die Huelle erfaehrt es genauso wie bei einer Umstellung im
+         * Werkzeug selbst: eine Aenderung an irgendeiner Stelle soll ueberall
+         * ankommen, das war die Anforderung. Im Kreis laeuft das nicht — die
+         * Huelle schickt die Meldung an alle offenen Werkzeuge AUSSER dem
+         * meldenden zurueck.
+         *
+         * Weggelassen hatte ich das erst mit der Begruendung „die Huelle hat
+         * ja umgestellt". Falsch: umgestellt wurde die Sprache DIESES
+         * Werkzeugs, und die Kopplung an die uebrigen haengt genau hier.
+         */
+        options.onLanguageChange?.(kontext.settings.language);
+      }
+      meldeEinstellungen(webContents);
+      return kontext.settings;
+    },
+    waehleSpeicherort: async () => {
+      const ordner = await frageNachOrdner(webContents);
+      if (!ordner) return null;
+      vault.setRoot(ordner);
+      await vault.init();
+      // Die zuletzt offene Kampagne gehoert zum alten Ordner. Sie stehen zu
+      // lassen hiesse, beim naechsten Start eine Kampagne zu suchen, die es
+      // hier nicht gibt.
+      kontext.settings = await writeSettings(settingsFile, {
+        ...kontext.settings,
+        vaultRoot: ordner,
+        lastCampaignId: null
+      });
+      meldeEinstellungen(webContents);
+      // Die Oberflaeche haelt Kampagnen und Notizen im Speicher; nach einem
+      // Ortswechsel stimmt davon nichts mehr.
+      if (webContents && !webContents.isDestroyed()) {
+        webContents.send(channel('app:speicherort'), ordner);
+      }
+      return kontext.settings;
+    },
+    zeigeSpeicherort: async () => {
+      await fs.mkdir(vault.vaultRoot, { recursive: true });
+      await shell.openPath(vault.vaultRoot);
+    }
+  });
+
+  function meldeEinstellungen(webContents: WebContents | null): void {
+    if (webContents && !webContents.isDestroyed()) {
+      webContents.send(channel('app:einstellungen'), kontext.settings);
+    }
+  }
 
   return {
     // Das Preload liegt neben dem Hauptprozess, die Oberflaeche eine Ebene
@@ -271,6 +387,11 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
     springeZuOrt: (webContents, ort) => {
       if (!webContents.isDestroyed()) webContents.send(channel('app:verlauf-springe'), ort);
     },
+    werkzeugEinstellungen: (webContents) => baueBeschreibung(umgebungFuer(webContents)),
+    setzeWerkzeugEinstellung: (webContents, feldId, wert) =>
+      setzeWert(umgebungFuer(webContents), feldId, wert),
+    werkzeugBefehl: (webContents, befehlId, wert) =>
+      fuehreBefehlAus(umgebungFuer(webContents), befehlId, wert),
     setLanguage: async (webContents, language) => {
       if (kontext.settings.language === language) return;
       kontext.settings = await writeSettings(settingsFile, { ...kontext.settings, language });

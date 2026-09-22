@@ -8,16 +8,16 @@
  */
 
 :root {
-  --grund: #14161c;
-  --grund-hoch: #1b1e26;
-  --grund-tisch: #10121a;
-  --rand: #2a2e39;
-  --text: #e6e8ee;
-  --text-leise: #939aab;
-  --betont: #7aa2f7;
-  --gut: #4a9d5f;
-  --hoch: #d1635c;
-  --niedrig: #5c8fd1;
+  --grund: var(--f-grund, #14161c);
+  --grund-hoch: var(--f-grund-hoch, #1b1e26);
+  --grund-tisch: var(--f-grund-tief, #10121a);
+  --rand: var(--f-rand, #2a2e39);
+  --text: var(--f-text, #e6e8ee);
+  --text-leise: var(--f-text-leise, #939aab);
+  --betont: var(--f-betont, #7aa2f7);
+  --gut: var(--f-gut, #4a9d5f);
+  --hoch: var(--f-gefahr, #d1635c);
+  --niedrig: var(--f-verweis, #5c8fd1);
   --radius: 10px;
 }
 

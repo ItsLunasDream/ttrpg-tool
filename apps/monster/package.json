@@ -28,6 +28,8 @@
   "dependencies": {
     "@suite/motion": "*",
     "@suite/ki": "*",
-    "@suite/umgebungen": "*"
+    "@suite/umgebungen": "*",
+    "@suite/foundry": "*",
+    "@suite/eintraege": "*"
   }
 }

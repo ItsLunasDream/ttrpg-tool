@@ -43,6 +43,7 @@ const TEXTE = {
   'paket.alleKarten': ['Alle Karten drucken', 'Print all cards'],
   'paket.oeffnen': ['Einzeln öffnen', 'Open on its own'],
   'paket.gespeichert': ['{anzahl} Zustände liegen in der Sammlung.', '{anzahl} conditions are in the collection.'],
+  'paket.zustaende': ['{anzahl} Zustände', '{anzahl} conditions'],
 
   'karte.gespeichert': ['Die Karte liegt als PDF: {pfad}', 'The card is saved as a PDF: {pfad}'],
   'karte.abgebrochen': ['Abgebrochen.', 'Cancelled.'],
@@ -78,6 +79,8 @@ const TEXTE = {
   'knopf.ausformulieren': ['Ausformulieren lassen', 'Have it written out'],
   'knopf.speichern': ['In die Sammlung', 'To the collection'],
   'knopf.export': ['In den Story Creator', 'To the Story Creator'],
+  // Der Name des Programms, nicht uebersetzt — er heisst ueberall so.
+  'knopf.foundry': ['Für Foundry (JSON)', 'For Foundry (JSON)'],
   'knopf.karte': ['Karte zum Vorlesen', 'Card to read aloud'],
   'knopf.neuerName': ['Neuer Name', 'New name'],
   'knopf.neuerSatz': ['Neuer Kurzsatz', 'New one-liner'],
@@ -184,6 +187,7 @@ const TEXTE = {
 
   'meldung.gespeichert': ['„{name}" liegt in der Sammlung.', '“{name}” is in the collection.'],
   'meldung.exportiert': ['„{name}" liegt als Notiz im Story Creator.', '“{name}” is a note in the Story Creator.'],
+  'meldung.foundry': ['„{name}“ liegt als JSON für Foundry bereit.', '“{name}” is ready as JSON for Foundry.'],
   'meldung.fehler': ['Das ging nicht: {detail}', 'That did not work: {detail}'],
   'meldung.geloescht': ['„{name}" ist gelöscht.', '“{name}” is deleted.'],
 
