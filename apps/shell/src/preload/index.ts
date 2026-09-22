@@ -205,6 +205,18 @@ const api = {
       return () => {
         ipcRenderer.off('einstellungen:sprache-extern', hoerer);
       };
+    },
+    /**
+     * Das Farbthema hat sich geaendert. Gefaerbt wird die Ansicht vom
+     * Hauptprozess; hier kommt nur die Kennung an, damit der Waehler im
+     * Dialog weiss, was gerade gilt.
+     */
+    beiThemawechselVonAussen: (fn: (thema: string) => void): (() => void) => {
+      const hoerer = (_e: unknown, thema: string) => fn(thema);
+      ipcRenderer.on('einstellungen:thema-extern', hoerer);
+      return () => {
+        ipcRenderer.off('einstellungen:thema-extern', hoerer);
+      };
     }
   },
   /**

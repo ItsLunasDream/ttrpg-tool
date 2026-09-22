@@ -98,6 +98,7 @@ packages/ki/       Connection to language models (Ollama, Claude)
 packages/umgebungen/ Environments: what you see, and what has a numbered effect
 packages/einstellungen/ How a tool describes its own settings for the shell
 packages/foundry/  Monsters and conditions as JSON that Foundry VTT reads
+packages/farben/   Colour roles and the selectable themes
 ```
 
 `packages/*` are platform-free: no `node:*`, no `electron`, no browser
@@ -109,6 +110,13 @@ globals. They are bundled into both processes.
 shell across the full area, with the tool's view on top of it, leaving room
 for the title bar and the rail.
 
+- Colours live in one place. `packages/farben` holds fourteen colour *roles*
+  („the ground everything sits on“, not „dark blue“) and seven themes that
+  fill them — five dark, two light, which is what covers light mode. The
+  shell injects them as a `:root` rule into every view, its own included, so
+  a tool needs no code for it: its styles.css derives its own variable names
+  from the roles and keeps a fallback for each. The themes are tested for
+  contrast, not just for looking nice.
 - Settings live in one place. The shell's settings dialog shows its own
   entries (language, AI, icons, introductions) and, underneath, a section per
   running tool. A tool does not draw that section itself — it runs in its own

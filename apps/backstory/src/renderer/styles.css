@@ -1,24 +1,24 @@
 :root {
-  --bg: #16141c;
+  --bg: var(--f-grund, #16141c);
   --hit: rgba(196, 163, 90, 0.28);
-  --hit-active: #c4a35a;
-  --bg-raised: #1f1c28;
-  --bg-input: #14121a;
-  --border: #322d40;
-  --border-strong: #453d59;
-  --text: #ece9f2;
-  --text-muted: #9c94ae;
-  --accent: #c4a35a;
-  --accent-soft: rgba(196, 163, 90, 0.16);
-  --link: #8ec3e0;
-  --link-missing: #d98a7c;
-  --danger: #d1635c;
+  --hit-active: var(--f-fest, #c4a35a);
+  --bg-raised: var(--f-grund-hoch, #1f1c28);
+  --bg-input: var(--f-grund-tief, #14121a);
+  --border: var(--f-rand, #322d40);
+  --border-strong: var(--f-rand-stark, #453d59);
+  --text: var(--f-text, #ece9f2);
+  --text-muted: var(--f-text-leise, #9c94ae);
+  --accent: var(--f-betont, #c4a35a);
+  --accent-soft: var(--f-betont-leise, rgba(196, 163, 90, 0.16));
+  --link: var(--f-verweis, #8ec3e0);
+  --link-missing: var(--f-verweis-fehlt, #d98a7c);
+  --danger: var(--f-gefahr, #d1635c);
   --radius: 8px;
   color-scheme: dark;
 
   /* Die Rueckmeldefarben des Bewegungspakets an diese Palette angleichen. */
-  --motion-ok: #6a9d5f;
-  --motion-fehler: #d1635c;
+  --motion-ok: var(--f-gut, #6a9d5f);
+  --motion-fehler: var(--f-gefahr, #d1635c);
 }
 
 * {

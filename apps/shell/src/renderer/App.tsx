@@ -32,6 +32,7 @@ import {
 } from '../shared/verlauf';
 import { AppSymbol, SuiteIcon } from './icons';
 import { KI_VOREINSTELLUNGEN, type KiEinstellungen } from '@suite/ki/einstellungen';
+import { VORGABE_THEMA } from '@suite/farben';
 import { Einstellungen, type KiZustandAnsicht } from './Einstellungen';
 import { Ueber } from './Ueber';
 import { Einfuehrung } from './Einfuehrung';
@@ -126,6 +127,11 @@ export function App() {
    */
   const [ki, setKi] = useState<KiEinstellungen>(KI_VOREINSTELLUNGEN);
   const [kiZustand, setKiZustand] = useState<KiZustandAnsicht | null>(null);
+  /**
+   * Das Farbthema. Die Werkzeuge bekommen es als eingespritzte Regel vom
+   * Hauptprozess (`farbe.ts`); die Huelle faerbt sich hier selbst.
+   */
+  const [thema, setThema] = useState(VORGABE_THEMA);
   /**
    * Welche Werkzeuge schon einmal wirklich offen waren.
    *
@@ -261,6 +267,7 @@ export function App() {
     void window.shell.einstellungen.lesen().then((e) => {
       setSprache(e.language);
       setKi(e.ki);
+      setThema(e.thema);
       setGesehen(e.einfuehrungGesehen);
       // Das Willkommen beim allerersten Start. Es steht hier und nicht in
       // einem eigenen Effekt, weil es genau die Antwort braucht, die gerade
@@ -505,6 +512,26 @@ export function App() {
   waehleRef.current = waehle;
   aktivRef.current = aktiv;
 
+  /*
+   * Gefaerbt wird NICHT hier.
+   *
+   * Der Hauptprozess spritzt die Regel in jede Ansicht — auch in diese. Ein
+   * zweiter Weg nur fuer die Huelle ging schief, sobald die Einstellung von
+   * woanders kam (aus einem Skript, aus dem Rauchtest): das Werkzeug wurde
+   * hell, die Huelle blieb dunkel. Hier steht nur noch die Kennung, damit
+   * der Waehler weiss, was gerade gilt.
+   */
+  useEffect(
+    () => window.shell.einstellungen.beiThemawechselVonAussen(setThema),
+    []
+  );
+
+  const setzeThema = useCallback(async (neu: string) => {
+    // Nur schreiben. Das Faerben und die Rueckmeldung kommen vom
+    // Hauptprozess, auf demselben Weg wie bei jeder anderen Aenderung.
+    await window.shell.einstellungen.schreiben({ thema: neu });
+  }, []);
+
   const ladeSymboleNeu = useCallback(async () => {
     setSymbole(await window.shell.symbole.lesen());
   }, []);
@@ -671,6 +698,8 @@ export function App() {
         <Einstellungen
           sprache={sprache}
           setzeSprache={setzeSprache}
+          thema={thema}
+          setzeThema={setzeThema}
           ki={ki}
           setzeKi={setzeKi}
           kiZustand={kiZustand}

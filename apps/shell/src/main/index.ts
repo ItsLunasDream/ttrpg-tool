@@ -17,7 +17,7 @@
  * steht fuer sich. Die Aufteilung ist aber schon so angelegt, dass das
  * Einbetten spaeter nichts daran umstellt.
  */
-import { app, BaseWindow, WebContentsView, ipcMain, screen, shell, type IpcMainInvokeEvent } from 'electron';
+import { app, BaseWindow, WebContentsView, ipcMain, screen, shell, type IpcMainInvokeEvent, type WebContents } from 'electron';
 /**
  * Startzeit messen, wenn TTRPG_TOOLS_STARTZEIT gesetzt ist.
  *
@@ -54,6 +54,7 @@ import { appendFileSync, readFileSync } from 'node:fs';
 import { berechneAppFlaeche } from '../shared/apps';
 import { mountApp, registerSchemes, type MontageHaken, type MontierteApp } from './apps';
 import type { Wert } from '@suite/einstellungen';
+import { beobachteFarbe, setzeThema as setzeFarbthema } from './farbe';
 import { brichFahrtAb, fahreEin } from './fahrt';
 import {
   DEFAULT_SETTINGS,
@@ -296,6 +297,20 @@ function meldeVerlauf(richtung: 'zurueck' | 'vorwaerts', woher = '?'): void {
   huelle?.webContents.send('verlauf:befehl', richtung);
 }
 
+/**
+ * Das Thema an alle Ansichten — die der Huelle eingeschlossen.
+ *
+ * Ein Weg und nicht zwei: die Huelle faerbte sich anfangs selbst im
+ * Renderer, und das ging schief, sobald die Einstellung von woanders kam
+ * (aus einem Skript, aus dem Rauchtest). Jetzt bekommt sie dieselbe
+ * eingespritzte Regel wie jedes Werkzeug, und die Oberflaeche erfaehrt nur
+ * noch die Kennung fuer ihren Waehler.
+ */
+async function verteileThema(themaId: string): Promise<void> {
+  await setzeFarbthema(themaId);
+  huelle?.webContents.send('einstellungen:thema-extern', themaId);
+}
+
 function meldeKiWechsel(): void {
   for (const montiert of offen.values()) montiert.meldeKiWechsel?.();
 }
@@ -469,6 +484,11 @@ async function erzeugeFenster(): Promise<void> {
     return { action: 'deny' };
   });
 
+  // Anmelden statt faerben: gefaerbt wird bei `dom-ready`, und das kommt
+  // gleich. Vor dem Laden einzuspritzen haelt den Start an — siehe farbe.ts.
+  await setzeFarbthema(gemerkteEinstellungen.thema);
+  beobachteFarbe(huelle.webContents as WebContents);
+
   if (devServerUrl) {
     await huelle.webContents.loadURL(devServerUrl);
   } else {
@@ -555,6 +575,7 @@ async function starteMitWerkzeug(): Promise<void> {
     console.error(`[shell] Unbekanntes Werkzeug in TTRPG_TOOLS_START_APP: ${id}`);
     return;
   }
+  beobachteFarbe(montiert.sicht.webContents as WebContents);
   await montiert.nachladen();
   offen.set(id, montiert);
   aktiveApp = id;
@@ -693,6 +714,12 @@ function registriereKanaele(): void {
     if (aktualisiert.language !== vorher.language) {
       for (const montiert of offen.values()) void montiert.setLanguage?.(aktualisiert.language);
     }
+    // Das Thema gilt fuer das ganze Fenster. Die Huelle faerbt sich selbst
+    // (sie hat die Einstellungen ja gerade geschrieben); die Werkzeuge
+    // bekommen die Regel eingespritzt, siehe farbe.ts.
+    if (aktualisiert.thema !== vorher.thema) {
+      void verteileThema(aktualisiert.thema);
+    }
     return ohneSchluessel(aktualisiert);
   });
 
@@ -821,6 +848,7 @@ function registriereKanaele(): void {
       // Werkzeug waere bis zum Neustart der Huelle unbrauchbar, selbst wenn
       // die fehlenden Dateien inzwischen da sind.
       offen.set(id, montiert);
+      beobachteFarbe(montiert.sicht.webContents as WebContents);
       fenster.contentView.addChildView(montiert.sicht);
     }
 

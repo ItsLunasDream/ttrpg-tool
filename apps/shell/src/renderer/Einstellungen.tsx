@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { LANGUAGES, type Language, type MessageKey, type MessageParams } from '../shared/i18n';
 import type { KiEinstellungen } from '@suite/ki/einstellungen';
 import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
+import { THEMEN, text as farbtext } from '@suite/farben';
 import { Dialog } from './Dialog';
 import { Werkzeugfelder } from './Werkzeugfelder';
 
@@ -28,6 +29,8 @@ export interface KiZustandAnsicht {
 interface Props {
   readonly sprache: Language;
   readonly setzeSprache: (sprache: Language) => Promise<void>;
+  readonly thema: string;
+  readonly setzeThema: (thema: string) => Promise<void>;
   readonly ki: KiEinstellungen;
   readonly setzeKi: (aenderung: Partial<KiEinstellungen>) => Promise<void>;
   readonly kiZustand: KiZustandAnsicht | null;
@@ -66,6 +69,8 @@ interface Props {
 export function Einstellungen({
   sprache,
   setzeSprache,
+  thema,
+  setzeThema,
   ki,
   setzeKi,
   kiZustand,
@@ -115,6 +120,27 @@ export function Einstellungen({
         </select>
       </label>
       <p className="feld__hinweis">{t('settings.languageHint')}</p>
+
+      {/*
+        Das Thema gilt fuer das ganze Fenster, Werkzeuge eingeschlossen —
+        anders als die Sprache, die jedes Werkzeug fuer sich fuehrt. Ein
+        Fenster in zwei Farben waere keine Wahl, sondern ein Fehler.
+      */}
+      <label className="feld">
+        <span className="feld__name">{t('settings.theme')}</span>
+        <select
+          className="feld__wahl"
+          value={thema}
+          onChange={(event) => melde(setzeThema(event.target.value))}
+        >
+          {THEMEN.map((eintrag) => (
+            <option key={eintrag.id} value={eintrag.id}>
+              {farbtext(eintrag.name, sprache === 'de' ? 'de' : 'en')}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="feld__hinweis">{t('settings.themeHint')}</p>
 
       <h3 className="feld__ueberschrift">{t('settings.ai')}</h3>
 

@@ -45,6 +45,9 @@ const en = {
   'settings.language': 'Language',
   'settings.languageHint':
     'Applies to this window — its title bar, the start menu and the rail. Each tool keeps its own language setting.',
+  'settings.theme': 'Colour theme',
+  'settings.themeHint':
+    'Applies to the whole window, tools included. Mostly dark; the light ones cover light mode.',
   'settings.saveFailed': 'Could not save the settings: {detail}',
 
   'settings.icons': 'Tool icons',
@@ -179,6 +182,9 @@ const de: Partial<Record<MessageKey, string>> = {
   'settings.language': 'Sprache',
   'settings.languageHint':
     'Gilt für dieses Fenster — seine Titelleiste, das Startmenü und die Schiene. Jedes Werkzeug behält seine eigene Spracheinstellung.',
+  'settings.theme': 'Farbthema',
+  'settings.themeHint':
+    'Gilt für das ganze Fenster, Werkzeuge eingeschlossen. Überwiegend dunkel; die hellen decken den Light Mode ab.',
   'settings.saveFailed': 'Die Einstellungen ließen sich nicht speichern: {detail}',
 
   'settings.icons': 'Symbole der Werkzeuge',

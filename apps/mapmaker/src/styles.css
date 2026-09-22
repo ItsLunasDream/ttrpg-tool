@@ -1,14 +1,14 @@
 :root {
-  --bg: #16161c;
-  --panel: #1e1e26;
-  --panel-2: #262630;
-  --panel-3: #2f2f3b;
-  --line: #35353f;
-  --text: #e6e4ea;
-  --text-dim: #9b98a6;
-  --accent: #4da3ff;
-  --accent-dim: #2f6fb3;
-  --danger: #ff6b6b;
+  --bg: var(--f-grund, #16161c);
+  --panel: var(--f-grund-hoch, #1e1e26);
+  --panel-2: var(--f-rand, #262630);
+  --panel-3: var(--f-rand-stark, #2f2f3b);
+  --line: var(--f-rand, #35353f);
+  --text: var(--f-text, #e6e4ea);
+  --text-dim: var(--f-text-leise, #9b98a6);
+  --accent: var(--f-betont, #4da3ff);
+  --accent-dim: var(--f-verweis, #2f6fb3);
+  --danger: var(--f-gefahr, #ff6b6b);
   --radius: 6px;
 
   color-scheme: dark;
