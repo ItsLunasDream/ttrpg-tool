@@ -206,6 +206,13 @@ body {
   color: var(--text-leise);
 }
 
+/* Die Zeile unter dem Namen eines Gegenstands: Art, Seltenheit, Einstimmung. */
+.regel__unterzeile {
+  margin: 4px 0 0;
+  font-style: italic;
+  color: var(--text-leise);
+}
+
 .regel__fassungen {
   max-width: 72ch;
 }

@@ -6,8 +6,8 @@
  * werkzeug/gegenstaende_erzeugen.py) und wird nicht von Hand gepflegt.
  * Welcher englische Gegenstand welcher deutsche ist, steht zum Teil in
  * werkzeug/gegenstaende_paare.json (von Hand, gegen Kategorie, Seltenheit
- * und Einstimmung geprueft). Die Bloecke stehen je Sprache: die deutsche
- * Fassung ordnet Unterpunkte nach ihren deutschen Namen.
+ * und Einstimmung geprueft). Die Bloecke stehen je Sprache, in derselben
+ * Folge: Block i der einen Sprache ist Block i der anderen.
  */
 import type { Paar } from './namensnennung';
 import type { Seltenheit } from './gegenstaende';
@@ -4465,6 +4465,10 @@ export const MAGISCHE_GEGENSTAENDE: readonly MagischerGegenstand[] = [
     },
     {
      "typ": "punkt",
+     "text": "Goldene Löwen (selten): Diese Goldstatuetten zweier Löwen werden immer als Paar erschaffen. Du kannst die Figuren einzeln oder gemeinsam verwenden. Jede kann für bis zu eine Stunde zu einem Löwen werden. Wenn ein Löwe verwendet wurde, kann er erst nach sieben Tagen erneut verwendet werden."
+    },
+    {
+     "typ": "punkt",
      "text": "Elfenbein-Ziegen (selten): Diese Ziegenstatuetten aus Elfenbein werden immer zu dritt erschaffen. Jede Ziege sieht einzigartig aus und hat spezielle Eigenschaften. Die Eigenschaften sind:"
     },
     {
@@ -4478,10 +4482,6 @@ export const MAGISCHE_GEGENSTAENDE: readonly MagischerGegenstand[] = [
     {
      "typ": "stichpunkt",
      "text": "Ziege der Mühsal: Diese Figur kann bis zu drei Stunden lang zu einer Riesenziege werden. Wenn sie verwendet wurde, kann sie erst nach 30 Tagen erneut verwendet werden."
-    },
-    {
-     "typ": "punkt",
-     "text": "Goldene Löwen (selten): Diese Goldstatuetten zweier Löwen werden immer als Paar erschaffen. Du kannst die Figuren einzeln oder gemeinsam verwenden. Jede kann für bis zu eine Stunde zu einem Löwen werden. Wenn ein Löwe verwendet wurde, kann er erst nach sieben Tagen erneut verwendet werden."
     },
     {
      "typ": "punkt",

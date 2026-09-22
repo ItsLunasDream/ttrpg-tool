@@ -605,6 +605,11 @@ function Blatt({
           <span className="regel__art">{ART_NAME[regel.art][spr]}</span>
           <h2>{regel.name[spr]}</h2>
           <p className="regel__anders">{regel.name[andere(spr)]}</p>
+          {regel.unterzeile ? (
+            <p className="regel__unterzeile" data-unterzeile>
+              {regel.unterzeile[spr]}
+            </p>
+          ) : null}
         </div>
         <div className="regel__knoepfe">
           <button type="button" className="knopf" data-daneben onClick={onDaneben}>

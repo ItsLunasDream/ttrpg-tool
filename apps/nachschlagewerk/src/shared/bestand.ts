@@ -14,6 +14,7 @@
  */
 import type { Paar } from '@suite/srd';
 import { GLOSSAR, type Glossarblock } from '@suite/srd/glossar';
+import { MAGISCHE_GEGENSTAENDE, type MagischerGegenstand } from '@suite/srd/magische-gegenstaende';
 import type { Hausregel } from './hausregeln';
 
 /**
@@ -28,7 +29,8 @@ export const ARTEN = [
   'aktion',
   'wirkungsbereich',
   'gefahr',
-  'haltung'
+  'haltung',
+  'gegenstand'
 ] as const;
 export type Art = (typeof ARTEN)[number];
 
@@ -39,7 +41,8 @@ export const ART_NAME: Record<Art, Paar> = {
   aktion: { de: 'Aktion', en: 'Action' },
   wirkungsbereich: { de: 'Wirkungsbereich', en: 'Area of Effect' },
   gefahr: { de: 'Gefahr', en: 'Hazard' },
-  haltung: { de: 'Haltung', en: 'Attitude' }
+  haltung: { de: 'Haltung', en: 'Attitude' },
+  gegenstand: { de: 'Magischer Gegenstand', en: 'Magic Item' }
 };
 
 /** Die Ueberschrift einer Gruppe in der Liste: Mehrzahl. */
@@ -50,7 +53,8 @@ export const ART_GRUPPE: Record<Art, Paar> = {
   aktion: { de: 'Aktionen', en: 'Actions' },
   wirkungsbereich: { de: 'Wirkungsbereiche', en: 'Areas of Effect' },
   gefahr: { de: 'Gefahren', en: 'Hazards' },
-  haltung: { de: 'Haltungen', en: 'Attitudes' }
+  haltung: { de: 'Haltungen', en: 'Attitudes' },
+  gegenstand: { de: 'Magische Gegenstände', en: 'Magic Items' }
 };
 
 export interface Regel {
@@ -58,6 +62,8 @@ export interface Regel {
   readonly id: string;
   readonly art: Art;
   readonly name: Paar;
+  /** Eine Zeile unter dem Namen, wie gedruckt: „Wondrous Item, Rare (Requires Attunement)". */
+  readonly unterzeile?: Paar;
   /** Der ganze Text, Absatz fuer Absatz mit Leerzeile getrennt — fuer die Suche. */
   readonly text: Paar;
   /** Wie er gezeigt wird: Absaetze, Unterpunkte, Tabellen, Listen. */
@@ -101,6 +107,39 @@ export function alsRegel(hausregel: Hausregel): Regel {
   };
 }
 
+/**
+ * Ein magischer Gegenstand in der Form eines Eintrags. Die Bloecke stehen im
+ * Paket je Sprache, in derselben Folge (dort geprueft); hier werden sie
+ * paarweise zusammengelegt, wie das Glossar sie liefert.
+ */
+function gegenstandAlsRegel(g: MagischerGegenstand): Regel {
+  const bloecke: Glossarblock[] = g.bloecke.en.map((en, i) => {
+    const de = g.bloecke.de[i];
+    if (en.typ === 'tabelle' && de.typ === 'tabelle') {
+      return {
+        typ: 'tabelle',
+        titel: { de: de.titel, en: en.titel },
+        kopf: { de: de.kopf, en: en.kopf },
+        reihen: { de: de.reihen, en: en.reihen }
+      };
+    }
+    if (en.typ === 'liste' && de.typ === 'liste') {
+      return { typ: 'liste', titel: { de: de.titel, en: en.titel }, eintraege: { de: de.eintraege, en: en.eintraege } };
+    }
+    if ('text' in en && 'text' in de) return { typ: en.typ, text: { de: de.text, en: en.text } };
+    throw new Error(`Blockfolge verschieden: ${g.id}`);
+  });
+  return {
+    id: `gegenstand/${g.id}`,
+    art: 'gegenstand',
+    name: g.name,
+    unterzeile: g.kopfzeile,
+    text: { de: flach(bloecke, 'de'), en: flach(bloecke, 'en') },
+    bloecke,
+    verweise: []
+  };
+}
+
 let bestand: readonly Regel[] | null = null;
 
 export function alleRegeln(): readonly Regel[] {
@@ -114,6 +153,7 @@ export function alleRegeln(): readonly Regel[] {
     bloecke: e.bloecke,
     verweise: e.verweise.map((v) => `${artVon.get(v) ?? 'regel'}/${v}`)
   }));
+  bestand = [...bestand, ...MAGISCHE_GEGENSTAENDE.map(gegenstandAlsRegel)];
   return bestand;
 }
 

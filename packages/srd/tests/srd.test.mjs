@@ -280,3 +280,12 @@ test('die magischen Gegenstaende: alle 258, gepaart, mit gleicher Tabellenform i
     assert.doesNotMatch(JSON.stringify(g), /­/, g.id);
   }
 });
+
+test('die Bloecke der Gegenstaende stehen in beiden Sprachen in derselben Folge', () => {
+  for (const g of S.MAGISCHE_GEGENSTAENDE) {
+    assert.deepEqual(g.bloecke.de.map((b) => b.typ), g.bloecke.en.map((b) => b.typ), g.id);
+  }
+  const figur = S.MAGISCHE_GEGENSTAENDE.find((g) => g.id === 'figurine-of-wondrous-power');
+  const i = figur.bloecke.en.findIndex((b) => b.typ === 'punkt' && b.text.startsWith('Golden Lions'));
+  assert.match(figur.bloecke.de[i].text, /^Goldene Löwen/);
+});

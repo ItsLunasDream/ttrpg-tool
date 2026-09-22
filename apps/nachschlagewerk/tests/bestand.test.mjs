@@ -13,8 +13,20 @@ test('der Bestand traegt alle fuenfzehn Zustaende', () => {
   assert.equal(zustaende.length, 15);
 });
 
-test('der Bestand ist das ganze Glossar, 155 Eintraege', () => {
-  assert.equal(N.alleRegeln().length, 155);
+test('der Bestand ist das ganze Glossar und alle magischen Gegenstaende', () => {
+  assert.equal(N.alleRegeln().filter((r) => r.art !== 'gegenstand').length, 155);
+  assert.equal(N.alleRegeln().filter((r) => r.art === 'gegenstand').length, 258);
+});
+
+test('ein Gegenstand traegt seine Kopfzeile und Tabellen in beiden Sprachen', () => {
+  const krabbe = N.regelNach('gegenstand/apparatus-of-the-crab');
+  assert.equal(krabbe.name.de, 'Apparat der Krabbe');
+  assert.match(krabbe.unterzeile.en, /^Wondrous Item, Legendary/);
+  const tabelle = krabbe.bloecke.find((b) => b.typ === 'tabelle');
+  assert.deepEqual(tabelle.kopf.de, ['Hebel', 'Oben', 'Unten']);
+  assert.equal(tabelle.reihen.en.length, 10);
+  // Gefunden wird er auch ueber seinen Text.
+  assert.match(krabbe.text.de, /Greifschere/);
 });
 
 test('jede Kennung ist eindeutig und traegt ihre Art', () => {

@@ -24,6 +24,17 @@ HIER = os.path.dirname(os.path.abspath(__file__))
 ZIEL = os.path.join(HIER, '..', 'src', 'magische-gegenstaende.ts')
 
 
+# Die deutsche Fassung ordnet Unterpunkte nach ihren deutschen Namen. Damit
+# beide Sprachen Block fuer Block nebeneinander stehen koennen, wird hier
+# ausdruecklich umgeordnet: die Liste nennt, welcher deutsche Block an
+# welcher Stelle steht. Danach muss die Folge der Blockarten gleich sein.
+UMORDNUNG = {
+    # „Golden Lions" steht im Englischen vor „Ivory Goats", im Deutschen
+    # „Goldene Löwen" nach „Elfenbein-Ziegen" (mit ihren drei Ziegen).
+    'Figurine of Wondrous Power': [0, 1, 2, 3, 8, 4, 5, 6, 7, 9, 10, 11, 12, 13],
+}
+
+
 def kennung(name):
     return re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
 
@@ -73,8 +84,8 @@ KOPF = '''/**
  * werkzeug/gegenstaende_erzeugen.py) und wird nicht von Hand gepflegt.
  * Welcher englische Gegenstand welcher deutsche ist, steht zum Teil in
  * werkzeug/gegenstaende_paare.json (von Hand, gegen Kategorie, Seltenheit
- * und Einstimmung geprueft). Die Bloecke stehen je Sprache: die deutsche
- * Fassung ordnet Unterpunkte nach ihren deutschen Namen.
+ * und Einstimmung geprueft). Die Bloecke stehen je Sprache, in derselben
+ * Folge: Block i der einen Sprache ist Block i der anderen.
  */
 import type { Paar } from './namensnennung';
 import type { Seltenheit } from './gegenstaende';
@@ -125,6 +136,13 @@ if __name__ == '__main__':
     heraus = []
     for e in d['en']:
         g = D[d['paare'][e['name']]]
+        if e['name'] in UMORDNUNG:
+            folge = UMORDNUNG[e['name']]
+            if sorted(folge) != list(range(len(g['bloecke']))):
+                raise SystemExit(f'Umordnung unvollstaendig: {e["name"]}')
+            g = {**g, 'bloecke': [g['bloecke'][i] for i in folge]}
+        if [b['typ'] for b in e['bloecke']] != [b['typ'] for b in g['bloecke']]:
+            raise SystemExit(f'Blockfolge verschieden: {e["name"]}')
         heraus.append({
             'id': kennung(e['name']),
             'name': {'de': g['name'], 'en': e['name']},

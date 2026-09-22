@@ -56,7 +56,14 @@ app.whenReady().then(async () => {
   // Gesucht wird ohne dass das Werkzeug je offen war.
   const eintraege = await hjs('window.shell.suche.eintraege()');
   const regeln = (eintraege ?? []).filter((e) => e.werkzeug === 'nachschlagewerk');
-  pruefe(regeln.length === 155, `die Suche der Huelle kennt das ganze Glossar (${regeln.length})`);
+  pruefe(
+    regeln.length === 155 + 258,
+    `die Suche der Huelle kennt das ganze Glossar und alle magischen Gegenstaende (${regeln.length})`
+  );
+  pruefe(
+    regeln.some((e) => e.kennung === 'gegenstand/bag-of-holding' && /Bag of Holding/.test(e.stichworte)),
+    'darunter der Nimmervolle Beutel, auch unter seinem englischen Namen'
+  );
   const liegend = regeln.find((e) => e.kennung === 'zustand/prone');
   pruefe(Boolean(liegend), 'darunter „Liegend"');
   pruefe(
@@ -87,8 +94,8 @@ app.whenReady().then(async () => {
   });
 
   pruefe(
-    (await js("document.querySelectorAll('.eintrag').length")) === 155,
-    'die Liste zeigt alle 155'
+    (await js("document.querySelectorAll('.eintrag').length")) === 155 + 258,
+    'die Liste zeigt alle 155 Eintraege des Glossars und 258 Gegenstaende'
   );
   // Die Einfuehrung kann beim ersten Oeffnen davor liegen; sie gehoert der
   // Huelle, nicht dem Werkzeug, und stoert die Pruefungen hier nicht.
@@ -317,6 +324,22 @@ app.whenReady().then(async () => {
       /Bei uns nur im Kampf/.test(await js("document.querySelector('[data-notizen]')?.textContent ?? ''")),
       'der Treffer oeffnet den Eintrag, an dem die Notiz haengt'
     );
+  }
+
+  // --- Ein magischer Gegenstand mit Tabelle -----------------------------------
+  await hjs(`window.shell.suche.zeige('nachschlagewerk', 'gegenstand/apparatus-of-the-crab')`);
+  await warte(700);
+  pruefe(
+    /Wondrous Item|Wundersamer Gegenstand/.test(await js("document.querySelector('[data-unterzeile]')?.textContent ?? ''")),
+    'ein Gegenstand zeigt seine Kopfzeile'
+  );
+  pruefe(
+    (await js("document.querySelectorAll('.regel__fassung table tbody tr').length")) === 10,
+    'und seine Tabelle mit zehn Hebeln'
+  );
+  if (process.env.BILD) {
+    const bild = await sicht.webContents.capturePage();
+    fs.writeFileSync(process.env.BILD, bild.toPNG());
   }
 
   // --- Die Namensnennung ---------------------------------------------------

@@ -32,8 +32,8 @@ auch die spricht nur mit dem eingetragenen Anbieter.
 - **Loot Generator** — eigene Zufallstabellen schreiben, eine Zeile je
   Eintrag, mit Spannen, Würfeln im Text und Verweisen auf andere Tabellen;
   von der Kachel einmal würfeln oder mehrmals ohne Wiederholung.
-- **Nachschlagewerk** — das ganze Regelglossar des Systemreferenzdokuments,
-  offline und in beiden Sprachen, mit Querverweisen, Hausregeln und Notizen,
+- **Nachschlagewerk** — das ganze Regelglossar und alle 258 magischen
+  Gegenstände des Systemreferenzdokuments, offline und in beiden Sprachen, mit Querverweisen, Hausregeln und Notizen,
   in derselben Strg+K-Suche wie alles andere.
 - **TTRPG Map Editor** — Battlemaps und Weltkarten zeichnen, Export als
   Universal VTT.

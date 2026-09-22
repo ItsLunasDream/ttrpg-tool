@@ -15,6 +15,15 @@ Darüberfahren zeigt eine Vorschau, ein Klick öffnet. Anders als im Story
 Creator reicht ein einfacher Klick (Strg+Klick geht auch): hier wird nur
 gelesen, nicht geschrieben.
 
+Magische Gegenstände sind gebaut (Stufe 6): alle 258 aus dem SRD 5.2.1,
+beide Sprachen, mit der gedruckten Zeile unter dem Namen („Wundersamer
+Gegenstand, selten (erfordert Einstimmung)"), Tabellen als Tabellen und
+Wertekästen zeilentreu. Gepaart sind 106 automatisch und 152 von Hand, die
+Tabellen beider Sprachen haben nachweislich dieselbe Form (siehe
+`packages/srd/werkzeug/README.md`). Grenzen: Absätze innerhalb eines
+Gegenstands werden zu einem zusammengezogen (wie im Glossar), und die
+Wertekästen stehen als Zeilen da, nicht als Statblock.
+
 Hausregeln sind gebaut: „+ Hausregel" in der Liste oder „Hausregel dazu" an
 einer offiziellen Regel. Sie liegen als Markdown unter
 `<Datenordner>/nachschlagewerk/hausregeln/`, stehen in der Liste ganz oben,
