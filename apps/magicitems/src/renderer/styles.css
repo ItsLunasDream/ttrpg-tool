@@ -385,3 +385,7 @@ body {
 .fluch textarea:not(:placeholder-shown) {
   border-color: color-mix(in srgb, var(--gefahr) 60%, var(--rand));
 }
+
+.anpassen {
+  margin: -4px 0 14px;
+}

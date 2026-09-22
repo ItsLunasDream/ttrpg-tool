@@ -40,6 +40,11 @@ const TEXTE = {
     'Nach der Tabelle „Seltenheit und Wert" des SRD 5.2.1; Tränke und Schriftrollen verbrauchen sich.',
     'From the SRD 5.2.1 “Magic Item Rarities and Values” table; potions and scrolls are consumables.'
   ],
+  anpassen: ['Wirkungen für „{seltenheit}" neu würfeln', 'Reroll properties for “{seltenheit}”'],
+  'anpassen.sicher': [
+    'Die Wirkungen werden durch neu gewürfelte ersetzt. Name, Fluch und Notiz bleiben.',
+    'The properties will be replaced by newly rolled ones. Name, curse and note stay.'
+  ],
   foundry: ['Für Foundry', 'For Foundry'],
   'foundry.fertig': ['Für Foundry gespeichert: {pfad}', 'Saved for Foundry: {pfad}'],
   einstimmung: ['Einstimmung', 'Attunement'],

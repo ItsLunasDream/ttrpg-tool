@@ -97,6 +97,19 @@ app.whenReady().then(async () => {
     /40[.,]000/.test(await js("document.querySelector('[data-wert]')?.textContent ?? ''")),
     'eine andere Seltenheit aendert den Wert'
   );
+  // Die Wirkungen bleiben, bis man sie ausdruecklich neu wuerfelt.
+  pruefe(
+    (await js("document.querySelector('[data-wirkung]')?.value ?? ''")) === wirkung,
+    'die Wirkungen bleiben beim Wechsel der Seltenheit stehen'
+  );
+  pruefe(await js("Boolean(document.querySelector('[data-anpassen]'))"), 'ein Knopf bietet neue Wirkungen an');
+  await js(`window.confirm = () => true; document.querySelector('[data-anpassen]').click(); true`);
+  await warte(300);
+  pruefe(
+    (await js("document.querySelector('[data-anpassen]') === null")) &&
+      (await js("document.querySelector('[data-wirkung]')?.value ?? ''")).length > 20,
+    'nach dem Klick passen die Wirkungen zur Seltenheit, der Knopf ist weg'
+  );
 
   await js(`document.querySelector('[data-speichern]').click(); true`);
   await warte(700);

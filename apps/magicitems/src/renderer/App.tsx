@@ -60,6 +60,10 @@ export function App() {
   const [seltenheit, setSeltenheit] = useState<Seltenheit | ''>('');
   const [fluch, setFluch] = useState(true);
   const [meldung, setMeldung] = useState('');
+  // Fuer welche Seltenheit die Wirkungen gewuerfelt wurden. Weicht die
+  // eingestellte davon ab, bietet ein Knopf neue Wirkungen an — von selbst
+  // ueberschrieben wird nichts, die Texte gehoeren der Spielleitung.
+  const [wirkungenFuer, setWirkungenFuer] = useState<Seltenheit | null>(null);
   const [fehler, setFehler] = useState('');
 
   const ladeListe = useCallback(async () => {
@@ -85,6 +89,7 @@ export function App() {
           const geladen = await api.sammlung.lesen(kennung);
           if (geladen) {
             setOffen(geladen);
+            setWirkungenFuer(geladen.seltenheit);
             setIstNeu(false);
           } else setFehler(t('fehler.lesen'));
         })();
@@ -109,6 +114,7 @@ export function App() {
       spr
     );
     setOffen(neu);
+    setWirkungenFuer(neu.seltenheit);
     setIstNeu(true);
     setMeldung('');
     setFehler('');
@@ -235,6 +241,23 @@ export function App() {
           <p className="wert" title={t('wert.hinweis')} data-wert>
             {t('feld.wert', { wert: zahl(offen.wert) })}
           </p>
+          {wirkungenFuer && wirkungenFuer !== offen.seltenheit ? (
+            <p className="anpassen">
+              <button
+                type="button"
+                className="knopf"
+                data-anpassen
+                onClick={() => {
+                  if (offen.wirkungen.some((w) => w.trim()) && !confirm(t('anpassen.sicher'))) return;
+                  const neu = erzeuge({ art: offen.art, seltenheit: offen.seltenheit, fluchChance: 0 }, spr);
+                  setze({ wirkungen: neu.wirkungen, einstimmung: neu.einstimmung || Boolean(offen.fluch.trim()) });
+                  setWirkungenFuer(offen.seltenheit);
+                }}
+              >
+                ⚄ {t('anpassen', { seltenheit: SELTENHEIT_NAME[offen.seltenheit][spr] })}
+              </button>
+            </p>
+          ) : null}
 
           <h3>{t('feld.wirkungen')}</h3>
           <ul className="wirkungsliste">
@@ -347,6 +370,7 @@ export function App() {
         <span className="leiste__luecke" />
         <button type="button" className="knopf" data-leer onClick={() => {
           setOffen(leer());
+          setWirkungenFuer(null);
           setIstNeu(true);
         }}>
           + {t('leer')}
@@ -389,6 +413,7 @@ export function App() {
                     const geladen = await api.sammlung.lesen(e.id);
                     if (geladen) {
                       setOffen(geladen);
+                      setWirkungenFuer(geladen.seltenheit);
                       setIstNeu(false);
                     } else setFehler(t('fehler.lesen'));
                   })();
