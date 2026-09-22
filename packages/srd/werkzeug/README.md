@@ -23,7 +23,10 @@ python3 werkzeug/tand_lesen.py src/tand.ts             # Trinkets / Requisiten, 
   Hand zugeordnet und von `glossar_pruefen.py` gegen Aufbau, Wuerfel, SG und
   Verweise geprueft.
 - `gegenstaende_lesen.py`: magische Gegenstaende beider Sprachen, erkannt an
-  der Kopfzeile mit Kategorie und Seltenheit; gepaart nur, wo eindeutig.
+  der Kopfzeile mit Kategorie und Seltenheit. Automatisch gepaart, wo
+  Kategorie, Seltenheit, Einstimmung und Zahlen eindeutig sind (106), der
+  Rest aus `gegenstaende_paare.json` (152, von Hand, gegen den Rahmen
+  geprueft; zwei begruendete Ausnahmen in `ABWEICHUNGEN`).
 - `gegenstaende_eichung.py`: Eichpunkte fuer den Magic Item Creator. Welcher
   Gegenstand fuer welche Wirkung steht, ist von Hand gewaehlt (`AUSWAHL`);
   die Zahlen kommen aus dem PDF.
