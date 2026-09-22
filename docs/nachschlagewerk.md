@@ -161,6 +161,80 @@ dorthin. Eine Hausregel ohne Verweis ist auch in Ordnung; nicht jede Regel
 - **Markdown**, wie überall. Eine Hausregel ist ein Text mit Namen, kein
   Formular.
 
+## Querverweise mit Vorschau
+
+Regeln verweisen ständig aufeinander. „Grappled" steht im Text von
+„Restrained", „difficult terrain" in einem halben Dutzend anderer Regeln,
+und eine Hausregel zum kritischen Treffer ist ohne die offizielle daneben
+nur die halbe Antwort. Wer dafür jedes Mal die Liste hochscrollt, hat das
+Werkzeug schon verloren.
+
+**Es soll sich verhalten wie im Story Creator:** ein Verweis ist
+hervorgehoben, beim Darüberfahren kommt eine Karte mit einer Vorschau des
+Ziels, und erst Strg+Klick wechselt wirklich die Seite. Das ist dort
+gebaut und bewährt (`InfoCard`, `wikiLinkExtension`), und es ist dieselbe
+Handhabung — wer sie einmal gelernt hat, soll sie nicht zweimal lernen.
+
+### Zwei Sorten Verweis, und warum
+
+Der Unterschied zum Story Creator ist der Bestand: dort schreibt man jeden
+Text selbst, hier ist der offizielle Regeltext **unveränderlich und
+wörtlich**. `[[Grappled]]` in einen SRD-Absatz zu schreiben hieße, ihn zu
+ändern — genau das darf nicht passieren (siehe Namensnennung).
+
+Deshalb zwei Mechanismen:
+
+- **Im offiziellen Text: erkannt, nicht geschrieben.** Beim Anzeigen wird
+  der Text gegen eine gepflegte Liste von Begriffen geprüft und die Treffer
+  werden zu Verweisen. **Die Datei auf der Platte bleibt Zeichen für
+  Zeichen, wie sie war.** Die Liste gehört zu `packages/srd/` und ist eine
+  bewusste Auswahl, keine Ableitung aus allen Einträgen.
+- **In Hausregeln und Notizen: `[[Name]]`**, genau wie im Story Creator,
+  mit derselben Vorschlagsliste beim Tippen. Diese Texte gehören dem Tisch,
+  dort darf geschrieben werden.
+
+### Die Gefahr ist das Zuviel
+
+Ein automatischer Verweis auf jedes Vorkommen jedes Begriffs macht aus
+einem Regeltext ein blaues Feld. Drei Regeln dagegen, und sie sind nicht
+verhandelbar:
+
+- **Nur kuratierte Begriffe.** Zustände, definierte Spielbegriffe,
+  benannte Aktionen. Nicht „action", nicht „damage", nicht jedes Wort, das
+  zufällig auch ein Eintrag ist.
+- **Nur das erste Vorkommen je Abschnitt.** Wer „Prone" dreimal in vier
+  Zeilen liest, braucht nicht dreimal denselben Verweis.
+- **Nie im eigenen Eintrag.** Der Text von „Prone" verweist nicht auf
+  „Prone". Das klingt selbstverständlich und ist der Fehler, den solche
+  Verfahren zuerst machen.
+
+### Was in der Vorschau steht
+
+Dasselbe Prinzip wie die Kurzinfo im Story Creator: **genug, um die Frage
+zu beantworten, ohne die Seite zu wechseln.** Name, Art, die ersten Sätze
+des Textes. Dazu eine Marke, wenn an der offiziellen Regel eine Hausregel
+hängt — sonst liest man in der Vorschau die offizielle und handelt am Tisch
+nach der falschen.
+
+Eine Regel, deren Text ohnehin vier Zeilen hat, steht vollständig in der
+Karte. Ein Zauber nicht; dort ist die Vorschau ein Anfang und der Klick der
+Rest.
+
+### Was noch zu klären ist
+
+- **Ob ein Verweis das Werkzeug verlassen darf.** „Poisoned" gibt es
+  offiziell und womöglich auch als eigenen Status Effect. Beides in einer
+  Vorschau zu zeigen wäre stark — aber die Anwendungen hängen nicht
+  voneinander ab, und die Vorschau müsste über die Hülle laufen. Erste
+  Fassung: nur der eigene Bestand. Der Weg dorthin steht, falls es sich
+  lohnt (`packages/eintraege`, derselbe Weg wie Strg+K).
+- **Was bei einem Verweis ins Leere passiert.** Im Story Creator ist ein
+  unaufgelöster Verweis sichtbar anders eingefärbt, und das ist richtig.
+  Bei einer gelöschten Hausregel gilt dasselbe: **sichtbar kaputt ist
+  besser als stillschweigend Text.**
+- **Ob die Vorschau auch an der Trefferliste der Suche hängt.** Naheliegend,
+  aber ein eigener Schritt.
+
 ## Notizen am Text
 
 Neben den Hausregeln, die für sich stehen, gibt es das Kleine: eine
@@ -317,13 +391,16 @@ Name darf keine fremde Marke tragen.
 3. **Hausregeln.** Ablage, Bearbeiten, der Verweis auf die offizielle Regel
    und die Marke an dieser. Der Teil, der das Werkzeug von einem PDF
    unterscheidet.
-4. **Notizen am Text.** Auswählen, schreiben, hinterlegt lassen. Baut auf
+4. **Querverweise mit Vorschau.** Erkannte Begriffe im offiziellen Text,
+   `[[Name]]` in den Hausregeln, die Karte beim Darüberfahren. Braucht die
+   Begriffsliste aus Stufe 1 und die Hausregeln aus Stufe 3.
+5. **Notizen am Text.** Auswählen, schreiben, hinterlegt lassen. Baut auf
    der Ablage aus Stufe 3 auf und ist ohne sie nicht sinnvoll.
-5. **Magische Gegenstände.** Damit steht zugleich die Eichung für
+6. **Magische Gegenstände.** Damit steht zugleich die Eichung für
    `docs/magicitems.md`.
-6. **Zauber und Ausrüstung.** Der lange Teil, und der, den man auch erstmal
+7. **Zauber und Ausrüstung.** Der lange Teil, und der, den man auch erstmal
    weglassen kann.
 
 Stufe 1 bis 3 zusammen ergeben schon ein Werkzeug, das man am Tisch aufmacht.
-Stufe 4 ist das, was man danach nicht mehr hergeben will. Das Verschicken
+Stufe 4 und 5 sind das, was man danach nicht mehr hergeben will. Das Verschicken
 kommt mit der Austausch-App, nicht vorher.
