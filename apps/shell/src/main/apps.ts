@@ -127,6 +127,13 @@ export interface MontierteApp {
   setzeWerkzeugEinstellung?(feldId: string, wert: Wert): Promise<Werkzeugeinstellungen | null>;
   /** Loest einen Knopf aus (Ordner waehlen, Wort entfernen, ...). */
   werkzeugBefehl?(befehlId: string, wert?: string): Promise<Werkzeugeinstellungen | null>;
+  /**
+   * Zeigt einen Eintrag, den die Suche gefunden hat.
+   *
+   * Antwortet `false`, wenn es ihn nicht (mehr) gibt. Fehlt bei Werkzeugen,
+   * die nichts ablegen — die tauchen in der Suche ohnehin nicht auf.
+   */
+  zeigeEintrag?(kennung: string): Promise<boolean>;
 }
 
 /** Was die Huelle jeder Anwendung beim Montieren mitgibt. */
@@ -638,7 +645,10 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
     },
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
-    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language)
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    // Die Suche der Huelle (Strg+K) springt hierher.
+    zeigeEintrag: (kennung) =>
+      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
   };
 }
 
@@ -847,7 +857,10 @@ async function montiereMonster(id: string, haken: MontageHaken): Promise<Montier
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
-    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents),
+    // Die Suche der Huelle (Strg+K) springt hierher.
+    zeigeEintrag: (kennung) =>
+      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
   };
 }
 
@@ -912,6 +925,9 @@ async function montiereZustaende(id: string, haken: MontageHaken): Promise<Monti
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
-    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents),
+    // Die Suche der Huelle (Strg+K) springt hierher.
+    zeigeEintrag: (kennung) =>
+      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
   };
 }

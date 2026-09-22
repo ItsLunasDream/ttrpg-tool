@@ -43,6 +43,12 @@ const en = {
 
   'dialog.close': 'Close',
 
+  'search.title': 'Search everything',
+  'search.placeholder': 'Search monsters, conditions, encounters…',
+  'search.hint': 'Type to search across all tools.',
+  'search.loading': 'Reading…',
+  'search.nothing': 'Nothing found.',
+  'search.keys': '↑ ↓ to move, Enter to open, Esc to close',
   'settings.title': 'Settings',
   'settings.language': 'Language',
   'settings.languageHint':
@@ -191,6 +197,12 @@ const de: Partial<Record<MessageKey, string>> = {
 
   'dialog.close': 'Schließen',
 
+  'search.title': 'Alles durchsuchen',
+  'search.placeholder': 'Monster, Zustände, Begegnungen durchsuchen…',
+  'search.hint': 'Tippen, um über alle Werkzeuge zu suchen.',
+  'search.loading': 'Wird gelesen…',
+  'search.nothing': 'Nichts gefunden.',
+  'search.keys': '↑ ↓ bewegen, Enter öffnet, Esc schließt',
   'settings.title': 'Einstellungen',
   'settings.language': 'Sprache',
   'settings.languageHint':

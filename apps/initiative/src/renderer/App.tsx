@@ -337,6 +337,16 @@ export function App() {
     [setzeUndSichere, melde]
   );
 
+  /*
+   * Ein Treffer aus der Suche der Huelle (Strg+K).
+   *
+   * Derselbe Weg wie ein Klick in der eigenen Sammlung. Ein laufender Kampf
+   * wuerde dabei ueberschrieben — das ist derselbe Fall wie beim Laden von
+   * Hand, und die Rueckfrage dafuer gehoert in eine eigene Runde, nicht
+   * hier nebenbei.
+   */
+  useEffect(() => api.beiSuchtreffer((kennung) => void ladeBegegnung(kennung)), [ladeBegegnung]);
+
   const aktive = useMemo(() => sortiert.filter(istAktiv).length, [sortiert]);
 
   if (!geladen) return <div className="laedt" />;

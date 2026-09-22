@@ -99,6 +99,7 @@ packages/umgebungen/ Environments: what you see, and what has a numbered effect
 packages/einstellungen/ How a tool describes its own settings for the shell
 packages/foundry/  Monsters and conditions as JSON that Foundry VTT reads
 packages/farben/   Colour roles and the selectable themes
+packages/eintraege/ What a tool has filed, in a form every tool understands
 ```
 
 `packages/*` are platform-free: no `node:*`, no `electron`, no browser
@@ -110,6 +111,16 @@ globals. They are bundled into both processes.
 shell across the full area, with the tool's view on top of it, leaving room
 for the title bar and the rail.
 
+- One search across everything. Ctrl+K opens a field that searches monsters,
+  conditions and encounters at once, and a hit takes you to where it lives.
+  The entries are read straight from disk, not collected from the running
+  interfaces: otherwise you would only find what you had already opened in
+  this session, and what you have not touched for a while is exactly what you
+  search for. They are fetched fresh on every open rather than kept in an
+  index, because an index that is not maintained shows things that no longer
+  exist. A tool joins in by answering two questions (`packages/eintraege`):
+  „give me your entries" and „show me this entry". One that answers neither
+  simply does not appear.
 - One backup for everything. Settings → Backup writes a single ZIP of the
   whole data folder: campaigns, monsters, conditions, encounters, maps, your
   own icons and the settings. Before packing, every open tool is asked to

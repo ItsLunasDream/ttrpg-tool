@@ -1046,3 +1046,118 @@ body {
   color: var(--text-leise);
   font-size: 12px;
 }
+
+/* ---------- Suche ueber alle Werkzeuge (Strg+K) ---------- */
+
+/*
+ * Sie liegt ueber allem, auch ueber der Ansicht des offenen Werkzeugs. Das
+ * geht, weil die Huelle beim Oeffnen zuruecktritt — derselbe Weg, den die
+ * Dialoge schon gehen.
+ *
+ * Oben statt mittig: eine Liste, die beim Tippen waechst, soll nach unten
+ * wachsen und nicht in beide Richtungen auseinanderlaufen.
+ */
+.suche__schirm {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12vh;
+  z-index: 40;
+}
+
+.suche {
+  width: min(560px, 90vw);
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.suche__feld {
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-bottom: 1px solid var(--rand);
+  font: inherit;
+  font-size: 16px;
+  padding: 14px 16px;
+}
+
+.suche__feld:focus {
+  outline: none;
+}
+
+.suche__liste {
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.suche__liste ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.suche__werkzeug {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-leise);
+  margin: 10px 16px 4px;
+}
+
+.suche__treffer {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  padding: 7px 16px;
+  cursor: pointer;
+}
+
+/*
+ * Die Auswahl wird gefaerbt und nicht umrandet: ein Rahmen ruecke den Text
+ * um einen Punkt, und beim Durchlaufen mit den Pfeiltasten zuckte die ganze
+ * Liste.
+ */
+.suche__treffer.is-active {
+  background: var(--betont);
+  color: var(--grund);
+}
+
+.suche__art {
+  color: var(--text-leise);
+  font-size: 12px;
+  flex: 0 0 auto;
+}
+
+.suche__treffer.is-active .suche__art {
+  color: var(--grund);
+  opacity: 0.75;
+}
+
+.suche__hinweis,
+.suche__fuss {
+  color: var(--text-leise);
+  font-size: 12px;
+  margin: 0;
+  padding: 14px 16px;
+}
+
+.suche__fuss {
+  border-top: 1px solid var(--rand);
+  padding: 8px 16px;
+}

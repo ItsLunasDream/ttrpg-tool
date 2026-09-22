@@ -54,7 +54,7 @@ app.whenReady().then(async () => {
   };
   lausche(menue.webContents, 'huelle');
 
-  const NAMEN = { backstory: 0, mapmaker: 1, initiative: 2, dice: 3 };
+  const NAMEN = ['backstory', 'mapmaker', 'initiative', 'dice'];
 
   /**
    * Die Ansicht eines Werkzeugs ueber ihre Adresse suchen.
@@ -68,7 +68,10 @@ app.whenReady().then(async () => {
   const ansichtVon = (id) =>
     f.contentView.children.find((v) => v.webContents.getURL().includes(`/apps/${id}/`)) ?? null;
   const oeffne = async (id, wartezeit = 4500) => {
-    const ok = await mjs(`(() => { const k = [...document.querySelectorAll('.kachel:not(:disabled)')][${NAMEN[id]}];
+    // Ueber `data-app`, nicht ueber die Position: die Kacheln sind nach
+    // Rolle gruppiert, und diese Reihenfolge darf sich aendern, ohne dass
+    // der Test danach das falsche Werkzeug oeffnet.
+    const ok = await mjs(`(() => { const k = document.querySelector('.kachel[data-app="${id}"]:not(:disabled)');
       if (!k) return false; k.click(); return true; })()`);
     if (ok !== true) { sag(`  (Kachel ${id} nicht anklickbar: ${ok})`); return null; }
     await warte(wartezeit);
@@ -82,7 +85,7 @@ app.whenReady().then(async () => {
   };
 
   sag('== Reihum oeffnen ==');
-  for (const id of Object.keys(NAMEN)) {
+  for (const id of NAMEN) {
     const s = await oeffne(id);
     const steht = s ? await mitFrist(s.webContents.executeJavaScript('document.body.innerText.length > 0'), id) : false;
     pruefe(steht === true, `${id} kommt hoch`);

@@ -56,6 +56,7 @@ import { mountApp, registerSchemes, type MontageHaken, type MontierteApp } from 
 import type { Wert } from '@suite/einstellungen';
 import { beobachteFarbe, setzeThema as setzeFarbthema } from './farbe';
 import { schreibeSicherung } from './sicherung';
+import { alleEintraege } from './suche';
 import { sicherungsname } from '../shared/sicherung';
 import { brichFahrtAb, fahreEin } from './fahrt';
 import {
@@ -759,6 +760,28 @@ function registriereKanaele(): void {
   );
 
   /**
+   * Was alle Werkzeuge abgelegt haben — fuer die Suche mit Strg+K.
+   *
+   * Bei jedem Oeffnen frisch von der Platte. Siehe suche.ts, warum kein
+   * Verzeichnis gefuehrt wird.
+   */
+  handle('suche:eintraege', () => alleEintraege(app.getPath('userData')));
+
+  /**
+   * Zeigt einen Treffer in seinem Werkzeug.
+   *
+   * Nur, wenn es schon montiert ist — die Oberflaeche wechselt vorher
+   * dorthin, und erst dann kommt der Sprung. Dieselbe Reihenfolge wie beim
+   * Verlauf, und aus demselben Grund: ein Sprung in eine Anwendung, die
+   * noch gar nicht laeuft, kaeme vor ihrem ersten Zeichnen an.
+   */
+  handle('suche:zeigen', async (_event, werkzeug: string, kennung: string) => {
+    const montiert = offen.get(werkzeug);
+    if (!montiert) return false;
+    return (await montiert.zeigeEintrag?.(kennung)) ?? false;
+  });
+
+  /**
    * Eine Sicherung der ganzen Sammlung.
    *
    * Bisher sicherte nur der Story Creator, und auch nur seine Kampagne.
@@ -990,6 +1013,15 @@ function registriereKanaele(): void {
    * es nur in einer Darstellung. Der Hauptprozess braucht die Auskunft fuer
    * die Einfahrt der Ansichten, die er selbst treibt.
    */
+  /*
+   * Strg+K in einem Werkzeug.
+   *
+   * Dasselbe Muster wie bei den Daumentasten der Maus: das Preload jedes
+   * Werkzeugs hoert mit und meldet hierher, weil die Huelle den
+   * Tastendruck sonst nicht sieht.
+   */
+  ipcMain.on('suche:taste', () => huelle?.webContents.send('suche:oeffnen'));
+
   ipcMain.on('bewegung:reduziert', (_event, reduziert: boolean) => {
     wenigerBewegung = Boolean(reduziert);
     if (wenigerBewegung) brichFahrtAb();

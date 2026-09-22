@@ -9,6 +9,17 @@ import type { Abgelegt, Eintrag } from '../shared/ablage';
 import type { Frage } from '../shared/kiAufgaben';
 
 const api = {
+  /**
+   * Die Suche der Huelle hat einen Eintrag gewaehlt, der hier liegt.
+   * Liefert eine Funktion zum Abmelden zurueck.
+   */
+  beiSuchtreffer: (hoerer: (kennung: string) => void) => {
+    const lauscher = (_e: unknown, kennung: string) => hoerer(kennung);
+    ipcRenderer.on(kanal('suche:zeigen'), lauscher);
+    return () => {
+      ipcRenderer.off(kanal('suche:zeigen'), lauscher);
+    };
+  },
   sammlung: {
     liste: () => ipcRenderer.invoke(kanal('liste')) as Promise<Eintrag[]>,
     lesen: (id: string) => ipcRenderer.invoke(kanal('lesen'), id) as Promise<string | null>,
@@ -111,6 +122,25 @@ verlaufsDokument.addEventListener(
     if (!ereignis.altKey) return;
     if (ereignis.key === 'ArrowLeft') meldeVerlaufsTaste('zurueck', 'alt-pfeil');
     else if (ereignis.key === 'ArrowRight') meldeVerlaufsTaste('vorwaerts', 'alt-pfeil');
+  },
+  true
+);
+
+/*
+ * Strg+K an die Huelle melden.
+ *
+ * Dasselbe Muster wie bei den Daumentasten der Maus: liegt der Fokus in
+ * dieser Ansicht, sieht die Huelle den Tastendruck nicht. Das Preload
+ * sieht dasselbe Dokument und braucht dafuer keine Zeile im
+ * Anwendungscode.
+ */
+verlaufsDokument.addEventListener(
+  'keydown',
+  (ereignis) => {
+    const taste = ereignis as { key?: string; ctrlKey?: boolean; metaKey?: boolean };
+    if ((taste.ctrlKey || taste.metaKey) && taste.key?.toLowerCase() === 'k') {
+      ipcRenderer.send('suche:taste');
+    }
   },
   true
 );

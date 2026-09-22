@@ -8,6 +8,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ShellSettings } from '../main/settings';
 import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
+import type { Eintrag } from '@suite/eintraege';
 
 const api = {
   /**
@@ -179,6 +180,37 @@ const api = {
      */
     setzeSchluessel: (schluessel: string) =>
       ipcRenderer.invoke('ki:schluessel-setzen', schluessel) as Promise<boolean>
+  },
+  /**
+   * Die Suche ueber alle Werkzeuge hinweg (Strg+K).
+   *
+   * Liefert, was die Werkzeuge abgelegt haben — gesucht wird in der
+   * Oberflaeche, damit jeder Tastendruck nicht ueber die Bruecke muss.
+   */
+  suche: {
+    eintraege: () => ipcRenderer.invoke('suche:eintraege') as Promise<Eintrag[]>,
+    /**
+     * Zeigt einen Treffer in seinem Werkzeug.
+     *
+     * Antwortet `false`, wenn das Werkzeug damit nichts anfangen kann —
+     * dann steht man immerhin darin und muss nur noch selbst suchen.
+     */
+    zeige: (werkzeug: string, kennung: string) =>
+      ipcRenderer.invoke('suche:zeigen', werkzeug, kennung) as Promise<boolean>,
+    /**
+     * Strg+K wurde in einem WERKZEUG gedrueckt.
+     *
+     * Die Tastendruecke einer eingebetteten Ansicht erreichen die Huelle
+     * nicht, wenn dort der Fokus liegt. Denselben Weg gehen schon die
+     * Daumentasten der Maus.
+     */
+    beiTastenkuerzel: (fn: () => void): (() => void) => {
+      const hoerer = () => fn();
+      ipcRenderer.on('suche:oeffnen', hoerer);
+      return () => {
+        ipcRenderer.off('suche:oeffnen', hoerer);
+      };
+    }
   },
   /** Eine Sicherung der ganzen Sammlung — alle Werkzeuge, nicht nur eines. */
   sicherung: {

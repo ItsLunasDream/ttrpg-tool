@@ -29,6 +29,7 @@
     "@suite/motion": "*",
     "@suite/ki": "*",
     "@suite/umgebungen": "*",
-    "@suite/foundry": "*"
+    "@suite/foundry": "*",
+    "@suite/eintraege": "*"
   }
 }

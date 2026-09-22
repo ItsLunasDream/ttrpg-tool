@@ -392,6 +392,15 @@ export function App() {
     setReiter('bauen');
   };
 
+  /*
+   * Ein Treffer aus der Suche der Huelle (Strg+K).
+   *
+   * Derselbe Weg wie ein Klick in der eigenen Sammlung — `oeffnen` wechselt
+   * auch den Reiter. Wer von aussen kommt, soll dasselbe sehen wie jemand,
+   * der von innen klickt.
+   */
+  useEffect(() => api.beiSuchtreffer((kennung) => void oeffnen(kennung)));
+
   const loeschen = async (eintrag: Eintrag) => {
     if (!window.confirm(`${eintrag.name}?`)) return;
     await api.sammlung.loeschen(eintrag.id);

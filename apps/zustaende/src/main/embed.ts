@@ -22,6 +22,7 @@ import { baueAnbieter, KiFehler, leseJsonAntwort } from '@suite/ki';
 import type { KiEinstellungen } from '@suite/ki/einstellungen';
 import { kanal } from '../shared/kanaele';
 import { alsEintrag, alsMarkdown, zuId, type Abgelegt, type Eintrag } from '../shared/ablage';
+import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import { anweisung, systemAnweisung, uebernehmbar, type Frage } from '../shared/kiAufgaben';
 import type { Sprache } from '../shared/tabellen';
 
@@ -56,6 +57,13 @@ export interface ZustaendeEmbed {
   flush(): Promise<void>;
   setLanguage(webContents: WebContents, language: string): Promise<void>;
   meldeKiWechsel(webContents: WebContents): void;
+  /**
+   * Zeigt einen Eintrag, den die Suche der Huelle gefunden hat.
+   *
+   * Antwortet `false`, wenn die Ansicht weg ist. Ob es den Eintrag noch
+   * gibt, entscheidet die Oberflaeche — sie hat die Liste.
+   */
+  zeigeEintrag(webContents: WebContents, kennung: string): Promise<boolean>;
 }
 
 /**
@@ -78,6 +86,43 @@ const CSP = [
 
 /** Der Ordnername im Datenordner. Taucht in der Oberflaeche auf. */
 export const ORDNER_NAME = 'zustaende';
+
+/**
+ * Was dieses Werkzeug abgelegt hat, fuer die Suche der Huelle.
+ *
+ * Liest direkt von der Platte, ohne geladene Ansicht: die Suche soll auch
+ * Zustaende finden, die man in dieser Sitzung noch nicht offen hatte.
+ */
+export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]> {
+  const ordner = path.join(datenordner, ORDNER_NAME);
+  let dateien: string[];
+  try {
+    dateien = await readdir(ordner);
+  } catch {
+    return [];
+  }
+  const heraus: SuchEintrag[] = [];
+  for (const name of dateien) {
+    if (!name.endsWith('.md')) continue;
+    try {
+      const eintrag = alsEintrag(await readFile(path.join(ordner, name), 'utf8'), name.slice(0, -3));
+      heraus.push({
+        werkzeug: 'zustaende',
+        kennung: eintrag.id,
+        name: eintrag.name,
+        art: 'Zustand',
+        // Der Paketname gehoert dazu: wer ein Paket gewuerfelt hat, sucht
+        // oft danach und nicht nach dem einzelnen Zustand darin.
+        stichworte: [eintrag.artId, eintrag.themaId, eintrag.haerteId, eintrag.paketName]
+          .filter(Boolean)
+          .join(' ')
+      });
+    } catch {
+      // Eine kaputte Datei nimmt nicht die ganze Suche mit.
+    }
+  }
+  return heraus;
+}
 
 export async function mountZustaende(options: ZustaendeEmbedOptions): Promise<ZustaendeEmbed> {
   const ordner = path.join(options.datenordner, ORDNER_NAME);
@@ -294,6 +339,11 @@ export async function mountZustaende(options: ZustaendeEmbedOptions): Promise<Zu
   });
 
   return {
+    zeigeEintrag: async (webContents, kennung) => {
+      if (webContents.isDestroyed()) return false;
+      webContents.send(kanal('suche:zeigen'), kennung);
+      return true;
+    },
     preloadPath: path.join(options.distDir, 'preload.js'),
     indexFile: options.devServerUrl
       ? null
