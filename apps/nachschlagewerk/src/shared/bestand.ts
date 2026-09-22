@@ -85,6 +85,16 @@ export function alleRegeln(): readonly Regel[] {
   return bestand;
 }
 
+/** Der Eintrag zu einer Kennung des Glossars („prone" -> „zustand/prone"). */
+export function regelFuerGlossar(glossarId: string): Regel | undefined {
+  return alleRegeln().find((regel) => regel.id.endsWith(`/${glossarId}`));
+}
+
+/** Die Kennung im Glossar: „zustand/prone" -> „prone". */
+export function glossarId(regel: Regel): string {
+  return regel.id.slice(regel.id.indexOf('/') + 1);
+}
+
 export function regelNach(id: string): Regel | undefined {
   return alleRegeln().find((regel) => regel.id === id);
 }

@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./monster": "./src/monster.ts",
-    "./glossar": "./src/glossar.ts"
+    "./glossar": "./src/glossar.ts",
+    "./verweise": "./src/verweisbegriffe.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

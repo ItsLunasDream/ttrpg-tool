@@ -125,11 +125,40 @@ app.whenReady().then(async () => {
       (await js("document.querySelectorAll('.regel__tabelle tbody tr').length")) === 8,
     'Tabellen stehen als Tabellen da, mit Kopf und Reihen'
   );
-  await js(`document.querySelector('.verweis[data-verweis]').click(); true`);
+  await js(`document.querySelector('[data-verweis] .verweis').click(); true`);
   await warte(400);
   pruefe(
     (await js("document.querySelector('.regel')?.dataset.regel ?? ''")) === 'regel/damage-threshold',
     'ein Verweis fuehrt zum Eintrag, auf den er zeigt'
+  );
+
+  // --- Verweise im Text, mit Vorschau ---------------------------------------
+  //
+  // Im Text von „Restrained" steht „Grappled"-artiges und „Speed"; erkannt
+  // werden nur die kuratierten Begriffe, und nie der eigene Eintrag.
+  await js(`document.querySelector('.eintrag[data-regel="zustand/unconscious"]').click(); true`);
+  await warte(400);
+  const imText = await js("[...document.querySelectorAll('.regel__fassung .verweis--leise')].map(v => v.dataset.ziel)");
+  pruefe(
+    imText.includes('zustand/incapacitated') && imText.includes('zustand/prone') && !imText.includes('zustand/unconscious'),
+    `im Text sind Begriffe verlinkt, der eigene nicht (${imText.join(', ')})`
+  );
+  pruefe(new Set(imText).size === imText.length, 'jeder Begriff nur einmal');
+  await js(`document.querySelector('.regel__fassung .verweis--leise[data-ziel="zustand/prone"]')
+    .dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); true`);
+  await warte(600);
+  const karte = await js("document.querySelector('.vorschau')?.dataset.vorschau ?? ''");
+  pruefe(karte === 'zustand/prone', `beim Darueberfahren kommt die Vorschau (${karte})`);
+  pruefe(
+    (await js("document.querySelector('.regel')?.dataset.regel ?? ''")) === 'zustand/unconscious',
+    'und die Seite bleibt, wo sie ist'
+  );
+  await js(`document.querySelector('.vorschau__oeffnen').click(); true`);
+  await warte(400);
+  pruefe(
+    (await js("document.querySelector('.regel')?.dataset.regel ?? ''")) === 'zustand/prone' &&
+      !(await js("Boolean(document.querySelector('.vorschau'))")),
+    'aus der Vorschau oeffnet sich der Eintrag, und die Karte geht'
   );
 
   // --- Suche im Text -------------------------------------------------------

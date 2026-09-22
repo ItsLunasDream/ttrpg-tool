@@ -29,7 +29,8 @@ const TEXTE = {
     'Where the two differ, the English version applies.'
   ],
   quelle: ['Quelle', 'Source'],
-  verweise: ['Siehe auch', 'See also']
+  verweise: ['Siehe auch', 'See also'],
+  'vorschau.oeffnen': ['Eintrag öffnen', 'Open entry']
 } as const;
 
 export type TextKey = keyof typeof TEXTE;

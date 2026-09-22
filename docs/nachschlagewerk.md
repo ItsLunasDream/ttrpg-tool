@@ -8,8 +8,12 @@ wörtlich in beiden Sprachen, gruppiert nach Regeln, Zuständen, Aktionen,
 Wirkungsbereichen, Gefahren und Haltungen. Tabellen stehen als Tabellen da,
 Listen, die Einträge nennen („Aktionen", „Zustände"), sind anklickbar, und
 „Siehe auch" führt als Knopf zum Ziel. Suche im Namen *und* im Text, auf
-Wunsch beide Sprachfassungen nebeneinander; Strg+K findet alle 155. Offen:
-die Vorschau beim Darüberfahren (#155), Hausregeln (#145), Notizen am Text
+Wunsch beide Sprachfassungen nebeneinander; Strg+K findet alle 155.
+Querverweise sind gebaut: kuratierte Begriffe (`@suite/srd/verweise`) werden
+im Text erkannt, nur beim ersten Vorkommen und nie im eigenen Eintrag;
+Darüberfahren zeigt eine Vorschau, ein Klick öffnet. Anders als im Story
+Creator reicht ein einfacher Klick (Strg+Klick geht auch): hier wird nur
+gelesen, nicht geschrieben. Offen: Hausregeln (#145), Notizen am Text
 (#147).
 
 ## Wofür es da ist — und wofür nicht

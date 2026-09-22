@@ -224,3 +224,15 @@ test('im Glossar steht der Zustand Blind so wie in den Zustaenden', () => {
   const zustand = S.ZUSTAENDE.find((z) => z.id === 'blinded');
   assert.ok(zustand.text.en.includes(blind.bloecke[1].text.en.slice(0, 30)));
 });
+
+test('jeder Verweisbegriff steht in beiden Sprachen, die laengsten zuerst', () => {
+  for (const sprache of ['de', 'en']) {
+    const formen = S.verweisformen(sprache);
+    assert.ok(formen.length >= 70, `${sprache}: ${formen.length}`);
+    for (let i = 1; i < formen.length; i += 1) {
+      assert.ok(formen[i - 1].form.length >= formen[i].form.length);
+    }
+  }
+  const de = S.verweisformen('de').map((f) => f.form);
+  assert.ok(de.includes('Liegend') && de.includes('schwieriges Gelände') && de.includes('Spurt‑Aktion'));
+});

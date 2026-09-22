@@ -5,7 +5,7 @@
  * Seitenwechsel beim Auswaehlen — wer nachschlaegt, will zurueck zur Liste,
  * ohne sie neu aufzubauen, und die Suche soll stehen bleiben.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { NAMENSNENNUNG, type Sprache } from '@suite/srd';
 import { api } from './api';
@@ -15,6 +15,8 @@ import {
   ART_GRUPPE,
   ART_NAME,
   alleRegeln,
+  glossarId,
+  regelFuerGlossar,
   regelMitNamen,
   regelNach,
   unterpunkt,
@@ -22,6 +24,28 @@ import {
 } from '../shared/bestand';
 import type { Glossarblock } from '@suite/srd/glossar';
 import { finde } from '../shared/suche';
+import { verlinke } from '../shared/verweise';
+
+/**
+ * Was ein Verweis kann: oeffnen und seine Vorschau zeigen. Als Kontext, weil
+ * Verweise tief in Bloecken, Listen und Saetzen stecken.
+ */
+interface Verweiskontext {
+  readonly oeffne: (id: string) => void;
+  readonly zeige: (id: string, rect: DOMRect) => void;
+  readonly verberge: () => void;
+}
+
+const VerweisKontext = createContext<Verweiskontext>({
+  oeffne: () => undefined,
+  zeige: () => undefined,
+  verberge: () => undefined
+});
+
+/** Wie lange der Zeiger auf einem Verweis ruhen muss, bis die Karte kommt. */
+const VORSCHAU_NACH_MS = 250;
+/** Wie lange sie stehen bleibt, wenn der Zeiger den Verweis verlaesst — Zeit, auf die Karte zu wechseln. */
+const VORSCHAU_BLEIBT_MS = 200;
 
 function sprache(): Sprache {
   return getLanguage() === 'de' ? 'de' : 'en';
@@ -43,6 +67,30 @@ export function App() {
    * sehen koennen, ohne die ganze Huelle umzustellen.
    */
   const [daneben, setDaneben] = useState(false);
+  const [vorschau, setVorschau] = useState<{ id: string; rect: DOMRect } | null>(null);
+  const uhr = useRef<number | null>(null);
+
+  const warteDann = (ms: number, tun: () => void) => {
+    if (uhr.current !== null) window.clearTimeout(uhr.current);
+    uhr.current = window.setTimeout(() => {
+      uhr.current = null;
+      tun();
+    }, ms);
+  };
+
+  const verweise = useMemo<Verweiskontext>(
+    () => ({
+      oeffne: (id) => {
+        if (uhr.current !== null) window.clearTimeout(uhr.current);
+        setVorschau(null);
+        setOffenId(id);
+      },
+      zeige: (id, rect) => warteDann(VORSCHAU_NACH_MS, () => setVorschau({ id, rect })),
+      verberge: () => warteDann(VORSCHAU_BLEIBT_MS, () => setVorschau(null))
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
 
   const regeln = useMemo(() => alleRegeln(), []);
   const spr = sprache();
@@ -88,6 +136,7 @@ export function App() {
   }, [suche, treffer, spr]);
 
   return (
+    <VerweisKontext.Provider value={verweise}>
     <div className="rahmen">
       <header className="kopf">
         <h1>{t('titel')}</h1>
@@ -140,12 +189,7 @@ export function App() {
 
         <main className="blatt">
           {offen ? (
-            <Blatt
-              regel={offen}
-              daneben={daneben}
-              onDaneben={() => setDaneben(!daneben)}
-              oeffne={setOffenId}
-            />
+            <Blatt regel={offen} daneben={daneben} onDaneben={() => setDaneben(!daneben)} />
           ) : (
             <div className="blatt__leer">
               <h2>{t('leer.titel')}</h2>
@@ -163,6 +207,102 @@ export function App() {
       <footer className="fuss">
         <span className="fuss__marke">{t('quelle')}</span> {NAMENSNENNUNG[spr]}
       </footer>
+
+      {vorschau && regelNach(vorschau.id) ? (
+        <Vorschau
+          regel={regelNach(vorschau.id) as Regel}
+          rect={vorschau.rect}
+          bleib={() => {
+            if (uhr.current !== null) window.clearTimeout(uhr.current);
+          }}
+          geh={() => verweise.verberge()}
+        />
+      ) : null}
+    </div>
+    </VerweisKontext.Provider>
+  );
+}
+
+/**
+ * Ein Verweis im Text. Darueberfahren zeigt die Vorschau, ein Klick oeffnet
+ * den Eintrag — mit oder ohne Strg: im Story Creator braucht es Strg, weil
+ * man dort im Text schreibt; hier liest man nur, und Strg+Klick geht
+ * trotzdem.
+ */
+function Verweis({
+  id,
+  kind,
+  leise
+}: {
+  readonly id: string;
+  readonly kind: ReactNode;
+  readonly leise?: boolean;
+}) {
+  const { oeffne, zeige, verberge } = useContext(VerweisKontext);
+  return (
+    <button
+      type="button"
+      className={leise ? 'verweis verweis--leise' : 'verweis verweis--text'}
+      data-ziel={id}
+      onMouseEnter={(e) => zeige(id, e.currentTarget.getBoundingClientRect())}
+      onMouseLeave={verberge}
+      onFocus={(e) => zeige(id, e.currentTarget.getBoundingClientRect())}
+      onBlur={verberge}
+      onClick={() => oeffne(id)}
+    >
+      {kind}
+    </button>
+  );
+}
+
+const KARTE_BREIT = 320;
+
+/** Die Vorschau: Name, Art, der Anfang des Textes. Genug, um die Frage zu beantworten. */
+function Vorschau({
+  regel,
+  rect,
+  bleib,
+  geh
+}: {
+  readonly regel: Regel;
+  readonly rect: DOMRect;
+  readonly bleib: () => void;
+  readonly geh: () => void;
+}) {
+  const spr = sprache();
+  const { oeffne } = useContext(VerweisKontext);
+  const links = Math.max(8, Math.min(rect.left, window.innerWidth - KARTE_BREIT - 8));
+  const oben = rect.bottom + 260 > window.innerHeight;
+  const lage = oben
+    ? { left: links, bottom: window.innerHeight - rect.top + 6, width: KARTE_BREIT }
+    : { left: links, top: rect.bottom + 6, width: KARTE_BREIT };
+  // Eine kurze Regel steht ganz da; eine lange wird nach etwa 420 Zeichen
+  // an einer Satzgrenze abgeschnitten.
+  const text = regel.text[spr];
+  const kurz = text.length <= 480 ? text : `${text.slice(0, 420).replace(/[^.!?:]*$/, '')} …`;
+  return (
+    <div
+      className="vorschau"
+      style={lage}
+      role="dialog"
+      aria-label={regel.name[spr]}
+      data-vorschau={regel.id}
+      onMouseEnter={bleib}
+      onMouseLeave={geh}
+    >
+      <div className="vorschau__kopf">
+        <strong>{regel.name[spr]}</strong>
+        <span className="vorschau__art">{ART_NAME[regel.art][spr]}</span>
+      </div>
+      <p className="vorschau__anders">{regel.name[andere(spr)]}</p>
+      {kurz.split(/\n{2,}/).map((absatz, i) => (
+        <p key={i} className="vorschau__text">
+          {absatz}
+        </p>
+      ))}
+      <button type="button" className="vorschau__oeffnen" onClick={() => oeffne(regel.id)}>
+        {t('vorschau.oeffnen')}
+      </button>
     </div>
   );
 }
@@ -170,13 +310,11 @@ export function App() {
 function Blatt({
   regel,
   daneben,
-  onDaneben,
-  oeffne
+  onDaneben
 }: {
   readonly regel: Regel;
   readonly daneben: boolean;
   readonly onDaneben: () => void;
-  readonly oeffne: (id: string) => void;
 }) {
   const spr = sprache();
   const sprachen: Sprache[] = daneben ? [spr, andere(spr)] : [spr];
@@ -198,9 +336,20 @@ function Blatt({
         {sprachen.map((s) => (
           <section key={s} className="regel__fassung" lang={s} data-sprache={s}>
             {daneben ? <h3>{s === 'de' ? 'Deutsch' : 'English'}</h3> : null}
-            {regel.bloecke.map((block, index) => (
-              <Block key={index} block={block} sprache={s} oeffne={oeffne} />
-            ))}
+            {(() => {
+              // Je Sprachfassung ein eigenes Gedaechtnis: „nur das erste
+              // Vorkommen" gilt ueber alle Bloecke dieses Eintrags.
+              const gesehen = new Set<string>();
+              return regel.bloecke.map((block, index) => (
+                <Block
+                  key={index}
+                  block={block}
+                  sprache={s}
+                  eigenes={glossarId(regel)}
+                  gesehen={gesehen}
+                />
+              ));
+            })()}
           </section>
         ))}
       </div>
@@ -211,9 +360,9 @@ function Blatt({
           {regel.verweise.map((id) => {
             const ziel = regelNach(id);
             return ziel ? (
-              <button key={id} type="button" className="verweis" data-verweis={id} onClick={() => oeffne(id)}>
-                {ziel.name[spr]}
-              </button>
+              <span key={id} className="verweis-knopf" data-verweis={id}>
+                <Verweis id={id} kind={ziel.name[spr]} />
+              </span>
             ) : null;
           })}
         </nav>
@@ -225,14 +374,39 @@ function Blatt({
 }
 
 /** Ein Block des Glossars: Absatz, Unterpunkt, Tabelle oder Liste. */
+/** Ein Text mit seinen erkannten Verweisen. */
+function Verlinkt({
+  text,
+  sprache: s,
+  eigenes,
+  gesehen
+}: {
+  readonly text: string;
+  readonly sprache: Sprache;
+  readonly eigenes: string;
+  readonly gesehen: Set<string>;
+}) {
+  return (
+    <>
+      {verlinke(text, s, eigenes, gesehen).map((stueck, i) => {
+        if (typeof stueck === 'string') return stueck;
+        const ziel = regelFuerGlossar(stueck.ziel);
+        return ziel ? <Verweis key={i} id={ziel.id} kind={stueck.text} leise /> : stueck.text;
+      })}
+    </>
+  );
+}
+
 function Block({
   block,
   sprache: s,
-  oeffne
+  eigenes,
+  gesehen
 }: {
   readonly block: Glossarblock;
   readonly sprache: Sprache;
-  readonly oeffne: (id: string) => void;
+  readonly eigenes: string;
+  readonly gesehen: Set<string>;
 }) {
   if (block.typ === 'tabelle') {
     return (
@@ -269,13 +443,7 @@ function Block({
             const ziel = regelMitNamen(eintrag, s);
             return (
               <li key={eintrag}>
-                {ziel ? (
-                  <button type="button" className="verweis verweis--leise" onClick={() => oeffne(ziel.id)}>
-                    {eintrag}
-                  </button>
-                ) : (
-                  eintrag
-                )}
+                {ziel ? <Verweis id={ziel.id} kind={eintrag} leise /> : eintrag}
               </li>
             );
           })}
@@ -284,13 +452,17 @@ function Block({
     );
   }
   if (block.typ === 'absatz') {
-    return <p className="regel__einleitung">{block.text[s]}</p>;
+    return (
+      <p className="regel__einleitung">
+        <Verlinkt text={block.text[s]} sprache={s} eigenes={eigenes} gesehen={gesehen} />
+      </p>
+    );
   }
   const teil = unterpunkt(block.text[s]);
   return (
     <p className={block.typ === 'stichpunkt' ? 'regel__punkt regel__punkt--tief' : 'regel__punkt'}>
       {teil.kopf ? <strong>{teil.kopf} </strong> : null}
-      {teil.rest}
+      <Verlinkt text={teil.rest} sprache={s} eigenes={eigenes} gesehen={gesehen} />
     </p>
   );
 }

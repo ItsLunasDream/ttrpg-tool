@@ -96,3 +96,29 @@ test('alle Worte muessen vorkommen', () => {
 test('eine leere Suche zeigt alles', () => {
   assert.equal(N.finde(N.alleRegeln(), '   ', 'de').length, N.alleRegeln().length);
 });
+
+test('Verweise im Text: kuratiert, nur das erste Mal, nie auf sich selbst', () => {
+  const gesehen = new Set();
+  const teile = N.verlinke(
+    'You have the Prone condition in Difficult Terrain. Prone again.',
+    'en',
+    'blinded',
+    gesehen
+  );
+  const ziele = teile.filter((t) => typeof t !== 'string').map((t) => [t.text, t.ziel]);
+  assert.deepEqual(ziele, [
+    ['Prone', 'prone'],
+    ['Difficult Terrain', 'difficult-terrain']
+  ]);
+  // Der Text bleibt Zeichen fuer Zeichen derselbe.
+  assert.equal(teile.map((t) => (typeof t === 'string' ? t : t.text)).join(''),
+    'You have the Prone condition in Difficult Terrain. Prone again.');
+  // Nie auf den eigenen Eintrag.
+  const selbst = N.verlinke('the Prone condition', 'en', 'prone', new Set());
+  assert.ok(selbst.every((t) => typeof t === 'string'));
+  // Nicht mitten im Wort, und Aktionen nur als Aktion.
+  const wort = N.verlinke('Proneness. Help me. Take the Help action.', 'en', 'x', new Set());
+  assert.deepEqual(wort.filter((t) => typeof t !== 'string').map((t) => t.text), ['Help action']);
+  const de = N.verlinke('Ein Bereich ist schwieriges Gelände; nutze die Spurt‑Aktion.', 'de', 'x', new Set());
+  assert.deepEqual(de.filter((t) => typeof t !== 'string').map((t) => t.ziel), ['difficult-terrain', 'dash']);
+});
