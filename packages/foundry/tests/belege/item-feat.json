@@ -1,0 +1,139 @@
+{
+ "_woher": "Feldgeruest eines selbstgebauten Zustands als Item. Nur Schluessel und Typen, keine Inhalte.",
+ "_geruest": {
+  "_stats": {
+   "compendiumSource": "str",
+   "coreVersion": "str",
+   "createdTime": "int",
+   "duplicateSource": "null",
+   "exportSource": {
+    "coreVersion": "str",
+    "systemId": "str",
+    "systemVersion": "str",
+    "uuid": "str",
+    "worldId": "str"
+   },
+   "lastModifiedBy": "str",
+   "modifiedTime": "int",
+   "systemId": "str",
+   "systemVersion": "str"
+  },
+  "effects": [],
+  "flags": {},
+  "folder": "null",
+  "img": "str",
+  "name": "str",
+  "ownership": {
+   "default": "int"
+  },
+  "system": {
+   "activities": {
+    "NnVHz3Oc3gq3VeA9": {
+     "_id": "str",
+     "activation": {
+      "condition": "str",
+      "override": "bool",
+      "type": "str"
+     },
+     "consumption": {
+      "scaling": {
+       "allowed": "bool"
+      },
+      "spellSlot": "bool",
+      "targets": []
+     },
+     "damage": {
+      "onSave": "str",
+      "parts": []
+     },
+     "description": {
+      "chatFlavor": "str"
+     },
+     "duration": {
+      "concentration": "bool",
+      "override": "bool",
+      "units": "str"
+     },
+     "effects": [],
+     "flags": {},
+     "img": "str",
+     "name": "str",
+     "range": {
+      "override": "bool",
+      "special": "str",
+      "units": "str"
+     },
+     "save": {
+      "ability": [
+       "str"
+      ],
+      "dc": {
+       "calculation": "str",
+       "formula": "str"
+      }
+     },
+     "sort": "int",
+     "target": {
+      "affects": {
+       "choice": "bool",
+       "type": "str"
+      },
+      "override": "bool",
+      "prompt": "bool",
+      "template": {
+       "contiguous": "bool",
+       "stationary": "bool",
+       "type": "str",
+       "units": "str"
+      }
+     },
+     "type": "str",
+     "uses": {
+      "max": "str",
+      "recovery": [],
+      "spent": "int"
+     },
+     "visibility": {
+      "identifier": "str",
+      "level": {
+       "max": "null",
+       "min": "null"
+      },
+      "requireAttunement": "bool",
+      "requireIdentification": "bool",
+      "requireMagic": "bool"
+     }
+    }
+   },
+   "advancement": {},
+   "crewed": "bool",
+   "description": {
+    "chat": "str",
+    "value": "str"
+   },
+   "enchant": {},
+   "identifier": "str",
+   "prerequisites": {
+    "items": [],
+    "level": "null",
+    "repeatable": "bool"
+   },
+   "properties": [],
+   "requirements": "str",
+   "source": {
+    "revision": "int",
+    "rules": "str"
+   },
+   "type": {
+    "subtype": "str",
+    "value": "str"
+   },
+   "uses": {
+    "max": "str",
+    "recovery": [],
+    "spent": "int"
+   }
+  },
+  "type": "str"
+ }
+}

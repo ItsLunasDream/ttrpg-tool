@@ -299,13 +299,23 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
         maxVersions: kontext.settings.historyMaxVersions
       });
       if (kontext.settings.language !== vorherigeSprache) {
-        // Die Huelle hat umgestellt, also erfaehrt sie es nicht noch einmal
-        // von hier — sonst liefe die Meldung im Kreis. Die Oberflaeche und
-        // die Rechtschreibpruefung muessen es aber wissen.
         if (webContents && !webContents.isDestroyed()) {
+          // Die Pruefung muss mitwandern, sonst streicht sie den halben Text an.
           setzePruefsprache(webContents.session, kontext.settings.language);
           webContents.send(channel('app:sprache'), kontext.settings.language);
         }
+        /*
+         * Und die Huelle erfaehrt es genauso wie bei einer Umstellung im
+         * Werkzeug selbst: eine Aenderung an irgendeiner Stelle soll ueberall
+         * ankommen, das war die Anforderung. Im Kreis laeuft das nicht — die
+         * Huelle schickt die Meldung an alle offenen Werkzeuge AUSSER dem
+         * meldenden zurueck.
+         *
+         * Weggelassen hatte ich das erst mit der Begruendung „die Huelle hat
+         * ja umgestellt". Falsch: umgestellt wurde die Sprache DIESES
+         * Werkzeugs, und die Kopplung an die uebrigen haengt genau hier.
+         */
+        options.onLanguageChange?.(kontext.settings.language);
       }
       meldeEinstellungen(webContents);
       return kontext.settings;

@@ -97,6 +97,7 @@ packages/motion/   Timings, curves and base animations
 packages/ki/       Connection to language models (Ollama, Claude)
 packages/umgebungen/ Environments: what you see, and what has a numbered effect
 packages/einstellungen/ How a tool describes its own settings for the shell
+packages/foundry/  Monsters and conditions as JSON that Foundry VTT reads
 ```
 
 `packages/*` are platform-free: no `node:*`, no `electron`, no browser

@@ -489,23 +489,41 @@ app.whenReady().then(async () => {
         'die Huelle selbst hat ebenfalls auf Deutsch umgeschaltet'
       );
 
-      // Und zurueck, diesmal ausgeloest im Story Creator.
+      /*
+       * Und zurueck, diesmal ueber die Sprache DES STORY CREATORS.
+       *
+       * Die steht jetzt im Einstellungen-Dialog der Huelle, im Abschnitt des
+       * Werkzeugs — der eigene Dialog im Werkzeug faellt eingebettet weg.
+       * Frueher lief dieser Schritt dort; als er wegfiel, blieb der Rauchtest
+       * an `document.querySelector('.field select')` haengen, das es nicht
+       * mehr gab. Die gepruefte Sache ist dieselbe geblieben: eine Umstellung
+       * am Werkzeug erreicht die Huelle und alle anderen Werkzeuge.
+       */
       await js("[...document.querySelectorAll('.schiene__eintrag')][0].click()");
       await warte(1000);
-      await bs.webContents.executeJavaScript(`(() => {
-        const knopf = [...document.querySelectorAll('button')].find((b) =>
-          /^(Settings|Einstellungen)$/.test(b.textContent.trim())
-        );
-        knopf?.click();
-      })()`);
-      await warte(700);
-      await bs.webContents.executeJavaScript(`(() => {
-        const wahl = document.querySelector('.field select');
+      await js(
+        `[...document.querySelectorAll('.titelleiste__knopf')].find(b => /^(Settings|Einstellungen)$/.test(b.textContent.trim())).click(); true`
+      );
+      await warte(900);
+      const sprachwahlGesetzt = await js(`(() => {
+        const wahl = [...document.querySelectorAll('.werkzeugfelder__gruppe select')]
+          .find((s) => [...s.options].some((o) => o.value === 'en'));
+        if (!wahl) return false;
         const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
         setzer.call(wahl, 'en');
         wahl.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
       })()`);
-      await warte(1200);
+      pruefe(
+        sprachwahlGesetzt,
+        'die Sprache des Story Creators steht im Dialog der Huelle'
+      );
+      await warte(1500);
+      // Den Dialog wieder zu, sonst liegt er ueber dem naechsten Abschnitt.
+      await js(
+        `[...document.querySelectorAll('button')].find(b => /^(Close|Schließen)$/.test(b.textContent.trim()))?.click(); true`
+      );
+      await warte(500);
 
       pruefe(
         (await js("document.querySelector('.titelleiste__knopf').textContent")) === 'Settings',
