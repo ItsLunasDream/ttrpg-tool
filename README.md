@@ -567,6 +567,17 @@ Code comments, commit messages and the project documents
 (`KONVENTIONEN.md`, `BACKLOG.md`, `docs/`) are in German. The interface is
 available in German and English.
 
+What is in `docs/` (all German):
+
+| File | What it holds |
+|---|---|
+| `inspirationshilfe.md` | Concept and open points of the Inspiration tool (built) |
+| `monster.md` | Monster Creator: baselines, calibration, Foundry export |
+| `statuseffekte.md` | Status Effect Creator: effects, weight, Foundry export |
+| `encounter.md` | Concept: Encounter Creator (not built) |
+| `austausch.md` | Concept: sharing between the group at the table (not built) |
+| `magicitems.md` | Concept: Magic Item Creator (not built) |
+
 ## License
 
 [GNU Affero General Public License v3.0 or later](LICENSE).

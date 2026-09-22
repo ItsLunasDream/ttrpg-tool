@@ -1281,6 +1281,10 @@ Der Export bleibt zusätzlich, nicht anstelle von Markdown.
 
 ### 2. Konzept: Encounter Creator
 
+**Geschrieben: `docs/encounter.md`.** Was unten steht, war die Sammlung der
+Anforderungen; das Konzept selbst steht dort, mitsamt der Stelle, an der es
+auf eine Lizenzfrage wartet (die Schwierigkeitszahlen).
+
 Die Kachel `encounter` sagt heute „später". Das Konzept gehört geschrieben,
 bevor gebaut wird; im Backlog steht der Punkt schon grob (Monster wählen,
 Schwierigkeit gegen die Gruppe rechnen, in den Tracker schieben).
@@ -1333,6 +1337,10 @@ als zwei Stände, die auseinanderlaufen.
 
 ### 3. Konzept: Austausch-App für die Gruppe am Tisch
 
+**Geschrieben: `docs/austausch.md`.** Wichtigstes Ergebnis: die gemeinsame
+Schnittstelle zwischen den Werkzeugen ist der größere Brocken, nicht die
+Verbindung — und sie lohnt sich auch ohne jedes Netz.
+
 Eine eigene App für den Austausch, wenn eine Gruppe in Person spielt und
 alle die Sammlung haben: Notizen, Monster, Nachrichten und mehr hin- und
 herschicken. Zuerst nur im selben Netzwerk, später möglicherweise über das
@@ -1373,6 +1381,10 @@ Das ist noch Konzept, deshalb hier nur, was vorher geklärt sein muss:
   darf Vorhandenes nicht überschreiben.
 
 ## Vorgemerkt: Magic Item Creator
+
+**Geschrieben: `docs/magicitems.md`.** Wichtigstes Ergebnis: die Punkteskala
+ist eine Eichung, keine Ableitung — eine offizielle Formel dafür gibt es
+nicht, und das gehört überall so benannt.
 
 Ein weiteres Werkzeug in derselben Form wie der Monster Creator und der
 Status Effect Creator: magische Gegenstände erzeugen, in einer Sammlung
