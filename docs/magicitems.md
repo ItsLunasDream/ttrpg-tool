@@ -4,7 +4,19 @@ Ein weiteres Werkzeug in derselben Form wie der Monster Creator und der
 Status Effect Creator: magische Gegenstände erzeugen, in einer Sammlung
 ablegen, nach Foundry exportieren. Bezug ist D&D 2024, wie bei den anderen.
 
-**Stand:** Konzept. Nichts davon ist gebaut.
+**Stand:** Stufe 1 und 2 sind gebaut (`apps/magicitems`): Tabellen mit acht
+Arten und rund zwanzig Wirkungen, ein Erzeuger nach Art und Seltenheit
+(beides auch zufällig), Flüche als Option, Ablage als Markdown mit Kacheln
+und Suche, Strg+K. Der Wert kommt aus der Tabelle des SRD 5.2.1
+(`packages/srd/src/gegenstaende.ts`, gegen beide PDFs gelesen): Common 100,
+Uncommon 400, Rare 4.000, Very Rare 40.000, Legendary 200.000 GM,
+Verbrauchsgegenstände die Hälfte, Schriftrollen das Doppelte ihrer
+Herstellungskosten. Die 50 GM für den Heiltrank in den Foundry-Belegen unten
+sind also genau die Hälfte von Common, kein Widerspruch.
+
+Welche Wirkung zu welcher Seltenheit passt, ist in den Tabellen unsere
+Einschätzung; die Eichung an SRD-Gegenständen (Stufe 4) und der
+Foundry-Export (Stufe 3) stehen aus.
 
 ## Warum es hierher passt
 

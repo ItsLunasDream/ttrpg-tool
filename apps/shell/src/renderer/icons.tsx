@@ -121,6 +121,22 @@ export const NachschlagewerkIcon = (p: IconProps) => (
   </Rahmen>
 );
 
+/**
+ * Ein Edelstein mit Funkeln.
+ *
+ * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
+ * `resources/symbole/magicitems.png` eines liegt.
+ */
+export const MagicItemsIcon = (p: IconProps) => (
+  <Rahmen {...p}>
+    <path d="M14,18 L20,11 L28,11 L34,18 L24,37 Z" />
+    <path d="M14,18 L34,18" />
+    <path d="M20,11 L22,18 L24,37 L26,18 L28,11" />
+    <path d="M38,8 L38,14 M35,11 L41,11" />
+    <path d="M10,30 L10,34 M8,32 L12,32" />
+  </Rahmen>
+);
+
 /** Die Marke der Sammlung: ein Sechseck mit Stern. */
 export const SuiteIcon = (p: IconProps) => (
   <Rahmen {...p}>
@@ -210,7 +226,8 @@ const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
   monster: MonsterIcon,
   zustaende: ZustaendeIcon,
   encounter: EncounterIcon,
-  nachschlagewerk: NachschlagewerkIcon
+  nachschlagewerk: NachschlagewerkIcon,
+  magicitems: MagicItemsIcon
 };
 
 /**

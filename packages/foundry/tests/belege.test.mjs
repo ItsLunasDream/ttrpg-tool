@@ -25,7 +25,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { alsFoundryMonster, alsFoundryZustand } = require('../dist/tests/entry.cjs');
+const { alsFoundryMonster, alsFoundryZustand, alsFoundryGegenstand } = require('../dist/tests/entry.cjs');
 
 const beleg = (datei) =>
   JSON.parse(readFileSync(new URL(`./belege/${datei}`, import.meta.url), 'utf8'))._geruest;
@@ -138,5 +138,34 @@ test('die Felder, die Foundry zum Anzeigen wirklich braucht, sind da', () => {
     '_stats.systemId'
   ]) {
     assert.ok(pfade(a).has(pfad), `fehlt: ${pfad}`);
+  }
+});
+
+test('ein magischer Gegenstand erfindet keine Felder, die es in Foundry nicht gibt', () => {
+  const echt = new Set(
+    [
+      'item-equipment-wondrous.json',
+      'item-equipment-schild.json',
+      'item-equipment-stab.json',
+      'item-consumable-trank-ohne-taetigkeit.json',
+      'item-weapon.json'
+    ].flatMap((datei) => [...pfade(beleg(datei))].map(ohneKennungen))
+  );
+  for (const art of ['waffe', 'ruestung', 'schild', 'wundersam', 'ring', 'stab', 'trank', 'schriftrolle']) {
+    const meine = [
+      ...pfade(
+        alsFoundryGegenstand({
+          name: 'Probe',
+          art,
+          seltenheit: 'rare',
+          einstimmung: true,
+          wirkungen: ['Wirkung.'],
+          fluch: 'Fluch.',
+          wert: 4000
+        })
+      )
+    ].map(ohneKennungen);
+    const unbekannt = meine.filter((p) => !echt.has(p));
+    assert.deepEqual(unbekannt, [], `${art}: steht in keinem echten Export: ${unbekannt.join(', ')}`);
   }
 });

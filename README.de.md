@@ -23,11 +23,15 @@ auch die spricht nur mit dem eingetragenen Anbieter.
   von der Tastatur oder von einer KI kam.
 - **Status Effect Creator** — eigene Zustände mit Stufen, gewogen an denen,
   die jeder kennt, mit einer Karte zum Vorlesen am Tisch.
-- **Encounter Creator** — Begegnungen aus den eigenen Monstern, mit
-  Umgebung, in einem Zug in den Initiative Tracker geschoben. Die
-  Schwierigkeit wird nach dem Regelwerk gerechnet.
-- **Nachschlagewerk** — die Regeln aus dem Systemreferenzdokument, offline
-  und in beiden Sprachen, in derselben Strg+K-Suche wie alles andere.
+- **Encounter Creator** — Begegnungen aus den 331 SRD-Monstern und den
+  eigenen, mit Umgebung, in einem Zug in den Initiative Tracker geschoben.
+  Die Schwierigkeit wird nach dem Regelwerk gerechnet; auf Wunsch stellt er
+  eine Begegnung zu einem Ziel-HG zusammen.
+- **Magic Item Creator** — magische Gegenstände nach Art und Seltenheit
+  würfeln, anpassen und ablegen. Der Wert folgt der Tabelle des SRD.
+- **Nachschlagewerk** — das ganze Regelglossar des Systemreferenzdokuments,
+  offline und in beiden Sprachen, mit Querverweisen, Hausregeln und Notizen,
+  in derselben Strg+K-Suche wie alles andere.
 - **TTRPG Map Editor** — Battlemaps und Weltkarten zeichnen, Export als
   Universal VTT.
 
@@ -101,6 +105,7 @@ apps/monster/      Monster Creator
 apps/zustaende/    Status Effect Creator
 apps/encounter/    Encounter Creator
 apps/nachschlagewerk/ Nachschlagewerk (die Regeln, offline)
+apps/magicitems/   Magic Item Creator
 packages/dice/     Würfelausdrücke lesen und werfen
 packages/i18n/     Sprachwahl und Textersetzung
 packages/motion/   Zeiten, Kurven und Grundanimationen

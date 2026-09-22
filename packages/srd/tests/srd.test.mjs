@@ -236,3 +236,15 @@ test('jeder Verweisbegriff steht in beiden Sprachen, die laengsten zuerst', () =
   const de = S.verweisformen('de').map((f) => f.form);
   assert.ok(de.includes('Liegend') && de.includes('schwieriges Gelände') && de.includes('Spurt‑Aktion'));
 });
+
+test('der Wert magischer Gegenstaende folgt der Tabelle des SRD', () => {
+  assert.equal(S.gegenstandswert('common'), 100);
+  assert.equal(S.gegenstandswert('common', { verbrauch: true }), 50);
+  // Das Beispiel aus dem Dokument: +1 Armor (Plate Armor) = 4.000 + 1.500.
+  assert.equal(S.gegenstandswert('rare', { grundpreis: 1500 }), 5500);
+  // Schriftrolle: doppelte Herstellungskosten, Grad 3 = 2 x 150.
+  assert.equal(S.gegenstandswert('uncommon', { schriftrolleGrad: 3 }), 300);
+  assert.deepEqual(S.SELTENHEITEN.map((s) => S.SELTENHEIT_NAME[s].de), [
+    'Gewöhnlich', 'Ungewöhnlich', 'Selten', 'Sehr selten', 'Legendär'
+  ]);
+});

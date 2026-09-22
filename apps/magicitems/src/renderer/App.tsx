@@ -1,0 +1,442 @@
+/**
+ * Der Magic Item Creator.
+ *
+ * Zwei Ansichten wie in den anderen Werkzeugen: die Sammlung als Kacheln mit
+ * Suche und dem Erzeuger darueber, und ein Gegenstand zum Bearbeiten. Ein
+ * gewuerfelter Gegenstand ist ein Entwurf — auf die Platte kommt er erst mit
+ * „Speichern".
+ *
+ * Siehe `docs/magicitems.md`.
+ */
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
+import { SELTENHEITEN, SELTENHEIT_NAME, gegenstandswert, type Seltenheit } from '@suite/srd';
+import { api } from './api';
+import { getLanguage, setLanguage, t } from './i18n';
+import { erzeuge, type Gegenstand, type Sprache } from '../shared/erzeuge';
+import type { Eintrag } from '../shared/ablage';
+import { alsFoundryDatei } from '../shared/foundry';
+import { ARTEN, ART_NAME, ART_ZEICHEN, VERBRAUCH, type Art } from '../shared/tabellen';
+
+function sprache(): Sprache {
+  return getLanguage() === 'de' ? 'de' : 'en';
+}
+
+/** Die Farbe der Seltenheit, wie man sie aus Spielen kennt. */
+const FARBE: Record<Seltenheit, string> = {
+  common: '#9aa0a6',
+  uncommon: '#4caf6a',
+  rare: '#4a8fe0',
+  veryRare: '#a064e0',
+  legendary: '#e0a33a'
+};
+
+function zahl(wert: number): string {
+  return wert.toLocaleString(sprache() === 'de' ? 'de-DE' : 'en-US');
+}
+
+function leer(): Gegenstand {
+  return {
+    id: '',
+    name: '',
+    art: 'wundersam',
+    seltenheit: 'uncommon',
+    einstimmung: false,
+    wirkungen: [''],
+    fluch: '',
+    wert: gegenstandswert('uncommon'),
+    notiz: '',
+    geaendert: ''
+  };
+}
+
+export function App() {
+  const [, neuZeichnen] = useState(0);
+  const [eintraege, setEintraege] = useState<readonly Eintrag[]>([]);
+  const [suche, setSuche] = useState('');
+  const [offen, setOffen] = useState<Gegenstand | null>(null);
+  const [istNeu, setIstNeu] = useState(false);
+  const [art, setArt] = useState<Art | ''>('');
+  const [seltenheit, setSeltenheit] = useState<Seltenheit | ''>('');
+  const [fluch, setFluch] = useState(true);
+  const [meldung, setMeldung] = useState('');
+  const [fehler, setFehler] = useState('');
+
+  const ladeListe = useCallback(async () => {
+    setEintraege(await api.sammlung.liste());
+  }, []);
+
+  useEffect(() => {
+    void ladeListe();
+  }, [ladeListe]);
+
+  useEffect(() => {
+    setLanguage(DEFAULT_LANGUAGE);
+    return api.sprache.beiWechsel((neu) => {
+      setLanguage((neu === 'de' ? 'de' : 'en') as Language);
+      neuZeichnen((n) => n + 1);
+    });
+  }, []);
+
+  useEffect(
+    () =>
+      api.beiSuchtreffer((kennung) => {
+        void (async () => {
+          const geladen = await api.sammlung.lesen(kennung);
+          if (geladen) {
+            setOffen(geladen);
+            setIstNeu(false);
+          } else setFehler(t('fehler.lesen'));
+        })();
+      }),
+    []
+  );
+
+  const spr = sprache();
+  const gefunden = useMemo(() => {
+    const worte = suche.toLowerCase().split(/\s+/).filter(Boolean);
+    return [...eintraege]
+      .filter((e) => {
+        const heu = `${e.name} ${ART_NAME[e.art].de} ${ART_NAME[e.art].en} ${SELTENHEIT_NAME[e.seltenheit].de} ${SELTENHEIT_NAME[e.seltenheit].en} ${e.kurz}`.toLowerCase();
+        return worte.every((w) => heu.includes(w));
+      })
+      .sort((a, b) => b.geaendert.localeCompare(a.geaendert));
+  }, [eintraege, suche]);
+
+  const wuerfle = () => {
+    const neu = erzeuge(
+      { art: art || undefined, seltenheit: seltenheit || undefined, fluchChance: fluch ? 0.1 : 0 },
+      spr
+    );
+    setOffen(neu);
+    setIstNeu(true);
+    setMeldung('');
+    setFehler('');
+  };
+
+  const speichere = async () => {
+    if (!offen) return;
+    setFehler('');
+    const name = offen.name.trim() || ART_NAME[offen.art][spr];
+    const fertig = { ...offen, name, wirkungen: offen.wirkungen.filter((w) => w.trim()) };
+    const ergebnis = await api.sammlung.speichern(fertig, istNeu);
+    if (!ergebnis.ok) {
+      setFehler(t('fehler.speichern', { detail: ergebnis.text }));
+      return;
+    }
+    setOffen({ ...fertig, id: ergebnis.id });
+    setIstNeu(false);
+    setMeldung(t('gespeichert'));
+    await ladeListe();
+  };
+
+  // --- Ein Gegenstand -------------------------------------------------------
+  if (offen) {
+    const setze = (teil: Partial<Gegenstand>) => {
+      const neu = { ...offen, ...teil };
+      // Der Wert folgt der Seltenheit — ausser bei der Schriftrolle, deren
+      // Wert am Zaubergrad haengt und beim Wuerfeln schon feststand.
+      if ((teil.seltenheit || teil.art) && neu.art !== 'schriftrolle') {
+        neu.wert = gegenstandswert(neu.seltenheit, { verbrauch: VERBRAUCH[neu.art] });
+      }
+      setOffen(neu);
+      setMeldung('');
+    };
+    return (
+      <div className="rahmen">
+        <Kopf />
+        <div className="leiste">
+          <button
+            type="button"
+            className="knopf"
+            onClick={() => {
+              setOffen(null);
+              setIstNeu(false);
+              setMeldung('');
+            }}
+          >
+            ← {t('zurueck')}
+          </button>
+          <span className="leiste__luecke" />
+          {istNeu ? (
+            <button type="button" className="knopf" data-nochmal onClick={wuerfle}>
+              ⚄ {t('nochmal')}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="knopf"
+            data-foundry
+            onClick={() => {
+              void (async () => {
+                const datei = alsFoundryDatei(offen);
+                const ergebnis = await api.foundry(datei.name, datei.inhalt);
+                if (ergebnis.ok) setMeldung(t('foundry.fertig', { pfad: ergebnis.text }));
+                else if (ergebnis.text) setFehler(t('fehler.speichern', { detail: ergebnis.text }));
+              })();
+            }}
+          >
+            {t('foundry')}
+          </button>
+          <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speichere()}>
+            {t('speichern')}
+          </button>
+        </div>
+
+        <section className="karte">
+          <label className="feld">
+            <span className="feld__name">{t('feld.name')}</span>
+            <input
+              className="feld__eingabe"
+              value={offen.name}
+              data-feld="name"
+              onChange={(e) => setze({ name: e.target.value })}
+            />
+          </label>
+
+          <div className="kopfzeile">
+            <label className="feld">
+              <span className="feld__name">{t('erzeuger.art')}</span>
+              <select
+                className="feld__wahl"
+                value={offen.art}
+                onChange={(e) => setze({ art: e.target.value as Art })}
+              >
+                {ARTEN.map((a) => (
+                  <option key={a} value={a}>
+                    {ART_NAME[a][spr]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="feld">
+              <span className="feld__name">{t('erzeuger.seltenheit')}</span>
+              <select
+                className="feld__wahl"
+                value={offen.seltenheit}
+                onChange={(e) => setze({ seltenheit: e.target.value as Seltenheit })}
+              >
+                {SELTENHEITEN.map((s) => (
+                  <option key={s} value={s}>
+                    {SELTENHEIT_NAME[s][spr]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="feld">
+              <input
+                type="checkbox"
+                checked={offen.einstimmung}
+                onChange={(e) => setze({ einstimmung: e.target.checked })}
+              />{' '}
+              {t('feld.einstimmung')}
+            </label>
+          </div>
+          <p className="wert" title={t('wert.hinweis')} data-wert>
+            {t('feld.wert', { wert: zahl(offen.wert) })}
+          </p>
+
+          <h3>{t('feld.wirkungen')}</h3>
+          <ul className="wirkungsliste">
+            {offen.wirkungen.map((w, i) => (
+              <li key={i}>
+                <textarea
+                  className="feld__flaeche"
+                  rows={2}
+                  value={w}
+                  data-wirkung={i}
+                  onChange={(e) =>
+                    setze({ wirkungen: offen.wirkungen.map((x, j) => (j === i ? e.target.value : x)) })
+                  }
+                />
+                <button
+                  type="button"
+                  className="knopf"
+                  aria-label={t('feld.wirkungWeg')}
+                  title={t('feld.wirkungWeg')}
+                  onClick={() => setze({ wirkungen: offen.wirkungen.filter((_, j) => j !== i) })}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            className="knopf"
+            onClick={() => setze({ wirkungen: [...offen.wirkungen, ''] })}
+          >
+            + {t('feld.wirkungDazu')}
+          </button>
+
+          <label className="feld feld--hoch fluch">
+            <span className="feld__name">{t('feld.fluch')}</span>
+            <textarea
+              className="feld__flaeche"
+              rows={2}
+              value={offen.fluch}
+              placeholder={t('feld.fluchHinweis')}
+              onChange={(e) => setze({ fluch: e.target.value })}
+            />
+          </label>
+
+          <label className="feld feld--hoch">
+            <span className="feld__name">{t('feld.notiz')}</span>
+            <textarea
+              className="feld__flaeche"
+              rows={5}
+              value={offen.notiz}
+              onChange={(e) => setze({ notiz: e.target.value })}
+            />
+          </label>
+
+          {meldung ? <p className="meldung">{meldung}</p> : null}
+          {fehler ? <p className="fehler">{fehler}</p> : null}
+        </section>
+      </div>
+    );
+  }
+
+  // --- Die Sammlung ---------------------------------------------------------
+  return (
+    <div className="rahmen">
+      <Kopf />
+
+      {/*
+        Der Erzeuger steht oben und ist mit einem Klick benutzt: nichts
+        waehlen heisst Zufall. Wer eine Art oder Seltenheit festlegt, bekommt
+        genau die.
+      */}
+      <div className="erzeuger">
+        <select
+          className="feld__wahl"
+          aria-label={t('erzeuger.art')}
+          value={art}
+          data-erzeuger="art"
+          onChange={(e) => setArt(e.target.value as Art | '')}
+        >
+          <option value="">
+            {t('erzeuger.art')}: {t('erzeuger.zufall')}
+          </option>
+          {ARTEN.map((a) => (
+            <option key={a} value={a}>
+              {ART_ZEICHEN[a]} {ART_NAME[a][spr]}
+            </option>
+          ))}
+        </select>
+        <select
+          className="feld__wahl"
+          aria-label={t('erzeuger.seltenheit')}
+          value={seltenheit}
+          data-erzeuger="seltenheit"
+          onChange={(e) => setSeltenheit(e.target.value as Seltenheit | '')}
+        >
+          <option value="">
+            {t('erzeuger.seltenheit')}: {t('erzeuger.zufall')}
+          </option>
+          {SELTENHEITEN.map((s) => (
+            <option key={s} value={s}>
+              {SELTENHEIT_NAME[s][spr]}
+            </option>
+          ))}
+        </select>
+        <label>
+          <input type="checkbox" checked={fluch} onChange={(e) => setFluch(e.target.checked)} />{' '}
+          {t('erzeuger.fluch')}
+        </label>
+        <span className="leiste__luecke" />
+        <button type="button" className="knopf" data-leer onClick={() => {
+          setOffen(leer());
+          setIstNeu(true);
+        }}>
+          + {t('leer')}
+        </button>
+        <button type="button" className="knopf knopf--haupt" data-wuerfeln onClick={wuerfle}>
+          ⚄ {t('erzeuger.los')}
+        </button>
+      </div>
+
+      <div className="leiste">
+        <input
+          className="feld__eingabe leiste__suche"
+          type="search"
+          value={suche}
+          placeholder={t('liste.suche')}
+          aria-label={t('liste.suche')}
+          onChange={(e) => setSuche(e.target.value)}
+        />
+      </div>
+
+      <p className="anzahl">
+        {gefunden.length === 1 ? t('liste.eine') : t('liste.anzahl', { anzahl: gefunden.length })}
+      </p>
+
+      {eintraege.length === 0 ? (
+        <p className="hinweis">{t('liste.leer')}</p>
+      ) : gefunden.length === 0 ? (
+        <p className="hinweis">{t('liste.nichts')}</p>
+      ) : (
+        <ul className="kacheln">
+          {gefunden.map((e) => (
+            <li key={e.id}>
+              <button
+                type="button"
+                className="gegenstandskachel"
+                data-id={e.id}
+                style={{ '--marke': FARBE[e.seltenheit] } as CSSProperties}
+                onClick={() => {
+                  void (async () => {
+                    const geladen = await api.sammlung.lesen(e.id);
+                    if (geladen) {
+                      setOffen(geladen);
+                      setIstNeu(false);
+                    } else setFehler(t('fehler.lesen'));
+                  })();
+                }}
+              >
+                <span className="gegenstandskachel__name">
+                  <span className="gegenstandskachel__zeichen" aria-hidden="true">
+                    {ART_ZEICHEN[e.art]}
+                  </span>{' '}
+                  {e.name}
+                </span>
+                <span className="gegenstandskachel__zahl">
+                  <span className="seltenheit">{SELTENHEIT_NAME[e.seltenheit][spr]}</span> ·{' '}
+                  {ART_NAME[e.art][spr]}
+                  {e.einstimmung ? ` · ${t('einstimmung')}` : ''}
+                  {e.verflucht ? ` · ${t('verflucht')}` : ''}
+                </span>
+                {e.kurz ? <span className="gegenstandskachel__unten">{e.kurz}</span> : null}
+              </button>
+              <button
+                type="button"
+                className="gegenstandskachel__weg"
+                aria-label={t('loeschen')}
+                title={t('loeschen')}
+                onClick={() => {
+                  if (!confirm(t('loeschen.sicher', { name: e.name }))) return;
+                  void (async () => {
+                    await api.sammlung.loeschen(e.id);
+                    await ladeListe();
+                  })();
+                }}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {fehler ? <p className="fehler">{fehler}</p> : null}
+    </div>
+  );
+}
+
+function Kopf() {
+  return (
+    <header className="kopf">
+      <h1>{t('titel')}</h1>
+      <p>{t('untertitel')}</p>
+    </header>
+  );
+}

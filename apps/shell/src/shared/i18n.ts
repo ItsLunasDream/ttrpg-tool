@@ -165,7 +165,9 @@ const en = {
   'app.encounter.name': 'Encounters',
   'app.encounter.description': 'Plan and balance fights',
   'app.nachschlagewerk.name': 'Reference',
-  'app.nachschlagewerk.description': 'The rules, offline and in both languages'
+  'app.nachschlagewerk.description': 'The rules, offline and in both languages',
+  'app.magicitems.name': 'Magic Item Creator',
+  'app.magicitems.description': 'Roll and adjust magic items'
 };
 
 export type MessageKey = keyof typeof en;
@@ -328,7 +330,9 @@ const de: Partial<Record<MessageKey, string>> = {
   'app.encounter.name': 'Begegnungen',
   'app.encounter.description': 'Kämpfe planen und ausbalancieren',
   'app.nachschlagewerk.name': 'Nachschlagewerk',
-  'app.nachschlagewerk.description': 'Die Regeln, offline und in beiden Sprachen'
+  'app.nachschlagewerk.description': 'Die Regeln, offline und in beiden Sprachen',
+  'app.magicitems.name': 'Magic Item Creator',
+  'app.magicitems.description': 'Magische Gegenstände würfeln und anpassen'
 };
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { en, de };

@@ -66,6 +66,7 @@ const LIESMICH = [
   '  zustaende.png     Status Effect Creator',
   '  encounter.png     Encounter Creator',
   '  nachschlagewerk.png  Nachschlagewerk',
+  '  magicitems.png    Magic Item Creator',
   '',
   'Dazu ein Banner für das Startmenü, statt des Titels:',
   '',

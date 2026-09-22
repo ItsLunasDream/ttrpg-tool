@@ -20,6 +20,7 @@ Der Name ist die Kennung des Werkzeugs:
 | `encounter.png`   | Encounter Creator  |
 | `zustaende.png`   | Status Effect Creator |
 | `nachschlagewerk.png` | Nachschlagewerk |
+| `magicitems.png`  | Magic Item Creator |
 | `banner.png`      | Banner oben im Startmenü, statt des Titels |
 
 Das Banner ist breit gedacht, etwa 4:1. Es wird nie höher als ein Fünftel

@@ -21,3 +21,4 @@
 export * from './namensnennung';
 export * from './erfahrung';
 export * from './zustaende';
+export * from './gegenstaende';

@@ -285,8 +285,8 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
         en: 'The monsters come from your own collection, and “To the tracker” pushes everything across in one go.'
       },
       {
-        de: 'Mit der Gruppe aus den Einstellungen steht darunter die Schwierigkeit — gerechnet nach dem Regelwerk.',
-        en: 'With the party from the settings, the difficulty appears underneath — worked out from the rules.'
+        de: 'Trag die Gruppe am Tisch ein, dann steht darunter die Schwierigkeit, gerechnet nach dem Regelwerk. Oder lass die Begegnung nach Ziel-HG zusammenstellen.',
+        en: 'Enter your party and the difficulty appears underneath, worked out from the rules. Or let it build an encounter for a target CR.'
       }
     ]
   },
@@ -299,8 +299,8 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
     },
     punkte: [
       {
-        de: 'Gesucht wird auch im Text: „critical hit" findet die Zustände, in denen es steht.',
-        en: 'The search covers the text too: “critical hit” finds the conditions it appears in.'
+        de: 'Das ganze Regelglossar. Gesucht wird auch im Text; Begriffe im Text zeigen beim Darüberfahren eine Vorschau.',
+        en: 'The whole rules glossary. The search covers the text; terms in the text show a preview on hover.'
       },
       {
         de: 'Beide Sprachen gleichzeitig: wer auf Deutsch steht und „prone" tippt, findet „Liegend".',
@@ -311,8 +311,30 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
         en: 'Where the two differ, the English version applies — “Other language alongside” shows both.'
       },
       {
-        de: 'Strg+K findet die offiziellen Zustände jetzt neben deinen eigenen aus dem Status Effect Creator.',
-        en: 'Ctrl+K now finds the official conditions next to your own from the Status Effect Creator.'
+        de: 'Eigene Hausregeln hängen an der offiziellen Regel, und markierter Text bekommt eine Notiz.',
+        en: 'Your own house rules attach to the official rule, and selected text can take a note.'
+      }
+    ]
+  },
+  {
+    id: 'magicitems',
+    titel: { de: 'Magic Item Creator', en: 'Magic Item Creator' },
+    satz: {
+      de: 'Magische Gegenstände würfeln, anpassen und ablegen.',
+      en: 'Roll, adjust and store magic items.'
+    },
+    punkte: [
+      {
+        de: 'Art und Seltenheit wählen oder dem Zufall überlassen, dann „Würfeln".',
+        en: 'Pick a type and rarity or leave them to chance, then “Roll”.'
+      },
+      {
+        de: 'Der Wert kommt aus der Tabelle des SRD; alles andere lässt sich frei ändern.',
+        en: 'The value comes from the SRD table; everything else can be edited freely.'
+      },
+      {
+        de: 'Abgelegt wird erst mit „Speichern"; „Neu würfeln" verwirft den Entwurf.',
+        en: 'Nothing is stored until you “Save”; “Reroll” discards the draft.'
       }
     ]
   }
