@@ -214,15 +214,21 @@ body {
   overflow-y: auto;
 }
 
-.menue__frage {
-  font-size: 22px;
+.menue__titel {
+  font-size: 26px;
   font-weight: 600;
-  margin: 0;
+  letter-spacing: 0.02em;
+  margin: 0 0 24px;
 }
 
-.menue__hinweis {
-  color: var(--text-leise);
-  margin: 0 0 28px;
+/* Ein eigenes Banner statt des Titels: so breit wie die Kacheln, nie
+   hoeher als ein Fuenftel des Fensters. */
+.menue__banner {
+  display: block;
+  max-width: min(100%, 960px);
+  max-height: 20vh;
+  object-fit: contain;
+  margin: 0 0 24px;
 }
 
 .menue__version {

@@ -800,10 +800,12 @@ export function App() {
            * Vorgeschichte anders aus, und man musste ein Werkzeug oeffnen,
            * bevor man es einstellen konnte. Das ist verkehrt herum.
            *
-           * Jetzt stehen alle da; wer eines waehlt, das nicht laeuft,
-           * bekommt statt der Felder einen Knopf, der es oeffnet.
+           * Jetzt stehen alle da, die eigene Einstellungen HABEN; wer eines
+           * waehlt, das nicht laeuft, bekommt statt der Felder einen Knopf,
+           * der es oeffnet. Werkzeuge ohne eigene Einstellungen stehen gar
+           * nicht in der Liste — eine leere Seite je Werkzeug war Rauschen.
            */
-          werkzeuge={APPS.filter((app) => istWaehlbar(app.status)).map((app) => ({
+          werkzeuge={APPS.filter((app) => istWaehlbar(app.status) && app.einstellungen).map((app) => ({
             id: app.id,
             name: t(nameKey(app.id)),
             laeuft: montierte.has(app.id)
@@ -890,8 +892,16 @@ function Startmenue({
 }) {
   return (
     <main className="menue">
-      <h1 className="menue__frage">{t('menu.question')}</h1>
-      <p className="menue__hinweis">{t('menu.hint')}</p>
+      {/*
+        Oben der Titel — oder ein Banner, sobald eines da ist. Es kommt
+        denselben Weg wie die Symbole: `banner.png` im Symbolordner, der
+        mitgelieferte oder der eigene im Datenordner.
+      */}
+      {symbole.banner ? (
+        <img className="menue__banner" src={symbole.banner} alt={t('menu.title')} />
+      ) : (
+        <h1 className="menue__titel">{t('menu.title')}</h1>
+      )}
 
       {/*
         Nach Rolle am Tisch gruppiert statt alle neun nebeneinander.
@@ -943,7 +953,10 @@ function Startmenue({
                       </span>
                       <span className="kachel__name">{t(nameKey(app.id))}</span>
                       <span className="kachel__text">{t(descriptionKey(app.id))}</span>
-                      <span className="kachel__marke">{t(STATUS_KEY[app.status])}</span>
+                      {/* „Bereit" sagt nichts, was die Kachel nicht schon sagt. */}
+                      {app.status === 'bereit' ? null : (
+                        <span className="kachel__marke">{t(STATUS_KEY[app.status])}</span>
+                      )}
                     </button>
                   );
                 })}

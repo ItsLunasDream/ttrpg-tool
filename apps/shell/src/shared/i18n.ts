@@ -15,8 +15,7 @@ const en = {
   'window.restore': 'Restore',
   'window.close': 'Close',
 
-  'menu.question': 'What would you like to work on?',
-  'menu.hint': 'Everything lives in the same place. Switch any time, nothing gets lost.',
+  'menu.title': 'TTRPG-Tools',
   'menu.groupGm': 'For running the game',
   'menu.groupAll': 'For everyone at the table',
   'menu.version': 'Version {version}',
@@ -54,27 +53,27 @@ const en = {
   'settings.title': 'Settings',
   'settings.language': 'Language',
   'settings.languageHint':
-    'Applies to this window — its title bar, the start menu and the rail. Each tool keeps its own language setting.',
+    'Applies to the whole collection.',
   'settings.sectionLook': 'Appearance',
   'settings.sectionData': 'Data & backup',
   'settings.sectionTools': 'Tools',
   'settings.toolClosed':
-    'This tool is not running, so it cannot say what it has to offer yet. Open it once and its settings appear here.',
+    'This tool is not running. Open it once to see its settings here.',
   'settings.toolOpen': 'Open {name}',
   'settings.theme': 'Colour theme',
   'settings.themeHint':
-    'Applies to the whole window, tools included. Mostly dark; the light ones cover light mode.',
+    'Applies to the whole window, tools included.',
   'settings.saveFailed': 'Could not save the settings: {detail}',
 
   'settings.icons': 'Tool icons',
   'settings.iconsHint':
-    'Drop your own image per tool into this folder — backstory.png, mapmaker.png, initiative.png, dice.png, npc.png, inspiration.png, encounter.png. Anything missing keeps the built-in icon.',
+    'One image per tool, named after its id (e.g. dice.png), plus banner.png for the start menu. Missing ones keep the built-in image.',
   'settings.iconsOpen': 'Open folder',
   'settings.iconsReload': 'Reload icons',
 
   'settings.ai': 'AI',
   'settings.aiHint':
-    'Set up once here, used by every tool. Nothing is sent anywhere until you ask for it.',
+    'Used by every tool. Nothing is sent until you ask.',
   'settings.aiProvider': 'Connection',
   'settings.aiNone': 'None',
   'settings.aiOllama': 'Ollama (local)',
@@ -95,7 +94,7 @@ const en = {
   'settings.apiKeyHint':
     'The key is encrypted with your system keychain and never reaches the interface. If the keychain is unavailable, nothing is stored at all.',
   'settings.apiKeyNoKeychain':
-    'Your system offers no keychain, so the key was not stored. Storing it in plain text would be worse than not storing it.',
+    'No keychain available, the key was not stored.',
   'settings.aiCheck': 'Check connection',
   'settings.aiChecking': 'Checking…',
   'settings.aiReady': 'Ready: {detail}',
@@ -103,16 +102,16 @@ const en = {
 
   'settings.backup': 'Backup',
   'settings.backupHint':
-    'One ZIP with everything: campaigns, monsters, conditions, encounters, maps, your own icons and the settings. The API key is left out — it is encrypted with this machine\u2019s keychain and would be useless anywhere else.',
+    'One ZIP with all data and settings. The API key is not included.',
   'settings.backupNow': 'Back up now',
   'settings.backupRunning': 'Backing up…',
   'settings.backupDone': 'Done, {count} files:',
   'settings.backupFolder': 'Open data folder',
   'settings.backupRestore':
-    'To restore: close the app, unpack the ZIP into the data folder, start again. Doing it while tools are running would overwrite what they still hold in memory.',
+    'To restore: close the app, unpack the ZIP into the data folder, start again.',
   'settings.intro': 'Introductions',
   'settings.introHint':
-    'Each tool explains itself the first time you open it. Show those windows again from the start.',
+    'Show the first-start introduction of each tool again.',
   'settings.introReset': 'Show introductions again',
   'settings.introDone': 'They will appear again the next time you open a tool.',
 
@@ -179,8 +178,7 @@ const de: Partial<Record<MessageKey, string>> = {
   'window.restore': 'Wiederherstellen',
   'window.close': 'Schließen',
 
-  'menu.question': 'Womit möchtest du arbeiten?',
-  'menu.hint': 'Alles liegt im selben Speicherort. Wechseln geht jederzeit, nichts geht dabei verloren.',
+  'menu.title': 'TTRPG-Tools',
   'menu.groupGm': 'Zum Leiten',
   'menu.groupAll': 'Für alle am Tisch',
   'menu.version': 'Fassung {version}',
@@ -218,27 +216,27 @@ const de: Partial<Record<MessageKey, string>> = {
   'settings.title': 'Einstellungen',
   'settings.language': 'Sprache',
   'settings.languageHint':
-    'Gilt für dieses Fenster — seine Titelleiste, das Startmenü und die Schiene. Jedes Werkzeug behält seine eigene Spracheinstellung.',
+    'Gilt für die ganze Sammlung.',
   'settings.sectionLook': 'Aussehen',
   'settings.sectionData': 'Daten & Sicherung',
   'settings.sectionTools': 'Werkzeuge',
   'settings.toolClosed':
-    'Dieses Werkzeug läuft nicht und kann deshalb noch nicht sagen, was es zu bieten hat. Einmal öffnen, dann stehen seine Einstellungen hier.',
+    'Das Werkzeug läuft gerade nicht. Öffne es einmal, dann stehen seine Einstellungen hier.',
   'settings.toolOpen': '{name} öffnen',
   'settings.theme': 'Farbthema',
   'settings.themeHint':
-    'Gilt für das ganze Fenster, Werkzeuge eingeschlossen. Überwiegend dunkel; die hellen decken den Light Mode ab.',
+    'Gilt für das ganze Fenster, Werkzeuge eingeschlossen.',
   'settings.saveFailed': 'Die Einstellungen ließen sich nicht speichern: {detail}',
 
   'settings.icons': 'Symbole der Werkzeuge',
   'settings.iconsHint':
-    'Leg in diesen Ordner ein eigenes Bild je Werkzeug — backstory.png, mapmaker.png, initiative.png, dice.png, npc.png, inspiration.png, encounter.png. Wo keines liegt, bleibt das eingebaute.',
+    'Ein eigenes Bild je Werkzeug, benannt nach seiner Kennung (z. B. dice.png), dazu banner.png für das Startmenü. Fehlt eines, gilt das eingebaute.',
   'settings.iconsOpen': 'Ordner öffnen',
   'settings.iconsReload': 'Symbole neu laden',
 
   'settings.ai': 'KI',
   'settings.aiHint':
-    'Einmal hier eingerichtet, von allen Werkzeugen benutzt. Es geht nichts raus, solange du nicht fragst.',
+    'Gilt für alle Werkzeuge. Gesendet wird nur, wenn du fragst.',
   'settings.aiProvider': 'Anbindung',
   'settings.aiNone': 'Keine',
   'settings.aiOllama': 'Ollama (lokal)',
@@ -259,7 +257,7 @@ const de: Partial<Record<MessageKey, string>> = {
   'settings.apiKeyHint':
     'Der Schlüssel wird mit dem Schlüsselbund deines Systems verschlüsselt und erreicht die Oberfläche nie. Steht kein Schlüsselbund zur Verfügung, wird gar nicht gespeichert.',
   'settings.apiKeyNoKeychain':
-    'Dein System bietet keinen Schlüsselbund, deshalb wurde nichts gespeichert. Im Klartext abzulegen wäre schlechter, als es zu lassen.',
+    'Kein Schlüsselbund verfügbar, der Schlüssel wurde nicht gespeichert.',
   'settings.aiCheck': 'Verbindung prüfen',
   'settings.aiChecking': 'Prüfe …',
   'settings.aiReady': 'Bereit: {detail}',
@@ -267,16 +265,16 @@ const de: Partial<Record<MessageKey, string>> = {
 
   'settings.backup': 'Sicherung',
   'settings.backupHint':
-    'Ein ZIP mit allem: Kampagnen, Monster, Zustände, Begegnungen, Karten, eigene Symbole und die Einstellungen. Der API-Schlüssel bleibt draußen — er ist mit dem Schlüsselbund dieses Rechners verschlüsselt und wäre anderswo ohnehin wertlos.',
+    'Ein ZIP mit allen Daten und Einstellungen. Der API-Schlüssel ist nicht dabei.',
   'settings.backupNow': 'Jetzt sichern',
   'settings.backupRunning': 'Wird gesichert…',
   'settings.backupDone': 'Fertig, {count} Dateien:',
   'settings.backupFolder': 'Datenordner öffnen',
   'settings.backupRestore':
-    'Zurückspielen: Anwendung schließen, das ZIP in den Datenordner entpacken, neu starten. Im laufenden Betrieb überschriebe es, was die Werkzeuge noch im Speicher halten.',
+    'Wiederherstellen: Anwendung schließen, ZIP in den Datenordner entpacken, neu starten.',
   'settings.intro': 'Einführungen',
   'settings.introHint':
-    'Jedes Werkzeug erklärt sich beim ersten Öffnen selbst. Diese Fenster lassen sich wieder von vorn zeigen.',
+    'Die Einführung beim ersten Öffnen eines Werkzeugs noch einmal zeigen.',
   'settings.introReset': 'Einführungen wieder zeigen',
   'settings.introDone': 'Sie erscheinen wieder, sobald du das nächste Werkzeug öffnest.',
 

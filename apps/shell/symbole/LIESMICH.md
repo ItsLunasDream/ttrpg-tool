@@ -17,8 +17,13 @@ Der Name ist die Kennung des Werkzeugs:
 | `npc.png`         | NPC Creator        |
 | `inspiration.png` | Inspirationshilfe  |
 | `monster.png`     | Monster Creator    |
-| `encounter.png`   | Begegnungen (noch nicht gebaut) |
+| `encounter.png`   | Encounter Creator  |
 | `zustaende.png`   | Status Effect Creator |
+| `nachschlagewerk.png` | Nachschlagewerk |
+| `banner.png`      | Banner oben im Startmenü, statt des Titels |
+
+Das Banner ist breit gedacht, etwa 4:1. Es wird nie höher als ein Fünftel
+des Fensters gezeigt. Fehlt es, steht dort der Titel.
 
 Gelesen wird jede Bilddatei im Ordner, ohne feste Liste — der Dateiname ist
 die Kennung. Deshalb gilt ein Bild auch für ein Werkzeug, das es noch nicht

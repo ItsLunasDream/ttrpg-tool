@@ -149,8 +149,8 @@ app.whenReady().then(async () => {
   // Voreingestellt ist Englisch. Stuende hier Deutsch, waere die
   // Sprachwahl irgendwo ueberschrieben worden.
   pruefe(
-    (await js("document.querySelector('.menue__frage').textContent")) ===
-      'What would you like to work on?',
+    (await js("document.querySelector('.menue__gruppenname').textContent")) ===
+      'For everyone at the table',
     'Oberflaeche startet auf Englisch'
   );
 

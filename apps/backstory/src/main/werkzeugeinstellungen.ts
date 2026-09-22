@@ -30,7 +30,6 @@ export interface Umgebung {
 
 /** Die Felder, die die Huelle kennt. Ein Tippfehler faellt hier auf, nicht erst im Betrieb. */
 const FELD = {
-  sprache: 'language',
   autosave: 'autosaveEnabled',
   autosaveMs: 'autosaveDelayMs',
   verlauf: 'historyEnabled',
@@ -66,20 +65,6 @@ export async function baueBeschreibung(umgebung: Umgebung): Promise<Werkzeugeins
         id: 'schreiben',
         name: { de: 'Schreiben', en: 'Writing' },
         felder: [
-          {
-            art: 'auswahl',
-            id: FELD.sprache,
-            name: { de: 'Sprache', en: 'Language' },
-            hinweis: {
-              de: 'Gilt nur für dieses Werkzeug. Die Sprache des Fensters steht oben.',
-              en: 'Applies to this tool only. The window’s language is set above.'
-            },
-            wert: s.language,
-            optionen: [
-              { id: 'de', name: { de: 'Deutsch', en: 'German' } },
-              { id: 'en', name: { de: 'Englisch', en: 'English' } }
-            ]
-          },
           {
             art: 'schalter',
             id: FELD.autosave,
@@ -178,9 +163,6 @@ export async function setzeWert(
   if (wert === null) return vorher;
 
   switch (feldId) {
-    case FELD.sprache:
-      await umgebung.schreibe({ language: wert as AppSettings['language'] });
-      break;
     case FELD.autosave:
       await umgebung.schreibe({ autosaveEnabled: wert as boolean });
       break;

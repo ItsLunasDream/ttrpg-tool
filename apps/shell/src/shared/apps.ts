@@ -79,6 +79,14 @@ export interface AppEntry {
   readonly id: string;
   readonly status: AppStatus;
   readonly rolle: Rolle;
+  /**
+   * Ob das Werkzeug eigene Einstellungen hat, die im Dialog der Huelle
+   * stehen. Fest hier und nicht beim Werkzeug erfragt: ein Werkzeug, das
+   * nicht laeuft, kann nicht antworten, und die Liste soll nicht davon
+   * abhaengen, was man gerade offen hat. Sprache, Thema und KI gehoeren
+   * der Huelle und zaehlen nicht.
+   */
+  readonly einstellungen?: true;
 }
 
 /** Schluessel des Anzeigenamens. Arbeitstitel — die endgueltigen Namen kommen spaeter. */
@@ -106,7 +114,7 @@ export const STATUS_KEY: Record<AppStatus, MessageKey> = {
  * andere ist Vorbereitung oder Leitung am Tisch.
  */
 export const APPS: readonly AppEntry[] = [
-  { id: 'backstory', status: 'bereit', rolle: 'alle' },
+  { id: 'backstory', status: 'bereit', rolle: 'alle', einstellungen: true },
   { id: 'dice', status: 'bereit', rolle: 'alle' },
   // Bei „alle", nicht bei „leitung": ein Nachschlagewerk brauchen Spielende
   // genauso, und am Tisch schlaegt meist jemand anderes nach als der, der
