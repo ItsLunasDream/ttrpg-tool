@@ -7,11 +7,26 @@
 :root {
   --grund: var(--f-grund, #14161c);
   --grund-hoch: var(--f-grund-hoch, #1b1e26);
+  --grund-tief: var(--f-grund-tief, #232834);
   --rand: var(--f-rand, #2a2e39);
+  --rand-stark: var(--f-rand-stark, #3b4150);
   --text: var(--f-text, #e6e8ee);
   --text-leise: var(--f-text-leise, #939aab);
   --betont: var(--f-betont, #7aa2f7);
+  --betont-leise: var(--f-betont-leise, #7aa2f733);
   --schliessen: var(--f-gefahr, #e5484d);
+  --fest: var(--f-fest, #b6a06a);
+
+  /*
+   * Zwei abgeleitete Flaechen, die es als Rolle nicht gibt und nicht geben
+   * soll: „etwas heller beim Darueberfahren" ist keine Farbe, sondern eine
+   * Rechnung auf der Textfarbe. Fest eingetragen war sie hier lange als
+   * `#ffffff14` — und genau das war der Fehler: auf einem hellen Thema legt
+   * Weiss auf Weiss nichts frei, und dunkler Text auf dunklem Knopf blieb
+   * unlesbar.
+   */
+  --lasur: color-mix(in srgb, var(--text) 8%, transparent);
+  --lasur-stark: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 * {
@@ -101,7 +116,7 @@ body {
 }
 
 .titelleiste__knopf:hover:not(:disabled) {
-  background: #23273244;
+  background: var(--lasur);
   color: var(--text);
 }
 
@@ -133,7 +148,7 @@ body {
 }
 
 .titelleiste__pfeil:hover:not(:disabled) {
-  background: #23273244;
+  background: var(--lasur);
   color: var(--text);
 }
 
@@ -167,12 +182,15 @@ body {
 }
 
 .fensterknopf:hover {
-  background: #ffffff14;
+  background: var(--lasur);
   color: var(--text);
 }
 
 .fensterknopf--schliessen:hover {
   background: var(--schliessen);
+  /* Weiss, und zwar in jedem Thema: `--schliessen` ist ueberall ein
+     kraeftiges Rot, und darauf liest sich Weiss. Aus dem Thema abgeleitet
+     waere die Schrift auf einem hellen Thema dunkel — auf Rot. */
   color: #fff;
 }
 
@@ -276,7 +294,7 @@ body {
 .kachel--bereit:hover,
 .kachel--vorbereitet:hover {
   border-color: var(--betont);
-  background: #1f2430;
+  background: var(--betont-leise);
   transform: translateY(-2px);
 }
 
@@ -314,11 +332,11 @@ body {
 }
 
 .kachel--vorbereitet .kachel__icon {
-  color: #b6a06a;
+  color: var(--fest);
 }
 
 .kachel--vorbereitet .kachel__marke {
-  color: #b6a06a;
+  color: var(--fest);
 }
 
 .kachel__name {
@@ -402,9 +420,9 @@ body {
   background: linear-gradient(
     115deg,
     transparent 0%,
-    #7aa2f700 30%,
-    #7aa2f7cc 50%,
-    #7aa2f700 70%,
+    color-mix(in srgb, var(--betont) 0%, transparent) 30%,
+    color-mix(in srgb, var(--betont) 80%, transparent) 50%,
+    color-mix(in srgb, var(--betont) 0%, transparent) 70%,
     transparent 100%
   );
   /*
@@ -447,7 +465,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .schiene__eintrag--gemeldet::after {
     animation: none;
-    background: #7aa2f733;
+    background: var(--betont-leise);
   }
 }
 
@@ -463,7 +481,7 @@ body {
 
 .schiene__eintrag:hover:not(:disabled),
 .schiene__heim:hover {
-  background: #ffffff12;
+  background: var(--lasur);
   color: var(--text);
 }
 
@@ -492,7 +510,7 @@ body {
 }
 
 .schiene__eintrag--an {
-  background: #ffffff16;
+  background: var(--lasur-stark);
   color: var(--betont);
 }
 
@@ -588,7 +606,7 @@ body {
 
 .stoerung__knopf {
   margin-top: 8px;
-  background: #2b3140;
+  background: var(--grund-tief);
   border: 1px solid var(--rand);
   color: var(--text);
   font: inherit;
@@ -599,7 +617,7 @@ body {
 }
 
 .stoerung__knopf:hover {
-  background: #343b4d;
+  background: color-mix(in srgb, var(--text) 10%, var(--grund-tief));
 }
 
 /* ---------- Dialoge ---------- */
@@ -610,8 +628,12 @@ body {
   display: grid;
   place-items: center;
   /* Abgedunkelt, damit klar ist, dass dahinter gerade nichts geht. Die
-     Anwendung selbst ist in diesem Moment ohnehin zurueckgetreten. */
-  background: #0b0d12cc;
+     Anwendung selbst ist in diesem Moment ohnehin zurueckgetreten.
+
+     Bewusst schwarz und NICHT aus dem Thema abgeleitet: ein heller Schleier
+     auf hellem Grund verschleiert nichts, und der Dialog stuende ohne Kante
+     da. Abdunkeln ist in beiden Richtungen das, was zuruecktreten laesst. */
+  background: rgb(0 0 0 / 0.62);
   z-index: 10;
 }
 
@@ -623,7 +645,8 @@ body {
   background: var(--grund-hoch);
   border: 1px solid var(--rand);
   border-radius: 12px;
-  box-shadow: 0 18px 48px #00000066;
+  /* Der Schatten bleibt schwarz: er soll Abstand zeigen, nicht Farbe. */
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.4);
 }
 
 .dialog:focus {
@@ -658,7 +681,7 @@ body {
 }
 
 .dialog__knopf {
-  background: #2b3140;
+  background: var(--grund-tief);
   border: 1px solid var(--rand);
   color: var(--text);
   font: inherit;
@@ -672,11 +695,11 @@ body {
 }
 
 .dialog__knopf:hover {
-  background: #343b4d;
+  background: color-mix(in srgb, var(--text) 10%, var(--grund-tief));
 }
 
 .dialog__knopf:active {
-  background: #3d465c;
+  background: color-mix(in srgb, var(--text) 18%, var(--grund-tief));
 }
 
 /* Titelleisten- und Fensterknoepfe antworten genauso schnell. */
@@ -700,7 +723,7 @@ body {
 }
 
 .feld__wahl {
-  background: #232834;
+  background: var(--grund-tief);
   color: var(--text);
   border: 1px solid var(--rand);
   border-radius: 8px;
@@ -726,7 +749,7 @@ body {
  * man hineinschreibt — das soll man ihnen nicht auch noch ansehen muessen.
  */
 .feld__eingabe {
-  background: #232834;
+  background: var(--grund-tief);
   color: var(--text);
   border: 1px solid var(--rand);
   border-radius: 8px;
@@ -860,7 +883,7 @@ body {
 }
 
 .ueber__verweise button:hover {
-  background: #ffffff10;
+  background: var(--lasur);
 }
 
 /* ---------- Ladeanzeige ---------- */
@@ -1022,7 +1045,7 @@ body {
   width: 56px;
   height: 56px;
   border-radius: 12px;
-  background: #2b3140;
+  background: var(--grund-tief);
   border: 1px solid var(--rand);
 }
 
