@@ -1,10 +1,16 @@
 /**
  * Der Abgleich mit der Wirklichkeit.
  *
- * Unter tests/belege/ liegt das FELDGERUEST dreier echter Foundry-Exporte:
- * nur Schluessel und Typen, keine Inhalte. Die Exporte selbst gehoeren nicht
- * hierher — einer ist offizielles Material, und alle drei tragen Welt- und
- * Nutzerkennungen aus einer fremden Installation.
+ * Unter tests/belege/ liegt das FELDGERUEST echter Foundry-Exporte: nur
+ * Schluessel und Typen, keine Inhalte. Die Exporte selbst gehoeren nicht
+ * hierher — ein Teil ist offizielles Material, und alle tragen Welt- und
+ * Nutzerkennungen aus einer fremden Installation. `scripts/geruest.mjs`
+ * macht aus einem Export ein Geruest.
+ *
+ * Die vier `item-equipment-*` / `item-weapon`-Belege gehoeren noch zu
+ * keinem Export von uns: sie sind die Vorarbeit fuer den Magic Item
+ * Creator (docs/magicitems.md) und stehen hier, damit die Form beim Bauen
+ * belegt ist und nicht geraten wird.
  *
  * Geprueft wird die eine Eigenschaft, auf die es ankommt: **wir erfinden
  * keine Felder.** Jeder Schluessel, den wir schreiben, kommt in einem echten

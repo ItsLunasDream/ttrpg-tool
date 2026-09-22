@@ -1,0 +1,211 @@
+{
+ "_woher": "Feldgeruest eines magischen Schilds (Item, equipment) mit Ruestungswert, Effekt und einer Taetigkeit. Nur Schluessel und Typen, keine Inhalte.",
+ "_geruest": {
+  "_stats": {
+   "compendiumSource": "str",
+   "coreVersion": "str",
+   "createdTime": "int",
+   "duplicateSource": "null",
+   "exportSource": {
+    "coreVersion": "str",
+    "systemId": "str",
+    "systemVersion": "str",
+    "uuid": "str",
+    "worldId": "str"
+   },
+   "lastModifiedBy": "str",
+   "modifiedTime": "int",
+   "systemId": "str",
+   "systemVersion": "str"
+  },
+  "effects": [
+   {
+    "_id": "str",
+    "_stats": {
+     "compendiumSource": "null",
+     "coreVersion": "str",
+     "createdTime": "int",
+     "duplicateSource": "null",
+     "exportSource": "null",
+     "lastModifiedBy": "str",
+     "modifiedTime": "int",
+     "systemId": "str",
+     "systemVersion": "str"
+    },
+    "description": "str",
+    "disabled": "bool",
+    "duration": {
+     "expired": "bool",
+     "expiry": "null",
+     "units": "str",
+     "value": "null"
+    },
+    "flags": {},
+    "folder": "null",
+    "img": "str",
+    "name": "str",
+    "origin": "str",
+    "showIcon": "int",
+    "sort": "int",
+    "start": "null",
+    "statuses": [],
+    "system": {
+     "changes": [
+      {
+       "key": "str",
+       "phase": "str",
+       "priority": "null",
+       "type": "str",
+       "value": "int"
+      }
+     ]
+    },
+    "tint": "str",
+    "transfer": "bool",
+    "type": "str"
+   }
+  ],
+  "flags": {},
+  "folder": "null",
+  "img": "str",
+  "name": "str",
+  "ownership": {
+   "default": "int"
+  },
+  "system": {
+   "activities": {
+    "KZLj6yQjI7Ps1KkW": {
+     "_id": "str",
+     "activation": {
+      "condition": "str",
+      "override": "bool",
+      "type": "str",
+      "value": "null"
+     },
+     "consumption": {
+      "scaling": {
+       "allowed": "bool"
+      },
+      "spellSlot": "bool",
+      "targets": []
+     },
+     "description": {
+      "chatFlavor": "str"
+     },
+     "duration": {
+      "concentration": "bool",
+      "override": "bool",
+      "units": "str"
+     },
+     "effects": [],
+     "flags": {},
+     "img": "str",
+     "name": "str",
+     "range": {
+      "override": "bool",
+      "special": "str",
+      "units": "str",
+      "value": "str"
+     },
+     "roll": {
+      "formula": "str",
+      "name": "str",
+      "prompt": "bool",
+      "visible": "bool"
+     },
+     "sort": "int",
+     "target": {
+      "affects": {
+       "choice": "bool",
+       "count": "str",
+       "special": "str",
+       "type": "str"
+      },
+      "override": "bool",
+      "prompt": "bool",
+      "template": {
+       "contiguous": "bool",
+       "stationary": "bool",
+       "type": "str",
+       "units": "str"
+      }
+     },
+     "type": "str",
+     "uses": {
+      "max": "str",
+      "recovery": [],
+      "spent": "int"
+     },
+     "visibility": {
+      "identifier": "str",
+      "level": {
+       "max": "null",
+       "min": "null"
+      },
+      "requireAttunement": "bool",
+      "requireIdentification": "bool",
+      "requireMagic": "bool"
+     }
+    }
+   },
+   "armor": {
+    "dex": "null",
+    "value": "int"
+   },
+   "attuned": "bool",
+   "attunement": "str",
+   "container": "null",
+   "cover": "null",
+   "crew": {
+    "value": []
+   },
+   "description": {
+    "chat": "str",
+    "value": "str"
+   },
+   "equipped": "bool",
+   "hp": {
+    "conditions": "str",
+    "dt": "null",
+    "max": "null",
+    "value": "null"
+   },
+   "identified": "bool",
+   "identifier": "str",
+   "price": {
+    "denomination": "str",
+    "value": "int"
+   },
+   "proficient": "null",
+   "properties": [
+    "str"
+   ],
+   "quantity": "int",
+   "rarity": "str",
+   "source": {
+    "book": "str",
+    "license": "str",
+    "revision": "int",
+    "rules": "str"
+   },
+   "strength": "null",
+   "type": {
+    "baseItem": "str",
+    "value": "str"
+   },
+   "unidentified": {
+    "description": "str"
+   },
+   "uses": {
+    "max": "str",
+    "recovery": [],
+    "spent": "int"
+   },
+   "weight": {
+    "units": "str",
+    "value": "int"
+   }
+  },
+  "type": "str"
+ }
+}

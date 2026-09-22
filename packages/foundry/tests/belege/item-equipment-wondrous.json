@@ -1,0 +1,144 @@
+{
+ "_woher": "Feldgeruest eines Wundersamen Gegenstands (Item, equipment) mit einem Effekt, ohne Taetigkeiten. Nur Schluessel und Typen, keine Inhalte.",
+ "_geruest": {
+  "_stats": {
+   "compendiumSource": "str",
+   "coreVersion": "str",
+   "createdTime": "int",
+   "duplicateSource": "null",
+   "exportSource": {
+    "coreVersion": "str",
+    "systemId": "str",
+    "systemVersion": "str",
+    "uuid": "str",
+    "worldId": "str"
+   },
+   "lastModifiedBy": "str",
+   "modifiedTime": "int",
+   "systemId": "str",
+   "systemVersion": "str"
+  },
+  "effects": [
+   {
+    "_id": "str",
+    "_stats": {
+     "compendiumSource": "null",
+     "coreVersion": "str",
+     "createdTime": "int",
+     "duplicateSource": "null",
+     "exportSource": "null",
+     "lastModifiedBy": "str",
+     "modifiedTime": "int",
+     "systemId": "str",
+     "systemVersion": "str"
+    },
+    "description": "str",
+    "disabled": "bool",
+    "duration": {
+     "expired": "bool",
+     "expiry": "null",
+     "units": "str",
+     "value": "null"
+    },
+    "flags": {},
+    "folder": "null",
+    "img": "str",
+    "name": "str",
+    "origin": "null",
+    "showIcon": "int",
+    "sort": "int",
+    "start": "null",
+    "statuses": [],
+    "system": {
+     "changes": [
+      {
+       "key": "str",
+       "phase": "str",
+       "priority": "null",
+       "type": "str",
+       "value": "int"
+      }
+     ]
+    },
+    "tint": "str",
+    "transfer": "bool",
+    "type": "str"
+   }
+  ],
+  "flags": {
+   "dnd5e": {
+    "riders": {
+     "activity": [],
+     "effect": []
+    }
+   }
+  },
+  "folder": "null",
+  "img": "str",
+  "name": "str",
+  "ownership": {
+   "default": "int"
+  },
+  "system": {
+   "activities": {},
+   "armor": {
+    "dex": "null",
+    "value": "null"
+   },
+   "attuned": "bool",
+   "attunement": "str",
+   "container": "null",
+   "cover": "null",
+   "crew": {
+    "value": []
+   },
+   "description": {
+    "chat": "str",
+    "value": "str"
+   },
+   "equipped": "bool",
+   "hp": {
+    "conditions": "str",
+    "dt": "null",
+    "max": "null",
+    "value": "null"
+   },
+   "identified": "bool",
+   "identifier": "str",
+   "price": {
+    "denomination": "str",
+    "value": "int"
+   },
+   "proficient": "null",
+   "properties": [
+    "str"
+   ],
+   "quantity": "int",
+   "rarity": "str",
+   "source": {
+    "book": "str",
+    "license": "str",
+    "revision": "int",
+    "rules": "str"
+   },
+   "strength": "null",
+   "type": {
+    "baseItem": "str",
+    "value": "str"
+   },
+   "unidentified": {
+    "description": "str"
+   },
+   "uses": {
+    "max": "str",
+    "recovery": [],
+    "spent": "int"
+   },
+   "weight": {
+    "units": "str",
+    "value": "int"
+   }
+  },
+  "type": "str"
+ }
+}

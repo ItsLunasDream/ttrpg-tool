@@ -96,11 +96,72 @@ derselbe mit — er kostet nichts, was die Figur sonst bräuchte.
 - **Welche Art Gegenstand.** Waffe, Rüstung, Wundersames, Trank, Schriftrolle.
   Davon hängt ab, was überhaupt einstellbar ist — eine Waffe hat einen
   Schadensbonus, ein Trank nicht.
-- **Wie der Foundry-Export aussieht.** `equipment` und `weapon` sind beide
-  belegt. Welche Form wann, und ob ein Trank `consumable` wird, sollte an
-  einem echten Export geprüft werden, bevor es jemand rät. **Wenn du einen
-  magischen Gegenstand aus deiner Welt exportierst und schickst, ist das
-  geklärt** — so wie bei #127.
+- **Welche Form ein Trank bekommt.** `equipment` und `weapon` sind jetzt an
+  echten Exporten belegt (siehe unten). Ob ein Trank `consumable` und eine
+  Schriftrolle `scroll` wird, ist es nicht — das bleibt offen, bis ein
+  solcher Export vorliegt. Raten wäre hier billig und falsch.
+
+## Was vier echte Exporte geklärt haben
+
+Vier Gegenstände aus einer laufenden Welt (Foundry 14.368, `dnd5e` 5.3.3 —
+dieselben Versionen wie bei den Monster- und Zustandsbelegen, also kein
+Versatz): Amulet of Health, Arrow-Catching Shield, Rod of Resurrection,
+Flame Tongue. Ihr Feldgerüst liegt unter
+`packages/foundry/tests/belege/item-*.json` — nur Schlüssel und Typen, ohne
+einen einzigen Inhalt, wie schon bei #127. Erzeugt mit
+`packages/foundry/scripts/geruest.mjs`.
+
+**Die Form.** Ein Gegenstand ist ein `Item` ohne `_id` auf oberster Ebene —
+dieselbe Eigenheit wie beim Zustand. Der Typ ist `equipment` für Amulett,
+Schild und Stab, `weapon` für die Waffe. Die Sorte steht darunter noch
+einmal genauer in `system.type.value`: `wondrous`, `shield`, `rod`.
+
+**Die Felder, auf die es ankommt:**
+
+| Feld | Was drinsteht |
+|---|---|
+| `system.rarity` | `rare`, `legendary` (die Schreibweise für Very Rare ist hier nicht belegt) |
+| `system.attunement` | `required`, dazu `system.attuned` als eigener Schalter |
+| `system.price` | `{ value, denomination: "gp" }` |
+| `system.properties` | `["mgc"]`, der Stab zusätzlich `"foc"` |
+| `system.source` | `{ rules: "2024", license: "CC-BY-4.0", revision, book }` |
+| `system.uses` | Ladungen: `max`, `spent`, `recovery: [{ period: "dawn", … }]` |
+
+**Wo die Wirkung steht, ist zweigeteilt** — und das ist die eigentliche
+Erkenntnis für den Export:
+
+- **Was dauernd wirkt**, steht in `effects[].system.changes[]`: ein
+  Schlüssel, ein Wert und eine Art. Das Amulett schreibt
+  `system.abilities.con.value` mit der Art `upgrade` auf 19, das Schild
+  `system.attributes.ac.bonus` mit `add` auf 2. `transfer: true` heißt, dass
+  es auf den Träger übergeht.
+- **Was man benutzt**, steht in `system.activities`, unter einer eigenen
+  16-stelligen Kennung je Tätigkeit. Drei Arten kommen vor: `utility` (die
+  Reaktion des Schilds), `cast` (der Stab wirkt einen Zauber über dessen
+  UUID und verbraucht Ladungen) und `enchant` (die Flammenzunge verzaubert
+  die Waffe, in der sie steckt).
+
+Für Stufe 3 heißt das: ein erzeugter Gegenstand mit einem dauerhaften
+Zahlenbonus lässt sich sauber als `effects[].system.changes` schreiben.
+Alles, was aktiv benutzt wird, braucht eine Tätigkeit — und die ist deutlich
+mehr Arbeit. Ein erster Export sollte sich auf das Dauerhafte beschränken
+und den Rest als Text in der Beschreibung lassen, statt eine halbe Tätigkeit
+zu bauen, die in Foundry dann doch nicht klickt.
+
+**Ein Hinweis zur Punkteskala, mehr nicht.** Alle drei seltenen Gegenstände
+stehen bei 4000 gp, der legendäre bei 200000 gp. Das sieht nach einem festen
+Preis je Seltenheit aus, nicht nach einem aus der Wirkung errechneten — was
+die Vermutung oben stützt, dass es die gesuchte Formel nicht gibt. Drei
+Gegenstände einer Stufe und einer der anderen sind allerdings kein Beweis,
+sondern ein Hinweis.
+
+**Zur Lizenzfrage.** Alle vier tragen `system.source.license: "CC-BY-4.0"`
+und stammen laut `_stats.compendiumSource` aus dem Kompendium des
+`dnd5e`-Systems. Das ist die Angabe des Systems über sich selbst, kein
+Rechtsgutachten — aber es ist ein handfester Anhaltspunkt dafür, dass diese
+Gegenstände als Eichpunkte in Frage kommen, mit Namensnennung im
+Über-Dialog. Die Frage ist damit nicht beantwortet, aber sie ist enger
+geworden.
 
 ## Ein möglicher Zuschnitt
 
