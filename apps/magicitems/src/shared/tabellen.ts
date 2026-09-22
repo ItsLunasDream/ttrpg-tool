@@ -81,6 +81,13 @@ export interface Wirkung {
   /** Braucht der Gegenstand Einstimmung, wenn er diese Wirkung traegt? */
   readonly einstimmung: boolean;
   readonly text: Paar;
+  /**
+   * Wie {bonus} aus der Seltenheit folgt. Ohne Angabe: Ungewoehnlich +1,
+   * Selten +2, Sehr selten +3. `versatz: -1` fuer Ruestungen (Selten +1),
+   * `fest` fuer einen Bonus, der nicht mitwaechst (Schutzumhang: immer +1).
+   * Beides aus den Eichpunkten des SRD, siehe eichpunkte.ts.
+   */
+  readonly bonus?: { readonly versatz?: number; readonly fest?: number };
 }
 
 export const SCHADENSARTEN: readonly Paar[] = [
@@ -216,14 +223,28 @@ export const WIRKUNGEN: readonly Wirkung[] = [
   },
   // --- Ruestung und Schild --------------------------------------------------
   {
-    id: 'rk-bonus',
-    arten: ['ruestung', 'schild'],
+    // Eine Ruestung +1 ist im SRD selten, +3 legendaer — eine Stufe teurer
+    // als der Schild mit demselben Bonus.
+    id: 'ruestung-bonus',
+    arten: ['ruestung'],
+    ab: 2,
+    bis: 4,
+    einstimmung: false,
+    bonus: { versatz: -1 },
+    text: {
+      de: 'Solange du sie trägst, erhältst du {bonus} auf deine Rüstungsklasse.',
+      en: 'You have a {bonus} bonus to Armor Class while wearing this armor.'
+    }
+  },
+  {
+    id: 'schild-bonus',
+    arten: ['schild'],
     ab: 1,
     bis: 3,
     einstimmung: false,
     text: {
-      de: 'Solange du ihn trägst, erhältst du {bonus} auf deine Rüstungsklasse.',
-      en: 'You have a {bonus} bonus to Armor Class while wearing or wielding it.'
+      de: 'Solange du den Schild führst, erhältst du {bonus} auf deine Rüstungsklasse.',
+      en: 'While holding this Shield, you have a {bonus} bonus to Armor Class.'
     }
   },
   {
@@ -294,10 +315,12 @@ export const WIRKUNGEN: readonly Wirkung[] = [
     }
   },
   {
+    // Stulpen der Ogerkraft und Stirnband des Intellekts sind ungewoehnlich,
+    // das Amulett der Gesundheit selten.
     id: 'attribut',
     arten: ['wundersam'],
-    ab: 2,
-    bis: 3,
+    ab: 1,
+    bis: 2,
     einstimmung: true,
     text: {
       de: 'Dein {attribut}wert beträgt 19, solange du ihn trägst. Ist er ohnehin 19 oder höher, bewirkt er nichts.',
@@ -305,25 +328,28 @@ export const WIRKUNGEN: readonly Wirkung[] = [
     }
   },
   {
+    // Schutzumhang (ungewoehnlich) und Schutzring (selten) geben beide +1.
     id: 'rettung-bonus',
     arten: ['ring', 'wundersam'],
-    ab: 2,
-    bis: 3,
+    ab: 1,
+    bis: 2,
     einstimmung: true,
+    bonus: { fest: 1 },
     text: {
       de: 'Du erhältst {bonus} auf Rettungswürfe und auf deine Rüstungsklasse.',
       en: 'You gain a {bonus} bonus to saving throws and to Armor Class.'
     }
   },
   {
+    // Gefluegelte Stiefel sind ungewoehnlich — mit vier Stunden am Tag.
     id: 'fliegen',
     arten: ['wundersam', 'ring'],
-    ab: 3,
+    ab: 1,
     bis: 4,
     einstimmung: true,
     text: {
-      de: 'Du hast eine Flugbewegungsrate, die deiner Bewegungsrate entspricht.',
-      en: 'You have a Fly Speed equal to your Speed.'
+      de: 'Bis zu vier Stunden am Tag hast du eine Flugbewegungsrate, die deiner Bewegungsrate entspricht.',
+      en: 'For up to 4 hours per day, you have a Fly Speed equal to your Speed.'
     }
   },
   {

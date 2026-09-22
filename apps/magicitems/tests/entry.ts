@@ -3,3 +3,4 @@ export * from '../src/shared/erzeuge';
 export * from '../src/shared/ablage';
 export * from '../src/shared/tabellen';
 export * from '../src/shared/foundry';
+export * from '../src/shared/eichpunkte';

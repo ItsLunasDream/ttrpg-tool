@@ -14,9 +14,16 @@ Verbrauchsgegenstände die Hälfte, Schriftrollen das Doppelte ihrer
 Herstellungskosten. Die 50 GM für den Heiltrank in den Foundry-Belegen unten
 sind also genau die Hälfte von Common, kein Widerspruch.
 
-Welche Wirkung zu welcher Seltenheit passt, ist in den Tabellen unsere
-Einschätzung; die Eichung an SRD-Gegenständen (Stufe 4) und der
-Foundry-Export (Stufe 3) stehen aus.
+Der Foundry-Export (Stufe 3) ist gebaut. Die Eichung (Stufe 4) ebenfalls:
+31 Eichpunkte aus dem SRD (`src/shared/eichpunkte.ts`, erzeugt von
+`packages/srd/werkzeug/gegenstaende_eichung.py`). Welcher SRD-Gegenstand für
+welche Wirkung steht, ist von Hand gewählt; Seltenheit, Bonus und
+Heilformel sind aus dem PDF gelesen. `tests/eichung.test.mjs` prüft, ob der
+Erzeuger bei dieser Seltenheit diese Wirkung mit denselben Zahlen liefert.
+Korrigiert hat die Eichung: Rüstung +1 ist selten (nicht ungewöhnlich),
+Schild eigene Wirkung, Rettungswurf-Bonus fest +1, Attribut und Fliegen ab
+ungewöhnlich, Zusatzschaden bei selten 2W6. Wirkungen ohne sauberen
+SRD-Gegenstand bleiben unsere Einschätzung.
 
 ## Warum es hierher passt
 

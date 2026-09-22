@@ -56,9 +56,13 @@ function bonus(stufe: number): number {
   return Math.max(1, Math.min(3, stufe));
 }
 
-/** Zusatzschaden je Seltenheit. */
-const SCHADEN = ['1W4', '1W4', '1W6', '2W6', '3W6'];
-const SCHADEN_EN = ['1d4', '1d4', '1d6', '2d6', '3d6'];
+/**
+ * Zusatzschaden je Seltenheit. Die Flammenzunge (selten) macht 2W6, der
+ * Drachentoeter (selten) 3W6 gegen Drachen — unsere Staffel liegt bei
+ * selten also auf 2W6.
+ */
+const SCHADEN = ['1W4', '1W6', '2W6', '3W6', '3W6'];
+const SCHADEN_EN = ['1d4', '1d6', '2d6', '3d6', '3d6'];
 
 /** Heilung eines Tranks je Seltenheit (wie die Heiltraenke des SRD gestaffelt). */
 const HEILUNG = ['2W4 + 2', '4W4 + 4', '8W4 + 8', '10W4 + 20', '10W4 + 20'];
@@ -69,17 +73,20 @@ const HOECHSTER_GRAD = [1, 3, 5, 7, 9];
 /** SG eines Stabs je Seltenheit. */
 const STAB_SG = [13, 13, 15, 17, 19];
 
-interface Gefuellt {
+export interface Gefuellt {
   readonly text: string;
   /** Der Zaubergrad, wenn die Wirkung einen Zauber traegt (fuer den Wert der Schriftrolle). */
   readonly grad?: number;
 }
 
-function fuelle(wirkung: Wirkung, stufe: number, sprache: Sprache, zufall: Zufall): Gefuellt {
+export function fuelle(wirkung: Wirkung, stufe: number, sprache: Sprache, zufall: Zufall): Gefuellt {
   const de = sprache === 'de';
   let grad: number | undefined;
+  // Der Versatz wirkt auf die rohe Stufe: Ruestung legendaer ist +3, nicht
+  // erst auf +3 gedeckelt und dann um eins gesenkt.
+  const b = wirkung.bonus?.fest ?? bonus(stufe + (wirkung.bonus?.versatz ?? 0));
   const werte: Record<string, string> = {
-    bonus: `+${bonus(stufe)}`,
+    bonus: `+${b}`,
     schaden: (de ? SCHADEN : SCHADEN_EN)[stufe],
     art: eins(SCHADENSARTEN, zufall)[sprache],
     typ: eins(KREATURENTYPEN, zufall)[sprache],
