@@ -28,8 +28,9 @@ Verankert am Block, am ausgewählten Text und am wievielten Vorkommen, nicht
 an Zeichenpositionen; abgelegt in `<Datenordner>/nachschlagewerk/notizen.json`.
 Die Stelle ist hinterlegt, ein Klick darauf öffnet die Notiz. Unter dem
 Eintrag stehen alle seine Notizen, auch die, deren Stelle nicht mehr
-gefunden wird (rot markiert). Noch nicht in der Suche und nicht an
-Tabellen oder Listen.
+gefunden wird (rot markiert). Strg+K findet Notizen über ihren Text; der
+Treffer öffnet den Eintrag und rollt zur Stelle. Noch nicht an Tabellen
+oder Listen.
 
 ## Wofür es da ist — und wofür nicht
 

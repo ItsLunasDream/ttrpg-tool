@@ -292,6 +292,33 @@ app.whenReady().then(async () => {
     'und steht unter dem Eintrag'
   );
 
+  // --- Die Notiz in der Suche der Huelle -------------------------------------
+  // Erst woanders hin, dann ueber den Treffer der Notiz zurueck.
+  const alleTreffer = (await hjs('window.shell.suche.eintraege()')) ?? [];
+  const notizTreffer = alleTreffer.find((e) => e.werkzeug === 'nachschlagewerk' && /Bei uns nur im Kampf/.test(e.name));
+  pruefe(Boolean(notizTreffer), `Strg+K findet die Notiz (${notizTreffer ? notizTreffer.art : 'nichts'})`);
+  const anderer = alleTreffer.find(
+    (e) =>
+      e.werkzeug === 'nachschlagewerk' &&
+      !/^(notiz|hausregel)\//.test(e.kennung) &&
+      notizTreffer &&
+      !notizTreffer.art.includes(e.name)
+  );
+  if (notizTreffer && anderer) {
+    await hjs(`window.shell.suche.zeige('nachschlagewerk', ${JSON.stringify(anderer.kennung)})`);
+    await warte(600);
+    pruefe(
+      !/Bei uns nur im Kampf/.test(await js("document.querySelector('[data-notizen]')?.textContent ?? ''")),
+      `ein anderer Eintrag ist offen (${anderer.name})`
+    );
+    await hjs(`window.shell.suche.zeige('nachschlagewerk', ${JSON.stringify(notizTreffer.kennung)})`);
+    await warte(800);
+    pruefe(
+      /Bei uns nur im Kampf/.test(await js("document.querySelector('[data-notizen]')?.textContent ?? ''")),
+      'der Treffer oeffnet den Eintrag, an dem die Notiz haengt'
+    );
+  }
+
   // --- Die Namensnennung ---------------------------------------------------
   pruefe(
     /Systemreferenzdokument 5\.2\.1|System Reference Document 5\.2\.1/.test(

@@ -121,7 +121,25 @@ export async function leseEintraege(datenordner: string): Promise<Eintrag[]> {
     art: 'Hausregel',
     stichworte: `House rule ${regel.text.slice(0, 200)}`
   }));
-  return [...eigene, ...alleRegeln().map((regel) => ({
+  // Die Notizen an Textstellen: gefunden ueber ihren Text, geoeffnet wird
+  // der Eintrag, an dem sie haengen.
+  let notizen: Notiz[] = [];
+  try {
+    notizen = leseNotizen(await readFile(path.join(datenordner, WERKZEUG, NOTIZDATEI), 'utf8'));
+  } catch {
+    // Noch keine Notizen.
+  }
+  const notizEintraege: Eintrag[] = notizen.map((notiz) => {
+    const regel = alleRegeln().find((r) => r.id === notiz.regel);
+    return {
+      werkzeug: WERKZEUG,
+      kennung: `notiz/${notiz.id}`,
+      name: notiz.text.split('\n')[0].slice(0, 80) || notiz.stelle.slice(0, 80),
+      art: regel ? `Notiz · ${regel.name[notiz.sprache]}` : 'Notiz',
+      stichworte: ['Note', notiz.stelle, notiz.text.slice(0, 300), regel?.name.en ?? ''].join(' ')
+    };
+  });
+  return [...eigene, ...notizEintraege, ...alleRegeln().map((regel) => ({
     werkzeug: WERKZEUG,
     kennung: regel.id,
     name: regel.name.de,

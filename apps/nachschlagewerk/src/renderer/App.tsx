@@ -209,8 +209,22 @@ export function App() {
         // pruefen, ob es den Eintrag gibt — gibt es ihn nicht, steht rechts
         // der leere Hinweis.
         setBearbeitung(null);
-        setOffenId(kennung);
         setSuche('');
+        if (!kennung.startsWith('notiz/')) {
+          setOffenId(kennung);
+          return;
+        }
+        // Eine Notiz: den Eintrag oeffnen, an dem sie haengt, und zu ihrem
+        // Absatz rollen.
+        void api.notizen.liste().then((liste) => {
+          const notiz = liste.find((n) => `notiz/${n.id}` === kennung);
+          if (!notiz) return;
+          setNotizen(liste);
+          setOffenId(notiz.regel);
+          setTimeout(() => {
+            document.querySelector(`[data-block="${notiz.block}"]`)?.scrollIntoView({ block: 'center' });
+          }, 100);
+        });
       }),
     []
   );
