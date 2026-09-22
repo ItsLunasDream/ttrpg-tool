@@ -114,3 +114,15 @@ test('die Beispiele beider Sprachen tragen dieselben Spannen und Wuerfel', () =>
     );
   }
 });
+
+test('die SRD-Tabelle ist in beiden Sprachen formal sauber und per Verweis erreichbar', () => {
+  for (const sprache of ['de', 'en']) {
+    const [tand] = L.srdTabellen(sprache);
+    assert.ok(L.istSrd(tand.id));
+    assert.equal(tand.eintraege.length, 100);
+    assert.deepEqual(L.pruefe(tand, []), []);
+    const bande = { id: 'b', name: 'B', eintraege: [{ text: `[${tand.name}]` }] };
+    assert.deepEqual(L.pruefe(bande, [tand]), []);
+    assert.ok(L.wuerfle(bande, [bande, tand], Math.random).text.length > 5);
+  }
+});

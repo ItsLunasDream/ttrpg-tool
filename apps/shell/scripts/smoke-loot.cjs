@@ -67,7 +67,29 @@ app.whenReady().then(async () => {
   const ordner = path.join(userData, 'loot', 'tabellen');
   const dateien = () => (fs.existsSync(ordner) ? fs.readdirSync(ordner).sort() : []);
   pruefe(dateien().length === 3, `beim ersten Start liegen drei Beispiele da (${dateien().join(', ')})`);
-  pruefe((await js("document.querySelectorAll('.tabellenkachel').length")) === 3, 'und stehen als Kacheln in der Liste');
+  pruefe(
+    (await js("document.querySelectorAll('.tabellenkachel').length")) === 4,
+    'und stehen als Kacheln in der Liste, dazu die Tabelle aus dem SRD'
+  );
+
+  // Die SRD-Tabelle: wuerfelbar, aber schreibgeschuetzt, mit Namensnennung.
+  await js(`document.querySelector('[data-schnell="srd-trinkets"]').click(); true`);
+  await warte(300);
+  const tand = await js("document.querySelector('[data-schnellwurf] .ergebnis__text')?.textContent ?? ''");
+  pruefe(tand.length > 5, `die SRD-Tabelle wuerfelt von der Kachel (${tand.slice(0, 50)})`);
+  await js(`document.querySelector('[data-id="srd-trinkets"]').click(); true`);
+  await warte(400);
+  pruefe(
+    (await js("document.querySelector('fieldset.bearbeiten').disabled")) === true &&
+      (await js("document.querySelector('[data-speichern]') === null")),
+    'sie ist schreibgeschuetzt'
+  );
+  pruefe(
+    /5\.2\.1/.test(await js("document.querySelector('[data-srd-hinweis]')?.textContent ?? ''")),
+    'mit Namensnennung'
+  );
+  await js(`[...document.querySelectorAll('button')].find(b => /Zurück zur Liste|Back to the list/.test(b.textContent)).click(); true`);
+  await warte(400);
 
   const bandit = await js(`(() => {
     const k = document.querySelector('[data-schnell="bandit-loot"], [data-schnell="beute-einer-raeuberbande"]');
@@ -138,7 +160,7 @@ app.whenReady().then(async () => {
   // --- Die Sammlung und die Suche -------------------------------------------
   await js(`[...document.querySelectorAll('button')].find(b => /Zurück zur Liste|Back to the list/.test(b.textContent)).click(); true`);
   await warte(500);
-  pruefe((await js("document.querySelectorAll('.tabellenkachel').length")) === 4, 'die Kachel steht in der Sammlung');
+  pruefe((await js("document.querySelectorAll('.tabellenkachel').length")) === 5, 'die Kachel steht in der Sammlung');
   const eintraege = await hjs('window.shell.suche.eintraege()');
   pruefe(
     (eintraege ?? []).some((e) => e.werkzeug === 'loot' && e.name === 'Rauchtest Truhe'),

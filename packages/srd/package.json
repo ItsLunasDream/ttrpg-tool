@@ -9,7 +9,8 @@
     ".": "./src/index.ts",
     "./monster": "./src/monster.ts",
     "./glossar": "./src/glossar.ts",
-    "./verweise": "./src/verweisbegriffe.ts"
+    "./verweise": "./src/verweisbegriffe.ts",
+    "./tand": "./src/tand.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

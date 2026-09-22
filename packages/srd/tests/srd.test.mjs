@@ -248,3 +248,15 @@ test('der Wert magischer Gegenstaende folgt der Tabelle des SRD', () => {
     'Gewöhnlich', 'Ungewöhnlich', 'Selten', 'Sehr selten', 'Legendär'
   ]);
 });
+
+test('die Requisiten-Tabelle hat hundert Paare, ohne Reste aus dem Satz', () => {
+  assert.equal(S.TAND.length, 100);
+  for (const [i, paar] of S.TAND.entries()) {
+    for (const text of [paar.de, paar.en]) {
+      assert.ok(text.length > 5, `${i + 1}: zu kurz`);
+      assert.doesNotMatch(text, /­|\s{2}|^\d|Trinket|Requisite/, `${i + 1}: ${text}`);
+    }
+  }
+  assert.equal(S.TAND[0].en, 'A mummified goblin hand');
+  assert.equal(S.TAND[99].de, 'Metallene Urne mit der Asche eines Helden');
+});

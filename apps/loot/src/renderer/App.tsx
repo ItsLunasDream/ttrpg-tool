@@ -13,7 +13,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { wuerfle, wuerfleReihe, type Ergebnis } from '@suite/tabellen';
 import { api } from './api';
-import { setLanguage, t, type TextKey } from './i18n';
+import { NAMENSNENNUNG } from '@suite/srd';
+import { getLanguage, setLanguage, t, type TextKey } from './i18n';
 import {
   alsEintraege,
   alsZeilen,
@@ -21,8 +22,10 @@ import {
   pruefe,
   type Befund,
   type Gespeichert,
-  type Kachel
+  type Kachel,
+  alsKachel
 } from '../shared/ablage';
+import { istSrd, srdTabellen } from '../shared/srd';
 
 /** Was im Bearbeiten-Feld steht. Die Zeilen bleiben Text, bis gespeichert wird. */
 interface Entwurf {
@@ -86,7 +89,7 @@ function befundText(b: Befund): string {
 export function App() {
   const [, neuZeichnen] = useState(0);
   const [kacheln, setKacheln] = useState<readonly Kachel[]>([]);
-  const [alle, setAlle] = useState<readonly Gespeichert[]>([]);
+  const [eigene, setEigene] = useState<readonly Gespeichert[]>([]);
   const [suche, setSuche] = useState('');
   const [offen, setOffen] = useState<Entwurf | null>(null);
   const [istNeu, setIstNeu] = useState(false);
@@ -100,7 +103,7 @@ export function App() {
   const ladeListe = useCallback(async () => {
     const [k, a] = await Promise.all([api.sammlung.liste(), api.sammlung.alle()]);
     setKacheln(k);
-    setAlle(a);
+    setEigene(a);
   }, []);
 
   useEffect(() => {
@@ -115,8 +118,15 @@ export function App() {
     });
   }, []);
 
+  const spr = getLanguage() === 'de' ? 'de' : 'en';
+  // Die eingebauten Tabellen in der Sprache der Oberflaeche; ueber sie
+  // laufen Verweise wie ueber jede eigene.
+  const srd = useMemo(() => srdTabellen(spr), [spr]);
+  const srdKacheln = useMemo(() => srd.map(alsKachel), [srd]);
+  const alle = useMemo(() => [...eigene, ...srd], [eigene, srd]);
+
   const oeffne = useCallback(async (id: string) => {
-    const geladen = await api.sammlung.lesen(id);
+    const geladen = istSrd(id) ? srdTabellen(getLanguage() === 'de' ? 'de' : 'en').find((s) => s.id === id) : await api.sammlung.lesen(id);
     if (!geladen) {
       setFehler(t('fehler.lesen'));
       return;
@@ -133,15 +143,15 @@ export function App() {
 
   const gefunden = useMemo(() => {
     const worte = suche.toLowerCase().split(/\s+/).filter(Boolean);
-    return [...kacheln]
+    return [...kacheln, ...srdKacheln]
       .filter((k) => {
         const heu = `${k.name} ${k.kurz}`.toLowerCase();
         return worte.every((w) => heu.includes(w));
       })
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [kacheln, suche]);
+  }, [kacheln, srdKacheln, suche]);
 
-  const ersatzName = useMemo(() => naechsterName(t('neu.name'), alle.map((a) => a.name)), [alle]);
+  const ersatzName = useMemo(() => naechsterName(t('neu.name'), eigene.map((a) => a.name)), [eigene]);
 
   // Die Tabelle, wie sie gerade im Feld steht, und der Bestand drumherum:
   // Verweise auf sie selbst gehen auf die bearbeitete Fassung.
@@ -155,6 +165,7 @@ export function App() {
 
   // --- Eine Tabelle ---------------------------------------------------------
   if (offen && aktuell) {
+    const nurLesen = istSrd(offen.id);
     const setze = (teil: Partial<Entwurf>) => {
       setOffen({ ...offen, ...teil });
       setVeraendert(true);
@@ -208,45 +219,63 @@ export function App() {
             ← {t('zurueck')}
           </button>
           <span className="leiste__luecke" />
-          <button
-            type="button"
-            className="knopf"
-            data-weitergeben
-            onClick={() => {
-              if (istNeu || veraendert) {
-                setMeldung(t('weitergeben.erst'));
-                return;
-              }
-              void (async () => {
-                const ergebnis = await api.sammlung.weitergeben(offen.id);
-                if (ergebnis.ok) setMeldung(t('weitergeben.fertig', { pfad: ergebnis.text }));
-                else if (ergebnis.text) setFehler(t('fehler.speichern', { detail: ergebnis.text }));
-              })();
-            }}
-          >
-            {t('weitergeben')}
-          </button>
-          {!istNeu ? (
+          {nurLesen ? (
             <button
               type="button"
-              className="knopf"
-              data-loeschen
+              className="knopf knopf--haupt"
+              data-kopie
               onClick={() => {
-                if (!confirm(t('loeschen.sicher', { name: aktuell.name }))) return;
-                void (async () => {
-                  await api.sammlung.loeschen(offen.id);
-                  setOffen(null);
-                  setErgebnisse([]);
-                  await ladeListe();
-                })();
+                setOffen({ ...offen, id: '', name: t('srd.kopieName', { name: offen.name }) });
+                setIstNeu(true);
+                setVeraendert(true);
+                setMeldung('');
               }}
             >
-              {t('loeschen')}
+              {t('srd.kopie')}
             </button>
-          ) : null}
-          <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speichere()}>
-            {t('speichern')}
-          </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="knopf"
+                data-weitergeben
+                onClick={() => {
+                  if (istNeu || veraendert) {
+                    setMeldung(t('weitergeben.erst'));
+                    return;
+                  }
+                  void (async () => {
+                    const ergebnis = await api.sammlung.weitergeben(offen.id);
+                    if (ergebnis.ok) setMeldung(t('weitergeben.fertig', { pfad: ergebnis.text }));
+                    else if (ergebnis.text) setFehler(t('fehler.speichern', { detail: ergebnis.text }));
+                  })();
+                }}
+              >
+                {t('weitergeben')}
+              </button>
+              {!istNeu ? (
+                <button
+                  type="button"
+                  className="knopf"
+                  data-loeschen
+                  onClick={() => {
+                    if (!confirm(t('loeschen.sicher', { name: aktuell.name }))) return;
+                    void (async () => {
+                      await api.sammlung.loeschen(offen.id);
+                      setOffen(null);
+                      setErgebnisse([]);
+                      await ladeListe();
+                    })();
+                  }}
+                >
+                  {t('loeschen')}
+                </button>
+              ) : null}
+              <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speichere()}>
+                {t('speichern')}
+              </button>
+            </>
+          )}
         </div>
 
         <section className="karte wurfkarte">
@@ -279,6 +308,11 @@ export function App() {
             </button>
           </div>
           {aktuell.eintraege.length === 0 ? <p className="hinweis">{t('wurf.leer')}</p> : null}
+          {nurLesen ? (
+            <p className="hinweis hinweis--klein srd-hinweis" data-srd-hinweis>
+              {t('srd.hinweis')} {NAMENSNENNUNG[spr]}
+            </p>
+          ) : null}
           {ergebnisse.length > 0 ? (
             <>
               <ol className="ergebnisse" data-ergebnisse>
@@ -299,6 +333,7 @@ export function App() {
         </section>
 
         <section className="karte">
+          <fieldset className="bearbeiten" disabled={nurLesen}>
           <div className="kopfzeile">
             <label className="feld feld--breit">
               <span className="feld__name">{t('feld.name')}</span>
@@ -362,6 +397,7 @@ export function App() {
             />
           </label>
 
+          </fieldset>
           {meldung ? <p className="meldung">{meldung}</p> : null}
           {fehler ? <p className="fehler">{fehler}</p> : null}
         </section>
@@ -440,7 +476,7 @@ export function App() {
         {gefunden.length === 1 ? t('liste.eine') : t('liste.anzahl', { anzahl: gefunden.length })}
       </p>
 
-      {kacheln.length === 0 ? (
+      {gefunden.length === 0 && kacheln.length === 0 && !suche ? (
         <p className="hinweis">{t('liste.leer')}</p>
       ) : gefunden.length === 0 ? (
         <p className="hinweis">{t('liste.nichts')}</p>
@@ -449,7 +485,10 @@ export function App() {
           {gefunden.map((k) => (
             <li key={k.id}>
               <button type="button" className="tabellenkachel" data-id={k.id} onClick={() => void oeffne(k.id)}>
-                <span className="tabellenkachel__name">{k.name}</span>
+                <span className="tabellenkachel__name">
+                  {k.name}
+                  {istSrd(k.id) ? <span className="marke-srd"> {t('srd')}</span> : null}
+                </span>
                 <span className="tabellenkachel__zahl">
                   {k.wuerfel || t('kachel.gleich')} · {t('kachel.eintraege', { anzahl: k.anzahl })}
                   {k.ohneZuruecklegen ? ` · ${t('kachel.ohneZuruecklegen')}` : ''}

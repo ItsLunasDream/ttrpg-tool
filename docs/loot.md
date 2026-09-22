@@ -3,7 +3,13 @@
 Eigene Zufallstabellen, verschachtelbar, und Beute nach Grad.
 
 **Stand:** Stufe 1 bis 3 sind gebaut (`packages/tabellen`, `apps/loot`),
-Stufe 4 (Beute nach Grad) steht aus. Was beim Bauen entschieden wurde:
+Stufe 4 (Beute nach Grad) geht so nicht: **das SRD 5.2.1 enthält keine
+Schatztabellen nach Herausforderungsgrad** (gegen beide PDFs geprüft; sie
+stehen im Spielleiterhandbuch, das nicht frei lizenziert ist). Eingebaut ist
+stattdessen, was das SRD hat: die W100-Tabelle „Trinkets" / „Requisiten",
+zweisprachig, schreibgeschützt, würfelbar und per `[Trinkets]` bzw.
+`[Requisiten]` aus eigenen Tabellen erreichbar. Was beim Bauen entschieden
+wurde:
 
 - **Eingabe als Zeilen.** Eine Zeile je Eintrag, die Spanne davor ist
   freiwillig (`1-3: 2d6 × 10 Kupfer`). Die Datei auf der Platte ist
@@ -28,7 +34,10 @@ Stufe 4 (Beute nach Grad) steht aus. Was beim Bauen entschieden wurde:
 - **Story Creator:** „In den Story Creator" legt den Wurf als Notiz in der
   zuletzt benutzten Kampagne an, mit den beteiligten Tabellen darunter.
 
-Noch offen: Verweise auf den Bestand des Magic Item Creators, und Stufe 4.
+Noch offen: Verweise auf den Bestand des Magic Item Creators. Denkbar als
+Ersatz für Stufe 4, aber nicht gebaut: die SRD-Tabelle „Starting Equipment
+at Higher Levels" (Gold und magische Gegenstände je Stufenbereich) als
+Richtwert für Beute nach Stufe der Gruppe.
 
 ## Warum das kein weiterer Erzeuger ist
 

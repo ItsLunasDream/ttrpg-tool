@@ -466,3 +466,27 @@ body {
 .kopfzeile .feld--breit {
   flex: 3 1 260px;
 }
+
+/* Das Formular einer SRD-Tabelle ist gesperrt: kein Rahmen, keine Luecke. */
+.bearbeiten {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.bearbeiten:disabled .feld__eingabe,
+.bearbeiten:disabled .feld__flaeche {
+  opacity: 0.75;
+}
+
+.marke-srd {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--betont);
+  vertical-align: middle;
+}
+
+.srd-hinweis {
+  margin-top: 8px;
+}

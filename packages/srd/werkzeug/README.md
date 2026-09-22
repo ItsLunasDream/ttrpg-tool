@@ -13,6 +13,7 @@ python3 werkzeug/monster_erzeugen.py /tmp/monster.json # paart ueber die Zahlen,
 python3 -c "import pickle,sys; sys.path.insert(0,'werkzeug'); from monster_lesen import lies_zeilen as z; [pickle.dump(z(s),open(f'/tmp/zeilen_{s}.pkl','wb')) for s in ('en','de')]"
 python3 werkzeug/gegenstaende_lesen.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tmp/gegenstaende.json
 python3 werkzeug/gegenstaende_eichung.py /tmp/gegenstaende.json ../../apps/magicitems/src/shared/eichpunkte.ts
+python3 werkzeug/tand_lesen.py src/tand.ts             # Trinkets / Requisiten, 1W100, beide Sprachen
 ```
 
 - `glossar_lesen.py`: Eintraege, Absaetze, Unterpunkte nach Schriftart; die
@@ -26,3 +27,5 @@ python3 werkzeug/gegenstaende_eichung.py /tmp/gegenstaende.json ../../apps/magic
 - `gegenstaende_eichung.py`: Eichpunkte fuer den Magic Item Creator. Welcher
   Gegenstand fuer welche Wirkung steht, ist von Hand gewaehlt (`AUSWAHL`);
   die Zahlen kommen aus dem PDF.
+- `tand_lesen.py`: die Tabelle „Trinkets" / „Requisiten", gepaart ueber die
+  Nummer; bricht ab, wenn eine der hundert Nummern fehlt.
