@@ -31,6 +31,16 @@ const api = {
 
   export: (titel: string, markdown: string) =>
     ipcRenderer.invoke(kanal('export'), titel, markdown) as Promise<{ ok: boolean; text: string }>,
+  /**
+   * Eine Datei fuer Foundry wegschreiben. `text` ist der Pfad, wenn es ging.
+   * Abgebrochener Dateidialog: `{ ok: false, text: '' }` — kein Fehler,
+   * sondern eine Entscheidung.
+   */
+  foundry: (vorschlag: string, inhalt: string) =>
+    ipcRenderer.invoke(kanal('foundry'), vorschlag, inhalt) as Promise<{
+      ok: boolean;
+      text: string;
+    }>,
   ki: {
     da: () => ipcRenderer.invoke(kanal('ki:da')) as Promise<boolean>,
     frage: (frage: Frage, sprache: string) =>

@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import type { Eintrag } from '../shared/ablage';
 import { alsLeib, zuId } from '../shared/ablage';
+import { alsFoundryDatei } from '../shared/foundry';
 import {
   erzeugeZustand,
   pruefeZustand,
@@ -261,6 +262,25 @@ export function App() {
     setMeldung(
       ergebnis.ok
         ? t('meldung.exportiert', { name: zustand.name })
+        : t('meldung.fehler', { detail: ergebnis.text })
+    );
+  };
+
+  /**
+   * Den Zustand als JSON fuer Foundry wegschreiben.
+   *
+   * Ein eigener Knopf neben dem Export in den Story Creator: das eine ist
+   * ein Text zum Lesen, das andere eine Datei zum Einlesen.
+   */
+  const nachFoundry = async () => {
+    if (!zustand) return;
+    const datei = alsFoundryDatei(zustand, getLanguage() === 'en' ? 'en' : 'de', Math.random);
+    const ergebnis = await api.foundry(datei.name, datei.inhalt);
+    // Abgebrochen ist kein Fehler: dann bleibt die Leiste still.
+    if (!ergebnis.ok && !ergebnis.text) return;
+    setMeldung(
+      ergebnis.ok
+        ? t('meldung.foundry', { name: zustand.name })
         : t('meldung.fehler', { detail: ergebnis.text })
     );
   };
@@ -561,6 +581,9 @@ export function App() {
                 </button>
                 <button type="button" className="knopf" onClick={() => void exportieren()}>
                   {t('knopf.export')}
+                </button>
+                <button type="button" className="knopf" onClick={() => void nachFoundry()}>
+                  {t('knopf.foundry')}
                 </button>
                 <button type="button" className="knopf" onClick={() => setKarte([zustand])}>
                   {t('knopf.karte')}

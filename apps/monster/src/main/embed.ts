@@ -12,7 +12,7 @@
  */
 import path from 'node:path';
 import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
-import { ipcMain } from 'electron';
+import { dialog, ipcMain, BrowserWindow } from 'electron';
 import type { WebContents } from 'electron';
 import { baueAnbieter, KiFehler, leseJsonAntwort } from '@suite/ki';
 import type { KiEinstellungen } from '@suite/ki/einstellungen';
@@ -159,6 +159,33 @@ export async function mountMonster(options: MonsterEmbedOptions): Promise<Monste
       return { ok: false, text: String(fehler instanceof Error ? fehler.message : fehler) };
     }
   });
+
+  /*
+   * Eine Datei fuer Foundry wegschreiben.
+   *
+   * Der Inhalt kommt fertig aus der Oberflaeche (packages/foundry baut ihn);
+   * hier wird nur gefragt, wohin, und geschrieben. Derselbe kurze Handler
+   * steht im Status Effect Creator — ihn zu teilen hiesse, ein Paket mit
+   * `electron` darin anzulegen, und Regel 4 haelt packages/ davon frei.
+   */
+  ipcMain.removeHandler(kanal('foundry'));
+  ipcMain.handle(
+    kanal('foundry'),
+    async (ereignis, vorschlag: string, inhalt: string) => {
+      try {
+        const fenster = BrowserWindow.fromWebContents(ereignis.sender);
+        const frage = { defaultPath: vorschlag, filters: [{ name: 'JSON', extensions: ['json'] }] };
+        const ergebnis = fenster
+          ? await dialog.showSaveDialog(fenster, frage)
+          : await dialog.showSaveDialog(frage);
+        if (ergebnis.canceled || !ergebnis.filePath) return { ok: false, text: '' };
+        await writeFile(ergebnis.filePath, inhalt, 'utf8');
+        return { ok: true, text: ergebnis.filePath };
+      } catch (fehler) {
+        return { ok: false, text: String(fehler instanceof Error ? fehler.message : fehler) };
+      }
+    }
+  );
 
   /* ---------- KI ---------- */
 

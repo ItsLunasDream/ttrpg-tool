@@ -625,3 +625,20 @@ Eichung des Monster Creators, und dort steht es ebenso dabei.
   Paket stehen die Zustände nebeneinander, nicht auseinander folgend.
 - **Ein Zähler außerhalb des Kampfes.** Wie im Konzept entschieden: der
   Auslöser bleibt Text, und die Spielleitung wendet ihn an.
+
+## Export nach Foundry VTT
+
+Neben „In den Story Creator" steht „Für Foundry (JSON)". Geschrieben wird ein
+Gegenstand vom Typ `feat` für das System `dnd5e` — dieselbe Bauart, die ein
+selbstgebauter Zustand aus einer laufenden Welt hat.
+
+Die ganze Regel steht im HTML der Beschreibung: Kurzsatz, je Stufe eine
+Überschrift mit ihren Wirkungen, dann Dauer, Verschlimmerung und Linderung.
+Leere Felder erzeugen keine leeren Zeilen.
+
+**Ohne `ActiveEffect`, und das ist Absicht.** „Bewegung um 10 Fuß verringert"
+ließe sich als Änderung an `system.attributes.movement.walk` schreiben. Unsere
+Wirkungen sind aber Sätze, keine Feldnamen — aus einem Satz den richtigen
+Schlüssel zu raten hieße, Regeln zu erfinden, die am Tisch dann falsch wirken.
+Der Text steht da, wo ihn jemand liest, und wer einen Effekt automatisieren
+will, baut ihn in Foundry mit einem Klick dazu.

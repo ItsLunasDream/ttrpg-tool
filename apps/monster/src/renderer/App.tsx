@@ -13,6 +13,7 @@ import type { Eintrag } from '../shared/ablage';
 import { alsLeib, zuId } from '../shared/ablage';
 import { alsVariante, erzeugeMonster, wuerfleNeu, type Monster } from '../shared/erzeuge';
 import type { Kampfweite } from '../shared/angriffe';
+import { alsFoundryDatei } from '../shared/foundry';
 import { zieheKiNach, type RohMonster } from '../shared/kiAufgaben';
 import { pruefe, type Vorschlag, type Werte } from '../shared/pruefung';
 import { RICHTWERTE } from '../shared/richtwerte';
@@ -179,6 +180,27 @@ export function App() {
     setMeldung(
       ergebnis.ok
         ? t('meldung.exportiert', { name: monster.name })
+        : t('meldung.fehler', { detail: ergebnis.text })
+    );
+  };
+
+  /**
+   * Das Monster als JSON fuer Foundry wegschreiben.
+   *
+   * Ein eigener Knopf neben dem Export in den Story Creator: das eine ist
+   * ein Text zum Lesen, das andere eine Datei zum Einlesen. Sie unter einem
+   * Knopf zusammenzulegen hiesse, vor jedem Export zu fragen, wohin.
+   */
+  const nachFoundry = async () => {
+    if (!monster) return;
+    const datei = alsFoundryDatei(monster, Math.random);
+    const ergebnis = await api.foundry(datei.name, datei.inhalt);
+    // Abgebrochen ist kein Fehler: dann bleibt die Leiste still, statt eine
+    // Meldung zu zeigen, die nach Missgeschick klingt.
+    if (!ergebnis.ok && !ergebnis.text) return;
+    setMeldung(
+      ergebnis.ok
+        ? t('meldung.foundry', { name: monster.name })
         : t('meldung.fehler', { detail: ergebnis.text })
     );
   };
@@ -379,6 +401,9 @@ export function App() {
                 </button>
                 <button type="button" className="knopf" onClick={() => void exportieren()}>
                   {t('knopf.export')}
+                </button>
+                <button type="button" className="knopf" onClick={() => void nachFoundry()}>
+                  {t('knopf.foundry')}
                 </button>
               </section>
             </>

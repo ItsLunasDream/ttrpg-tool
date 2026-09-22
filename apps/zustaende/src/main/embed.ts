@@ -226,6 +226,29 @@ export async function mountZustaende(options: ZustaendeEmbedOptions): Promise<Zu
     }
   });
 
+  /*
+   * Eine Datei fuer Foundry wegschreiben.
+   *
+   * Derselbe kurze Handler wie im Monster Creator. Ihn zu teilen hiesse, ein
+   * Paket mit `electron` darin anzulegen, und Regel 4 haelt packages/ davon
+   * frei — fuenfzehn Zeilen doppelt sind billiger als eine gebrochene Regel.
+   */
+  ipcMain.removeHandler(kanal('foundry'));
+  ipcMain.handle(kanal('foundry'), async (ereignis, vorschlag: string, inhalt: string) => {
+    try {
+      const fenster = BrowserWindow.fromWebContents(ereignis.sender);
+      const frage = { defaultPath: vorschlag, filters: [{ name: 'JSON', extensions: ['json'] }] };
+      const ergebnis = fenster
+        ? await dialog.showSaveDialog(fenster, frage)
+        : await dialog.showSaveDialog(frage);
+      if (ergebnis.canceled || !ergebnis.filePath) return { ok: false, text: '' };
+      await writeFile(ergebnis.filePath, inhalt, 'utf8');
+      return { ok: true, text: ergebnis.filePath };
+    } catch (fehler) {
+      return { ok: false, text: String(fehler instanceof Error ? fehler.message : fehler) };
+    }
+  });
+
   /* ---------- KI ---------- */
 
   const anbieter = () => {

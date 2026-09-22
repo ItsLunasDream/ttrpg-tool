@@ -213,6 +213,11 @@ export interface Angriff {
   readonly aufladen?: boolean;
 }
 
+/** Die Waffe zu einer Kennung. `undefined`, wenn es sie nicht (mehr) gibt. */
+export function waffe(id: string): Waffe | undefined {
+  return WAFFEN.find((eine) => eine.id === id);
+}
+
 /**
  * Ein Wuerfelausdruck zu einem Durchschnitt.
  *

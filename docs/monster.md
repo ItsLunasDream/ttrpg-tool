@@ -491,3 +491,32 @@ aushält.
 (es gibt den Encounter Creator noch nicht), der Weg in den Initiative
 Tracker, und die Mehrfachauswahl in der Sammlung. Alles drei hängt am
 Encounter Creator und wartet auf ihn.
+
+## Export nach Foundry VTT
+
+Neben „In den Story Creator" steht „Für Foundry (JSON)". Der eine Weg macht
+einen Text zum Lesen, der andere eine Datei zum Einlesen — deshalb zwei
+Knöpfe und keine Rückfrage vor jedem Export.
+
+Geschrieben wird ein Akteur vom Typ `npc` für das System `dnd5e` (Foundry-Kern
+14, System 5.3.3, Regeln 2024). Gebaut ist das Format nach vier echten
+Exporten aus einer laufenden Welt, nicht nach Dokumentation; das Umwandeln
+steht in `packages/foundry` und ist dort gegen das Feldgerüst dieser Exporte
+geprüft.
+
+Zwei Entscheidungen, die man beim Einlesen merkt:
+
+**Der Angriffsbonus steht nicht als Zahl darin.** Die Angriffstätigkeit nennt
+nur das Attribut, und Foundry rechnet Attribut plus Übungsbonus selbst —
+genauso wie der Statblock hier. Die Zahlen stimmen deshalb überein, und ein
+Monster, das in Foundry nachträglich einen Grad höher geschoben wird, rechnet
+dort weiter richtig.
+
+**Flächenangriffe werden `feat` und tragen ihren Rettungs-SG im Text.** Ein
+Feld dafür ist an keiner Kreatur belegt, nur an einem Gegenstand. Aus dem
+einen auf das andere zu schließen wäre geraten, und ein falsch einsortierter
+SG fällt am Tisch erst auf, wenn gewürfelt wird.
+
+Was Foundry beim Einlesen selbst ergänzt (Token, Trefferwürfel, Rettungswürfe
+gegen den Tod), steht bewusst nicht in der Datei: dort sind die Vorgaben des
+Systems besser als unsere.
