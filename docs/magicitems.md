@@ -96,31 +96,45 @@ derselbe mit — er kostet nichts, was die Figur sonst bräuchte.
 - **Welche Art Gegenstand.** Waffe, Rüstung, Wundersames, Trank, Schriftrolle.
   Davon hängt ab, was überhaupt einstellbar ist — eine Waffe hat einen
   Schadensbonus, ein Trank nicht.
-- **Welche Form ein Trank bekommt.** `equipment` und `weapon` sind jetzt an
-  echten Exporten belegt (siehe unten). Ob ein Trank `consumable` und eine
-  Schriftrolle `scroll` wird, ist es nicht — das bleibt offen, bis ein
-  solcher Export vorliegt. Raten wäre hier billig und falsch.
+- **Wie eine schlichte magische Waffe aussieht.** Alle Waffenbelege sind
+  Verzauberungen, die auf eine andere Waffe gelegt werden; keiner ist ein
+  fertiger magischer Langschwert-Gegenstand mit eigenem Grundschaden. Ob so
+  einer `system.type.baseItem` und `system.damage.base` füllt, ist damit
+  nicht belegt. Für die Schriftrolle gilt dasselbe.
 
-## Was vier echte Exporte geklärt haben
+## Was acht echte Exporte geklärt haben
 
-Vier Gegenstände aus einer laufenden Welt (Foundry 14.368, `dnd5e` 5.3.3 —
+Acht Gegenstände aus einer laufenden Welt (Foundry 14.368, `dnd5e` 5.3.3 —
 dieselben Versionen wie bei den Monster- und Zustandsbelegen, also kein
 Versatz): Amulet of Health, Arrow-Catching Shield, Rod of Resurrection,
-Flame Tongue. Ihr Feldgerüst liegt unter
+Flame Tongue, Weapon +1/+2/+3, Ammunition of Slaying, Potion of Healing und
+Potion of Giant Strength. Ihr Feldgerüst liegt unter
 `packages/foundry/tests/belege/item-*.json` — nur Schlüssel und Typen, ohne
 einen einzigen Inhalt, wie schon bei #127. Erzeugt mit
 `packages/foundry/scripts/geruest.mjs`.
 
 **Die Form.** Ein Gegenstand ist ein `Item` ohne `_id` auf oberster Ebene —
-dieselbe Eigenheit wie beim Zustand. Der Typ ist `equipment` für Amulett,
-Schild und Stab, `weapon` für die Waffe. Die Sorte steht darunter noch
-einmal genauer in `system.type.value`: `wondrous`, `shield`, `rod`.
+dieselbe Eigenheit wie beim Zustand. Der Typ steht oben, die Sorte darunter
+noch einmal genauer in `system.type.value`:
+
+| `type` | `system.type.value` | belegt an |
+|---|---|---|
+| `equipment` | `wondrous` | Amulett |
+| `equipment` | `shield` | Schild |
+| `equipment` | `rod` | Stab |
+| `weapon` | (leer) | Flammenzunge, Waffe +1/+2/+3 |
+| `consumable` | `potion` | beide Tränke |
+| `consumable` | `ammo` | Munition |
+
+Ein Trank ist also `consumable`, nicht `equipment` — das war die offene
+Frage. Er trägt `system.uses: { max: "1", autoDestroy: true }`, verbraucht
+sich also selbst.
 
 **Die Felder, auf die es ankommt:**
 
 | Feld | Was drinsteht |
 |---|---|
-| `system.rarity` | `rare`, `legendary` (die Schreibweise für Very Rare ist hier nicht belegt) |
+| `system.rarity` | `common`, `uncommon`, `rare`, `veryRare`, `legendary` — alle fünf belegt, Very Rare in genau dieser Schreibweise |
 | `system.attunement` | `required`, dazu `system.attuned` als eigener Schalter |
 | `system.price` | `{ value, denomination: "gp" }` |
 | `system.properties` | `["mgc"]`, der Stab zusätzlich `"foc"` |
@@ -136,10 +150,20 @@ Erkenntnis für den Export:
   `system.attributes.ac.bonus` mit `add` auf 2. `transfer: true` heißt, dass
   es auf den Träger übergeht.
 - **Was man benutzt**, steht in `system.activities`, unter einer eigenen
-  16-stelligen Kennung je Tätigkeit. Drei Arten kommen vor: `utility` (die
+  16-stelligen Kennung je Tätigkeit. Fünf Arten kommen vor: `utility` (die
   Reaktion des Schilds), `cast` (der Stab wirkt einen Zauber über dessen
-  UUID und verbraucht Ladungen) und `enchant` (die Flammenzunge verzaubert
-  die Waffe, in der sie steckt).
+  UUID und verbraucht Ladungen), `enchant` (die Flammenzunge verzaubert die
+  Waffe, in der sie steckt), `heal` (der Trank, mit
+  `healing: { number, denomination, types: ["healing"], bonus }`) und `save`
+  (die Munition, mit `damage.parts[]`, `onSave: "half"`, `save.ability` und
+  `save.dc.formula`).
+
+**Ein Bonus ist ein eigenes Feld, keine Schadenszeile.** Die Waffe +1/+2/+3
+setzt `system.magicalBonus` per `upgrade` auf 1, 2 oder 3 — und gleich
+daneben `system.rarity` und `system.price.value`. Das Grund-Item selbst
+lässt `rarity` leer; die Seltenheit entsteht erst mit der gewählten Stufe.
+Wer im Werkzeug „+1-Waffe" anbietet, schreibt also `magicalBonus` und nicht
+eine erfundene Schadensformel.
 
 Für Stufe 3 heißt das: ein erzeugter Gegenstand mit einem dauerhaften
 Zahlenbonus lässt sich sauber als `effects[].system.changes` schreiben.
@@ -148,12 +172,27 @@ mehr Arbeit. Ein erster Export sollte sich auf das Dauerhafte beschränken
 und den Rest als Text in der Beschreibung lassen, statt eine halbe Tätigkeit
 zu bauen, die in Foundry dann doch nicht klickt.
 
-**Ein Hinweis zur Punkteskala, mehr nicht.** Alle drei seltenen Gegenstände
-stehen bei 4000 gp, der legendäre bei 200000 gp. Das sieht nach einem festen
-Preis je Seltenheit aus, nicht nach einem aus der Wirkung errechneten — was
-die Vermutung oben stützt, dass es die gesuchte Formel nicht gibt. Drei
-Gegenstände einer Stufe und einer der anderen sind allerdings kein Beweis,
-sondern ein Hinweis.
+**Der Preis hängt an der Seltenheit, nicht an der Wirkung.** Über alle
+Belege hinweg ergibt sich eine glatte Staffel:
+
+| Seltenheit | Preis | woran abgelesen |
+|---|---|---|
+| Common | 50 gp | Potion of Healing |
+| Uncommon | 400 gp | Waffe +1 |
+| Rare | 4000 gp | Amulett, Schild, Waffe +2 |
+| Very Rare | 40000 gp | Waffe +3 |
+| Legendary | 200000 gp | Rod of Resurrection |
+
+Die Waffe +1/+2/+3 zeigt es am deutlichsten: **derselbe Gegenstand**, drei
+Stufen, und der Preis springt allein mit der Seltenheit. Das ist ein
+starkes Indiz dafür, dass die Rechnung, die ich oben nicht kenne, auch gar
+nicht existiert — Seltenheit ist die Eingabe, der Preis die Ausgabe, und
+dazwischen steht eine Tabelle, keine Formel.
+
+Für die Punkteskala heißt das: **sie muss auf die Seltenheit zielen, nicht
+auf den Preis.** Der Preis fällt danach aus der Tabelle ab. Abgelesen habe
+ich das aus diesen acht Exporten, nicht aus dem Regelwerk — dass die Staffel
+dort genauso steht, vermute ich, belegen kann ich es hier nicht.
 
 **Zur Lizenzfrage.** Alle vier tragen `system.source.license: "CC-BY-4.0"`
 und stammen laut `_stats.compendiumSource` aus dem Kompendium des

@@ -1,0 +1,326 @@
+{
+ "_woher": "Feldgeruest magischer Munition (Item, consumable, type.value ammo) mit save-Taetigkeit und vierzehn Verzauberungen. Nur Schluessel und Typen, keine Inhalte.",
+ "_geruest": {
+  "_stats": {
+   "compendiumSource": "str",
+   "coreVersion": "str",
+   "createdTime": "int",
+   "duplicateSource": "null",
+   "exportSource": {
+    "coreVersion": "str",
+    "systemId": "str",
+    "systemVersion": "str",
+    "uuid": "str",
+    "worldId": "str"
+   },
+   "lastModifiedBy": "str",
+   "modifiedTime": "int",
+   "systemId": "str",
+   "systemVersion": "str"
+  },
+  "effects": [
+   {
+    "_id": "str",
+    "_stats": {
+     "compendiumSource": "null",
+     "coreVersion": "str",
+     "createdTime": "int",
+     "duplicateSource": "null",
+     "exportSource": "null",
+     "lastModifiedBy": "str",
+     "modifiedTime": "int",
+     "systemId": "str",
+     "systemVersion": "str"
+    },
+    "description": "str",
+    "disabled": "bool",
+    "duration": {
+     "expired": "bool",
+     "expiry": "null",
+     "units": "str",
+     "value": "null"
+    },
+    "flags": {},
+    "folder": "null",
+    "img": "str",
+    "name": "str",
+    "origin": "null",
+    "showIcon": "int",
+    "sort": "int",
+    "start": "null",
+    "statuses": [],
+    "system": {
+     "changes": [
+      {
+       "key": "str",
+       "phase": "str",
+       "priority": "null",
+       "type": "str",
+       "value": "str"
+      }
+     ]
+    },
+    "tint": "str",
+    "transfer": "bool",
+    "type": "str"
+   }
+  ],
+  "flags": {
+   "dnd5e": {
+    "riders": {
+     "activity": [
+      "str"
+     ]
+    }
+   }
+  },
+  "folder": "null",
+  "img": "str",
+  "name": "str",
+  "ownership": {
+   "default": "int"
+  },
+  "system": {
+   "activities": {
+    "FXPI8uOLJuWDUTax": {
+     "_id": "str",
+     "activation": {
+      "condition": "str",
+      "override": "bool",
+      "type": "str",
+      "value": "null"
+     },
+     "consumption": {
+      "scaling": {
+       "allowed": "bool"
+      },
+      "spellSlot": "bool",
+      "targets": []
+     },
+     "damage": {
+      "onSave": "str",
+      "parts": [
+       {
+        "bonus": "str",
+        "custom": {
+         "enabled": "bool",
+         "formula": "str"
+        },
+        "denomination": "int",
+        "number": "int",
+        "scaling": {
+         "number": "int"
+        },
+        "types": [
+         "str"
+        ]
+       }
+      ]
+     },
+     "description": {
+      "chatFlavor": "str"
+     },
+     "duration": {
+      "concentration": "bool",
+      "override": "bool",
+      "units": "str"
+     },
+     "effects": [],
+     "flags": {},
+     "img": "str",
+     "name": "str",
+     "range": {
+      "override": "bool",
+      "special": "str",
+      "units": "str"
+     },
+     "save": {
+      "ability": [
+       "str"
+      ],
+      "dc": {
+       "calculation": "str",
+       "formula": "str"
+      }
+     },
+     "sort": "int",
+     "target": {
+      "affects": {
+       "choice": "bool",
+       "count": "str",
+       "special": "str",
+       "type": "str"
+      },
+      "override": "bool",
+      "prompt": "bool",
+      "template": {
+       "contiguous": "bool",
+       "stationary": "bool",
+       "type": "str",
+       "units": "str"
+      }
+     },
+     "type": "str",
+     "uses": {
+      "max": "str",
+      "recovery": [],
+      "spent": "int"
+     },
+     "visibility": {
+      "identifier": "str",
+      "level": {
+       "max": "null",
+       "min": "null"
+      },
+      "requireAttunement": "bool",
+      "requireIdentification": "bool",
+      "requireMagic": "bool"
+     }
+    },
+    "ImH9UxTuyMRjiYzp": {
+     "_id": "str",
+     "activation": {
+      "condition": "str",
+      "override": "bool",
+      "type": "str",
+      "value": "null"
+     },
+     "consumption": {
+      "scaling": {
+       "allowed": "bool"
+      },
+      "spellSlot": "bool",
+      "targets": []
+     },
+     "description": {
+      "chatFlavor": "str"
+     },
+     "duration": {
+      "concentration": "bool",
+      "override": "bool",
+      "units": "str"
+     },
+     "effects": [
+      {
+       "_id": "str",
+       "level": {
+        "max": "null",
+        "min": "null"
+       },
+       "riders": {
+        "activity": [
+         "str"
+        ],
+        "effect": [],
+        "item": []
+       }
+      }
+     ],
+     "enchant": {
+      "self": "bool"
+     },
+     "flags": {},
+     "img": "str",
+     "name": "str",
+     "range": {
+      "override": "bool",
+      "special": "str",
+      "units": "str"
+     },
+     "restrictions": {
+      "allowMagical": "bool",
+      "categories": [],
+      "properties": [],
+      "type": "str"
+     },
+     "sort": "int",
+     "target": {
+      "affects": {
+       "choice": "bool",
+       "count": "str",
+       "type": "str"
+      },
+      "override": "bool",
+      "prompt": "bool",
+      "template": {
+       "contiguous": "bool",
+       "stationary": "bool",
+       "type": "str",
+       "units": "str"
+      }
+     },
+     "type": "str",
+     "uses": {
+      "max": "str",
+      "recovery": [],
+      "spent": "int"
+     },
+     "visibility": {
+      "level": {},
+      "requireAttunement": "bool",
+      "requireIdentification": "bool",
+      "requireMagic": "bool"
+     }
+    }
+   },
+   "attuned": "bool",
+   "attunement": "str",
+   "container": "null",
+   "damage": {
+    "base": {
+     "bonus": "str",
+     "custom": {
+      "enabled": "bool"
+     },
+     "denomination": "int",
+     "number": "null",
+     "scaling": {
+      "number": "int"
+     },
+     "types": []
+    },
+    "replace": "bool"
+   },
+   "description": {
+    "chat": "str",
+    "value": "str"
+   },
+   "equipped": "bool",
+   "identified": "bool",
+   "identifier": "str",
+   "price": {
+    "denomination": "str",
+    "value": "int"
+   },
+   "properties": [
+    "str"
+   ],
+   "quantity": "int",
+   "rarity": "str",
+   "source": {
+    "book": "str",
+    "license": "str",
+    "revision": "int",
+    "rules": "str"
+   },
+   "type": {
+    "subtype": "str",
+    "value": "str"
+   },
+   "unidentified": {
+    "description": "str"
+   },
+   "uses": {
+    "autoDestroy": "bool",
+    "max": "str",
+    "recovery": [],
+    "spent": "int"
+   },
+   "weight": {
+    "units": "str",
+    "value": "num"
+   }
+  },
+  "type": "str"
+ }
+}

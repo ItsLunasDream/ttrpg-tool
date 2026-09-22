@@ -7,10 +7,10 @@
  * Nutzerkennungen aus einer fremden Installation. `scripts/geruest.mjs`
  * macht aus einem Export ein Geruest.
  *
- * Die vier `item-equipment-*` / `item-weapon`-Belege gehoeren noch zu
- * keinem Export von uns: sie sind die Vorarbeit fuer den Magic Item
- * Creator (docs/magicitems.md) und stehen hier, damit die Form beim Bauen
- * belegt ist und nicht geraten wird.
+ * Die acht `item-equipment-*`, `item-consumable-*` und `item-weapon*`-
+ * Belege gehoeren noch zu keinem Export von uns: sie sind die Vorarbeit
+ * fuer den Magic Item Creator (docs/magicitems.md) und stehen hier, damit
+ * die Form beim Bauen belegt ist und nicht geraten wird.
  *
  * Geprueft wird die eine Eigenschaft, auf die es ankommt: **wir erfinden
  * keine Felder.** Jeder Schluessel, den wir schreiben, kommt in einem echten
