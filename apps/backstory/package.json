@@ -117,6 +117,7 @@
     "@suite/i18n": "*",
     "@suite/motion": "*",
     "@suite/ki": "*",
-    "@suite/einstellungen": "*"
+    "@suite/einstellungen": "*",
+    "@suite/eintraege": "*"
   }
 }

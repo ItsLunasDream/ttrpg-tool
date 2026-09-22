@@ -309,6 +309,39 @@ function sichereAb(sicht: WebContentsView, devServerUrl: string | null): void {
     const ziel = new URL(url);
     if (ziel.protocol === 'http:' || ziel.protocol === 'https:') void shell.openExternal(ziel.href);
   });
+
+  /*
+   * Strg+K oeffnet die Suche — in JEDEM Werkzeug.
+   *
+   * Liegt der Fokus in einer eingebetteten Ansicht, sieht die Oberflaeche
+   * der Huelle den Tastendruck nicht: es sind getrennte Fenster im selben
+   * Prozess. Frueher meldete ihn deshalb das Preload jedes Werkzeugs
+   * weiter — derselbe Block, viermal kopiert, und in fuenf Werkzeugen
+   * schlicht vergessen. Wer im Story Creator oder beim Wuerfeln Strg+K
+   * drueckte, bekam nichts.
+   *
+   * `before-input-event` sieht dieselbe Taste im Hauptprozess, und zwar
+   * fuer jede Ansicht, die hier durchlaeuft. Eine Stelle statt neun, und
+   * ein neues Werkzeug bekommt es, ohne dass jemand daran denkt.
+   */
+  sicht.webContents.on('before-input-event', (_event, eingabe) => {
+    if (eingabe.type !== 'keyDown') return;
+    if (!(eingabe.control || eingabe.meta)) return;
+    if (eingabe.key.toLowerCase() !== 'k') return;
+    huellenSuche?.();
+  });
+}
+
+/**
+ * Was passiert, wenn in einem Werkzeug Strg+K gedrueckt wird.
+ *
+ * Die Huelle traegt es beim Start ein. Hier steht nur der Haken, damit
+ * `sichereAb` nichts ueber sie wissen muss.
+ */
+let huellenSuche: (() => void) | null = null;
+
+export function setzeSuchtaste(hoerer: () => void): void {
+  huellenSuche = hoerer;
 }
 
 /** Laedt in eine Ansicht, was die Montage-Schnittstelle angegeben hat. */

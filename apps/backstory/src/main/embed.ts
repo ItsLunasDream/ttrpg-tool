@@ -32,6 +32,7 @@ import {
   type Umgebung as EinstellungsUmgebung
 } from './werkzeugeinstellungen';
 import type { KiQuelle } from './ai';
+import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import type { AppSettings } from '../shared/types';
 import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
 
@@ -187,6 +188,13 @@ export interface BackstoryEmbed {
    */
   meldeFremdeAenderung(webContents: WebContents): void;
   /**
+   * Zeigt eine Notiz, die die Suche der Huelle gefunden hat.
+   *
+   * Die Kennung traegt beides, `<kampagne>/<notiz>` — eine Notizkennung
+   * allein sagt nicht, in welcher Kampagne sie liegt.
+   */
+  zeigeEintrag(webContents: WebContents, kennung: string): Promise<boolean>;
+  /**
    * Sagt der Oberflaeche, dass sich die KI-Einstellung der Sammlung geaendert
    * hat.
    *
@@ -238,6 +246,75 @@ export interface BackstoryEmbed {
  * Muss nach `app.whenReady()` aufgerufen werden. `registerAssetScheme()`
  * dagegen muss *davor* laufen und wird deshalb getrennt exportiert.
  */
+/**
+ * Was dieses Werkzeug abgelegt hat, fuer die Suche der Huelle (Strg+K).
+ *
+ * Liest den Vault direkt von der Platte, ohne montierte Ansicht: die Suche
+ * soll auch Notizen finden, die man in dieser Sitzung nicht offen hatte.
+ *
+ * WARUM DAS SPAETER KAM ALS DIE ANDEREN. Monster und Zustaende liegen in
+ * einem flachen Ordner; hier haengen die Notizen an Kampagnen, und die
+ * Kennung muss beides tragen. Der Vault entscheidet ausserdem selbst, wo er
+ * liegt — der Pfad steht in `settings.json` und nicht fest im Datenordner.
+ * Beides ist der Grund, warum der Kommentar in `suche.ts` den Story Creator
+ * lange als eigene Runde ausgewiesen hat.
+ */
+export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]> {
+  const eigener = path.join(datenordner, 'backstory');
+  let wurzel = path.join(eigener, 'vault');
+  try {
+    const roh = JSON.parse(await fs.readFile(path.join(eigener, 'settings.json'), 'utf8')) as {
+      vaultRoot?: string;
+    };
+    if (typeof roh.vaultRoot === 'string' && roh.vaultRoot) wurzel = roh.vaultRoot;
+  } catch {
+    // Noch nie gestartet: dann gilt der Vorgabepfad, und der ist womoeglich
+    // auch noch leer. Beides ist kein Fehler.
+  }
+
+  const vault = new Vault(wurzel);
+  const heraus: SuchEintrag[] = [];
+  let kampagnen: { id: string; name: string; noteTypes?: { id: string; label: string }[] }[];
+  try {
+    kampagnen = await vault.listCampaigns();
+  } catch {
+    return [];
+  }
+  for (const kampagne of kampagnen) {
+    /*
+     * Die Beschriftung des Notiztyps, nicht seine Kennung.
+     *
+     * In der Trefferzeile soll „Charakter" stehen und nicht `character`.
+     * Die Beschriftungen gehoeren der Kampagne — jede darf eigene Typen
+     * haben —, also kommen sie von dort und nicht aus einer Tabelle hier.
+     */
+    const beschriftung = new Map(
+      (kampagne.noteTypes ?? []).map((typ) => [typ.id, typ.label])
+    );
+    let notizen;
+    try {
+      notizen = await vault.listNotes(kampagne.id);
+    } catch {
+      // Eine kaputte Kampagne darf die anderen nicht mitnehmen.
+      continue;
+    }
+    for (const notiz of notizen) {
+      heraus.push({
+        werkzeug: 'backstory',
+        // Beides, denn eine Notizkennung ist nur INNERHALB ihrer Kampagne
+        // eindeutig — zwei Kampagnen duerfen einen „Koenig" haben.
+        kennung: `${kampagne.id}/${notiz.id}`,
+        name: notiz.title,
+        art: beschriftung.get(notiz.type) ?? notiz.type,
+        // Die Kampagne gehoert dazu: wer „Waldheim Koenig" tippt, meint den
+        // Koenig aus genau dieser Kampagne.
+        stichworte: [kampagne.name, ...notiz.aliases, ...notiz.tags].join(' ')
+      });
+    }
+  }
+  return heraus;
+}
+
 export async function mountBackstory(options: BackstoryEmbedOptions): Promise<BackstoryEmbed> {
   const settingsFile = path.join(options.userDataDir, 'settings.json');
   const defaultRoot = path.join(options.userDataDir, 'vault');
@@ -366,6 +443,16 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
     flush: (webContents, timeoutMs = 3000) => flushWebContents(webContents, timeoutMs),
     darfSchliessen: (webContents, elternfenster) =>
       frageVorDemSchliessen(webContents, kontext.settings.language, elternfenster),
+    zeigeEintrag: async (webContents, kennung) => {
+      if (webContents.isDestroyed()) return false;
+      const teiler = kennung.indexOf('/');
+      if (teiler <= 0) return false;
+      webContents.send(channel('suche:zeigen'), {
+        kampagne: kennung.slice(0, teiler),
+        notiz: kennung.slice(teiler + 1)
+      });
+      return true;
+    },
     meldeFremdeAenderung: (webContents) => {
       if (!webContents.isDestroyed()) webContents.send(channel('app:fremde-aenderung'));
     },

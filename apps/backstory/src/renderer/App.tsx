@@ -339,6 +339,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   }, [activeCampaignId, guard, reloadNotes]);
 
 
+
   useEffect(() => {
     if (!activeCampaignId) {
       setNotes([]);
@@ -676,6 +677,28 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     },
     [guard, sichereVorWechsel]
   );
+
+  /*
+   * Ein Treffer aus der Suche der Huelle.
+   *
+   * Erst die Kampagne, dann die Notiz — und dazwischen muss die Liste neu
+   * gelesen sein. `openNote` sucht in `notesRef`, und die traegt bis dahin
+   * noch die Notizen der alten Kampagne; ohne das Nachladen faende der
+   * Sprung in eine fremde Kampagne nichts und taete stillschweigend gar
+   * nichts.
+   */
+  useEffect(() => {
+    return api.beiSuchtreffer((ziel) => {
+      void guard(async () => {
+        if (ziel.kampagne !== activeCampaignIdRef.current) {
+          await sichereVorWechsel();
+          setActiveCampaignId(ziel.kampagne);
+          await reloadNotes(ziel.kampagne);
+        }
+        openNote(ziel.notiz);
+      });
+    });
+  }, [guard, openNote, reloadNotes, sichereVorWechsel]);
 
   const createNote = useCallback(
     (type: NoteType, title: string) => {

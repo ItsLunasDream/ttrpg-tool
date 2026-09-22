@@ -86,21 +86,3 @@ verlaufsDokument.addEventListener(
   true
 );
 
-/*
- * Strg+K an die Huelle melden.
- *
- * Dasselbe Muster wie bei den Daumentasten der Maus: liegt der Fokus in
- * dieser Ansicht, sieht die Huelle den Tastendruck nicht. Das Preload
- * sieht dasselbe Dokument und braucht dafuer keine Zeile im
- * Anwendungscode.
- */
-verlaufsDokument.addEventListener(
-  'keydown',
-  (ereignis) => {
-    const taste = ereignis as { key?: string; ctrlKey?: boolean; metaKey?: boolean };
-    if ((taste.ctrlKey || taste.metaKey) && taste.key?.toLowerCase() === 'k') {
-      ipcRenderer.send('suche:taste');
-    }
-  },
-  true
-);

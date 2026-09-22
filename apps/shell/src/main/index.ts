@@ -52,7 +52,13 @@ function startBericht(): void {
 import { join } from 'node:path';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { berechneAppFlaeche } from '../shared/apps';
-import { mountApp, registerSchemes, type MontageHaken, type MontierteApp } from './apps';
+import {
+  mountApp,
+  registerSchemes,
+  setzeSuchtaste,
+  type MontageHaken,
+  type MontierteApp
+} from './apps';
 import type { Wert } from '@suite/einstellungen';
 import { beobachteFarbe, setzeThema as setzeFarbthema } from './farbe';
 import { schreibeSicherung } from './sicherung';
@@ -1020,7 +1026,16 @@ function registriereKanaele(): void {
    * Werkzeugs hoert mit und meldet hierher, weil die Huelle den
    * Tastendruck sonst nicht sieht.
    */
-  ipcMain.on('suche:taste', () => huelle?.webContents.send('suche:oeffnen'));
+  /*
+   * Strg+K aus einem Werkzeug.
+   *
+   * Zwei Wege fuehren hierher, und beide sollen es: `before-input-event`
+   * auf jeder eingebetteten Ansicht (siehe `sichereAb`) und — fuer die
+   * Oberflaeche der Huelle selbst — ihr eigener Tastenlauscher.
+   */
+  const oeffneSuche = () => huelle?.webContents.send('suche:oeffnen');
+  setzeSuchtaste(oeffneSuche);
+  ipcMain.on('suche:taste', oeffneSuche);
 
   ipcMain.on('bewegung:reduziert', (_event, reduziert: boolean) => {
     wenigerBewegung = Boolean(reduziert);

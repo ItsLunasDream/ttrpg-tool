@@ -10,7 +10,7 @@
  * Dialoge schon gehen.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { buendle, eintragsSchluessel, finde, type Eintrag } from '@suite/eintraege';
+import { buendle, eintragsSchluessel, finde, WERKZEUG_APP, type Eintrag } from '@suite/eintraege';
 import type { MessageKey, MessageParams } from '../shared/i18n';
 import { nameKey } from '../shared/apps';
 
@@ -97,7 +97,13 @@ export function Suche({ eintraege, laedt, onWahl, onClose, t }: Props) {
           <div className="suche__liste">
             {gruppen.map((gruppe) => (
               <section key={gruppe.werkzeug}>
-                <h3 className="suche__werkzeug">{t(nameKey(gruppe.werkzeug))}</h3>
+                <h3 className="suche__werkzeug">
+                  {/* Die Anwendungen sind kein Werkzeug mit eigenem Namen —
+                      sie sind die Werkzeuge. */}
+                  {gruppe.werkzeug === WERKZEUG_APP
+                    ? t('search.appGruppe')
+                    : t(nameKey(gruppe.werkzeug))}
+                </h3>
                 <ul>
                   {gruppe.eintraege.map((eintrag) => {
                     // Die Nummer ueber ALLE Treffer hinweg, nicht je Gruppe:

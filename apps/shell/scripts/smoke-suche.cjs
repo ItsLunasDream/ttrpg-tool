@@ -72,6 +72,37 @@ lege(
   ].join('\n')
 );
 
+/*
+ * Eine Kampagne mit einer Notiz im Vault des Story Creators.
+ *
+ * Er kam spaeter in die Suche als die uebrigen, weil seine Notizen an
+ * Kampagnen haengen und sein Vault selbst entscheidet, wo er liegt. Beides
+ * steckt in diesen zwei Dateien.
+ */
+lege(
+  'backstory/vault/campaigns/tal-der-asche/campaign.json',
+  JSON.stringify({ name: 'Tal der Asche', schemaVersion: 3 })
+);
+lege(
+  'backstory/vault/campaigns/tal-der-asche/notes/koenig-von-waldheim.md',
+  [
+    '---',
+    'schemaVersion: 3',
+    'type: character',
+    'title: Der König von Waldheim',
+    'aliases:',
+    '  - Alter Herrscher',
+    'tags:',
+    '  - herrschaft',
+    'createdAt: 2026-09-22T09:00:00.000Z',
+    'updatedAt: 2026-09-22T09:00:00.000Z',
+    '---',
+    '',
+    'Er sitzt seit vierzig Jahren auf demselben Stuhl.',
+    ''
+  ].join('\n')
+);
+
 app.setPath('userData', userData);
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
 
@@ -102,11 +133,11 @@ app.whenReady().then(async () => {
   // --- Die Eintraege kommen von der Platte ---------------------------------
   const eintraege = await js('window.shell.suche.eintraege()');
   pruefe(
-    Array.isArray(eintraege) && eintraege.length >= 3,
-    `alle drei Werkzeuge liefern (${Array.isArray(eintraege) ? eintraege.length : 'keine Liste'})`
+    Array.isArray(eintraege) && eintraege.length >= 4,
+    `alle vier Werkzeuge liefern (${Array.isArray(eintraege) ? eintraege.length : 'keine Liste'})`
   );
   const werkzeuge = new Set((eintraege ?? []).map((e) => e.werkzeug));
-  for (const name of ['monster', 'zustaende', 'initiative']) {
+  for (const name of ['monster', 'zustaende', 'initiative', 'backstory']) {
     pruefe(werkzeuge.has(name), `${name} ist dabei`);
   }
   // Und das, ohne dass eines davon je offen war.
@@ -160,6 +191,98 @@ app.whenReady().then(async () => {
     ghul.some((text) => /Höhlenkampf/.test(text)),
     `ein Teilnehmer findet die Begegnung (${ghul.join(' | ') || 'nichts'})`
   );
+
+  // --- Der Story Creator ist dabei -----------------------------------------
+  //
+  // Und zwar ueber die Kampagne gefunden: „waldheim asche" trifft die Notiz
+  // nur, wenn der Kampagnenname als Stichwort mitkommt.
+  await js(`(() => {
+    const feld = document.querySelector('.suche__feld');
+    const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setzer.call(feld, 'waldheim asche');
+    feld.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  })()`);
+  await warte(500);
+  const notiz = await js(
+    "[...document.querySelectorAll('.suche__treffer')].map((k) => k.textContent)"
+  );
+  pruefe(
+    notiz.some((text) => /König von Waldheim/.test(text)),
+    `eine Notiz findet sich ueber ihre Kampagne (${notiz.join(' | ') || 'nichts'})`
+  );
+
+  // --- Die Werkzeuge selbst sind Treffer -----------------------------------
+  //
+  // Wer „Inspiration" tippt, meint meistens die Anwendung und nicht eine
+  // Notiz darin.
+  await js(`(() => {
+    const feld = document.querySelector('.suche__feld');
+    const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setzer.call(feld, 'inspiration');
+    feld.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  })()`);
+  await warte(500);
+  const werkzeugtreffer = await js(
+    "[...document.querySelectorAll('.suche__treffer')].map((k) => k.textContent)"
+  );
+  pruefe(
+    werkzeugtreffer.some((text) => /Inspiration/.test(text)),
+    `„inspiration" findet die Anwendung (${werkzeugtreffer.join(' | ') || 'nichts'})`
+  );
+
+  // Und ein Klick darauf oeffnet sie.
+  await js("document.querySelector('.suche__treffer').click(); true");
+  await warte(5000);
+  pruefe(
+    fenster.contentView.children.some((v) =>
+      v.webContents.getURL().includes('/apps/inspiration/')
+    ),
+    'und der Treffer oeffnet sie'
+  );
+  await js(
+    "(() => { const k = document.querySelector('.schiene__heim'); if (k) k.click(); return true; })()"
+  );
+  await warte(1200);
+
+  // --- Strg+K geht auch AUS einem Werkzeug heraus auf ----------------------
+  //
+  // Frueher meldete das Preload jedes Werkzeugs die Taste weiter — in fuenf
+  // von neun war der Block schlicht vergessen. Jetzt sieht die Huelle sie
+  // selbst, fuer jede eingebettete Ansicht.
+  {
+    const inspiration = fenster.contentView.children.find((v) =>
+      v.webContents.getURL().includes('/apps/inspiration/')
+    );
+    await js("(() => { const k = document.querySelector('.suche__schirm'); if (k) k.remove(); return true; })()");
+    await warte(300);
+    if (inspiration) {
+      inspiration.webContents.focus();
+      inspiration.webContents.sendInputEvent({
+        type: 'keyDown',
+        keyCode: 'k',
+        modifiers: ['control']
+      });
+      await warte(1200);
+      pruefe(
+        await js("Boolean(document.querySelector('.suche'))"),
+        'Strg+K geht auch aus einem Werkzeug heraus auf'
+      );
+    } else {
+      pruefe(false, 'Strg+K aus einem Werkzeug: die Ansicht fehlt');
+    }
+  }
+
+  // Zurueck zur Begegnung fuer den Sprungtest.
+  await js(`(() => {
+    const feld = document.querySelector('.suche__feld');
+    const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setzer.call(feld, 'ghul');
+    feld.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  })()`);
+  await warte(500);
 
   // --- Der Sprung ----------------------------------------------------------
   //

@@ -49,6 +49,8 @@ const en = {
   'search.loading': 'Reading…',
   'search.nothing': 'Nothing found.',
   'search.keys': '↑ ↓ to move, Enter to open, Esc to close',
+  'search.appArt': 'Tool',
+  'search.appGruppe': 'Tools',
   'settings.title': 'Settings',
   'settings.language': 'Language',
   'settings.languageHint':
@@ -209,6 +211,8 @@ const de: Partial<Record<MessageKey, string>> = {
   'search.loading': 'Wird gelesen…',
   'search.nothing': 'Nichts gefunden.',
   'search.keys': '↑ ↓ bewegen, Enter öffnet, Esc schließt',
+  'search.appArt': 'Werkzeug',
+  'search.appGruppe': 'Werkzeuge',
   'settings.title': 'Einstellungen',
   'settings.language': 'Sprache',
   'settings.languageHint':

@@ -44,7 +44,7 @@ import {
 import { AppSymbol, SuiteIcon } from './icons';
 import { KI_VOREINSTELLUNGEN, type KiEinstellungen } from '@suite/ki/einstellungen';
 import { VORGABE_THEMA } from '@suite/farben';
-import type { Eintrag } from '@suite/eintraege';
+import { WERKZEUG_APP, type Eintrag } from '@suite/eintraege';
 import { Einstellungen, type KiZustandAnsicht } from './Einstellungen';
 import { Suche } from './Suche';
 import { Ueber } from './Ueber';
@@ -162,6 +162,7 @@ export function App() {
    */
   const [eintraege, setEintraege] = useState<readonly Eintrag[]>([]);
   const [sucheLaedt, setSucheLaedt] = useState(false);
+
   const [wenigerBewegung, setWenigerBewegung] = useState(false);
   /**
    * Eigene Symbole aus dem Symbolordner, als data:-URL je Kennung.
@@ -437,6 +438,27 @@ export function App() {
   const t = useMemo<Uebersetzer>(
     () => (key, params) => translate(sprache, key, params),
     [sprache]
+  );
+
+  /*
+   * Die Anwendungen selbst als Treffer.
+   *
+   * Sie kommen nicht von einem Leser: die Huelle kennt ihre eigenen
+   * Anwendungen, und sie von der Platte zu holen waere ein Umweg um
+   * Wissen, das hier ohnehin liegt. Die Beschreibung der Kachel kommt als
+   * Stichwort mit — wer „Karte" tippt, findet so auch den Karteneditor,
+   * der „Maps" heisst.
+   */
+  const appEintraege = useMemo<readonly Eintrag[]>(
+    () =>
+      APPS.filter((app) => istWaehlbar(app.status)).map((app) => ({
+        werkzeug: WERKZEUG_APP,
+        kennung: app.id,
+        name: t(nameKey(app.id)),
+        art: t('search.appArt'),
+        stichworte: t(descriptionKey(app.id))
+      })),
+    [t]
   );
 
   /**
@@ -805,9 +827,20 @@ export function App() {
       )}
       {dialog === 'suche' && (
         <Suche
-          eintraege={eintraege}
+          eintraege={[...appEintraege, ...eintraege]}
           laedt={sucheLaedt}
           onWahl={(eintrag) => {
+            /*
+             * Eine Anwendung ist selbst ein Treffer.
+             *
+             * Wer „Inspiration" tippt, meint meistens die Anwendung und
+             * nicht eine Notiz darin. Dann gibt es nichts zu zeigen — das
+             * Oeffnen IST das Ergebnis.
+             */
+            if (eintrag.werkzeug === WERKZEUG_APP) {
+              void waehle(eintrag.kennung);
+              return;
+            }
             // Erst hin, dann zeigen — und zwar abgewartet: die Huelle
             // schickt den Sprung an das montierte Werkzeug, und montiert
             // ist es erst, wenn `waehle` antwortet. Ohne das `await` kam

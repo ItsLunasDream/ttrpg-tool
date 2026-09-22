@@ -23,6 +23,7 @@ import { leseEintraege as leseMonster } from '../../../monster/src/main/embed';
 import { leseEintraege as leseZustaende } from '../../../zustaende/src/main/embed';
 import { leseEintraege as leseBegegnungen } from '../../../initiative/src/main/embed';
 import { leseEintraege as leseEncounter } from '../../../encounter/src/main/embed';
+import { leseEintraege as leseNotizen } from '../../../backstory/src/main/embed';
 
 /**
  * Die Leser, je Werkzeug einer.
@@ -31,15 +32,16 @@ import { leseEintraege as leseEncounter } from '../../../encounter/src/main/embe
  * Mangel, sondern die Form: wer mitmachen will, beantwortet „gib mir deine
  * Eintraege", und die Huelle muss darueber nichts wissen.
  *
- * Der Story Creator fehlt noch. Seine Notizen liegen je Kampagne und
- * koennen viele sein; das braucht eine eigene Runde und gehoert nicht
- * nebenbei erledigt.
+ * Der Story Creator kam spaeter dazu als die uebrigen, und zwar aus zwei
+ * Gruenden: seine Notizen haengen an Kampagnen, die Kennung muss also
+ * beides tragen — und sein Vault entscheidet selbst, wo er liegt.
  */
 const LESER: readonly ((datenordner: string) => Promise<readonly Eintrag[]>)[] = [
   leseMonster,
   leseZustaende,
   leseBegegnungen,
-  leseEncounter
+  leseEncounter,
+  leseNotizen
 ];
 
 /**
