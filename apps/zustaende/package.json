@@ -1,6 +1,6 @@
 {
   "name": "ttrpg-zustaende",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Status Effect Creator — eigene Zustaende mit Stufen und Gewicht",
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "backstory-creator",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Desktop-Tool zum Schreiben von D&D-Charakter-Backstorys",
   "repository": {
@@ -117,6 +117,7 @@
     "@suite/i18n": "*",
     "@suite/motion": "*",
     "@suite/ki": "*",
-    "@suite/einstellungen": "*"
+    "@suite/einstellungen": "*",
+    "@suite/eintraege": "*"
   }
 }

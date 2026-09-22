@@ -1,6 +1,6 @@
 {
   "name": "ttrpg-initiative",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Initiative Tracker — Kampfreihenfolge, Trefferpunkte und Zustaende am Spieltisch",
   "type": "module",
@@ -24,7 +24,8 @@
   "dependencies": {
     "@suite/dice": "*",
     "@suite/motion": "*",
-    "@suite/eintraege": "*"
+    "@suite/eintraege": "*",
+    "@suite/uebergabe": "*"
   },
   "author": {
     "name": "ItsLunasDream"

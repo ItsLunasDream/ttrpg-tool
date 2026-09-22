@@ -52,8 +52,15 @@ function startBericht(): void {
 import { join } from 'node:path';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { berechneAppFlaeche } from '../shared/apps';
-import { mountApp, registerSchemes, type MontageHaken, type MontierteApp } from './apps';
+import {
+  mountApp,
+  registerSchemes,
+  setzeSuchtaste,
+  type MontageHaken,
+  type MontierteApp
+} from './apps';
 import type { Wert } from '@suite/einstellungen';
+import type { Uebergabe } from '@suite/uebergabe';
 import { beobachteFarbe, setzeThema as setzeFarbthema } from './farbe';
 import { schreibeSicherung } from './sicherung';
 import { alleEintraege } from './suche';
@@ -338,6 +345,40 @@ let wartendeKarte: { name: string; notizen: readonly { title: string; text: stri
  * Animation. Ohne das saehe man die Ansicht wechseln, waehrend die Schiene
  * weiter das alte Werkzeug markiert.
  */
+/**
+ * Dasselbe fuer den Weg in den Initiative Tracker.
+ *
+ * Der Encounter Creator schiebt eine Begegnung hinueber; der Tracker muss
+ * dafuer erst montiert, geladen und sichtbar sein. Bis dahin liegt sie
+ * hier — wie der Kartenname darueber, aus demselben Grund und mit
+ * derselben Regel: nach dem Zustellen vergessen, damit der naechste
+ * Wechsel von Hand nicht dieselbe Begegnung noch einmal hereinschiebt.
+ */
+let wartendeBegegnung: Uebergabe | null = null;
+
+/**
+ * Holt den Tracker nach vorn und stellt ihm eine Begegnung zu.
+ *
+ * Was dort damit geschieht, entscheidet er selbst: seine Oberflaeche
+ * fragt erst dieselbe Frage wie bei „Neue Begegnung". Von hier aus wird
+ * nichts weggeworfen.
+ */
+async function oeffneBegegnungImTracker(uebergabe: Uebergabe): Promise<boolean> {
+  if (!huelle) return false;
+  wartendeBegegnung = uebergabe;
+  huelle.webContents.send('app:oeffne', 'initiative');
+
+  // Steht er schon vorn, kommt kein Wechsel mehr — dann jetzt zustellen.
+  if (aktiveApp === 'initiative') {
+    const montiert = offen.get('initiative');
+    if (montiert?.uebernimmBegegnung && montiert.istGeladen()) {
+      await montiert.uebernimmBegegnung(uebergabe);
+      wartendeBegegnung = null;
+    }
+  }
+  return true;
+}
+
 async function oeffneKarteImEditor(
   name: string,
   notizen: readonly { title: string; text: string }[] = []
@@ -374,7 +415,8 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
       einstellungen: gemerkteEinstellungen.ki,
       schluessel: entschluessle(gemerkteEinstellungen.claudeSchluessel)
     }),
-    oeffneKarte: oeffneKarteImEditor
+    oeffneKarte: oeffneKarteImEditor,
+    inDenTracker: oeffneBegegnungImTracker
   };
 }
 
@@ -950,6 +992,12 @@ function registriereKanaele(): void {
       montiert.neueKarte(wartendeKarte.name, wartendeKarte.notizen);
       wartendeKarte = null;
     }
+
+    // Dasselbe fuer eine Begegnung, die auf den Tracker wartet.
+    if (wartendeBegegnung && montiert.uebernimmBegegnung) {
+      await montiert.uebernimmBegegnung(wartendeBegegnung);
+      wartendeBegegnung = null;
+    }
     return { zustand: 'offen' };
   });
 
@@ -1020,7 +1068,16 @@ function registriereKanaele(): void {
    * Werkzeugs hoert mit und meldet hierher, weil die Huelle den
    * Tastendruck sonst nicht sieht.
    */
-  ipcMain.on('suche:taste', () => huelle?.webContents.send('suche:oeffnen'));
+  /*
+   * Strg+K aus einem Werkzeug.
+   *
+   * Zwei Wege fuehren hierher, und beide sollen es: `before-input-event`
+   * auf jeder eingebetteten Ansicht (siehe `sichereAb`) und — fuer die
+   * Oberflaeche der Huelle selbst — ihr eigener Tastenlauscher.
+   */
+  const oeffneSuche = () => huelle?.webContents.send('suche:oeffnen');
+  setzeSuchtaste(oeffneSuche);
+  ipcMain.on('suche:taste', oeffneSuche);
 
   ipcMain.on('bewegung:reduziert', (_event, reduziert: boolean) => {
     wenigerBewegung = Boolean(reduziert);

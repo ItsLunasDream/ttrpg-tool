@@ -19,6 +19,7 @@ import { Ablage } from './ablage';
 import { registriereIpc, entferneIpc } from './ipc';
 import { behandleBildProtokoll, registriereBildSchema } from './bildProtokoll';
 import { kanal, BILD_SCHEMA } from '../shared/kanaele';
+import type { Uebergabe } from '@suite/uebergabe';
 
 export { registriereBildSchema };
 
@@ -51,6 +52,14 @@ export interface InitiativeEmbed {
    * gibt, entscheidet die Oberflaeche — sie hat die Liste.
    */
   zeigeEintrag(webContents: WebContents, kennung: string): Promise<boolean>;
+  /**
+   * Stellt eine Begegnung aus einem anderen Werkzeug zu.
+   *
+   * Uebernommen wird sie hier NICHT. Die Oberflaeche fragt erst dieselbe
+   * Frage wie bei „Neue Begegnung" — laeuft ein Kampf oder steht etwas
+   * Ungespeichertes da, wird von aussen nichts weggeworfen.
+   */
+  uebernimmBegegnung(webContents: WebContents, uebergabe: Uebergabe): Promise<boolean>;
 }
 
 /**
@@ -115,6 +124,11 @@ export async function mountInitiative(
   });
 
   return {
+    uebernimmBegegnung: async (webContents, uebergabe) => {
+      if (webContents.isDestroyed()) return false;
+      webContents.send(kanal('uebergabe'), uebergabe);
+      return true;
+    },
     zeigeEintrag: async (webContents, kennung) => {
       if (webContents.isDestroyed()) return false;
       webContents.send(kanal('suche:zeigen'), kennung);

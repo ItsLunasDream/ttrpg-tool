@@ -92,6 +92,22 @@ const api = {
    * stammt — der NPC Creator hat eine Figur abgelegt. Liefert eine Funktion
    * zum Abmelden zurueck.
    */
+  /**
+   * Die Suche der Huelle (Strg+K) hat eine Notiz gewaehlt, die hier liegt.
+   *
+   * Beides kommt mit: eine Notizkennung ist nur INNERHALB ihrer Kampagne
+   * eindeutig, zwei Kampagnen duerfen einen „Koenig" haben. Liefert eine
+   * Funktion zum Abmelden zurueck.
+   */
+  beiSuchtreffer: (
+    callback: (ziel: { kampagne: string; notiz: string }) => void
+  ): (() => void) => {
+    const listener = (_e: unknown, ziel: { kampagne: string; notiz: string }) => callback(ziel);
+    ipcRenderer.on(channel('suche:zeigen'), listener);
+    return () => {
+      ipcRenderer.off(channel('suche:zeigen'), listener);
+    };
+  },
   onFremdeAenderung: (callback: () => void): (() => void) => {
     const listener = () => callback();
     ipcRenderer.on(channel('app:fremde-aenderung'), listener);

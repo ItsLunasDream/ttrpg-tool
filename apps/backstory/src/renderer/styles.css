@@ -19,6 +19,19 @@
   /* Die Rueckmeldefarben des Bewegungspakets an diese Palette angleichen. */
   --motion-ok: var(--f-gut, #6a9d5f);
   --motion-fehler: var(--f-gefahr, #d1635c);
+  /*
+   * Nachgezogen mit dem Farb-Nachzug: diese Rollen wurden hier bisher als
+   * feste Farben geschrieben, und auf einem hellen Thema war das Ergebnis
+   * dunkel auf dunkel. `--lasur` ist keine Rolle, sondern eine Rechnung auf
+   * der Textfarbe — „etwas heller beim Darueberfahren" ist keine Farbe.
+   */
+  --grund-tief: var(--f-grund-tief, #10121a);
+  --betont-leise: var(--f-betont-leise, #243049);
+  --gut: var(--f-gut, #4a9d5f);
+  --gefahr: var(--f-gefahr, #e5484d);
+  --fest: var(--f-fest, #e0af68);
+  --lasur: color-mix(in srgb, var(--text) 8%, transparent);
+  --lasur-stark: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 * {
@@ -66,7 +79,7 @@ button:disabled {
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #201a10;
+  color: var(--bg);
   font-weight: 600;
 }
 
@@ -804,7 +817,7 @@ mark {
 
 .search-hit--active {
   background: var(--hit-active);
-  color: #201a10;
+  color: var(--bg);
 }
 
 .search-bar {

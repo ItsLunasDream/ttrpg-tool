@@ -92,16 +92,33 @@ app.whenReady().then(async () => {
     `[...document.querySelectorAll('button')].find(b => /Settings|Einstellungen/.test(b.textContent)).click(); true`
   );
   await warte(400);
-  // Als Liste geprueft und nicht als aneinandergehaengter Text: seit es
-  // einen zweiten Abschnitt gibt (die Symbole), traf ein Muster auf den
-  // ganzen Text nicht mehr zu, obwohl die Ueberschrift da war.
-  const ueberschriften = await js(
-    "[...document.querySelectorAll('.feld__ueberschrift')].map(e => e.textContent)"
+  /*
+   * Die KI ist ein eigener Bereich, seit der Dialog einen nach dem anderen
+   * zeigt. Geprueft wird deshalb die Navigation und nicht mehr eine
+   * Zwischenueberschrift in einer langen Liste — die gibt es nicht mehr.
+   */
+  const bereiche = await js(
+    "[...document.querySelectorAll('.einst__nav-knopf')].map(e => e.dataset.bereich)"
   );
   pruefe(
-    ueberschriften.includes('KI') || ueberschriften.includes('AI'),
-    `der Dialog zeigt einen KI-Abschnitt (${ueberschriften.join(', ')})`
+    bereiche.includes('ki'),
+    `der Dialog zeigt einen KI-Abschnitt (${bereiche.join(', ')})`
   );
+
+  /*
+   * In den KI-Bereich wechseln.
+   *
+   * Der Dialog zeigt seit dem Umbau einen Bereich zur Zeit; die KI-Felder
+   * sind nicht mehr einfach da, sondern einen Klick weit weg.
+   */
+  const zurKi = () =>
+    js(`(() => {
+      const k = document.querySelector('.einst__nav-knopf[data-bereich="ki"]');
+      if (k) k.click();
+      return Boolean(k);
+    })()`);
+  await zurKi();
+  await warte(400);
 
   const felder = await js(
     "[...document.querySelectorAll('.feld__name')].map(e => e.textContent).join('|')"
@@ -190,10 +207,17 @@ app.whenReady().then(async () => {
    * die KI-Einstellung — und niemand kaeme auf die Idee, dort zu suchen.
    */
   await js(`(() => {
-    const wahl = [...document.querySelectorAll('.feld__wahl')].find(s => s.value === 'en' || s.value === 'de');
-    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-    setzer.call(wahl, wahl.value === 'en' ? 'de' : 'en');
-    wahl.dispatchEvent(new Event('change', { bubbles: true }));
+    const bereich = document.querySelector('.einst__nav-knopf[data-bereich="aussehen"]');
+    if (bereich) bereich.click();
+    return true;
+  })()`);
+  await warte(400);
+  await js(`(() => {
+    const jetzt = document.querySelector('.segment__knopf.is-an');
+    const andere = [...document.querySelectorAll('.segment__knopf[data-sprache]')]
+      .find((k) => k !== jetzt);
+    if (!andere) return false;
+    andere.click();
     return true;
   })()`);
   await warte(600);

@@ -38,6 +38,29 @@ Material aus dem SRD 5.1.
 > is licensed under the Creative Commons Attribution 4.0 International License
 > available at <https://creativecommons.org/licenses/by/4.0/legalcode>.
 
+## System Reference Document 5.2
+
+Betrifft: `packages/srd/` — die Eichgegenstände des Magic Item Creators, die
+Regeltexte des Nachschlagewerks und die Schwierigkeitszahlen des Encounter
+Creators.
+
+Anders als beim SRD 5.1 oben ist das hier **unmittelbar**: das Material kommt
+direkt aus dem SRD 5.2, nicht über ein drittes Dokument.
+
+> This work includes material from the System Reference Document 5.2
+> ("SRD 5.2") by Wizards of the Coast LLC, available at
+> <https://www.dndbeyond.com/srd>.
+
+Dieser Satz ist **wörtlich vorgeschrieben** und steht genauso im Über-Dialog
+der Anwendung. Wizards of the Coast verlangt ausdrücklich, dass darüber
+hinaus **keine weitere Nennung** von Wizards oder seinen Konzerngesellschaften
+erfolgt — keine Logos, keine Marken, kein „kompatibel mit …". Wer hier etwas
+hinzufügt, verletzt die Bedingung, unter der das Material überhaupt benutzt
+werden darf.
+
+Das SRD 5.2 steht unter der
+[Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/legalcode).
+
 ---
 
 ## Was hier ausdrücklich NICHT liegt

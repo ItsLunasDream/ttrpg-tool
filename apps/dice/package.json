@@ -1,6 +1,6 @@
 {
   "name": "ttrpg-dice",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Wuerfel — Wuerfelpool zusammenstellen, rollen und das Ergebnis sehen",
   "type": "module",

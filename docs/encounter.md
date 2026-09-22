@@ -5,7 +5,15 @@ stellt eine Begegnung zusammen: welche Monster, wie viele, wo, und wie hart
 das für diese Gruppe wird — und schiebt das Ergebnis in einem Zug in den
 Initiative Tracker.
 
-**Stand:** Konzept. Nichts davon ist gebaut.
+**Stand:** Alle fünf Stufen sind gebaut — mit einer Einschränkung bei der
+letzten. Die Kachel ist echt, Begegnungen lassen sich anlegen, benennen,
+mit einer Notiz versehen und in einer Sammlung wiederfinden, die Monster
+kommen aus der eigenen Sammlung, eine Umgebung hängt mit ihren zwei Sorten
+daran, „In den Tracker" schiebt das Ganze in den Initiative Tracker, und
+unter den Gegnern steht das Verhältnis zur Gruppe. **Was fehlt, ist das
+Urteil:** die Schwellen aus dem Regelwerk liegen noch nicht vor (siehe
+`packages/srd/`), und bis dahin stehen dort zwei Zahlen nebeneinander
+statt „mittelschwer".
 
 ## Wozu
 
@@ -96,16 +104,39 @@ Schwelle ist schlimmer als gar keine: sie sieht aus wie eine Auskunft.
 Der gangbare Weg ist derselbe wie beim Monster Creator: **eine Quelle mit
 Lizenz suchen, die Zahlen von dort nehmen, und sie im Über-Dialog nennen.**
 Der Monster Creator macht das bereits mit den Richtwerten je Grad (Lazy
-GM's 5e Monster Builder Resource Document, CC-BY-4.0). Wenn dieselbe oder
-eine vergleichbare Quelle Begegnungsschwellen führt, ist die Frage
-beantwortet.
+GM's 5e Monster Builder Resource Document, CC-BY-4.0).
 
-Bis dahin gibt es eine zweitbeste Lösung, die ehrlich bleibt: **die Summe
-der Grade gegen die Gruppenstärke stellen und das Ergebnis als Verhältnis
-zeigen, nicht als Urteil.** „Grade zusammen 9 gegen 4 Figuren auf Stufe 5"
+**Diese Frage ist inzwischen beantwortet.** Das SRD 5.2 steht unter
+CC-BY-4.0, und die Zahlen dürfen mit der vorgeschriebenen Namensnennung
+übernommen werden (siehe `NOTICE.md`). Sie gehören nach `packages/srd/`,
+zusammen mit dem, was das Nachschlagewerk und der Magic Item Creator
+brauchen — siehe `docs/nachschlagewerk.md`. Was bleibt, ist Fleißarbeit:
+die Tabellen aus dem Dokument sauber herausholen und gegenlesen. **Der Bau
+ist damit nicht mehr blockiert.**
+
+**Gebaut ist die zweitbeste Lösung, die ehrlich bleibt:** die Summe der
+Grade gegen die Gruppenstärke stellen und das Ergebnis als Verhältnis
+zeigen, nicht als Urteil. „Grade zusammen 9 gegen 4 Figuren auf Stufe 5"
 sagt weniger als „mittelschwer", behauptet aber auch nichts Falsches. Eine
 Eichung an bekannten Begegnungen kann daraus später eine Skala machen — so
 wie das Gewicht im Status Effect Creator entstanden ist.
+
+Drei Dinge daran sind Absicht und keine Sparsamkeit:
+
+- **Kein Balken, keine Ampel.** Beides wäre ein Urteil in Bildform, und
+  den Bestand dafür gibt es nicht. Zwei Zahlen und ein „gegen" dazwischen.
+- **Ein Gegner ohne lesbaren Grad wird gezählt und genannt**, nicht als
+  Null verrechnet. Eine Summe, in der drei Monster fehlen, sieht sonst
+  genauso aus wie eine vollständige.
+- **Die Gruppe wird nicht geraten.** „4" könnte vier Figuren auf
+  unbekannter Stufe heißen oder eine auf Stufe 4; die Zeile bleibt dann
+  ungelesen, und das Werkzeug zeigt im Klartext, was es verstanden hat.
+
+Die Gruppe steht als Zeile in den Einstellungen des Werkzeugs
+(`packages/einstellungen`), in der Schreibweise `Anzahl x Stufe`, mit
+Komma getrennt: `4x5` oder `3x4, 1x6`. Ein Textfeld statt zweier
+Zahlenfelder, weil unterschiedliche Stufen vorkommen und die
+Feldbeschreibung keine Liste kennt.
 
 **Nicht erfinden, was man nicht weiß, und es dazuschreiben.**
 
@@ -134,6 +165,31 @@ muss dieselbe Frage stellen, nicht eine zweite eigene.
 
 **Zurückgeschrieben wird nicht.** Siehe Grundsatz oben.
 
+### Wie der Weg gebaut ist
+
+Die beiden Werkzeuge kennen einander nicht, und das bleibt so. Zwischen
+ihnen steht `packages/uebergabe`: eine bewusst dünne Form aus Namen,
+Zahlen und Sätzen, die beide Seiten ohne Kenntnis der anderen verstehen.
+Der Encounter Creator füllt sie, die Hülle holt den Tracker nach vorn und
+stellt sie zu, der Tracker baut daraus seine eigenen Teilnehmer
+(`src/shared/uebernahme.ts`). Derselbe Weg wie „Karte anlegen" aus der
+Inspirationshilfe.
+
+Drei Entscheidungen, die man dem Ergebnis nicht ansieht:
+
+- **Die Initiative wird nicht gewürfelt.** Sie steht auf null; der
+  Zuschlag aus der Geschicklichkeit landet im Feinwert, den der Tracker
+  ohnehin beim Auswürfeln benutzt. Eine Zahl, die von außen hereinkommt
+  und aussieht wie gewürfelt, wäre schlimmer als eine leere.
+- **Jede Regel wird ein eigener Terrain-Eintrag**, und die Regel steht in
+  seinem Namen. Im Tracker ist der Name das einzige, was immer zu sehen
+  ist — stünde dort nur „Wald", wäre die halbe Arbeit unsichtbar. Einzeln,
+  weil sich ein einzelner Eintrag austragen lässt, wenn er nicht mehr
+  gilt.
+- **Der Kampf bekommt keine `begegnungId`.** Die Kennung gehört dem
+  Encounter Creator; sie zu übernehmen hieße, dass „Speichern" im Tracker
+  später in eine fremde Ablage zielt.
+
 ## Und der Karteneditor?
 
 Die Beschreibung der Umgebung ist die Grundlage für eine Karte, und den Weg
@@ -153,12 +209,12 @@ darunter. Eine Sammlung mit Kacheln und Suche, dieselbe Handhabung wie
 
 ## Zu klären
 
-- **Woher die Schwierigkeitszahlen kommen dürfen.** Siehe oben. Dies ist
-  die einzige Frage, die den Bau wirklich blockiert; alles andere lässt
-  sich ohne sie anfangen.
-- **Ob eine mitgelieferte Monsterliste dazukommt.** Dieselbe Lizenzfrage.
-  Ohne sie ist das Werkzeug nur für den brauchbar, der schon Monster gebaut
-  hat — das ist eine echte Einschränkung, aber keine, die den Anfang
+- ~~**Woher die Schwierigkeitszahlen kommen dürfen.**~~ Geklärt: SRD 5.2
+  unter CC-BY-4.0, mit wörtlicher Namensnennung. Siehe oben und `NOTICE.md`.
+- **Ob eine mitgelieferte Monsterliste dazukommt.** Lizenzrechtlich jetzt
+  ebenfalls erlaubt; offen ist nur noch, ob sie den Aufwand wert ist. Ohne
+  sie ist das Werkzeug nur für den brauchbar, der schon Monster gebaut hat
+  — das ist eine echte Einschränkung, aber keine, die den Anfang
   verhindert.
 - **Ob die Gruppe aus einer Kampagne kommen kann.** Siehe oben; erste
   Fassung ohne.
@@ -178,8 +234,9 @@ darunter. Eine Sammlung mit Kacheln und Suche, dieselbe Handhabung wie
    Sorten sichtbar.
 4. **In den Tracker.** Teilnehmer und Terrain in einem Zug, mit der
    Rückfrage bei laufendem Kampf.
-5. **Schwierigkeit.** Erst das Verhältnis, später die Skala — abhängig
-   davon, was die Lizenzfrage ergibt.
+5. **Schwierigkeit.** Erst das Verhältnis, später die Skala mit den Zahlen
+   aus `packages/srd/`.
 
-Stufe 4 ist der Punkt, ab dem sich das Werkzeug lohnt. Stufe 5 macht es
-gut, aber wartet auf eine Antwort, die ich noch nicht habe.
+Stufe 4 ist der Punkt, ab dem sich das Werkzeug lohnt. Stufe 5 steht in
+ihrer ersten Hälfte: das Verhältnis ist da, die Skala wartet auf die
+Tabellen.

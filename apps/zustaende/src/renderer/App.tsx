@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import type { Eintrag } from '../shared/ablage';
-import { alsLeib, zuId } from '../shared/ablage';
+import { alsLeib, freieKennung, zuId } from '../shared/ablage';
 import { alsFoundryDatei } from '../shared/foundry';
 import {
   erzeugeZustand,
@@ -328,14 +328,32 @@ export function App() {
    */
   const speicherePaket = async () => {
     if (!paket) return;
-    const kennung = paketId(paket.name);
+    /*
+     * Kennungen, die noch niemand hat — fuer das Paket UND fuer jeden
+     * Zustand darin.
+     *
+     * Beide kommen aus gewuerfelten Namen, und Namen wiederholen sich: es
+     * gibt sechsunddreissig Paketnamen. Ohne diese Runde bekaemen zwei
+     * gleichnamige Pakete dieselbe Kennung und staenden in der Sammlung als
+     * eines da, und ein gleichnamiger Zustand ueberschriebe den aelteren
+     * stillschweigend.
+     *
+     * Die schon in dieser Schleife vergebenen kommen mit in den Topf: sonst
+     * zoegen zwei gleichnamige Zustaende INNERHALB eines Pakets denselben
+     * Zusammenstoss nach sich.
+     */
+    const vergebenePakete = new Set(eintraege.map((e) => e.paketId).filter(Boolean));
+    const kennung = freieKennung(paketId(paket.name), vergebenePakete);
+    const vergebeneZustaende = new Set(eintraege.map((e) => e.id));
     const zeitpunkt = new Date().toISOString();
     let gespeichert = 0;
     for (const einzelner of paket.zustaende) {
+      const eigene = freieKennung(zuId(einzelner.name), vergebeneZustaende);
+      vergebeneZustaende.add(eigene);
       const ergebnis = await api.sammlung.speichern(
         {
           ...einzelner,
-          id: zuId(einzelner.name),
+          id: eigene,
           geaendert: zeitpunkt,
           paketId: kennung,
           paketName: paket.name

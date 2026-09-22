@@ -19,6 +19,18 @@
   --hoch: var(--f-gefahr, #d1635c);
   --niedrig: var(--f-verweis, #5c8fd1);
   --radius: 10px;
+  /*
+   * Nachgezogen mit dem Farb-Nachzug: diese Rollen wurden hier bisher als
+   * feste Farben geschrieben, und auf einem hellen Thema war das Ergebnis
+   * dunkel auf dunkel. `--lasur` ist keine Rolle, sondern eine Rechnung auf
+   * der Textfarbe — „etwas heller beim Darueberfahren" ist keine Farbe.
+   */
+  --grund-tief: var(--f-grund-tief, #10121a);
+  --betont-leise: var(--f-betont-leise, #243049);
+  --gefahr: var(--f-gefahr, #e5484d);
+  --fest: var(--f-fest, #e0af68);
+  --lasur: color-mix(in srgb, var(--text) 8%, transparent);
+  --lasur-stark: color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 * {
@@ -137,7 +149,7 @@ body {
 }
 
 .knopf {
-  background: #2b3140;
+  background: var(--grund-tief);
   border: 1px solid var(--rand);
   border-radius: 8px;
   color: var(--text);
@@ -147,7 +159,7 @@ body {
 }
 
 .knopf:hover:not(:disabled) {
-  background: #343b4d;
+  background: color-mix(in srgb, var(--text) 10%, var(--grund-tief));
 }
 
 .knopf:disabled {
@@ -158,7 +170,7 @@ body {
 .knopf--haupt {
   background: var(--betont);
   border-color: var(--betont);
-  color: #10121a;
+  color: var(--grund);
   font-weight: 600;
 }
 
@@ -170,7 +182,7 @@ body {
 .knopf--an {
   background: var(--betont);
   border-color: var(--betont);
-  color: #10121a;
+  color: var(--grund);
 }
 
 /* ---------- Steckbrief ---------- */
@@ -496,7 +508,7 @@ body {
   height: 22px;
   border-radius: 50%;
   background: var(--marke, var(--betont));
-  color: #10121a;
+  color: var(--grund);
   font-size: 12px;
   font-weight: 700;
 }
@@ -751,7 +763,7 @@ body {
   margin: 10px 0 4px;
   padding: 8px 10px;
   border-left: 3px solid var(--hoch);
-  background: #d1635c14;
+  background: color-mix(in srgb, var(--gefahr) 10%, transparent);
   border-radius: 0 6px 6px 0;
 }
 
@@ -808,7 +820,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 40;
-  background: #0b0d13ee;
+  background: rgb(0 0 0 / 0.72);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -833,15 +845,40 @@ body {
    Ein Paket ist eine Kachel, die sich aufklappt. Zugeklappt nennt sie die
    Zustaende darin, damit man es wiedererkennt, ohne es zu oeffnen. */
 
-.paketkachel {
+/*
+ * Ein Paket in der Sammlung.
+ *
+ * ZUGEKLAPPT ist es eine Kachel wie jede andere: eine Zelle im Raster,
+ * dieselbe Groesse wie ein einzelner Zustand. Nur der gestrichelte Rand und
+ * der Pfeil sagen, dass mehr dahintersteckt.
+ *
+ * AUFGEKLAPPT nimmt es die ganze Breite, und die Zustaende stehen RECHTS
+ * daneben — nicht darunter. Der Rahmen um die ganze Reihe ist die
+ * Verbindung: bricht die Reihe um, weil sechs Zustaende nicht
+ * nebeneinanderpassen, haelt er sie trotzdem sichtbar zusammen. Ein Einzug
+ * allein haette das nicht geleistet, sobald eine zweite Zeile anfaengt.
+ */
+.paketgruppe {
+  min-width: 0;
+}
+
+.paketgruppe--auf {
   grid-column: 1 / -1;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--betont);
+  border-radius: calc(var(--radius) + 4px);
+  /* Ganz leicht abgesetzt, damit der Rahmen nicht als zweite Kachel
+     missverstanden wird: er umfasst, er ist nicht selbst ein Ding. */
+  background: color-mix(in srgb, var(--betont) 7%, transparent);
 }
 
 .paketkachel__kopf {
   width: 100%;
+  height: 100%;
   text-align: left;
   background: var(--grund-hoch);
   border: 1px dashed var(--rand);
@@ -852,7 +889,20 @@ body {
   cursor: pointer;
   display: grid;
   grid-template-columns: auto 1fr auto;
+  align-content: center;
   gap: 2px 8px;
+}
+
+/*
+ * Aufgeklappt ist der Kopf das erste Glied der Reihe und bekommt eine
+ * feste Breite — sonst zoege ihn `flex` auf die Breite seines laengsten
+ * Textes, und die Zustaende daneben wuerden schmal.
+ */
+.paketgruppe--auf .paketkachel__kopf {
+  flex: 0 0 220px;
+  width: auto;
+  border-style: solid;
+  border-color: var(--betont);
 }
 
 .paketkachel__kopf:hover {
@@ -885,15 +935,21 @@ body {
   white-space: nowrap;
 }
 
-.paketkachel__inhalt {
-  list-style: none;
-  margin: 0;
-  padding: 0 0 0 18px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
+/* Aufgeklappt stehen die Namen schon daneben; die Zeile waere doppelt. */
+.paketgruppe--auf .paketkachel__unten {
+  display: none;
 }
 
-.paketkachel__inhalt li {
+/*
+ * Ein Zustand in der aufgeklappten Reihe.
+ *
+ * Dieselbe Mindestbreite wie eine Kachel im Raster, damit die Reihe nicht
+ * anders aussieht als der Rest der Sammlung. `flex: 1 1 200px` laesst sie
+ * die letzte Zeile ausfuellen, statt rechts ein Loch zu lassen.
+ */
+.paketgruppe__glied {
   position: relative;
+  flex: 1 1 200px;
+  min-width: 0;
+  max-width: 320px;
 }

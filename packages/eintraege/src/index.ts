@@ -53,6 +53,19 @@ export interface Eintrag {
   readonly stichworte?: string;
 }
 
+/**
+ * Das „Werkzeug" der Eintraege, die keine sind.
+ *
+ * Die Werkzeuge selbst stehen mit in der Trefferliste: wer „Inspiration"
+ * tippt, meint meistens die Anwendung und nicht eine Notiz darin. Sie
+ * kommen nicht von einem Leser, sondern von der Huelle — die kennt ihre
+ * eigenen Anwendungen.
+ *
+ * Ein eigener Name statt eines Feldes `istApp`, damit die Buendelung sie
+ * von selbst zusammen anzeigt und nichts eine Ausnahme kennen muss.
+ */
+export const WERKZEUG_APP = 'app';
+
 /** Wo ein Eintrag steht: Werkzeug und Kennung zusammen. */
 export function eintragsSchluessel(eintrag: Eintrag): string {
   return `${eintrag.werkzeug}/${eintrag.kennung}`;
@@ -111,9 +124,19 @@ export function guete(eintrag: Eintrag, suche: string): number {
   if (!gesucht) return 0;
   const name = schluessel(eintrag.name);
 
-  if (name === gesucht) return 100;
-  if (name.startsWith(gesucht)) return 75;
-  if (name.includes(gesucht)) return 50;
+  /*
+   * Eine Anwendung schlaegt bei gleichem Namen alles andere.
+   *
+   * Wer „Monster" tippt, will den Monster Creator aufmachen und nicht das
+   * eine Monster, das zufaellig „Monster" heisst. Der Aufschlag ist klein
+   * genug, dass ein genauer Treffer in einem Werkzeug eine ungenaue
+   * Anwendung immer noch schlaegt.
+   */
+  const aufschlag = eintrag.werkzeug === WERKZEUG_APP ? 5 : 0;
+
+  if (name === gesucht) return 100 + aufschlag;
+  if (name.startsWith(gesucht)) return 75 + aufschlag;
+  if (name.includes(gesucht)) return 50 + aufschlag;
 
   // Mehrere Worte, die zusammen nur ueber Name und Stichworte aufgehen.
   const worte = gesucht.split(/\s+/).filter(Boolean);

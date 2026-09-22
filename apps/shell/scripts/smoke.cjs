@@ -229,9 +229,24 @@ app.whenReady().then(async () => {
       'und ist wieder weg, sobald das Werkzeug offen ist'
     );
     pruefe(await js("Boolean(document.querySelector('.schiene'))"), 'Schiene nach Wechsel da');
+    /*
+     * Geprueft wird die REGEL, nicht eine Anzahl.
+     *
+     * Vorher stand hier „mehr als null gesperrte Eintraege". Das ging
+     * durch, solange es ein geplantes Werkzeug gab — und schlug fehl, als
+     * der Encounter Creator fertig wurde und keines mehr uebrig war.
+     * Gepassthat die Zahl, gemeint war die Regel: gesperrt ist genau das,
+     * was noch nicht zu oeffnen ist.
+     */
+    const gesperrt = await js(
+      "document.querySelectorAll('.schiene__eintrag:disabled').length"
+    );
+    const geplant = await js(
+      "document.querySelectorAll('.schiene__eintrag--geplant').length"
+    );
     pruefe(
-      (await js("document.querySelectorAll('.schiene__eintrag:disabled').length")) > 0,
-      'geplante Werkzeuge bleiben in der Schiene gesperrt'
+      gesperrt === geplant,
+      `gesperrt sind genau die geplanten Werkzeuge (${gesperrt} von ${geplant})`
     );
     await js("document.querySelector('.schiene__heim').click()");
     await warte(500);
@@ -590,16 +605,25 @@ app.whenReady().then(async () => {
 
   // Sprache umstellen: der Wert muss auf der Platte landen und die Oberflaeche
   // sofort umschalten.
+  //
+  // Die Sprache steht unter „Aussehen" und ist kein Klappfeld mehr, sondern
+  // zwei Knoepfe. Gesucht wird ueber `data-sprache`, nicht ueber die
+  // Beschriftung — die haengt ja gerade an der Sprache.
   await js(`(() => {
-    const wahl = document.querySelector('.feld__wahl');
-    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-    setzer.call(wahl, 'de');
-    wahl.dispatchEvent(new Event('change', { bubbles: true }));
+    const bereich = document.querySelector('.einst__nav-knopf[data-bereich="aussehen"]');
+    if (bereich) bereich.click();
+    return true;
+  })()`);
+  await warte(400);
+  await js(`(() => {
+    const knopf = document.querySelector('.segment__knopf[data-sprache="de"]');
+    if (!knopf) return false;
+    knopf.click();
     return true;
   })()`);
   await warte(900);
   pruefe(
-    (await js("document.querySelector('.dialog__titel').textContent")) === 'Einstellungen',
+    (await js("document.querySelector('.einst__nav-titel').textContent")) === 'Einstellungen',
     'die Oberflaeche schaltet sofort auf Deutsch'
   );
   const einstellungsDatei = path.join(app.getPath('userData'), 'einstellungen.json');

@@ -7,6 +7,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
 import type { Begegnung, Kampf } from '../shared/types';
+import type { Uebergabe } from '@suite/uebergabe';
 
 const api = {
   /**
@@ -18,6 +19,19 @@ const api = {
     ipcRenderer.on(kanal('suche:zeigen'), lauscher);
     return () => {
       ipcRenderer.off(kanal('suche:zeigen'), lauscher);
+    };
+  },
+  /**
+   * Ein anderes Werkzeug schiebt eine Begegnung herein.
+   *
+   * Angenommen wird sie nicht hier, sondern in der Oberflaeche — und erst,
+   * nachdem sie gefragt hat, ob etwas verlorenginge.
+   */
+  beiUebergabe: (hoerer: (uebergabe: Uebergabe) => void) => {
+    const lauscher = (_e: unknown, uebergabe: Uebergabe) => hoerer(uebergabe);
+    ipcRenderer.on(kanal('uebergabe'), lauscher);
+    return () => {
+      ipcRenderer.off(kanal('uebergabe'), lauscher);
     };
   },
   begegnungen: {
@@ -110,21 +124,3 @@ verlaufsDokument.addEventListener(
   true
 );
 
-/*
- * Strg+K an die Huelle melden.
- *
- * Dasselbe Muster wie bei den Daumentasten der Maus: liegt der Fokus in
- * dieser Ansicht, sieht die Huelle den Tastendruck nicht. Das Preload
- * sieht dasselbe Dokument und braucht dafuer keine Zeile im
- * Anwendungscode.
- */
-verlaufsDokument.addEventListener(
-  'keydown',
-  (ereignis) => {
-    const taste = ereignis as { key?: string; ctrlKey?: boolean; metaKey?: boolean };
-    if ((taste.ctrlKey || taste.metaKey) && taste.key?.toLowerCase() === 'k') {
-      ipcRenderer.send('suche:taste');
-    }
-  },
-  true
-);

@@ -39,3 +39,4 @@ export {
 } from '../src/shared/verlauf';
 export { finde, passt, heuhaufen, treffendeTeilnehmer } from '../src/shared/suche';
 export { pruefeVerlust, nichtsZuVerlieren, alsVorlage } from '../src/shared/neuebegegnung';
+export { alsTeilnehmer, alsTaktik } from '../src/shared/uebernahme';

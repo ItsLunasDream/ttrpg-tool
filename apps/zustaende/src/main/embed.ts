@@ -94,7 +94,15 @@ export const ORDNER_NAME = 'zustaende';
  * Zustaende finden, die man in dieser Sitzung noch nicht offen hatte.
  */
 export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]> {
-  const ordner = path.join(datenordner, ORDNER_NAME);
+  /*
+   * ZWEIMAL der Name, und das ist kein Tippfehler — siehe `mountZustaende`
+   * unten: die Huelle gibt dem Werkzeug `<userData>/zustaende`, und die
+   * Ablage legt darin noch einen Ordner an.
+   *
+   * Hier stand lange nur einer, und damit las die Suche den Elternordner
+   * und fand keinen einzigen echten Zustand.
+   */
+  const ordner = path.join(datenordner, ORDNER_NAME, ORDNER_NAME);
   let dateien: string[];
   try {
     dateien = await readdir(ordner);

@@ -49,10 +49,18 @@ const en = {
   'search.loading': 'Reading…',
   'search.nothing': 'Nothing found.',
   'search.keys': '↑ ↓ to move, Enter to open, Esc to close',
+  'search.appArt': 'Tool',
+  'search.appGruppe': 'Tools',
   'settings.title': 'Settings',
   'settings.language': 'Language',
   'settings.languageHint':
     'Applies to this window — its title bar, the start menu and the rail. Each tool keeps its own language setting.',
+  'settings.sectionLook': 'Appearance',
+  'settings.sectionData': 'Data & backup',
+  'settings.sectionTools': 'Tools',
+  'settings.toolClosed':
+    'This tool is not running, so it cannot say what it has to offer yet. Open it once and its settings appear here.',
+  'settings.toolOpen': 'Open {name}',
   'settings.theme': 'Colour theme',
   'settings.themeHint':
     'Applies to the whole window, tools included. Mostly dark; the light ones cover light mode.',
@@ -203,10 +211,18 @@ const de: Partial<Record<MessageKey, string>> = {
   'search.loading': 'Wird gelesen…',
   'search.nothing': 'Nichts gefunden.',
   'search.keys': '↑ ↓ bewegen, Enter öffnet, Esc schließt',
+  'search.appArt': 'Werkzeug',
+  'search.appGruppe': 'Werkzeuge',
   'settings.title': 'Einstellungen',
   'settings.language': 'Sprache',
   'settings.languageHint':
     'Gilt für dieses Fenster — seine Titelleiste, das Startmenü und die Schiene. Jedes Werkzeug behält seine eigene Spracheinstellung.',
+  'settings.sectionLook': 'Aussehen',
+  'settings.sectionData': 'Daten & Sicherung',
+  'settings.sectionTools': 'Werkzeuge',
+  'settings.toolClosed':
+    'Dieses Werkzeug läuft nicht und kann deshalb noch nicht sagen, was es zu bieten hat. Einmal öffnen, dann stehen seine Einstellungen hier.',
+  'settings.toolOpen': '{name} öffnen',
   'settings.theme': 'Farbthema',
   'settings.themeHint':
     'Gilt für das ganze Fenster, Werkzeuge eingeschlossen. Überwiegend dunkel; die hellen decken den Light Mode ab.',

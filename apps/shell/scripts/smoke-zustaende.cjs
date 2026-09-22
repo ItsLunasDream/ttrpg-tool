@@ -229,20 +229,20 @@ app.whenReady().then(async () => {
   await warte(700);
 
   pruefe(
-    (await js("document.querySelectorAll('.paketkachel').length")) === 1,
+    (await js("document.querySelectorAll('.paketgruppe').length")) === 1,
     'das Paket steht als eine Kachel in der Sammlung'
   );
   const kopfText = await js("document.querySelector('.paketkachel__name')?.textContent ?? ''");
   pruefe(kopfText === paketname, `die Kachel traegt den Paketnamen (${kopfText})`);
   pruefe(
-    !(await js("Boolean(document.querySelector('.paketkachel__inhalt'))")),
+    !(await js("Boolean(document.querySelector('.paketgruppe--auf'))")),
     'zugeklappt ist die Vorgabe'
   );
 
   await js("document.querySelector('.paketkachel__kopf').click(); true");
   await warte(400);
   pruefe(
-    (await js("document.querySelectorAll('.paketkachel__inhalt .zustandskachel').length")) >= 2,
+    (await js("document.querySelectorAll('.paketgruppe__glied .zustandskachel').length")) >= 2,
     'aufgeklappt stehen die Zustaende darin'
   );
 
@@ -253,7 +253,7 @@ app.whenReady().then(async () => {
     f.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
   await warte(400);
   pruefe(
-    (await js("document.querySelectorAll('.paketkachel').length")) === 1,
+    (await js("document.querySelectorAll('.paketgruppe').length")) === 1,
     'und der Paketname findet es in der Suche'
   );
 

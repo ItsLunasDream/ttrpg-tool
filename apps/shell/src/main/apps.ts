@@ -38,7 +38,9 @@ import { mountNpc } from '../../../npc/src/main/embed';
 import { mountInspiration } from '../../../inspiration/src/main/embed';
 import { mountMonster } from '../../../monster/src/main/embed';
 import { mountZustaende } from '../../../zustaende/src/main/embed';
+import { mountEncounter } from '../../../encounter/src/main/embed';
 import type { KiQuelle } from './ki';
+import type { Uebergabe } from '@suite/uebergabe';
 import type { Language } from '../shared/i18n';
 import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
 
@@ -50,6 +52,11 @@ export interface MontierteApp {
    * das; alle anderen lassen es weg.
    */
   neueKarte?(name: string, notizen?: readonly { title: string; text: string }[]): void;
+  /**
+   * Nimmt eine Begegnung aus einem anderen Werkzeug an. Nur der Initiative
+   * Tracker kann das; alle anderen lassen es weg.
+   */
+  uebernimmBegegnung?(uebergabe: Uebergabe): Promise<boolean>;
   /**
    * Bringt die Anwendung an eine Stelle zurueck, die der Verlauf kennt.
    * Werkzeuge ohne eigene Stellen lassen das weg.
@@ -168,6 +175,15 @@ export interface MontageHaken {
     name: string,
     notizen: readonly { title: string; text: string }[]
   ) => Promise<boolean>;
+  /**
+   * Holt den Initiative Tracker nach vorn und stellt ihm eine Begegnung zu.
+   *
+   * Derselbe Weg wie `oeffneKarte` und aus demselben Grund: der Encounter
+   * Creator kennt den Tracker nicht, und der Tracker kennt ihn nicht. Was
+   * dort mit der Begegnung geschieht, entscheidet der Tracker — er fragt
+   * erst, ob ein laufender Kampf verlorenginge.
+   */
+  readonly inDenTracker?: (uebergabe: Uebergabe) => Promise<boolean>;
   /**
    * Die KI-Anbindung der Sammlung.
    *
@@ -308,6 +324,39 @@ function sichereAb(sicht: WebContentsView, devServerUrl: string | null): void {
     const ziel = new URL(url);
     if (ziel.protocol === 'http:' || ziel.protocol === 'https:') void shell.openExternal(ziel.href);
   });
+
+  /*
+   * Strg+K oeffnet die Suche — in JEDEM Werkzeug.
+   *
+   * Liegt der Fokus in einer eingebetteten Ansicht, sieht die Oberflaeche
+   * der Huelle den Tastendruck nicht: es sind getrennte Fenster im selben
+   * Prozess. Frueher meldete ihn deshalb das Preload jedes Werkzeugs
+   * weiter — derselbe Block, viermal kopiert, und in fuenf Werkzeugen
+   * schlicht vergessen. Wer im Story Creator oder beim Wuerfeln Strg+K
+   * drueckte, bekam nichts.
+   *
+   * `before-input-event` sieht dieselbe Taste im Hauptprozess, und zwar
+   * fuer jede Ansicht, die hier durchlaeuft. Eine Stelle statt neun, und
+   * ein neues Werkzeug bekommt es, ohne dass jemand daran denkt.
+   */
+  sicht.webContents.on('before-input-event', (_event, eingabe) => {
+    if (eingabe.type !== 'keyDown') return;
+    if (!(eingabe.control || eingabe.meta)) return;
+    if (eingabe.key.toLowerCase() !== 'k') return;
+    huellenSuche?.();
+  });
+}
+
+/**
+ * Was passiert, wenn in einem Werkzeug Strg+K gedrueckt wird.
+ *
+ * Die Huelle traegt es beim Start ein. Hier steht nur der Haken, damit
+ * `sichereAb` nichts ueber sie wissen muss.
+ */
+let huellenSuche: (() => void) | null = null;
+
+export function setzeSuchtaste(hoerer: () => void): void {
+  huellenSuche = hoerer;
 }
 
 /** Laedt in eine Ansicht, was die Montage-Schnittstelle angegeben hat. */
@@ -335,6 +384,7 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'inspiration') return montiereInspiration(id, haken);
   if (id === 'monster') return montiereMonster(id, haken);
   if (id === 'zustaende') return montiereZustaende(id, haken);
+  if (id === 'encounter') return montiereEncounter(id, haken);
   return null;
 }
 
@@ -648,7 +698,11 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
     // Die Suche der Huelle (Strg+K) springt hierher.
     zeigeEintrag: (kennung) =>
-      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung),
+    // Eine Begegnung aus dem Encounter Creator. Angenommen wird sie in der
+    // Oberflaeche des Trackers, und erst nach seiner eigenen Rueckfrage.
+    uebernimmBegegnung: (uebergabe) =>
+      eingebettet.uebernimmBegegnung(sicht.webContents as WebContents, uebergabe)
   };
 }
 
@@ -861,6 +915,63 @@ async function montiereMonster(id: string, haken: MontageHaken): Promise<Montier
     // Die Suche der Huelle (Strg+K) springt hierher.
     zeigeEintrag: (kennung) =>
       eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+  };
+}
+
+async function montiereEncounter(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountEncounter({
+    distDir: appDistDir(id, 'main'),
+    devServerUrl: process.env.ENCOUNTER_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    datenordner: datenordner(id),
+    /*
+     * Der Ordner des Monster Creators.
+     *
+     * Die Huelle kennt beide Werkzeuge und reicht den Pfad durch; keines
+     * von beiden soll ueber das andere Bescheid wissen. Zweimal `monster`,
+     * weil die Ablage im Datenordner des Werkzeugs noch einen Ordner
+     * anlegt — dieselbe Stelle, an der die Suche lange danebengegriffen
+     * hat.
+     */
+    monsterordner: join(datenordner('monster'), 'monster'),
+    inDenTracker: (uebergabe) => haken.inDenTracker?.(uebergabe) ?? Promise.resolve(false)
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    // Die Suche der Huelle (Strg+K) springt hierher.
+    zeigeEintrag: (kennung) =>
+      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung),
+    // Die Gruppe am Tisch steht in den Einstellungen der Huelle: sie
+    // wechselt selten, und sie je Begegnung einzutippen waere Reibung.
+    werkzeugEinstellungen: () => eingebettet.werkzeugEinstellungen(),
+    setzeWerkzeugEinstellung: (feldId, wert) =>
+      eingebettet.setzeWerkzeugEinstellung(sicht.webContents as WebContents, feldId, wert)
   };
 }
 

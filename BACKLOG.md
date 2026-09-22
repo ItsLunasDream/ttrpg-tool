@@ -1663,3 +1663,54 @@ Schärfe hängt an der Zoomstufe, mit der gebacken wurde, deshalb backt der
 Renderer nach, wenn der Zoom sich verdoppelt oder halbiert hat; und die
 Bildgröße ist auf 2048 Texel je Kante gedeckelt, damit eine riesige Fläche
 nicht den Speicher sprengt.
+
+---
+
+## Die Lizenzfrage ist beantwortet — und was daraus folgt
+
+Zwei Konzepte hingen an derselben offenen Frage: der Magic Item Creator an
+Vergleichsgegenständen für die Eichung, der Encounter Creator an den
+Schwierigkeitszahlen. Beide standen mit „das darf ich vielleicht nicht
+benutzen" auf der Bremse.
+
+**Das SRD 5.2 steht unter CC-BY-4.0.** Die Namensnennung ist wörtlich
+vorgeschrieben, und ausdrücklich darf daneben *keine weitere* Nennung von
+Wizards of the Coast stehen — keine Logos, keine Marken, kein „kompatibel
+mit". Beides steht in `NOTICE.md`.
+
+Ausgelöst hat das eine Rückfrage: acht Foundry-Exporte trugen
+`system.source.license: "CC-BY-4.0"`, und daraus kam die naheliegende Idee,
+die Gegenstände einfach einzubetten. Der Weg stimmt, die Quelle nicht: die
+Angabe im Export ist die Selbstauskunft des dnd5e-Systems. Genommen wird aus
+dem SRD selbst, das auch die ganze Liste hat statt acht Stück.
+
+### Was das nicht löst
+
+**Die Lizenz war beim Magic Item Creator nie der eigentliche Engpass.** Name,
+Seltenheit, Art und Preis eichen nichts — sie sagen „Amulet of Health ist
+Rare", nicht warum. Für die Punkteskala muss jeder Vergleichsgegenstand auf
+unseren eigenen Achsen eingeordnet werden, und das ist Handarbeit. Dreißig
+bis fünfzig Stück tragen die Skala; das sind Stunden, kein Import. Die
+Lizenz erlaubt die Arbeit, sie nimmt sie nicht ab.
+
+### Ein drittes Werkzeug fällt dabei ab
+
+Wenn der SRD-Bestand ohnehin im Haus ist, liegt ein Nachschlagewerk nahe:
+die Regeln offline, in derselben Suche wie die eigenen Sachen.
+`docs/nachschlagewerk.md` hält den Zuschnitt fest, mit drei Festlegungen:
+
+- **Der Regeltext bleibt englisch.** Gegen die Linie des übrigen Projekts,
+  und mit Grund: über 350 Seiten sind keine Nebenarbeit, und maschinell
+  übersetzter Regeltext ist genau dort falsch, wo man ihm glaubt — bei
+  Zahlen, Bedingungen und Wirkungsdauern. Die Oberfläche bleibt zweisprachig.
+- **Nicht das ganze SRD.** Zustände, Glossar, Zauber, Gegenstände,
+  Ausrüstung. Klassen und Charaktererschaffung schlägt am Tisch niemand nach.
+- **`packages/srd/` von Anfang an**, nicht in der Anwendung, die es zuerst
+  braucht. Drei Werkzeuge lesen denselben Bestand, und Anwendungen hängen
+  hier nicht voneinander ab (Konvention 7).
+
+Der Mehrwert gegenüber den vielen guten Nachschlagewerken im Netz ist genau
+einer: offline, und in derselben Suche wie das Selbstgebaute. Das ist
+zugleich das beste Argument für #100 — die Suche über alles wird erst dann
+richtig etwas wert, wenn „poisoned" den offiziellen Zustand *und* den
+eigenen findet.

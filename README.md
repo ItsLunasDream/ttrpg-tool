@@ -91,6 +91,7 @@ apps/npc/          NPC Creator
 apps/inspiration/  Inspiration
 apps/monster/      Monster Creator
 apps/zustaende/    Status Effect Creator
+apps/encounter/    Encounter Creator
 packages/dice/     Reading and rolling dice expressions
 packages/i18n/     Language choice and text substitution
 packages/motion/   Timings, curves and base animations
@@ -100,7 +101,14 @@ packages/einstellungen/ How a tool describes its own settings for the shell
 packages/foundry/  Monsters and conditions as JSON that Foundry VTT reads
 packages/farben/   Colour roles and the selectable themes
 packages/eintraege/ What a tool has filed, in a form every tool understands
+packages/tabellen/ Random tables: the format, rolling on one and nesting them
+packages/uebergabe/ The shape an encounter travels in, from one tool to another
 ```
+
+Planned: `packages/srd/` — one place for everything taken from the SRD 5.2,
+shared by the reference work, the Magic Item Creator's calibration and the
+Encounter Creator's difficulty numbers. See
+[docs/nachschlagewerk.md](docs/nachschlagewerk.md).
 
 `packages/*` are platform-free: no `node:*`, no `electron`, no browser
 globals. They are bundled into both processes.
@@ -560,7 +568,7 @@ xvfb-run -a npm run verify:package -w apps/backstory -- \
 
 ## State and limits
 
-All seven tools run embedded; `encounter` is planned and not clickable yet.
+All nine tools run embedded.
 
 Known limits:
 
@@ -603,6 +611,8 @@ What is in `docs/` (all German):
 | `encounter.md` | Concept: Encounter Creator (not built) |
 | `austausch.md` | Concept: sharing between the group at the table (not built) |
 | `magicitems.md` | Concept: Magic Item Creator (not built) |
+| `nachschlagewerk.md` | Concept: the rules offline plus house rules, in the same search (not built) |
+| `loot.md` | Concept: Loot Generator, own nested random tables (not built) |
 
 ## License
 
@@ -623,3 +633,8 @@ In short: the monster baselines by challenge rating come from the *Lazy GM's
 5e Monster Builder Resource Document* by Teos Abadía, Scott Fitzgerald Gray
 and Michael E. Shea, under CC-BY-4.0, which in turn includes material from
 the SRD 5.1. Nothing here is taken from the Dungeon Master's Guide.
+
+Planned use of the SRD 5.2 (CC-BY-4.0) is prepared in
+[NOTICE.md](NOTICE.md); its attribution statement is prescribed word for
+word, and no further mention of Wizards of the Coast is permitted alongside
+it.

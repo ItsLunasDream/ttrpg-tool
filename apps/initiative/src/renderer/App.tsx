@@ -14,6 +14,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { rollD20 } from '@suite/dice';
 import { api } from './api';
 import { nichtsZuVerlieren, pruefeVerlust } from '../shared/neuebegegnung';
+import { alsTaktik, alsTeilnehmer } from '../shared/uebernahme';
+import type { Uebergabe } from '@suite/uebergabe';
 import {
   kannVor,
   kannZurueck,
@@ -83,6 +85,13 @@ export function App() {
    * Electron, und `confirm()` haelt den ganzen Renderer an.
    */
   const [dialog, setDialog] = useState<'speichern' | 'beenden' | 'neu' | null>(null);
+  /**
+   * Eine Begegnung aus dem Encounter Creator, die auf ihre Antwort wartet.
+   *
+   * Sie liegt hier, bis die Rueckfrage beantwortet ist. Von aussen wird im
+   * Tracker nichts weggeworfen — dieselbe Regel wie beim Karteneditor.
+   */
+  const [wartendeUebergabe, setWartendeUebergabe] = useState<Uebergabe | null>(null);
   /** Wer gerade umbenannt wird. Der Dialog fragt nach dem neuen Namen. */
   const [umbenennen, setUmbenennen] = useState<{ id: string; name: string } | null>(null);
 
@@ -291,6 +300,50 @@ export function App() {
     }
     setDialog('neu');
   }, [warnung, legeNeuAn]);
+
+  /**
+   * Eine Uebergabe wird zum Kampf.
+   *
+   * Der bisherige wird dabei ersetzt, genau wie beim Laden einer
+   * Begegnung aus der eigenen Sammlung. Gefragt wurde vorher.
+   */
+  const uebernimm = useCallback(
+    (uebergabe: Uebergabe) => {
+      setTaktik(alsTaktik(uebergabe));
+      setZeigeBegegnungen(false);
+      setzeUndSichere({
+        ...leererKampf(),
+        // KEINE begegnungId: die Kennung gehoert dem Encounter Creator,
+        // und der Tracker schreibt dort nichts hinein. Sie hier zu
+        // uebernehmen hiesse, dass „Speichern" spaeter in eine fremde
+        // Ablage zielt.
+        begegnungId: null,
+        name: uebergabe.name,
+        teilnehmer: alsTeilnehmer(uebergabe, neueId)
+      });
+      melde(t('msg.uebernommen'));
+    },
+    [setzeUndSichere, melde]
+  );
+
+  /*
+   * Die Huelle stellt eine Begegnung zu.
+   *
+   * Dieselbe Frage wie bei „Neue Begegnung", nicht eine zweite eigene:
+   * laeuft ein Kampf oder steht etwas Ungespeichertes da, wird gefragt.
+   * Sonst geht es ohne Rueckfrage, wie ueberall.
+   */
+  useEffect(
+    () =>
+      api.beiUebergabe((uebergabe) => {
+        if (nichtsZuVerlieren(warnung)) {
+          uebernimm(uebergabe);
+          return;
+        }
+        setWartendeUebergabe(uebergabe);
+      }),
+    [uebernimm, warnung]
+  );
 
   const beende = useCallback(() => {
     setzeUndSichere((vorher) => ({ ...vorher, laeuft: false, amZug: -1, runde: 0 }));
@@ -588,6 +641,24 @@ export function App() {
           onAbschluss={(wert) => {
             setDialog(null);
             if (wert) legeNeuAn();
+          }}
+        />
+      ) : null}
+
+      {wartendeUebergabe ? (
+        <Dialog
+          titel={
+            warnung.laeuft && warnung.ungespeichert
+              ? t('bestaetigen.neuBeides')
+              : warnung.laeuft
+                ? t('bestaetigen.neuLaeuft')
+                : t('bestaetigen.neuUngespeichert')
+          }
+          bestaetigen={t('knopf.verwerfen')}
+          onAbschluss={(wert) => {
+            const welche = wartendeUebergabe;
+            setWartendeUebergabe(null);
+            if (wert) uebernimm(welche);
           }}
         />
       ) : null}
