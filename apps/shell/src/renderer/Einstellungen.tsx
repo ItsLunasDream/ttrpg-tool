@@ -71,14 +71,23 @@ interface Props {
   /** Oeffnet den Datenordner — von Hand zurueckspielen geht nur dort. */
   readonly datenordnerOeffnen: () => Promise<string>;
   /**
-   * Die gerade laufenden Werkzeuge, mit ihrem uebersetzten Namen.
+   * Alle waehlbaren Werkzeuge, mit ihrem uebersetzten Namen und der Frage,
+   * ob sie gerade laufen.
    *
-   * Nur laufende: was noch nie offen war, hat seine Einstellungen noch nicht
-   * geladen und koennte nichts beantworten. Das ist kein Mangel, sondern die
-   * Regel dieses Fensters — man stellt ein Werkzeug ein, waehrend man darin
-   * arbeitet.
+   * ALLE, nicht nur die laufenden. Frueher standen hier nur die montierten,
+   * weil ein nie geoeffnetes Werkzeug seine Einstellungen noch nicht geladen
+   * hat und nichts beantworten koennte. Das stimmt — nur war die Folge
+   * falsch: die Liste sah je nach Vorgeschichte anders aus, und wer etwas
+   * vermisste, suchte den Fehler bei sich. Ein nicht laufendes Werkzeug
+   * bekommt jetzt statt seiner Felder einen Knopf, der es oeffnet.
    */
-  readonly offeneWerkzeuge: readonly { readonly id: string; readonly name: string }[];
+  readonly werkzeuge: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly laeuft: boolean;
+  }[];
+  /** Oeffnet ein Werkzeug, damit es seine Einstellungen liefern kann. */
+  readonly werkzeugOeffnen: (appId: string) => Promise<void>;
   readonly werkzeugEinstellungen: (appId: string) => Promise<Werkzeugeinstellungen | null>;
   readonly werkzeugSetzen: (
     appId: string,
@@ -120,7 +129,8 @@ export function Einstellungen({
   einfuehrungenZuruecksetzen,
   sichern,
   datenordnerOeffnen,
-  offeneWerkzeuge,
+  werkzeuge,
+  werkzeugOeffnen,
   werkzeugEinstellungen,
   werkzeugSetzen,
   werkzeugBefehl,
@@ -174,7 +184,7 @@ export function Einstellungen({
     if (bereich === 'aussehen') return t('settings.sectionLook');
     if (bereich === 'ki') return t('settings.ai');
     if (bereich === 'daten') return t('settings.sectionData');
-    const gesucht = offeneWerkzeuge.find((w) => werkzeugBereich(w.id) === bereich);
+    const gesucht = werkzeuge.find((w) => werkzeugBereich(w.id) === bereich);
     return gesucht?.name ?? t('settings.title');
   };
 
@@ -195,14 +205,13 @@ export function Einstellungen({
 
           {/*
             Die Werkzeuge, jedes mit seinem eigenen Symbol — demselben wie
-            auf der Kachel. Nur die laufenden: was noch nie offen war, hat
-            seine Einstellungen nicht geladen und koennte nichts
-            beantworten.
+            auf der Kachel. Immer alle, damit die Liste nicht je nach
+            Vorgeschichte anders aussieht.
           */}
-          {offeneWerkzeuge.length > 0 ? (
+          {werkzeuge.length > 0 ? (
             <h3 className="einst__nav-gruppe">{t('settings.sectionTools')}</h3>
           ) : null}
-          {offeneWerkzeuge.map((werkzeug) =>
+          {werkzeuge.map((werkzeug) =>
             navKnopf(
               werkzeugBereich(werkzeug.id),
               werkzeug.name,
@@ -500,20 +509,41 @@ export function Einstellungen({
               eigenen Dialog im Werkzeug: zwei Stellen fuer Einstellungen
               heisst, dass man immer zuerst in der falschen nachsieht.
             */}
-            {offeneWerkzeuge
+            {werkzeuge
               .filter((werkzeug) => werkzeugBereich(werkzeug.id) === bereich)
-              .map((werkzeug) => (
-                <Werkzeugfelder
-                  key={werkzeug.id}
-                  appId={werkzeug.id}
-                  titel={werkzeug.name}
-                  sprache={sprache === 'de' ? 'de' : 'en'}
-                  lade={werkzeugEinstellungen}
-                  setze={werkzeugSetzen}
-                  befehl={werkzeugBefehl}
-                  onFehler={(grund) => setFehler(t('settings.saveFailed', { detail: String(grund) }))}
-                />
-              ))}
+              .map((werkzeug) =>
+                werkzeug.laeuft ? (
+                  <Werkzeugfelder
+                    key={werkzeug.id}
+                    appId={werkzeug.id}
+                    titel={werkzeug.name}
+                    sprache={sprache === 'de' ? 'de' : 'en'}
+                    lade={werkzeugEinstellungen}
+                    setze={werkzeugSetzen}
+                    befehl={werkzeugBefehl}
+                    onFehler={(grund) =>
+                      setFehler(t('settings.saveFailed', { detail: String(grund) }))
+                    }
+                  />
+                ) : (
+                  /*
+                   * Ein Werkzeug, das nicht laeuft, kann nicht sagen, was es
+                   * einstellen kann — es hat seine Einstellungen nie
+                   * geladen. Statt einer leeren Seite steht hier, warum, und
+                   * ein Knopf, der es aendert. Ein bewusster Klick: von
+                   * selbst zu montieren, weil jemand durch die Liste geht,
+                   * kostet Speicher fuer etwas, das niemand wollte.
+                   */
+                  <section className="einst__gruppe" key={werkzeug.id}>
+                    <p className="einst__satz">{t('settings.toolClosed')}</p>
+                    <div className="feld__knoepfe">
+                      <button type="button" onClick={() => void werkzeugOeffnen(werkzeug.id)}>
+                        {t('settings.toolOpen', { name: werkzeug.name })}
+                      </button>
+                    </div>
+                  </section>
+                )
+              )}
 
             {fehler && <p className="feld__fehler">{fehler}</p>}
           </div>

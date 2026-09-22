@@ -116,6 +116,38 @@ app.whenReady().then(async () => {
     `der Dialog der Huelle zeigt einen Abschnitt fuer das Werkzeug (${bereiche.join(', ')})`
   );
 
+  /*
+   * ALLE Werkzeuge stehen da, nicht nur das laufende.
+   *
+   * Vorher haing die Liste davon ab, was man in dieser Sitzung schon offen
+   * hatte — und wer den Story Creator vermisste, suchte den Fehler bei
+   * sich.
+   */
+  const werkzeugbereiche = bereiche.filter((b) => b && b.startsWith('werkzeug:'));
+  pruefe(
+    werkzeugbereiche.length >= 8,
+    `alle Werkzeuge stehen in der Liste (${werkzeugbereiche.length})`
+  );
+
+  // Ein Werkzeug, das nicht laeuft, sagt warum — und bietet den Weg an.
+  await js(`(() => {
+    const k = document.querySelector('.einst__nav-knopf[data-bereich="werkzeug:dice"]');
+    if (k) k.click();
+    return Boolean(k);
+  })()`);
+  await warte(500);
+  const zuText = await js("document.querySelector('.einst__inhalt')?.textContent ?? ''");
+  pruefe(
+    /not running|laeuft nicht|läuft nicht/.test(zuText),
+    `ein nicht laufendes Werkzeug sagt, warum es nichts zeigt (${zuText.slice(0, 70)})`
+  );
+  pruefe(
+    await js(
+      "[...document.querySelectorAll('.feld__knoepfe button')].some(b => /Dice/.test(b.textContent))"
+    ),
+    'und bietet einen Knopf zum Oeffnen an'
+  );
+
   await js(`(() => {
     const k = document.querySelector('.einst__nav-knopf[data-bereich="werkzeug:backstory"]');
     if (k) k.click();

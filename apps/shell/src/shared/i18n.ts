@@ -56,6 +56,9 @@ const en = {
   'settings.sectionLook': 'Appearance',
   'settings.sectionData': 'Data & backup',
   'settings.sectionTools': 'Tools',
+  'settings.toolClosed':
+    'This tool is not running, so it cannot say what it has to offer yet. Open it once and its settings appear here.',
+  'settings.toolOpen': 'Open {name}',
   'settings.theme': 'Colour theme',
   'settings.themeHint':
     'Applies to the whole window, tools included. Mostly dark; the light ones cover light mode.',
@@ -213,6 +216,9 @@ const de: Partial<Record<MessageKey, string>> = {
   'settings.sectionLook': 'Aussehen',
   'settings.sectionData': 'Daten & Sicherung',
   'settings.sectionTools': 'Werkzeuge',
+  'settings.toolClosed':
+    'Dieses Werkzeug läuft nicht und kann deshalb noch nicht sagen, was es zu bieten hat. Einmal öffnen, dann stehen seine Einstellungen hier.',
+  'settings.toolOpen': '{name} öffnen',
   'settings.theme': 'Farbthema',
   'settings.themeHint':
     'Gilt für das ganze Fenster, Werkzeuge eingeschlossen. Überwiegend dunkel; die hellen decken den Light Mode ab.',
