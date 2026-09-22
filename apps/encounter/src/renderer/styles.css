@@ -460,9 +460,12 @@ body {
   white-space: nowrap;
 }
 
-/* Das Verhaeltnis: zwei Zahlen nebeneinander, mit dem „gegen" dazwischen.
-   Bewusst kein Balken und keine Ampel — beides waere ein Urteil, und das
-   gibt der Bestand noch nicht her. */
+/* Die Einordnung oben, das Verhaeltnis darunter.
+
+   Die Farbe kommt aus der Einordnung und ist bewusst KEINE Ampel: rot
+   fuer „hoch" hiesse, eine schwere Begegnung sei ein Fehler. Es ist eine
+   Auskunft, keine Warnung — nur „ueber hoch" faellt heraus, weil es das
+   Regelwerk selbst nicht mehr abdeckt. */
 .verhaeltnis {
   margin: 14px 0 4px;
   padding: 12px 14px;
@@ -493,4 +496,42 @@ body {
 
 .verhaeltnis .hinweis {
   margin: 8px 0 0;
+}
+
+
+.verhaeltnis__urteil {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.verhaeltnis__punkte {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-leise);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Die Einordnung faerbt den Rand, nicht die Schrift: lesbar bleibt sie in
+   jedem Thema, und die Farbe bleibt trotzdem auf einen Blick erkennbar. */
+.verhaeltnis[data-einordnung='darunter'],
+.verhaeltnis[data-einordnung='niedrig'] {
+  border-left: 3px solid color-mix(in srgb, var(--betont) 50%, var(--rand));
+}
+
+.verhaeltnis[data-einordnung='mittel'] {
+  border-left: 3px solid var(--betont);
+}
+
+.verhaeltnis[data-einordnung='hoch'] {
+  border-left: 3px solid color-mix(in srgb, var(--gefahr) 60%, var(--betont));
+}
+
+/* Das Einzige, was wirklich heraussticht: hier hoert das Regelwerk auf. */
+.verhaeltnis[data-einordnung='darueber'] {
+  border-left: 3px solid var(--gefahr);
 }

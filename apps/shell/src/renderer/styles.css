@@ -864,6 +864,18 @@ body {
   font-size: 12px;
 }
 
+/* Die vorgeschriebene Namensnennung. Kleiner als der uebrige Text, aber
+   nicht versteckt: sie ist die Bedingung, nicht das Kleingedruckte. */
+.ueber__srd {
+  color: var(--f-text-leise, #939aab);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: left;
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 2px solid var(--f-rand, #2a2e39);
+}
+
 .ueber__verweise {
   display: flex;
   gap: 8px;

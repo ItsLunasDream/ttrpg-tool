@@ -30,6 +30,7 @@
     "@suite/umgebungen": "*",
     "@suite/eintraege": "*",
     "@suite/i18n": "*",
-    "@suite/uebergabe": "*"
+    "@suite/uebergabe": "*",
+    "@suite/srd": "*"
   }
 }

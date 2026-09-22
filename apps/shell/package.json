@@ -45,7 +45,8 @@
     "fflate": "^0.8.2",
     "@suite/eintraege": "*",
     "@suite/umgebungen": "*",
-    "@suite/uebergabe": "*"
+    "@suite/uebergabe": "*",
+    "@suite/srd": "*"
   },
   "build": {
     "appId": "de.itslunasdream.ttrpgtools",

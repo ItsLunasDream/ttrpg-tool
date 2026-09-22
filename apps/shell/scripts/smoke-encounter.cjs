@@ -336,13 +336,17 @@ app.whenReady().then(async () => {
     /keine Gruppe|no party/i.test(ohneGruppe),
     'und ohne Gruppe sagt es das, statt etwas zu behaupten'
   );
-  // Kein Urteil: keines der Woerter, die eine Schwelle behaupten wuerden.
-  // Die Laenge steht mit in der Pruefung: auf leerem Text waere „kein
-  // Urteil" sonst gruen, ohne dass irgendetwas dagestanden haette.
+  // Ohne Gruppe gibt es auch keine Einordnung — und das Werkzeug sagt,
+  // warum, statt das Urteil stillschweigend wegzulassen.
   pruefe(
-    ohneGruppe.length > 10 &&
-      !/leicht|mittel|schwer|tödlich|toedlich|easy|medium|hard|deadly/i.test(ohneGruppe),
-    'und faellt kein Urteil'
+    ohneGruppe.length > 10 && !/data-einordnung="[a-z]/.test(
+      await js("document.querySelector('.verhaeltnis')?.outerHTML ?? ''")
+    ),
+    'und ohne Gruppe keine Einordnung'
+  );
+  pruefe(
+    /Einstellungen|settings/i.test(ohneGruppe),
+    'sondern der Hinweis, wo die Gruppe steht'
   );
 
   // Die Gruppe kommt aus den Einstellungen der Huelle, nicht aus dem
@@ -358,6 +362,21 @@ app.whenReady().then(async () => {
   pruefe(
     !/keine Gruppe|no party/i.test(mitGruppe),
     'und der Hinweis auf die fehlende Gruppe ist weg'
+  );
+
+  // Und jetzt steht die Einordnung da, aus dem Regelwerk gerechnet.
+  //
+  // Zweimal das Monster mit Grad 5 sind 3.600 EP. Die Gruppe (3x4, 1x6)
+  // hat ein hohes Budget von 3 x 500 + 1.400 = 2.900 EP, und das
+  // Anderthalbfache davon ist 4.350 — die Begegnung liegt also im
+  // hohen Bereich.
+  const kasten = await js("document.querySelector('.verhaeltnis')?.outerHTML ?? ''");
+  pruefe(/data-einordnung="hoch"/.test(kasten), `die Einordnung steht da (${
+    (/data-einordnung="([a-z]*)"/.exec(kasten) ?? [])[1] ?? 'keine'
+  })`);
+  pruefe(
+    /3[.,]600|3600/.test(mitGruppe),
+    'mit den Erfahrungspunkten, aus denen sie entstanden ist'
   );
   pruefe(
     fs.existsSync(path.join(ordner, 'einstellungen.json')),
