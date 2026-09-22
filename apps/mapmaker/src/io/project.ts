@@ -25,7 +25,7 @@ import { SCHEMA_VERSION, type MapDocument } from '@/model/types';
 import { createDocument } from '@/model/document';
 
 export const TTMAP_EXTENSION = 'ttmap';
-const APP_VERSION = '0.2.0';
+const APP_VERSION = '0.4.0';
 
 /**
  * So viele alte Fassungen bleiben im Archiv.
