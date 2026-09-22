@@ -30,7 +30,27 @@ const TEXTE = {
   ],
   quelle: ['Quelle', 'Source'],
   verweise: ['Siehe auch', 'See also'],
-  'vorschau.oeffnen': ['Eintrag öffnen', 'Open entry']
+  'vorschau.oeffnen': ['Eintrag öffnen', 'Open entry'],
+  'haus.neu': ['Hausregel', 'House rule'],
+  'haus.dazu': ['Hausregel dazu', 'Add house rule'],
+  'haus.amTisch': ['An diesem Tisch gilt:', 'At this table:'],
+  'haus.aendert': ['Ändert:', 'Changes:'],
+  'haus.bearbeiten': ['Bearbeiten', 'Edit'],
+  'haus.loeschen': ['Löschen', 'Delete'],
+  'haus.loeschenSicher': ['Hausregel „{name}" löschen?', 'Delete house rule “{name}”?'],
+  'haus.name': ['Name', 'Name'],
+  'haus.bezug': ['Ändert die offizielle Regel', 'Changes the official rule'],
+  'haus.keinBezug': ['— keine, kommt dazu —', '— none, it is new —'],
+  'haus.text': ['Text', 'Text'],
+  'haus.textHinweis': [
+    'Markdown. [[Liegend]] verweist auf einen Eintrag.',
+    'Markdown. [[Prone]] links to an entry.'
+  ],
+  'haus.speichern': ['Speichern', 'Save'],
+  'haus.abbrechen': ['Abbrechen', 'Cancel'],
+  'haus.nameFehlt': ['Die Hausregel braucht einen Namen.', 'The house rule needs a name.'],
+  'haus.fehler': ['Konnte nicht speichern: {detail}', 'Could not save: {detail}'],
+  'haus.insLeere': ['Diesen Eintrag gibt es nicht.', 'This entry does not exist.']
 } as const;
 
 export type TextKey = keyof typeof TEXTE;

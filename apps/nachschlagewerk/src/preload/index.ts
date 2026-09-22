@@ -1,14 +1,25 @@
 /**
  * Die Bruecke des Nachschlagewerks.
  *
- * Duenn, weil der Bestand in der Oberflaeche selbst liegt: `@suite/srd` ist
- * plattformfrei und wird mitgebuendelt. Ueber die Bruecke laufen nur die
- * Sprache und die Spruenge aus der Suche der Huelle.
+ * Duenn, weil der offizielle Bestand in der Oberflaeche selbst liegt:
+ * `@suite/srd` ist plattformfrei und wird mitgebuendelt. Ueber die Bruecke
+ * laufen die Hausregeln, die Sprache und die Spruenge aus der Suche.
  */
 import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
+import type { Hausregel } from '../shared/hausregeln';
 
 const api = {
+  hausregeln: {
+    liste: () => ipcRenderer.invoke(kanal('hausregeln:liste')) as Promise<Hausregel[]>,
+    speichern: (regel: Hausregel, neu: boolean) =>
+      ipcRenderer.invoke(kanal('hausregeln:speichern'), regel, neu) as Promise<{
+        ok: boolean;
+        id: string;
+        text: string;
+      }>,
+    loeschen: (id: string) => ipcRenderer.invoke(kanal('hausregeln:loeschen'), id) as Promise<boolean>
+  },
   /**
    * Die Suche der Huelle hat einen Eintrag gewaehlt, der hier liegt.
    * Liefert eine Funktion zum Abmelden zurueck.

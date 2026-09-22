@@ -983,6 +983,7 @@ async function montiereEncounter(id: string, haken: MontageHaken): Promise<Monti
 async function montiereNachschlagewerk(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountNachschlagewerk({
     distDir: appDistDir(id, 'main'),
+    datenordner: datenordner(id),
     devServerUrl: process.env.NACHSCHLAGEWERK_DEV_SERVER_URL,
     language: haken.language,
     onLanguageChange: (language) => haken.onLanguageChange(language as Language)

@@ -196,6 +196,55 @@ app.whenReady().then(async () => {
     'die alte Suche ist dabei geleert, sonst stuende der Eintrag nicht in der Liste'
   );
 
+  // --- Hausregeln ----------------------------------------------------------
+  //
+  // An der offiziellen Regel angelegt, auf der Platte abgelegt, und die
+  // offizielle Regel traegt danach die Marke. Das ist der Kern: wer
+  // „Critical Hit" nachschlaegt, soll sehen, dass am Tisch etwas anderes gilt.
+  await js(`document.querySelector('.eintrag[data-regel="regel/critical-hit"]')?.click(); true`);
+  await hjs(`window.shell.suche.zeige('nachschlagewerk', 'regel/critical-hit')`);
+  await warte(500);
+  await js(`document.querySelector('[data-hausregel-dazu]').click(); true`);
+  await warte(300);
+  const tippe = (feld, wert) => js(`(() => {
+    const el = document.querySelector('[data-hausregel-formular] [data-feld="${feld}"]');
+    const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, ${JSON.stringify(wert)});
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  })()`);
+  await tippe('name', 'Kritische Treffer: maximal');
+  await tippe('text', 'Bei uns wird der Schaden maximiert. Gilt auch bei [[Liegend]].');
+  await warte(200);
+  pruefe(
+    (await js("document.querySelector('[data-hausregel-formular] [data-feld=bezug]').value")) === 'regel/critical-hit',
+    'die neue Hausregel zeigt schon auf die Regel, von der aus sie angelegt wurde'
+  );
+  await js(`document.querySelector('[data-hausregel-speichern]').click(); true`);
+  await warte(700);
+  const hausordner = path.join(userData, 'nachschlagewerk', 'hausregeln');
+  const hausdateien = fs.existsSync(hausordner) ? fs.readdirSync(hausordner) : [];
+  pruefe(hausdateien.length === 1, `die Hausregel liegt auf der Platte (${hausdateien.join(', ')})`);
+  pruefe(
+    (await js("document.querySelector('.regel')?.dataset.regel ?? ''")).startsWith('hausregel/'),
+    'nach dem Speichern steht sie rechts'
+  );
+  pruefe(
+    (await js("document.querySelectorAll('.regel .verweis--leise').length")) >= 2,
+    'mit dem Bezug und dem [[Verweis]] als Verweise'
+  );
+  await hjs(`window.shell.suche.zeige('nachschlagewerk', 'regel/critical-hit')`);
+  await warte(500);
+  pruefe(
+    /Kritische Treffer/.test(await js("document.querySelector('[data-amtisch]')?.textContent ?? ''")),
+    'die offizielle Regel traegt die Marke „an diesem Tisch gilt"'
+  );
+  const nachHaus = await hjs('window.shell.suche.eintraege()');
+  pruefe(
+    (nachHaus ?? []).some((e) => e.werkzeug === 'nachschlagewerk' && e.kennung.startsWith('hausregel/')),
+    'Strg+K findet die Hausregel'
+  );
+
   // --- Die Namensnennung ---------------------------------------------------
   pruefe(
     /Systemreferenzdokument 5\.2\.1|System Reference Document 5\.2\.1/.test(

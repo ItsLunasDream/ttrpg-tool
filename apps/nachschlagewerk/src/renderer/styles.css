@@ -407,3 +407,70 @@ body {
   cursor: pointer;
   font: inherit;
 }
+
+/* Hausregeln */
+.liste__neu {
+  width: 100%;
+  margin: 8px 0 4px;
+}
+
+.regel__knoepfe {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.regel__amtisch {
+  border-left: 3px solid var(--betont);
+  background: var(--lasur);
+  padding: 6px 10px;
+  margin: 8px 0 12px;
+  border-radius: 4px;
+}
+
+.regel__amtisch > span:first-child {
+  font-weight: 600;
+}
+
+.verweis--kaputt {
+  color: var(--gefahr, #e5484d);
+  text-decoration: underline wavy;
+  text-underline-offset: 3px;
+}
+
+.hausformular {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+}
+
+.hausformular__feld {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-leise);
+  font-size: 13px;
+}
+
+.hausformular__feld input,
+.hausformular__feld select,
+.hausformular__feld textarea {
+  background: var(--grund);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 14px;
+}
+
+.hausformular__fehler {
+  color: var(--gefahr, #e5484d);
+}
+
+.knopf--haupt {
+  background: var(--betont);
+  border-color: var(--betont);
+  color: var(--grund);
+}

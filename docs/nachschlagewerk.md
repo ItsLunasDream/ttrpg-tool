@@ -13,8 +13,15 @@ Querverweise sind gebaut: kuratierte Begriffe (`@suite/srd/verweise`) werden
 im Text erkannt, nur beim ersten Vorkommen und nie im eigenen Eintrag;
 Darüberfahren zeigt eine Vorschau, ein Klick öffnet. Anders als im Story
 Creator reicht ein einfacher Klick (Strg+Klick geht auch): hier wird nur
-gelesen, nicht geschrieben. Offen: Hausregeln (#145), Notizen am Text
-(#147).
+gelesen, nicht geschrieben.
+
+Hausregeln sind gebaut: „+ Hausregel" in der Liste oder „Hausregel dazu" an
+einer offiziellen Regel. Sie liegen als Markdown unter
+`<Datenordner>/nachschlagewerk/hausregeln/`, stehen in der Liste ganz oben,
+werden von Strg+K gefunden und nicht übersetzt. Zeigt eine Hausregel auf
+eine offizielle Regel, trägt diese die Marke „An diesem Tisch gilt: …".
+`[[Name]]` in einer Hausregel verweist auf einen Eintrag; ein Verweis ins
+Leere ist rot gewellt statt still Text. Offen: Notizen am Text (#147).
 
 ## Wofür es da ist — und wofür nicht
 

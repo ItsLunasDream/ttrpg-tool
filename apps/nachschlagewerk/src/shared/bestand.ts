@@ -14,16 +14,26 @@
  */
 import type { Paar } from '@suite/srd';
 import { GLOSSAR, type Glossarblock } from '@suite/srd/glossar';
+import type { Hausregel } from './hausregeln';
 
 /**
  * Die Arten, in der Reihenfolge, in der sie in der Liste stehen. Sie kommen
  * aus dem Schlagwort, das das Glossar hinter einen Namen setzt
  * („Blinded [Condition]"); Eintraege ohne Schlagwort sind Regeln.
  */
-export const ARTEN = ['regel', 'zustand', 'aktion', 'wirkungsbereich', 'gefahr', 'haltung'] as const;
+export const ARTEN = [
+  'hausregel',
+  'regel',
+  'zustand',
+  'aktion',
+  'wirkungsbereich',
+  'gefahr',
+  'haltung'
+] as const;
 export type Art = (typeof ARTEN)[number];
 
 export const ART_NAME: Record<Art, Paar> = {
+  hausregel: { de: 'Hausregel', en: 'House rule' },
   regel: { de: 'Regel', en: 'Rule' },
   zustand: { de: 'Zustand', en: 'Condition' },
   aktion: { de: 'Aktion', en: 'Action' },
@@ -34,6 +44,7 @@ export const ART_NAME: Record<Art, Paar> = {
 
 /** Die Ueberschrift einer Gruppe in der Liste: Mehrzahl. */
 export const ART_GRUPPE: Record<Art, Paar> = {
+  hausregel: { de: 'Hausregeln', en: 'House rules' },
   regel: { de: 'Regeln', en: 'Rules' },
   zustand: { de: 'Zustände', en: 'Conditions' },
   aktion: { de: 'Aktionen', en: 'Actions' },
@@ -67,6 +78,27 @@ function flach(bloecke: readonly Glossarblock[], sprache: 'de' | 'en'): string {
       return b.text[sprache];
     })
     .join('\n\n');
+}
+
+/**
+ * Eine Hausregel in derselben Form wie ein offizieller Eintrag, damit Liste,
+ * Suche und Vorschau sie gleich behandeln. Der Name steht in beiden Sprachen
+ * gleich da: uebersetzt wird nicht, was die Spielleitung schreibt.
+ */
+export function alsRegel(hausregel: Hausregel): Regel {
+  const name = { de: hausregel.name, en: hausregel.name };
+  const text = { de: hausregel.text, en: hausregel.text };
+  return {
+    id: `hausregel/${hausregel.id}`,
+    art: 'hausregel',
+    name,
+    text,
+    bloecke: hausregel.text
+      .split(/\n{2,}/)
+      .filter((absatz) => absatz.trim())
+      .map((absatz) => ({ typ: 'absatz' as const, text: { de: absatz, en: absatz } })),
+    verweise: hausregel.bezug ? [hausregel.bezug] : []
+  };
 }
 
 let bestand: readonly Regel[] | null = null;
