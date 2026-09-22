@@ -459,6 +459,39 @@ function passenderNotiztyp(kampagne: { noteTypes: { id: string }[] }, wuensche: 
   return kampagne.noteTypes[0]?.id ?? 'note';
 }
 
+/**
+ * Legt eine Notiz in der Kampagne an, an der gerade gearbeitet wird, und
+ * sagt dem Story Creator Bescheid. Der gemeinsame Weg fuer Monster,
+ * Zustaende und Beute; der NPC Creator hat eigene Texte.
+ */
+async function legeNotizAn(
+  titel: string,
+  markdown: string,
+  wuensche: readonly string[],
+  haken: MontageHaken
+): Promise<{ ok: boolean; text: string }> {
+  if (!backstoryEmbed) {
+    return { ok: false, text: 'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.' };
+  }
+  const kampagnen = await backstoryEmbed.vault.listCampaigns();
+  if (kampagnen.length === 0) {
+    return { ok: false, text: 'Es gibt noch keine Kampagne, in die das passt.' };
+  }
+  const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+  const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
+  const typ = passenderNotiztyp(kampagne, wuensche);
+  const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
+  await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+
+  // Dem Story Creator sagen, dass etwas dazugekommen ist — sonst liegt
+  // die Notiz auf der Platte und seine offene Liste zeigt sie nicht.
+  if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
+    backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
+  }
+  haken.onEreignis?.('backstory');
+  return { ok: true, text: `${titel} → ${kampagne.name}` };
+}
+
 async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountNpc({
     distDir: appDistDir(id, 'main'),
@@ -865,30 +898,9 @@ async function montiereMonster(id: string, haken: MontageHaken): Promise<Montier
     // Die KI der Sammlung, wie ueberall. Ein eigener Zugang je Werkzeug waere
     // eine zweite Stelle, an der derselbe Schluessel liegt.
     kiQuelle: haken.kiQuelle,
-    anlegen: async (titel, markdown) => {
-      if (!backstoryEmbed) {
-        return { ok: false, text: 'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.' };
-      }
-      const kampagnen = await backstoryEmbed.vault.listCampaigns();
-      if (kampagnen.length === 0) {
-        return { ok: false, text: 'Es gibt noch keine Kampagne, in die das passt.' };
-      }
-      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
-      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
-      // „creature" gibt es in keiner Vorlage — ein Monster ist hier eine
-      // Figur, und notfalls eine freie Notiz.
-      const typ = passenderNotiztyp(kampagne, ['creature', 'character', 'note']);
-      const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
-      await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
-
-      // Dem Story Creator sagen, dass etwas dazugekommen ist — sonst liegt
-      // die Notiz auf der Platte und seine offene Liste zeigt sie nicht.
-      if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
-        backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
-      }
-      haken.onEreignis?.('backstory');
-      return { ok: true, text: `${titel} → ${kampagne.name}` };
-    }
+    // „creature" gibt es in keiner Vorlage — ein Monster ist hier eine
+    // Figur, und notfalls eine freie Notiz.
+    anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['creature', 'character', 'note'], haken)
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
@@ -1036,29 +1048,8 @@ async function montiereZustaende(id: string, haken: MontageHaken): Promise<Monti
     // Die KI der Sammlung, wie ueberall. Ein eigener Zugang je Werkzeug waere
     // eine zweite Stelle, an der derselbe Schluessel liegt.
     kiQuelle: haken.kiQuelle,
-    anlegen: async (titel, markdown) => {
-      if (!backstoryEmbed) {
-        return { ok: false, text: 'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.' };
-      }
-      const kampagnen = await backstoryEmbed.vault.listCampaigns();
-      if (kampagnen.length === 0) {
-        return { ok: false, text: 'Es gibt noch keine Kampagne, in die das passt.' };
-      }
-      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
-      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
-      // Ein Zustand ist keine Figur und kein Ort — er ist eine Notiz.
-      const typ = passenderNotiztyp(kampagne, ['note', 'event']);
-      const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
-      await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
-
-      // Dem Story Creator sagen, dass etwas dazugekommen ist — sonst liegt
-      // die Notiz auf der Platte und seine offene Liste zeigt sie nicht.
-      if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
-        backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
-      }
-      haken.onEreignis?.('backstory');
-      return { ok: true, text: `${titel} → ${kampagne.name}` };
-    }
+    // Ein Zustand ist keine Figur und kein Ort — er ist eine Notiz.
+    anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['note', 'event'], haken)
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
@@ -1141,7 +1132,10 @@ async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteA
     datenordner: datenordner(id),
     devServerUrl: process.env.LOOT_DEV_SERVER_URL,
     language: haken.language,
-    onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    // Keine Vorlage kennt einen Typ fuer Gegenstaende; wer sich „item"
+    // selbst angelegt hat, bekommt ihn, sonst wird es eine Notiz.
+    anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['item', 'note'], haken)
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);

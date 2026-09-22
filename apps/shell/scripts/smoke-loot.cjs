@@ -4,7 +4,7 @@
  * Geprueft wird der Weg, den die Modultests nicht sehen: die Beispiele beim
  * ersten Start, der Wurf direkt von der Kachel, eine neue Tabelle tippen,
  * die auf ein Beispiel verweist, mehrfach wuerfeln, speichern — und dass
- * Strg+K die Tabelle findet.
+ * Strg+K die Tabelle findet; zuletzt der Wurf als Notiz im Story Creator.
  *
  * Aufruf: xvfb-run -a electron scripts/smoke-loot.cjs --no-sandbox
  */
@@ -120,6 +120,13 @@ app.whenReady().then(async () => {
   );
   pruefe(dateien().length === 3, 'vor dem Speichern liegt nichts Neues auf der Platte');
 
+  // Ohne geoeffneten Story Creator weiss die Sammlung nicht, wohin: das
+  // muss gesagt werden, nicht stillschweigend scheitern.
+  await js(`document.querySelector('[data-story]').click(); true`);
+  await warte(500);
+  const story = await js("document.querySelector('.fehler, .meldung')?.textContent ?? ''");
+  pruefe(/Story Creator/.test(story), `der Story-Knopf meldet ehrlich (${story.slice(0, 70)})`);
+
   await js(`document.querySelector('[data-speichern]').click(); true`);
   await warte(700);
   pruefe(dateien().includes('rauchtest-truhe.md'), `gespeichert liegt die Tabelle auf der Platte (${dateien().join(', ')})`);
@@ -138,10 +145,57 @@ app.whenReady().then(async () => {
     'Strg+K findet die Tabelle'
   );
 
-  if (process.env.BILD) {
+  // --- Der Erfolgsweg in den Story Creator ----------------------------------
+  // Story Creator oeffnen und eine Kampagne bereitstellen, dann zurueck und
+  // denselben Wurf noch einmal hinueberschicken.
+  await hjs("document.querySelector('.schiene__heim').click(); true");
+  await warte(900);
+  await hjs(`document.querySelector('.kachel[data-app="backstory"]').click(); true`);
+  await warte(5000);
+  const bs = fenster.contentView.children.find((v) => v.webContents.getURL().includes('/apps/backstory/'));
+  pruefe(Boolean(bs), 'der Story Creator kommt hoch');
+  if (bs) {
+    await bs.webContents.executeJavaScript(`(async () => {
+      const auspacken = (antwort) => (antwort && 'value' in antwort ? antwort.value : antwort);
+      const liste = auspacken(await window.api.campaigns.list()) ?? [];
+      if (liste.length === 0) await window.api.campaigns.create('Testrunde');
+      return true; })()`);
+    await hjs("document.querySelector('.schiene__heim').click(); true");
+    await warte(900);
+    await hjs(`document.querySelector('.kachel[data-app="loot"]').click(); true`);
+    await warte(1500);
     await js(`document.querySelector('[data-id="rauchtest-truhe"]').click(); true`);
-    await warte(400);
+    await warte(500);
     await js(`document.querySelector('[data-wuerfeln]').click(); true`);
+    await warte(300);
+    await js(`document.querySelector('[data-story]').click(); true`);
+    await warte(1200);
+    const meldung = await js("document.querySelector('.meldung')?.textContent ?? ''");
+    pruefe(/Testrunde|→/.test(meldung), `der Wurf liegt als Notiz im Story Creator (${meldung.slice(0, 70)})`);
+    const vault = path.join(userData, 'backstory', 'vault');
+    const alleDateien = [];
+    const suche = (o) => {
+      for (const e of fs.readdirSync(o, { withFileTypes: true })) {
+        const p = path.join(o, e.name);
+        if (e.isDirectory()) suche(p);
+        else if (p.endsWith('.md')) alleDateien.push(p);
+      }
+    };
+    try {
+      suche(vault);
+    } catch {
+      // kein Vault
+    }
+    pruefe(
+      alleDateien.some((p) => /Rauchtest Truhe/.test(fs.readFileSync(p, 'utf8'))),
+      `und auf der Platte (${alleDateien.length} Notizdateien)`
+    );
+  }
+
+  if (process.env.BILD) {
+    await js(`document.querySelector('[data-id="rauchtest-truhe"]')?.click(); true`);
+    await warte(400);
+    await js(`document.querySelector('[data-wuerfeln]')?.click(); true`);
     await warte(300);
     const bild = await sicht.webContents.capturePage();
     fs.writeFileSync(process.env.BILD, bild.toPNG());

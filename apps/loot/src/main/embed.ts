@@ -38,6 +38,8 @@ export interface LootEmbedOptions {
   readonly devServerUrl?: string;
   readonly language?: string;
   readonly onLanguageChange?: (language: string) => void;
+  /** Legt eine Notiz im Story Creator an. Fehlt sie, meldet der Export es ehrlich. */
+  readonly anlegen?: (titel: string, markdown: string) => Promise<{ ok: boolean; text: string }>;
 }
 
 export interface LootEmbed {
@@ -212,6 +214,16 @@ export async function mountLoot(options: LootEmbedOptions): Promise<LootEmbed> {
     }
   });
 
+  /** Ein Wurf als Notiz in den Story Creator. */
+  handle('story', async (_e: never, titel: string, markdown: string): Promise<{ ok: boolean; text: string }> => {
+    if (!options.anlegen) return { ok: false, text: 'Der Story Creator ist nicht verfügbar.' };
+    try {
+      return await options.anlegen(titel, markdown);
+    } catch (fehler) {
+      return { ok: false, text: String(fehler instanceof Error ? fehler.message : fehler) };
+    }
+  });
+
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));
   ipcMain.on(kanal('sprache:gewechselt'), (_event, language: string) => {
     options.onLanguageChange?.(language);
@@ -238,7 +250,7 @@ export async function mountLoot(options: LootEmbedOptions): Promise<LootEmbed> {
 
 /** Meldet alles ab. Fuer Tests und einen sauberen Abbau. */
 export function unmountLoot(): void {
-  for (const name of ['liste', 'alle', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen']) {
+  for (const name of ['liste', 'alle', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'story']) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));

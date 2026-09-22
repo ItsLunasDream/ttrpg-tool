@@ -57,6 +57,21 @@ function alsTabelle(e: Entwurf, ersatzName: string): Gespeichert {
   };
 }
 
+/**
+ * Ein Wurf als Notiz: die Ergebnisse als Liste, darunter, woher sie kamen.
+ * Die Herkunft steht dabei, weil man sich spaeter fragt, welche Tabelle
+ * das war — der Wurf selbst ist dann laengst vergessen.
+ */
+function alsNotiz(ergebnisse: readonly Ergebnis[]): string {
+  const namen = new Set<string>();
+  const sammle = (e: Ergebnis) => {
+    if (!e.fehler) namen.add(e.tabelle);
+    e.teile.forEach(sammle);
+  };
+  ergebnisse.forEach(sammle);
+  return [...ergebnisse.map((e) => `- ${e.text}`), '', `*${[...namen].join(' · ')}*`, ''].join('\n');
+}
+
 /** Irgendwo im Baum etwas, das nicht aufging? */
 function hatFehler(e: Ergebnis): boolean {
   return Boolean(e.fehler) || e.teile.some(hatFehler);
@@ -158,6 +173,12 @@ export function App() {
       setVeraendert(false);
       setMeldung(t('gespeichert'));
       await ladeListe();
+    };
+
+    const insStory = async () => {
+      const ergebnis = await api.story(t('story.titel', { name: aktuell.name }), alsNotiz(ergebnisse));
+      if (ergebnis.ok) setMeldung(t('story.fertig', { text: ergebnis.text }));
+      else setFehler(t('story.fehler', { text: ergebnis.text }));
     };
 
     const kopiere = async () => {
@@ -265,9 +286,14 @@ export function App() {
                   <ErgebnisZeile key={i} ergebnis={e} />
                 ))}
               </ol>
-              <button type="button" className="knopf" onClick={() => void kopiere()}>
-                {t('wurf.kopieren')}
-              </button>
+              <div className="knopfreihe">
+                <button type="button" className="knopf" onClick={() => void kopiere()}>
+                  {t('wurf.kopieren')}
+                </button>
+                <button type="button" className="knopf" data-story onClick={() => void insStory()}>
+                  {t('story')}
+                </button>
+              </div>
             </>
           ) : null}
         </section>

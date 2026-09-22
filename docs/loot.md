@@ -25,8 +25,10 @@ Stufe 4 (Beute nach Grad) steht aus. Was beim Bauen entschieden wurde:
 - **Herkunft:** jedes Ergebnis hat ein aufklappbares „Woher" mit dem Baum
   der Würfe.
 
-Noch offen: die Brücke in den Story Creator (Ergebnis als Notiz), Verweise
-auf den Bestand des Magic Item Creators, und Stufe 4.
+- **Story Creator:** „In den Story Creator" legt den Wurf als Notiz in der
+  zuletzt benutzten Kampagne an, mit den beteiligten Tabellen darunter.
+
+Noch offen: Verweise auf den Bestand des Magic Item Creators, und Stufe 4.
 
 ## Warum das kein weiterer Erzeuger ist
 
