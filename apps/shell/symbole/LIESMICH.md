@@ -25,6 +25,7 @@ Der Name ist die Kennung des Werkzeugs:
 | `nachschlagewerk.png` | Nachschlagewerk |
 | `magicitems.png`  | Magic Item Creator |
 | `loot.png`        | Loot Generator     |
+| `austausch.png`   | Teilen (Titelleiste und Dialog) |
 | `banner.png`      | Banner oben im Startmenü, statt des Titels |
 
 Das Banner ist breit gedacht, etwa 4:1. Es wird nie höher als ein Fünftel

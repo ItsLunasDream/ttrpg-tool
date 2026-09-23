@@ -231,7 +231,27 @@ function ZustaendeIcon({ size = 26 }: IconProps): ReactElement {
   );
 }
 
+/**
+ * Teilen: zwei Figuren am Tisch, dazwischen zwei gegenlaeufige Pfeile.
+ *
+ * Nicht das uebliche „Teilen"-Zeichen aus Telefonen (drei Punkte): hier
+ * geht es um Menschen am selben Tisch, die einander etwas reichen.
+ */
+function AustauschIcon({ size = 26 }: IconProps): ReactElement {
+  return (
+    <Rahmen size={size}>
+      <circle cx="9" cy="14" r="4" />
+      <path d="M3 30c0-5 3-8 6-8s6 3 6 8" />
+      <circle cx="39" cy="14" r="4" />
+      <path d="M33 30c0-5 3-8 6-8s6 3 6 8" />
+      <path d="M17 34h14M27 30l4 4-4 4" />
+      <path d="M31 42H17M21 38l-4 4 4 4" />
+    </Rahmen>
+  );
+}
+
 const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
+  austausch: AustauschIcon,
   backstory: BackstoryIcon,
   mapmaker: MapmakerIcon,
   initiative: InitiativeIcon,

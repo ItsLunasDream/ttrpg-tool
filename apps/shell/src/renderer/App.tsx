@@ -724,7 +724,8 @@ export function App() {
         </span>
         {eintrag && <span className="titelleiste__pfad">› {t(nameKey(eintrag.id))}</span>}
         <span className="titelleiste__fueller" />
-        <button type="button" className="titelleiste__knopf" data-teilen-knopf onClick={() => zeigeDialog('teilen')}>
+        <button type="button" className="titelleiste__knopf titelleiste__knopf--symbol" data-teilen-knopf onClick={() => zeigeDialog('teilen')}>
+          <AppSymbol id="austausch" size={16} bild={symbole.austausch} />
           {t('title.share')}
           {ungelesen > 0 && (
             <span className="titelleiste__zahl" data-ungelesen>
@@ -870,7 +871,7 @@ export function App() {
           t={t}
         />
       )}
-      {dialog === 'teilen' && <Austausch onClose={() => zeigeDialog(null)} t={t} />}
+      {dialog === 'teilen' && <Austausch onClose={() => zeigeDialog(null)} t={t} symbole={symbole} />}
 
       {dialog === 'suche' && (
         <Suche
