@@ -63,6 +63,8 @@ const en = {
   'settings.theme': 'Colour theme',
   'settings.themeHint':
     'Applies to the whole window, tools included.',
+  'settings.size': 'Interface size',
+  'settings.sizeHint': 'Makes text and controls larger or smaller, in the whole window and every tool.',
   'settings.saveFailed': 'Could not save the settings: {detail}',
 
   'settings.icons': 'Tool icons',
@@ -230,6 +232,8 @@ const de: Partial<Record<MessageKey, string>> = {
   'settings.theme': 'Farbthema',
   'settings.themeHint':
     'Gilt für das ganze Fenster, Werkzeuge eingeschlossen.',
+  'settings.size': 'Größe der Oberfläche',
+  'settings.sizeHint': 'Macht Schrift und Bedienelemente größer oder kleiner, im ganzen Fenster und in jedem Werkzeug.',
   'settings.saveFailed': 'Die Einstellungen ließen sich nicht speichern: {detail}',
 
   'settings.icons': 'Symbole der Werkzeuge',

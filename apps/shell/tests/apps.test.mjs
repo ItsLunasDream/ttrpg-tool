@@ -119,3 +119,11 @@ test('Wuerfel, Story Creator und Nachschlagewerk gehoeren allen', () => {
   const fuerAlle = appsMitRolle('alle').map((a) => a.id).sort();
   assert.deepEqual(fuerAlle, ['backstory', 'dice', 'nachschlagewerk']);
 });
+
+test('bei vergroesserter Oberflaeche rueckt die Anwendung mit Titelleiste und Schiene', () => {
+  const flaeche = berechneAppFlaeche(1280, 860, 150);
+  assert.equal(flaeche.x, Math.round(CHROME.schieneBreite * 1.5));
+  assert.equal(flaeche.y, Math.round(CHROME.titelleisteHoehe * 1.5));
+  assert.equal(flaeche.width, 1280 - flaeche.x);
+  assert.equal(flaeche.height, 860 - flaeche.y);
+});

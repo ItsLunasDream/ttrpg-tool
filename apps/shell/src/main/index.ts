@@ -61,7 +61,7 @@ import {
 } from './apps';
 import type { Wert } from '@suite/einstellungen';
 import type { Uebergabe } from '@suite/uebergabe';
-import { beobachteFarbe, setzeThema as setzeFarbthema } from './farbe';
+import { beobachteFarbe, gewaehlteGroesse, setzeGroesse, setzeThema as setzeFarbthema } from './farbe';
 import { schreibeSicherung } from './sicherung';
 import { alleEintraege } from './suche';
 import { sicherungsname } from '../shared/sicherung';
@@ -167,7 +167,7 @@ function legeHuelleAus(): void {
   // Auch die unsichtbaren werden mitgelegt: sonst stuenden sie beim naechsten
   // Hervorholen in der Groesse von vorletzter Woche da und muessten erst
   // umbrechen.
-  const flaeche = berechneAppFlaeche(width, height);
+  const flaeche = berechneAppFlaeche(width, height, gewaehlteGroesse());
   for (const montiert of offen.values()) {
     montiert.sicht.setBounds(flaeche);
   }
@@ -186,7 +186,7 @@ function holeNachVorn(montiert: MontierteApp, mitFahrt: boolean): void {
   montiert.sicht.setVisible(true);
   if (mitFahrt) {
     const { width, height } = fenster.getContentBounds();
-    fahreEin(montiert.sicht, berechneAppFlaeche(width, height), wenigerBewegung);
+    fahreEin(montiert.sicht, berechneAppFlaeche(width, height, gewaehlteGroesse()), wenigerBewegung);
   }
   // Ohne das behielte die Huelle die Tastatur, und Tippen im Editor kaeme
   // nicht an.
@@ -532,6 +532,7 @@ async function erzeugeFenster(): Promise<void> {
   // Anmelden statt faerben: gefaerbt wird bei `dom-ready`, und das kommt
   // gleich. Vor dem Laden einzuspritzen haelt den Start an — siehe farbe.ts.
   await setzeFarbthema(gemerkteEinstellungen.thema);
+  setzeGroesse(gemerkteEinstellungen.groesse);
   beobachteFarbe(huelle.webContents as WebContents);
 
   if (devServerUrl) {
@@ -764,6 +765,12 @@ function registriereKanaele(): void {
     // bekommen die Regel eingespritzt, siehe farbe.ts.
     if (aktualisiert.thema !== vorher.thema) {
       void verteileThema(aktualisiert.thema);
+    }
+    // Die Groesse ebenso; dazu rutschen die Werkzeuge an die neue Kante von
+    // Titelleiste und Schiene.
+    if (aktualisiert.groesse !== vorher.groesse) {
+      setzeGroesse(aktualisiert.groesse);
+      legeHuelleAus();
     }
     return ohneSchluessel(aktualisiert);
   });

@@ -156,6 +156,9 @@ for the title bar and the rail.
   a tool needs no code for it: its styles.css derives its own variable names
   from the roles and keeps a fallback for each. The themes are tested for
   contrast, not just for looking nice.
+- The interface size (80 to 200 percent) works the same way: one setting,
+  applied by the shell to every view; the tools move along with the title bar
+  and the rail instead of slipping underneath them.
 - Settings live in one place. The shell's settings dialog shows its own
   entries (language, AI, icons, introductions) and, underneath, a section per
   running tool. A tool does not draw that section itself — it runs in its own

@@ -21,7 +21,8 @@ import {
   descriptionKey,
   findApp,
   istWaehlbar,
-  nameKey
+  nameKey,
+  VORGABE_GROESSE
 } from '../shared/apps';
 import {
   DEFAULT_LANGUAGE,
@@ -145,6 +146,8 @@ export function App() {
    * Hauptprozess (`farbe.ts`); die Huelle faerbt sich hier selbst.
    */
   const [thema, setThema] = useState(VORGABE_THEMA);
+  /** Die Groesse der Oberflaeche in Prozent; gezoomt wird im Hauptprozess. */
+  const [groesse, setGroesse] = useState(VORGABE_GROESSE);
   /**
    * Welche Werkzeuge schon einmal wirklich offen waren.
    *
@@ -290,6 +293,7 @@ export function App() {
       setSprache(e.language);
       setKi(e.ki);
       setThema(e.thema);
+      setGroesse(e.groesse);
       setGesehen(e.einfuehrungGesehen);
       // Das Willkommen beim allerersten Start. Es steht hier und nicht in
       // einem eigenen Effekt, weil es genau die Antwort braucht, die gerade
@@ -575,6 +579,11 @@ export function App() {
     []
   );
 
+  const setzeGroesse = useCallback(async (prozent: number) => {
+    const e = await window.shell.einstellungen.schreiben({ groesse: prozent });
+    setGroesse(e.groesse);
+  }, []);
+
   const setzeThema = useCallback(async (neu: string) => {
     // Nur schreiben. Das Faerben und die Rueckmeldung kommen vom
     // Hauptprozess, auf demselben Weg wie bei jeder anderen Aenderung.
@@ -779,6 +788,8 @@ export function App() {
           setzeSprache={setzeSprache}
           thema={thema}
           setzeThema={setzeThema}
+          groesse={groesse}
+          setzeGroesse={setzeGroesse}
           ki={ki}
           setzeKi={setzeKi}
           kiZustand={kiZustand}

@@ -69,3 +69,10 @@ test('Schreiben an einen unmoeglichen Ort wirft — und wird nicht verschluckt',
     await rm(ordner, { recursive: true, force: true });
   }
 });
+
+test('die Groesse der Oberflaeche ist eine der Stufen, sonst 100', () => {
+  assert.equal(DEFAULT_SETTINGS.groesse, 100);
+  assert.equal(sanitizeSettings({ groesse: 125 }).groesse, 125);
+  assert.equal(sanitizeSettings({ groesse: 117 }).groesse, 100);
+  assert.equal(sanitizeSettings({ groesse: '150' }).groesse, 100);
+});
