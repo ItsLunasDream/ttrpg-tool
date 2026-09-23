@@ -13,7 +13,7 @@ import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { SELTENHEITEN, SELTENHEIT_NAME, gegenstandswert, type Seltenheit } from '@suite/srd';
 import { api } from './api';
 import { getLanguage, setLanguage, t } from './i18n';
-import { erzeuge, type Gegenstand, type Sprache } from '../shared/erzeuge';
+import { erzeuge, wuerfleFluch, wuerfleWirkung, type Gegenstand, type Sprache } from '../shared/erzeuge';
 import type { Eintrag } from '../shared/ablage';
 import { alsFoundryDatei } from '../shared/foundry';
 import { ARTEN, ART_NAME, ART_ZEICHEN, VERBRAUCH, type Art } from '../shared/tabellen';
@@ -363,28 +363,81 @@ export function App() {
                     setze({ wirkungen: offen.wirkungen.map((x, j) => (j === i ? e.target.value : x)) })
                   }
                 />
-                <button
-                  type="button"
-                  className="knopf"
-                  aria-label={t('feld.wirkungWeg')}
-                  title={t('feld.wirkungWeg')}
-                  onClick={() => setze({ wirkungen: offen.wirkungen.filter((_, j) => j !== i) })}
-                >
-                  ×
-                </button>
+                <div className="zeilenknoepfe">
+                  <button
+                    type="button"
+                    className="knopf"
+                    data-wirkung-neu={i}
+                    aria-label={t('feld.wirkungNeu')}
+                    title={t('feld.wirkungNeu')}
+                    onClick={() =>
+                      setze({
+                        wirkungen: offen.wirkungen.map((x, j) =>
+                          j === i ? wuerfleWirkung(offen.art, offen.seltenheit, spr, offen.wirkungen) : x
+                        )
+                      })
+                    }
+                  >
+                    ⚄
+                  </button>
+                  <button
+                    type="button"
+                    className="knopf"
+                    aria-label={t('feld.wirkungWeg')}
+                    title={t('feld.wirkungWeg')}
+                    onClick={() => setze({ wirkungen: offen.wirkungen.filter((_, j) => j !== i) })}
+                  >
+                    ×
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
-          <button
-            type="button"
-            className="knopf"
-            onClick={() => setze({ wirkungen: [...offen.wirkungen, ''] })}
-          >
-            + {t('feld.wirkungDazu')}
-          </button>
+          {/*
+            Ausdruecklich noch eine Wirkung oder einen Fluch wuerfeln, nicht
+            nur ein leeres Feld anlegen (Rueckmeldung).
+          */}
+          <div className="knopfreihe">
+            <button
+              type="button"
+              className="knopf"
+              data-wirkung-wuerfeln
+              onClick={() =>
+                setze({
+                  wirkungen: [
+                    ...offen.wirkungen.filter((w) => w.trim()),
+                    wuerfleWirkung(offen.art, offen.seltenheit, spr, offen.wirkungen)
+                  ]
+                })
+              }
+            >
+              ⚄ {t('feld.wirkungWuerfeln')}
+            </button>
+            <button
+              type="button"
+              className="knopf"
+              onClick={() => setze({ wirkungen: [...offen.wirkungen, ''] })}
+            >
+              + {t('feld.wirkungDazu')}
+            </button>
+          </div>
 
           <label className="feld feld--hoch fluch">
-            <span className="feld__name">{t('feld.fluch')}</span>
+            <span className="feld__name feld__name--mitknopf">
+              {t('feld.fluch')}
+              <button
+                type="button"
+                className="knopf knopf--klein"
+                data-fluch-wuerfeln
+                onClick={(e) => {
+                  e.preventDefault();
+                  // Ein Fluch bindet immer: mit ihm verlangt der Gegenstand Einstimmung.
+                  setze({ fluch: wuerfleFluch(spr, offen.fluch), einstimmung: offen.art !== 'trank' && offen.art !== 'schriftrolle' ? true : offen.einstimmung });
+                }}
+              >
+                ⚄ {offen.fluch.trim() ? t('feld.fluchNeu') : t('feld.fluchWuerfeln')}
+              </button>
+            </span>
             <textarea
               className="feld__flaeche"
               rows={2}

@@ -132,6 +132,26 @@ app.whenReady().then(async () => {
     'die Wirkungsfelder sind so hoch wie ihr Text'
   );
 
+  // --- Wirkungen und Fluch gezielt wuerfeln ----------------------------------
+  const zahlWirkungen = () => js("document.querySelectorAll('textarea[data-wirkung]').length");
+  const vorWuerfeln = await zahlWirkungen();
+  await js(`document.querySelector('[data-wirkung-wuerfeln]').click(); true`);
+  await warte(200);
+  pruefe((await zahlWirkungen()) === vorWuerfeln + 1, '„Wirkung wuerfeln" fuegt eine gewuerfelte Wirkung an');
+  const ersteVorher = await js("document.querySelector('textarea[data-wirkung]').value");
+  await js(`document.querySelector('[data-wirkung-neu="0"]').click(); true`);
+  await warte(200);
+  pruefe(
+    (await js("document.querySelector('textarea[data-wirkung]').value")) !== ersteVorher,
+    'eine einzelne Wirkung laesst sich neu wuerfeln'
+  );
+  await js(`document.querySelector('[data-fluch-wuerfeln]').click(); true`);
+  await warte(200);
+  pruefe(
+    /^(Curse|Fluch)/.test(await js("document.querySelector('.fluch textarea').value")),
+    'ein Fluch laesst sich ausdruecklich wuerfeln'
+  );
+
   // --- An den Loot Generator -------------------------------------------------
   await js(`document.querySelector('[data-loot]').click(); true`);
   await warte(700);

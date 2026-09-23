@@ -14,6 +14,16 @@ Verbrauchsgegenstände die Hälfte, Schriftrollen das Doppelte ihrer
 Herstellungskosten. Die 50 GM für den Heiltrank in den Foundry-Belegen unten
 sind also genau die Hälfte von Common, kein Widerspruch.
 
+**Keine umbenannten SRD-Gegenstände.** Neben den Wirkungen nach dem Muster
+des SRD (geeicht, siehe unten) gibt es rund 50 eigene (`eigen-…` in
+`tabellen.ts`), die dessen Bausteine neu mischen: Zustände, Zauber,
+Schadensarten, Rettungswürfe, Nutzungen je Tag. Jeder gewürfelte Gegenstand
+trägt mindestens eine davon; ein Trank ist also nie nur ein Heiltrank mit
+neuem Namen. Nebenwirkungen (`zusatz`) stehen nie allein. Tränke und
+Schriftrollen bekommen keinen zufälligen Fluch. Im Gegenstand lassen sich
+eine weitere Wirkung oder ein Fluch ausdrücklich würfeln und jede Wirkung
+einzeln neu würfeln.
+
 **In den Loot Generator** kommt ein Gegenstand nur über den Knopf „Send to
 Loot Generator“ (Merkmal `loot: ja` im Kopf der Datei), nicht schon durch
 Speichern. Die Farbe wischt dabei über das Symbol des Loot Generators. Der

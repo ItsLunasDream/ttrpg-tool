@@ -477,3 +477,27 @@ textarea {
     transform: none;
   }
 }
+
+/* Neu wuerfeln und Entfernen neben jeder Wirkung, untereinander. */
+.zeilenknoepfe {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.knopfreihe {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.feld__name--mitknopf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.knopf--klein {
+  padding: 2px 8px;
+  font-size: 12px;
+}
