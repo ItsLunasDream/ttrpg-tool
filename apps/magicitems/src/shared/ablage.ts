@@ -59,6 +59,7 @@ export function alsMarkdown(g: Gegenstand): string {
     `seltenheit: ${g.seltenheit}`,
     `einstimmung: ${g.einstimmung ? 'ja' : 'nein'}`,
     `wert: ${g.wert}`,
+    ...(g.imLoot ? ['loot: ja'] : []),
     `geaendert: ${g.geaendert}`,
     '---',
     '## Wirkungen',
@@ -113,7 +114,8 @@ export function leseGegenstand(inhalt: string, ersatzId: string): Gegenstand {
     fluch: abschnitt(leib, 'Fluch'),
     wert: Number.isFinite(wert) ? wert : 0,
     notiz: abschnitt(leib, 'Notiz'),
-    geaendert: kopf.geaendert ?? ''
+    geaendert: kopf.geaendert ?? '',
+    imLoot: kopf.loot === 'ja'
   };
 }
 

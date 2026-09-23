@@ -31,6 +31,8 @@ export interface MagicItemsEmbedOptions {
   readonly devServerUrl?: string;
   readonly language?: string;
   readonly onLanguageChange?: (language: string) => void;
+  /** Meldet der Huelle, dass in einem anderen Werkzeug etwas dazukam (Wisch). */
+  readonly onEreignis?: (appId: string) => void;
 }
 
 export interface MagicItemsEmbed {
@@ -97,7 +99,8 @@ export async function leseNamenUndSeltenheit(
   datenordner: string
 ): Promise<{ name: string; seltenheit: string }[]> {
   const alle = await leseAlle(path.join(datenordner, WERKZEUG, ORDNER_NAME));
-  return alle.map((g) => ({ name: g.name, seltenheit: g.seltenheit }));
+  // Nur, was ausdruecklich in den Loot Generator geschickt wurde.
+  return alle.filter((g) => g.imLoot).map((g) => ({ name: g.name, seltenheit: g.seltenheit }));
 }
 
 export async function mountMagicItems(options: MagicItemsEmbedOptions): Promise<MagicItemsEmbed> {
@@ -140,6 +143,23 @@ export async function mountMagicItems(options: MagicItemsEmbedOptions): Promise<
       }
     }
   );
+
+  /*
+   * In den Loot Generator: das Merkmal setzen und der Huelle melden, damit
+   * die Farbe ueber das Symbol des Loot Generators wischt — derselbe Weg
+   * wie beim NPC Creator in den Story Creator.
+   */
+  handle('inDenLoot', async (_e: never, id: string): Promise<boolean> => {
+    const datei = path.join(ordner, `${zuId(id)}.md`);
+    try {
+      const g = leseGegenstand(await readFile(datei, 'utf8'), zuId(id));
+      await writeFile(datei, alsMarkdown({ ...g, imLoot: true }), 'utf8');
+      options.onEreignis?.('loot');
+      return true;
+    } catch {
+      return false;
+    }
+  });
 
   handle('loeschen', async (_e: never, id: string): Promise<boolean> => {
     try {
@@ -194,6 +214,6 @@ export async function mountMagicItems(options: MagicItemsEmbedOptions): Promise<
 
 /** Meldet alles ab. Fuer Tests und einen sauberen Abbau. */
 export function unmountMagicItems(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'foundry']) ipcMain.removeHandler(kanal(name));
+  for (const name of ['liste', 'lesen', 'speichern', 'inDenLoot', 'loeschen', 'foundry']) ipcMain.removeHandler(kanal(name));
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));
 }

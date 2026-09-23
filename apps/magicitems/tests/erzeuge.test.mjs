@@ -72,9 +72,14 @@ test('ein Gegenstand kommt aus der Datei zurueck, wie er hineinging', () => {
     fluch: 'Fluch: nie wieder los.',
     wert: 4000,
     notiz: 'Liegt im Grab des Königs.\n\nZweiter Absatz.',
-    geaendert: '2026-09-22T00:00:00.000Z'
+    geaendert: '2026-09-22T00:00:00.000Z',
+    imLoot: false
   };
   assert.deepEqual(M.leseGegenstand(M.alsMarkdown(g), 'klinge'), g);
+  // Das Merkmal „im Loot Generator" geht mit durch die Datei.
+  const imLoot = { ...g, imLoot: true };
+  assert.deepEqual(M.leseGegenstand(M.alsMarkdown(imLoot), 'klinge'), imLoot);
+  assert.doesNotMatch(M.alsMarkdown(g), /^loot:/m);
 });
 
 test('Kennungen: lesbar und frei', () => {

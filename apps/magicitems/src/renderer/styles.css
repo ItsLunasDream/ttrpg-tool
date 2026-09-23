@@ -157,8 +157,12 @@ body {
 }
 
 .feld__flaeche {
-  resize: vertical;
   line-height: 1.5;
+  /* So hoch wie der Text, ohne Ziehen von Hand (Rueckmeldung). */
+  field-sizing: content;
+  min-height: 2.6em;
+  resize: none;
+  overflow: hidden;
 }
 
 .anzahl {

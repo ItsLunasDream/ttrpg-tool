@@ -45,6 +45,12 @@ export interface Gegenstand {
   readonly wert: number;
   readonly notiz: string;
   readonly geaendert: string;
+  /**
+   * Steht im Loot Generator. Nur auf ausdruecklichen Wunsch („Send to Loot
+   * Generator"), nicht schon durch Speichern: nicht jeder gebaute
+   * Gegenstand soll als Beute auftauchen.
+   */
+  readonly imLoot?: boolean;
 }
 
 function eins<T>(liste: readonly T[], zufall: Zufall): T {

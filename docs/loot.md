@@ -138,7 +138,8 @@ Sie überschneiden sich an genau einer Stelle, und die ist auflösbar:
 - Der **Magic Item Creator** *erzeugt* einen Gegenstand und legt ihn ab.
 - Der **Loot Generator** *zieht* etwas — und wenn das etwas Magisches ist,
   soll er auf die abgelegten Gegenstände zeigen können, nicht einen eigenen
-  erfinden.
+  erfinden. Gemeint sind nur die, die dort ausdrücklich „an den Loot
+  Generator“ geschickt wurden (`loot: ja`), nicht jeder gespeicherte.
 
 Also: ein Eintrag kann nicht nur auf eine andere Tabelle zeigen, sondern auch
 auf einen Bestand eines anderen Werkzeugs („irgendein magischer Gegenstand

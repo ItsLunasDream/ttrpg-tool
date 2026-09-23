@@ -1137,7 +1137,8 @@ async function montiereMagicItems(id: string, haken: MontageHaken): Promise<Mont
     datenordner: datenordner(id),
     devServerUrl: process.env.MAGICITEMS_DEV_SERVER_URL,
     language: haken.language,
-    onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    onEreignis: haken.onEreignis
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);

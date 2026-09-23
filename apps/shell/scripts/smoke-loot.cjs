@@ -18,12 +18,13 @@ const userData = path.join(tmp, 'userData');
 fs.mkdirSync(userData, { recursive: true });
 
 // Ein Gegenstand im Bestand des Magic Item Creators, bevor irgendetwas
-// startet: der Loot Generator soll ihn als Tabelle anbieten.
+// startet, und zwar einer, der in den Loot Generator geschickt wurde
+// (`loot: ja`): nur solche bietet der Loot Generator als Tabelle an.
 const miOrdner = path.join(userData, 'magicitems', 'gegenstaende');
 fs.mkdirSync(miOrdner, { recursive: true });
 fs.writeFileSync(
   path.join(miOrdner, 'rauchtest-klinge.md'),
-  '---\nname: Rauchtest-Klinge\nart: waffe\nseltenheit: rare\neinstimmung: nein\nwert: 4000\ngeaendert: 2026-01-01\n---\n## Wirkungen\n\n- Glaenzt.\n'
+  '---\nname: Rauchtest-Klinge\nart: waffe\nseltenheit: rare\neinstimmung: nein\nwert: 4000\nloot: ja\ngeaendert: 2026-01-01\n---\n## Wirkungen\n\n- Glaenzt.\n'
 );
 
 app.setPath('userData', userData);

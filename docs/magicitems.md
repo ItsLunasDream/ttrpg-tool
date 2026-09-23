@@ -14,6 +14,12 @@ Verbrauchsgegenstände die Hälfte, Schriftrollen das Doppelte ihrer
 Herstellungskosten. Die 50 GM für den Heiltrank in den Foundry-Belegen unten
 sind also genau die Hälfte von Common, kein Widerspruch.
 
+**In den Loot Generator** kommt ein Gegenstand nur über den Knopf „Send to
+Loot Generator“ (Merkmal `loot: ja` im Kopf der Datei), nicht schon durch
+Speichern. Die Farbe wischt dabei über das Symbol des Loot Generators. Der
+Export heißt in der Oberfläche „Export as JSON“; das Format bleibt das von
+Foundry.
+
 Der Foundry-Export (Stufe 3) ist gebaut. Die Eichung (Stufe 4) ebenfalls:
 31 Eichpunkte aus dem SRD (`src/shared/eichpunkte.ts`, erzeugt von
 `packages/srd/werkzeug/gegenstaende_eichung.py`). Welcher SRD-Gegenstand für

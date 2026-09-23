@@ -13,7 +13,8 @@ const api = {
     lesen: (id: string) => ipcRenderer.invoke(kanal('lesen'), id) as Promise<Gegenstand | null>,
     speichern: (g: Gegenstand, neu: boolean) =>
       ipcRenderer.invoke(kanal('speichern'), g, neu) as Promise<{ ok: boolean; id: string; text: string }>,
-    loeschen: (id: string) => ipcRenderer.invoke(kanal('loeschen'), id) as Promise<boolean>
+    loeschen: (id: string) => ipcRenderer.invoke(kanal('loeschen'), id) as Promise<boolean>,
+    inDenLoot: (id: string) => ipcRenderer.invoke(kanal('inDenLoot'), id) as Promise<boolean>
   },
   foundry: (vorschlag: string, inhalt: string) =>
     ipcRenderer.invoke(kanal('foundry'), vorschlag, inhalt) as Promise<{ ok: boolean; text: string }>,

@@ -120,21 +120,107 @@ export function App() {
     setFehler('');
   };
 
-  const speichere = async () => {
-    if (!offen) return;
+  const speichere = async (): Promise<Gegenstand | null> => {
+    if (!offen) return null;
     setFehler('');
     const name = offen.name.trim() || ART_NAME[offen.art][spr];
     const fertig = { ...offen, name, wirkungen: offen.wirkungen.filter((w) => w.trim()) };
     const ergebnis = await api.sammlung.speichern(fertig, istNeu);
     if (!ergebnis.ok) {
       setFehler(t('fehler.speichern', { detail: ergebnis.text }));
-      return;
+      return null;
     }
     setOffen({ ...fertig, id: ergebnis.id });
     setIstNeu(false);
     setMeldung(t('gespeichert'));
     await ladeListe();
+    return { ...fertig, id: ergebnis.id };
   };
+
+  /*
+   * In den Loot Generator. Ein ungespeicherter Entwurf wird vorher
+   * gespeichert — in den Loot kann nur, was auch in der Sammlung steht.
+   */
+  const inDenLoot = async () => {
+    if (!offen) return;
+    const gespeichert = await speichere();
+    if (!gespeichert) return;
+    if (await api.sammlung.inDenLoot(gespeichert.id)) {
+      setOffen({ ...gespeichert, imLoot: true });
+      setMeldung(t('loot.fertig'));
+    } else setFehler(t('loot.fehler'));
+  };
+
+  /*
+   * Die Leiste des Erzeugers steht in BEIDEN Ansichten: auch mit einem
+   * offenen Gegenstand soll man Art und Seltenheit fuer den naechsten
+   * einstellen koennen, und „Neu wuerfeln" darf nach dem Speichern nicht
+   * verschwinden (Rueckmeldung).
+   */
+  const erzeugerLeiste = (imGegenstand: boolean) => (
+    <>
+      {/*
+        Der Erzeuger steht oben und ist mit einem Klick benutzt: nichts
+        waehlen heisst Zufall. Wer eine Art oder Seltenheit festlegt, bekommt
+        genau die.
+      */}
+      <div className="erzeuger">
+        <select
+          className="feld__wahl"
+          aria-label={t('erzeuger.art')}
+          value={art}
+          data-erzeuger="art"
+          onChange={(e) => setArt(e.target.value as Art | '')}
+        >
+          <option value="">
+            {t('erzeuger.art')}: {t('erzeuger.zufall')}
+          </option>
+          {ARTEN.map((a) => (
+            <option key={a} value={a}>
+              {ART_ZEICHEN[a]} {ART_NAME[a][spr]}
+            </option>
+          ))}
+        </select>
+        <select
+          className="feld__wahl"
+          aria-label={t('erzeuger.seltenheit')}
+          value={seltenheit}
+          data-erzeuger="seltenheit"
+          onChange={(e) => setSeltenheit(e.target.value as Seltenheit | '')}
+        >
+          <option value="">
+            {t('erzeuger.seltenheit')}: {t('erzeuger.zufall')}
+          </option>
+          {SELTENHEITEN.map((s) => (
+            <option key={s} value={s}>
+              {SELTENHEIT_NAME[s][spr]}
+            </option>
+          ))}
+        </select>
+        <label>
+          <input type="checkbox" checked={fluch} onChange={(e) => setFluch(e.target.checked)} />{' '}
+          {t('erzeuger.fluch')}
+        </label>
+        <span className="leiste__luecke" />
+        <button type="button" className="knopf" data-leer onClick={() => {
+          setOffen(leer());
+          setWirkungenFuer(null);
+          setIstNeu(true);
+        }}>
+          + {t('leer')}
+        </button>
+        <button
+          type="button"
+          className="knopf knopf--haupt"
+          data-wuerfeln
+          data-nochmal={imGegenstand ? true : undefined}
+          onClick={wuerfle}
+        >
+          ⚄ {imGegenstand ? t('nochmal') : t('erzeuger.los')}
+        </button>
+      </div>
+    </>
+  );
 
   // --- Ein Gegenstand -------------------------------------------------------
   if (offen) {
@@ -151,6 +237,7 @@ export function App() {
     return (
       <div className="rahmen">
         <Kopf />
+        {erzeugerLeiste(true)}
         <div className="leiste">
           <button
             type="button"
@@ -164,11 +251,6 @@ export function App() {
             ← {t('zurueck')}
           </button>
           <span className="leiste__luecke" />
-          {istNeu ? (
-            <button type="button" className="knopf" data-nochmal onClick={wuerfle}>
-              ⚄ {t('nochmal')}
-            </button>
-          ) : null}
           <button
             type="button"
             className="knopf"
@@ -183,6 +265,15 @@ export function App() {
             }}
           >
             {t('foundry')}
+          </button>
+          <button
+            type="button"
+            className="knopf"
+            data-loot
+            disabled={Boolean(offen.imLoot)}
+            onClick={() => void inDenLoot()}
+          >
+            {offen.imLoot ? t('loot.drin') : t('loot')}
           </button>
           <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speichere()}>
             {t('speichern')}
@@ -325,60 +416,7 @@ export function App() {
     <div className="rahmen">
       <Kopf />
 
-      {/*
-        Der Erzeuger steht oben und ist mit einem Klick benutzt: nichts
-        waehlen heisst Zufall. Wer eine Art oder Seltenheit festlegt, bekommt
-        genau die.
-      */}
-      <div className="erzeuger">
-        <select
-          className="feld__wahl"
-          aria-label={t('erzeuger.art')}
-          value={art}
-          data-erzeuger="art"
-          onChange={(e) => setArt(e.target.value as Art | '')}
-        >
-          <option value="">
-            {t('erzeuger.art')}: {t('erzeuger.zufall')}
-          </option>
-          {ARTEN.map((a) => (
-            <option key={a} value={a}>
-              {ART_ZEICHEN[a]} {ART_NAME[a][spr]}
-            </option>
-          ))}
-        </select>
-        <select
-          className="feld__wahl"
-          aria-label={t('erzeuger.seltenheit')}
-          value={seltenheit}
-          data-erzeuger="seltenheit"
-          onChange={(e) => setSeltenheit(e.target.value as Seltenheit | '')}
-        >
-          <option value="">
-            {t('erzeuger.seltenheit')}: {t('erzeuger.zufall')}
-          </option>
-          {SELTENHEITEN.map((s) => (
-            <option key={s} value={s}>
-              {SELTENHEIT_NAME[s][spr]}
-            </option>
-          ))}
-        </select>
-        <label>
-          <input type="checkbox" checked={fluch} onChange={(e) => setFluch(e.target.checked)} />{' '}
-          {t('erzeuger.fluch')}
-        </label>
-        <span className="leiste__luecke" />
-        <button type="button" className="knopf" data-leer onClick={() => {
-          setOffen(leer());
-          setWirkungenFuer(null);
-          setIstNeu(true);
-        }}>
-          + {t('leer')}
-        </button>
-        <button type="button" className="knopf knopf--haupt" data-wuerfeln onClick={wuerfle}>
-          ⚄ {t('erzeuger.los')}
-        </button>
-      </div>
+      {erzeugerLeiste(false)}
 
       <div className="leiste">
         <input
