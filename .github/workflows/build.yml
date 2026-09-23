@@ -167,13 +167,25 @@ jobs:
       - run: npm run dist:suite:win
       - name: Gepacktes Paket starten
         run: npm run verify:package:suite -- "${{ github.workspace }}\apps\shell\release\win-unpacked\LORE.exe"
-      - name: Auf itch.io hochladen
+      # Fuer Windows geht der Installer auf itch.io: ein Download, Startmenue
+      # und Deinstallation wie gewohnt.
+      - name: Auf itch.io hochladen (Installer)
         if: (github.event_name == 'release' || inputs.itch) && vars.ITCH_PROJEKT != ''
         shell: bash
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
           ITCH_PROJEKT: ${{ vars.ITCH_PROJEKT }}
-        run: bash scripts/itch-hochladen.sh windows apps/shell/release/win-unpacked
+        run: bash scripts/itch-hochladen.sh windows apps/shell/release/LORE-Setup-*.exe
+      # Abgeschaltet: das ungepackte Paket als eigener Kanal. Lohnt sich, wenn
+      # viele die itch-App nutzen: sie installiert selbst und laedt bei
+      # Updates nur die Aenderungen. Zum Einschalten `false &&` entfernen.
+      - name: Auf itch.io hochladen (ungepackt, abgeschaltet)
+        if: false && (github.event_name == 'release' || inputs.itch) && vars.ITCH_PROJEKT != ''
+        shell: bash
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          ITCH_PROJEKT: ${{ vars.ITCH_PROJEKT }}
+        run: bash scripts/itch-hochladen.sh windows-zip apps/shell/release/win-unpacked
       - name: Ergebnis hochladen
         uses: actions/upload-artifact@v4
         with:

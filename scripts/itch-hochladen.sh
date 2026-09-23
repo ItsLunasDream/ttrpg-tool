@@ -2,10 +2,11 @@
 # Laedt ein ungepacktes Paket der Sammlung auf itch.io hoch. Laeuft im
 # Workflow (Release oder von Hand mit „itch") und genauso lokal.
 #
-#   scripts/itch-hochladen.sh <kanal> <ordner>
+#   scripts/itch-hochladen.sh <kanal> <quelle>
 #
-# kanal:  windows | linux — so heissen die Kanaele auf der Projektseite.
-# ordner: das ungepackte Paket (release/win-unpacked, release/linux-unpacked).
+# kanal:  der Kanal auf der Projektseite, z. B. windows, linux.
+# quelle: eine einzelne Datei (der Installer release/LORE-Setup-*.exe) oder
+#         ein ungepacktes Paket (release/win-unpacked, release/linux-unpacked).
 #
 # Braucht BUTLER_API_KEY (Schluessel von itch.io, als Secret) und
 # ITCH_PROJEKT ("benutzer/projekt", als Variable). Die Fassung kommt aus
@@ -15,28 +16,40 @@
 # Lokal (unter Windows in der Git Bash), aus der Wurzel des Repositorys:
 #   npm run dist:suite:win
 #   BUTLER_API_KEY=... ITCH_PROJEKT=name/lore \
-#     bash scripts/itch-hochladen.sh windows apps/shell/release/win-unpacked
+#     bash scripts/itch-hochladen.sh windows apps/shell/release/LORE-Setup-*.exe
 # Braucht dort curl, unzip (oder 7z) und node.
 set -euo pipefail
 
 kanal="$1"
-ordner="$2"
+quelle="$2"
 : "${BUTLER_API_KEY:?BUTLER_API_KEY fehlt (Secret im Repository anlegen)}"
 : "${ITCH_PROJEKT:?ITCH_PROJEKT fehlt (Variable im Repository anlegen, z. B. name/lore)}"
 
-case "$kanal" in
-  windows) plattform=windows-amd64; programm=LORE.exe ;;
-  linux) plattform=linux-amd64; programm=lore ;;
-  *) echo "Unbekannter Kanal: $kanal" >&2; exit 1 ;;
+# butler passend zum Rechner, auf dem das Skript laeuft.
+case "$(uname -s)" in
+  MINGW* | MSYS* | CYGWIN*) plattform=windows-amd64 ;;
+  Darwin) plattform=darwin-amd64 ;;
+  *) plattform=linux-amd64 ;;
 esac
-[ -e "$ordner/$programm" ] || { echo "$ordner/$programm fehlt" >&2; exit 1; }
 
-# Das Manifest sagt der itch-App, was „Starten" heisst.
-cat > "$ordner/.itch.toml" <<TOML
+if [ -f "$quelle" ]; then
+  # Eine einzelne Datei, etwa der Installer: so wie sie ist.
+  :
+else
+  # Ein ungepacktes Paket: das Programm muss drinliegen, und ein Manifest
+  # sagt der itch-App, was „Starten" heisst.
+  case "$kanal" in
+    windows*) programm=LORE.exe ;;
+    linux*) programm=lore ;;
+    *) echo "Unbekannter Kanal fuer ein Paket: $kanal" >&2; exit 1 ;;
+  esac
+  [ -e "$quelle/$programm" ] || { echo "$quelle/$programm fehlt" >&2; exit 1; }
+  cat > "$quelle/.itch.toml" <<TOML
 [[actions]]
 name = "play"
 path = "$programm"
 TOML
+fi
 
 werkzeug="$(mktemp -d)"
 curl -fsSL -o "$werkzeug/butler.zip" "https://broth.itch.zone/butler/$plattform/LATEST/archive/default"
@@ -47,4 +60,4 @@ butler="$werkzeug/butler"
 
 fassung="$(node -p "require('./apps/shell/package.json').version")"
 "$butler" -V
-"$butler" push "$ordner" "$ITCH_PROJEKT:$kanal" --userversion "$fassung"
+"$butler" push "$quelle" "$ITCH_PROJEKT:$kanal" --userversion "$fassung"
