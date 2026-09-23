@@ -88,7 +88,7 @@ test('ein Kreis haengt nicht, sondern bricht sichtbar ab', () => {
   const ergebnis = T.wuerfle(a, [a, b], folge(0));
   // Kein Absturz, kein Haenger — und irgendwo steht, dass abgebrochen wurde.
   const tief = JSON.stringify(ergebnis);
-  assert.match(tief, /zu-tief/);
+  assert.match(tief, /kreis|zu-tief/);
 });
 
 test('die Verschachtelung geht nicht tiefer als der Deckel', () => {
@@ -167,4 +167,64 @@ test('die deutsche Schreibweise 2W6 wird gewuerfelt wie 2d6', () => {
   assert.equal(T.wuerfle(t, [t], () => 0.99).text, 'B');
   // Ein Wort mit w bleibt ein Wort.
   assert.equal(T.setzeWuerfel('Schwert', () => 0), 'Schwert');
+});
+
+// --- Testbericht: Kreise, Explosionen, Wuerfel in Verweisen, Maskieren ---
+
+function zaehler(werte) {
+  let i = 0;
+  return () => werte[i++ % werte.length];
+}
+
+test('ein Kreis A -> B -> A wird erkannt und bleibt schnell', () => {
+  const a = { id: 'a', name: 'A', eintraege: [{ text: '[B] [B] [B] [B]' }] };
+  const b = { id: 'b', name: 'B', eintraege: [{ text: '[A] [A] [A] [A]' }] };
+  const start = Date.now();
+  const e = T.wuerfle(a, [a, b], Math.random);
+  assert.ok(Date.now() - start < 500, 'kein Haenger');
+  assert.equal(e.teile.length, 4);
+  assert.ok(e.teile[0].teile.every((t) => t.fehler === 'kreis'));
+});
+
+test('eine Explosion wird beim Budget abgeschnitten und vermerkt', () => {
+  const boom = { id: 'boom', name: 'Boom', eintraege: [{ text: '[Leaf] [Leaf] [Leaf] [Leaf] [Leaf] [Leaf]' }] };
+  const leaf = { id: 'leaf', name: 'Leaf', eintraege: [{ text: 'x' }] };
+  const wurzel = { id: 'w', name: 'W', eintraege: [{ text: Array(80).fill('[Boom]').join(' ') }] };
+  const e = T.wuerfle(wurzel, [wurzel, boom, leaf], Math.random);
+  const alle = [];
+  const sammle = (x) => { alle.push(x); x.teile.forEach(sammle); };
+  sammle(e);
+  assert.ok(alle.length <= T.WURF_DECKEL + 200);
+  assert.ok(alle.some((x) => x.fehler === 'zu-viel'));
+});
+
+test('Wuerfel im Verweisnamen bleiben stehen, eingesetzte Ergebnisse werden nicht erneut gewuerfelt', () => {
+  const trinkets = { id: 't', name: 'd100 Trinkets', eintraege: [{ text: 'a 2d4 thing' }] };
+  const ring = { id: 'r', name: 'R', eintraege: [{ text: 'see [d100 Trinkets] and 1d4 gold' }] };
+  const e = T.wuerfle(ring, [ring, trinkets], zaehler([0.5]));
+  assert.equal(e.teile[0].fehler, undefined);
+  assert.match(e.text, /^see a \d thing and [1-4] gold$/);
+});
+
+test('mit Backslash maskiert bleibt Text woertlich; woertlich() maskiert Namen', () => {
+  const t = { id: 'x', name: 'X', eintraege: [{ text: '\\[kein Verweis\\] und 2\\d4' }] };
+  assert.equal(T.wuerfle(t, [t], Math.random).text, '[kein Verweis] und 2d4');
+  const name = T.woertlich('Ring of 2d4 Wishes [rare]');
+  const u = { id: 'u', name: 'U', eintraege: [{ text: name }] };
+  assert.equal(T.wuerfle(u, [u], Math.random).text, 'Ring of 2d4 Wishes [rare]');
+});
+
+test('ohne Zuruecklegen behaelt die Verteilung des Wuerfels', () => {
+  const eintraege = [];
+  for (let z = 2; z <= 12; z += 1) eintraege.push({ text: String(z), von: z, bis: z });
+  const t = { id: 'z', name: 'Z', wuerfel: '2d6', eintraege, ohneZuruecklegen: true };
+  let sieben = 0;
+  let zwei = 0;
+  for (let i = 0; i < 3000; i += 1) {
+    const gezogen = new Map([['z', new Set([0])]]); // die 2 ist gezogen
+    const w = T.waehle(t, Math.random, gezogen.get('z'));
+    if (w.eintrag.text === '7') sieben += 1;
+    if (w.eintrag.text === '3') zwei += 1;
+  }
+  assert.ok(sieben > zwei * 2, `7 (${sieben}) bleibt deutlich haeufiger als 3 (${zwei})`);
 });

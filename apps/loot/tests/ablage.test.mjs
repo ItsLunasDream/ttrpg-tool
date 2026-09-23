@@ -199,3 +199,30 @@ test('"[" erkennt einen angefangenen Verweis und setzt den Namen ein', () => {
   ]);
   assert.equal(L.verweisVorschlaege(['a', 'b', 'c'], '').length, 3);
 });
+
+// --- Testbericht ---
+
+test('eine Zeile ohne Nummer in einer nummerierten Tabelle wird gemeldet und sperrt', () => {
+  const t = { id: 'x', name: 'X', wuerfel: '1d4', eintraege: [{ text: 'a', von: 1, bis: 4 }, { text: 'b' }] };
+  const b = L.pruefe(t, [t]);
+  const ohne = b.find((x) => x.art === 'ohne-nummer');
+  assert.equal(ohne?.anzahl, 1);
+  assert.ok(L.sperrt(ohne));
+});
+
+test('ein Kreis ueber zwei Tabellen wird gemeldet', () => {
+  const a = { id: 'a', name: 'A', eintraege: [{ text: '[B]' }] };
+  const b = { id: 'b', name: 'B', eintraege: [{ text: '[A]' }] };
+  assert.ok(L.pruefe(a, [a, b]).some((x) => x.art === 'verweis-kreis' && x.name === 'B'));
+});
+
+test('der von hier gesetzte Wuerfel waechst mit einer neuen Zeile', () => {
+  const neu = L.nummeriere('1: a\n2: b\n3: c\nd', '1d3');
+  assert.equal(neu.wuerfel, '1d4');
+  // Ein bewusst anderer Wuerfel bleibt stehen.
+  assert.equal(L.nummeriere('1: a\n2: b\nc', '1d20').wuerfel, '1d20');
+});
+
+test('sehr lange Namen ergeben eine kurze Kennung', () => {
+  assert.ok(L.zuId('x'.repeat(300)).length <= 80);
+});

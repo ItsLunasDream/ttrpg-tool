@@ -106,7 +106,17 @@ export function App() {
   const [offen, setOffen] = useState<Entwurf | null>(null);
   const [istNeu, setIstNeu] = useState(false);
   const [veraendert, setVeraendert] = useState(false);
-  const [anzahl, setAnzahl] = useState(1);
+  const [anzahlText, setAnzahlText] = useState('1');
+  // Leeren und neu tippen muss gehen: gezaehlt wird erst beim Wuerfeln.
+  const anzahl = Math.max(1, Math.min(20, Math.floor(Number(anzahlText)) || 1));
+  /*
+   * Was „ohne Zuruecklegen" schon gezogen hat, ueber mehrere Klicks und den
+   * Schnellwurf hinweg (Testbericht: galt nur innerhalb eines Klicks).
+   * Zuruecklegen setzt es zurueck.
+   */
+  const gezogen = useRef<Map<string, Set<number>>>(new Map());
+  const zeilenBeimFokus = useRef<string | null>(null);
+  const [, gezogenZeichnen] = useState(0);
   const [ergebnisse, setErgebnisse] = useState<readonly Ergebnis[]>([]);
   const [schnell, setSchnell] = useState<Ergebnis | null>(null);
   // Jeder Wurf bekommt eigene Schluessel: sonst bliebe die Zeile stehen,
@@ -382,9 +392,10 @@ export function App() {
                 type="number"
                 min={1}
                 max={20}
-                value={anzahl}
+                value={anzahlText}
                 data-anzahl
-                onChange={(e) => setAnzahl(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+                onChange={(e) => setAnzahlText(e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
+                onBlur={() => setAnzahlText(String(anzahl))}
               />
             </label>
             <button
@@ -394,13 +405,33 @@ export function App() {
               disabled={aktuell.eintraege.length === 0 || (!nurLesen && sperre.length > 0)}
               title={!nurLesen && sperre.length > 0 ? befundText(sperre[0]) : undefined}
               onClick={() => {
-                setErgebnisse(wuerfleReihe(aktuell, bestand, anzahl, Math.random));
+                setErgebnisse(wuerfleReihe(aktuell, bestand, anzahl, Math.random, gezogen.current));
+                gezogenZeichnen((n) => n + 1);
                 setMeldung('');
               }}
             >
               ⚄ {t('wuerfeln')}
             </button>
           </div>
+          {aktuell.ohneZuruecklegen && (gezogen.current.get(aktuell.id)?.size ?? 0) > 0 ? (
+            <p className="hinweis hinweis--klein" data-gezogen>
+              {t('zurueckgelegt.hinweis', {
+                n: gezogen.current.get(aktuell.id)?.size ?? 0,
+                m: aktuell.eintraege.length
+              })}{' '}
+              <button
+                type="button"
+                className="knopf knopf--klein"
+                data-zuruecklegen
+                onClick={() => {
+                  gezogen.current = new Map();
+                  gezogenZeichnen((n) => n + 1);
+                }}
+              >
+                {t('zurueckgelegt')}
+              </button>
+            </p>
+          ) : null}
           {aktuell.eintraege.length === 0 ? <p className="hinweis">{t('wurf.leer')}</p> : null}
           {!nurLesen && sperre.length > 0 ? (
             <p className="fehler" data-gesperrt>
@@ -498,8 +529,14 @@ export function App() {
               // Beim Verlassen bekommen Zeilen ohne Nummer die naechste freie
               // (und ein fehlender Wuerfel den passenden). Die Nummern bleiben
               // im Text und lassen sich dort aendern.
+              // Nur, wenn im Feld etwas getippt wurde: ein Klick hinein und
+              // wieder hinaus aendert die Tabelle nicht (Testbericht).
+              onFocus={() => {
+                zeilenBeimFokus.current = offen.zeilen;
+              }}
               onBlur={() => {
                 setVerweis(null);
+                if (zeilenBeimFokus.current === offen.zeilen) return;
                 const neu = nummeriere(offen.zeilen, offen.wuerfel);
                 if (neu.zeilen !== offen.zeilen || neu.wuerfel !== offen.wuerfel) setze(neu);
               }}
@@ -655,7 +692,7 @@ export function App() {
                 disabled={k.anzahl === 0}
                 onClick={() => {
                   const tabelle = alle.find((a) => a.id === k.id);
-                  if (tabelle) setSchnell(wuerfle(tabelle, alle, Math.random));
+                  if (tabelle) setSchnell(wuerfle(tabelle, alle, Math.random, 0, gezogen.current));
                 }}
               >
                 ⚄
@@ -695,6 +732,10 @@ function Baum({ ergebnis }: { readonly ergebnis: Ergebnis }) {
           <span className="baum__fehler">{t('baum.fehlt', { name: ergebnis.tabelle })}</span>
         ) : ergebnis.fehler === 'zu-tief' ? (
           <span className="baum__fehler">{t('baum.zutief', { name: ergebnis.tabelle })}</span>
+        ) : ergebnis.fehler === 'kreis' ? (
+          <span className="baum__fehler">{t('baum.kreis', { name: ergebnis.tabelle })}</span>
+        ) : ergebnis.fehler === 'zu-viel' ? (
+          <span className="baum__fehler">{t('baum.zuviel', { name: ergebnis.tabelle })}</span>
         ) : (
           <>
             <strong>{ergebnis.tabelle}</strong>
