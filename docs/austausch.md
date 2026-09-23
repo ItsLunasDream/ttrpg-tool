@@ -11,8 +11,8 @@ als Paketdatei oder über den Raum.
 
 Stufe 2 ist gebaut, in einer ersten Fassung: der **Raum im lokalen Netz**
 mit Chat, Direktnachrichten und Paketen an alle oder an eine Person
-(Reiter „Raum" im Dialog „Teilen"). Offen ist noch, ob der Chatverlauf
-gespeichert wird; vorläufig lebt er nur, solange der Raum offen ist.
+(Reiter „Raum" im Dialog „Teilen"). Der Chatverlauf wird nicht
+gespeichert: er lebt nur, solange der Raum offen ist (entschieden).
 
 **Wie Stufe 2 gebaut ist:**
 
