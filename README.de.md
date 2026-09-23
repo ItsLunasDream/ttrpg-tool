@@ -1,4 +1,6 @@
-# TTRPG-Tools
+# LORE
+
+**Library Of RPG Essentials**
 
 *[This document in English: README.md](README.md)*
 
@@ -23,6 +25,19 @@ auch die spricht nur mit dem eingetragenen Anbieter.
   von der Tastatur oder von einer KI kam.
 - **Status Effect Creator** — eigene Zustände mit Stufen, gewogen an denen,
   die jeder kennt, mit einer Karte zum Vorlesen am Tisch.
+- **Encounter Creator** — Begegnungen aus den 331 SRD-Monstern und den
+  eigenen, mit Umgebung, in einem Zug in den Initiative Tracker geschoben.
+  Die Schwierigkeit wird nach dem Regelwerk gerechnet; auf Wunsch stellt er
+  eine Begegnung zu einem Ziel-HG zusammen.
+- **Magic Item Creator** — magische Gegenstände nach Art und Seltenheit
+  würfeln, anpassen und ablegen. Der Wert folgt der Tabelle des SRD.
+- **Loot Generator** — eigene Zufallstabellen schreiben, eine Zeile je
+  Eintrag, mit Spannen, Würfeln im Text und Verweisen auf andere Tabellen;
+  von der Kachel einmal würfeln oder mehrmals ohne Wiederholung.
+- **Nachschlagewerk** — das ganze Regelglossar, das Kapitel Ausrüstung
+  (Waffen, Rüstung, Werkzeug, Abenteuerausrüstung), alle 339 Zauber und alle
+  258 magischen Gegenstände des Systemreferenzdokuments, offline und in beiden Sprachen, mit Querverweisen, Hausregeln und Notizen,
+  in derselben Strg+K-Suche wie alles andere.
 - **TTRPG Map Editor** — Battlemaps und Weltkarten zeichnen, Export als
   Universal VTT.
 
@@ -33,12 +48,15 @@ Arbeitstitel, Symbole und Werkzeugnamen sind vorläufig.
 Ohne Node und npm:
 
 1. Reiter **Actions** öffnen, obersten Lauf **Build** anklicken
-2. Unter **Artifacts** `ttrpg-tools-windows` herunterladen und entpacken
-3. Darin: `TTRPGTools-Setup-<version>.exe` (Installer) und
-   `TTRPGTools-portable-<version>.exe` (läuft ohne Installation)
+2. Unter **Artifacts** `lore-windows` herunterladen und entpacken
+3. Darin: `LORE-Setup-<version>.exe` (Installer) und
+   `LORE-portable-<version>.exe` (läuft ohne Installation)
 
 Hinweise:
 
+- Der Datenordner liegt unter `%APPDATA%\LORE`. Installationen von vor der
+  Umbenennung benutzen weiter `%APPDATA%\TTRPG-Tools`; umziehen muss man
+  nichts.
 - SmartScreen warnt beim ersten Start, weil die Datei nicht signiert ist:
   „Weitere Informationen" → „Trotzdem ausführen". Eine Signatur bräuchte ein
   kostenpflichtiges Zertifikat.
@@ -94,10 +112,22 @@ apps/npc/          NPC Creator
 apps/inspiration/  Inspirationshilfe
 apps/monster/      Monster Creator
 apps/zustaende/    Status Effect Creator
+apps/encounter/    Encounter Creator
+apps/nachschlagewerk/ Nachschlagewerk (die Regeln, offline)
+apps/magicitems/   Magic Item Creator
+apps/loot/         Loot Generator
 packages/dice/     Würfelausdrücke lesen und werfen
 packages/i18n/     Sprachwahl und Textersetzung
 packages/motion/   Zeiten, Kurven und Grundanimationen
 packages/ki/       Anbindung an Sprachmodelle (Ollama, Claude)
+packages/umgebungen/ Umgebungen: was man sieht, und was mit einer Zahl wirkt
+packages/einstellungen/ Wie ein Werkzeug seine Einstellungen für die Hülle beschreibt
+packages/foundry/  Monster und Zustände als JSON, das Foundry VTT liest
+packages/farben/   Farbrollen und die wählbaren Themen
+packages/eintraege/ Was ein Werkzeug abgelegt hat, in einer Form, die alle verstehen
+packages/tabellen/ Zufallstabellen: das Format, darauf würfeln, verschachteln
+packages/uebergabe/ Die Form, in der eine Begegnung von einem Werkzeug ins andere wandert
+packages/srd/      Alles aus dem SRD 5.2.1, in beiden Sprachen
 ```
 
 `packages/*` sind plattformfrei: kein `node:*`, kein `electron`, keine

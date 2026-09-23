@@ -39,6 +39,7 @@ import type { KiEinstellungen } from '@suite/ki/einstellungen';
 import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
 import { THEMEN, text as farbtext } from '@suite/farben';
 import { Dialog } from './Dialog';
+import { GROESSEN } from '../shared/apps';
 import { Werkzeugfelder } from './Werkzeugfelder';
 import { AppSymbol } from './icons';
 
@@ -55,6 +56,9 @@ interface Props {
   readonly setzeSprache: (sprache: Language) => Promise<void>;
   readonly thema: string;
   readonly setzeThema: (thema: string) => Promise<void>;
+  /** Die Groesse der ganzen Oberflaeche in Prozent (#61). */
+  readonly groesse: number;
+  readonly setzeGroesse: (prozent: number) => Promise<void>;
   readonly ki: KiEinstellungen;
   readonly setzeKi: (aenderung: Partial<KiEinstellungen>) => Promise<void>;
   readonly kiZustand: KiZustandAnsicht | null;
@@ -119,6 +123,8 @@ export function Einstellungen({
   setzeSprache,
   thema,
   setzeThema,
+  groesse,
+  setzeGroesse,
   ki,
   setzeKi,
   kiZustand,
@@ -224,7 +230,7 @@ export function Einstellungen({
           <header className="einst__kopf">
             <h2>{titelDesBereichs()}</h2>
           </header>
-          <div className="einst__inhalt">
+          <div key={bereich} className="einst__inhalt motion-erscheinen">
             {bereich === 'aussehen' ? (
               <>
                 <section className="einst__gruppe">
@@ -257,6 +263,25 @@ export function Einstellungen({
                         <span className="themenwahl__name">
                           {farbtext(eintrag.name, sprache === 'de' ? 'de' : 'en')}
                         </span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="einst__gruppe">
+                  <h3>{t('settings.size')}</h3>
+                  <p className="einst__satz">{t('settings.sizeHint')}</p>
+                  <div className="segment" role="group" aria-label={t('settings.size')}>
+                    {GROESSEN.map((stufe) => (
+                      <button
+                        key={stufe}
+                        type="button"
+                        className={stufe === groesse ? 'segment__knopf is-an' : 'segment__knopf'}
+                        aria-pressed={stufe === groesse}
+                        data-groesse={stufe}
+                        onClick={() => melde(setzeGroesse(stufe))}
+                      >
+                        {stufe} %
                       </button>
                     ))}
                   </div>

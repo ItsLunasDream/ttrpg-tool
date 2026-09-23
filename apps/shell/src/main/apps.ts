@@ -39,6 +39,9 @@ import { mountInspiration } from '../../../inspiration/src/main/embed';
 import { mountMonster } from '../../../monster/src/main/embed';
 import { mountZustaende } from '../../../zustaende/src/main/embed';
 import { mountEncounter } from '../../../encounter/src/main/embed';
+import { mountNachschlagewerk } from '../../../nachschlagewerk/src/main/embed';
+import { leseNamenUndSeltenheit, mountMagicItems } from '../../../magicitems/src/main/embed';
+import { mountLoot } from '../../../loot/src/main/embed';
 import type { KiQuelle } from './ki';
 import type { Uebergabe } from '@suite/uebergabe';
 import type { Language } from '../shared/i18n';
@@ -141,6 +144,17 @@ export interface MontierteApp {
    * die nichts ablegen — die tauchen in der Suche ohnehin nicht auf.
    */
   zeigeEintrag?(kennung: string): Promise<boolean>;
+  /** Eine Werkzeugnachricht aus dem Raum. Nur, wer mitmacht (Initiative). */
+  raumNachricht?(von: { id: string; name: string }, inhalt: string): void;
+  /** Die Lage im Raum hat sich geaendert. */
+  raumZustand?(lage: RaumLage): void;
+}
+
+/** Was ein Werkzeug vom Raum wissen muss. Dieselbe Form wie im Tracker. */
+export interface RaumLage {
+  readonly rolle: 'aus' | 'gastgeber' | 'gast';
+  readonly ich: { readonly id: string; readonly name: string } | null;
+  readonly personen: readonly { readonly id: string; readonly name: string }[];
 }
 
 /** Was die Huelle jeder Anwendung beim Montieren mitgibt. */
@@ -193,6 +207,19 @@ export interface MontageHaken {
    */
   readonly kiQuelle?: KiQuelle;
   /**
+   * Der Raum im lokalen Netz, fuer Werkzeuge, die darueber synchronisieren
+   * (geteilte Initiative). `anfang` liefert beim Laden die Lage und die
+   * zuletzt geteilten Staende, damit ein spaet geoeffnetes Werkzeug nicht
+   * auf die naechste Aenderung warten muss.
+   */
+  readonly raum?: {
+    sende(werkzeug: string, inhalt: string, an: string | null): boolean;
+    anfang(werkzeug: string): {
+      lage: RaumLage;
+      nachrichten: readonly { von: { id: string; name: string }; inhalt: string }[];
+    };
+  };
+  /**
    * Die Anwendung meldet, wo sie gerade steht — im Story Creator die
    * offene Notiz. Der Verlauf der Huelle merkt sich das, damit zurueck nicht
    * nur das Werkzeug trifft, sondern die Stelle darin.
@@ -243,7 +270,7 @@ export function appDistDir(id: string, ...weiter: string[]): string {
  * Wo das *eigenstaendige* Programm einer Anwendung seine Daten haette.
  *
  * Electron leitet den Datenordner aus dem Namen der Anwendung ab, und der ist
- * eigenstaendig ein anderer als hier: die Huelle heisst „TTRPG-Tools", das
+ * eigenstaendig ein anderer als hier: die Huelle heisst „LORE" (frueher „TTRPG-Tools", siehe datenordner.ts), das
  * gepackte Einzelprogramm „Story Creator", und aus dem Workspace
  * gestartet gilt der Name aus seiner package.json. Alle drei liegen
  * nebeneinander im selben uebergeordneten Verzeichnis.
@@ -385,6 +412,9 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'monster') return montiereMonster(id, haken);
   if (id === 'zustaende') return montiereZustaende(id, haken);
   if (id === 'encounter') return montiereEncounter(id, haken);
+  if (id === 'nachschlagewerk') return montiereNachschlagewerk(id, haken);
+  if (id === 'magicitems') return montiereMagicItems(id, haken);
+  if (id === 'loot') return montiereLoot(id, haken);
   return null;
 }
 
@@ -451,6 +481,50 @@ function passenderNotiztyp(kampagne: { noteTypes: { id: string }[] }, wuensche: 
     if (kampagne.noteTypes.some((typ) => typ.id === wunsch)) return wunsch;
   }
   return kampagne.noteTypes[0]?.id ?? 'note';
+}
+
+/**
+ * Legt eine Notiz in der Kampagne an, an der gerade gearbeitet wird, und
+ * sagt dem Story Creator Bescheid. Der gemeinsame Weg fuer Monster,
+ * Zustaende und Beute; der NPC Creator hat eigene Texte.
+ */
+async function legeNotizAn(
+  titel: string,
+  markdown: string,
+  wuensche: readonly string[],
+  haken: MontageHaken
+): Promise<{ ok: boolean; text: string }> {
+  if (!backstoryEmbed) {
+    return { ok: false, text: 'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.' };
+  }
+  const kampagnen = await backstoryEmbed.vault.listCampaigns();
+  if (kampagnen.length === 0) {
+    return { ok: false, text: 'Es gibt noch keine Kampagne, in die das passt.' };
+  }
+  const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+  const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
+  const typ = passenderNotiztyp(kampagne, wuensche);
+  const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
+  await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+
+  // Dem Story Creator sagen, dass etwas dazugekommen ist — sonst liegt
+  // die Notiz auf der Platte und seine offene Liste zeigt sie nicht.
+  if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
+    backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
+  }
+  haken.onEreignis?.('backstory');
+  return { ok: true, text: `${titel} → ${kampagne.name}` };
+}
+
+/**
+ * Sagt einem offenen Story Creator, dass auf der Platte etwas dazugekommen
+ * ist (Austausch). Ist er zu, gibt es niemandem etwas zu sagen: beim
+ * naechsten Oeffnen liest er ohnehin frisch.
+ */
+export function meldeStoryCreatorAenderung(): void {
+  if (backstoryEmbed && backstorySicht && !backstorySicht.webContents.isDestroyed()) {
+    backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
+  }
 }
 
 async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteApp> {
@@ -664,7 +738,14 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
     partition: sitzung(id),
     devServerUrl: process.env.INITIATIVE_DEV_SERVER_URL,
     language: haken.language,
-    onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    raum: haken.raum
+      ? {
+          sende: (inhalt, an) => haken.raum?.sende('initiative', inhalt, an) ?? false,
+          anfang: () =>
+            haken.raum?.anfang('initiative') ?? { lage: { rolle: 'aus', ich: null, personen: [] }, nachrichten: [] }
+        }
+      : undefined
   });
 
   // Vor dem Laden: die Kopfzeile muss stehen, bevor die erste Antwort kommt.
@@ -702,7 +783,10 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
     // Eine Begegnung aus dem Encounter Creator. Angenommen wird sie in der
     // Oberflaeche des Trackers, und erst nach seiner eigenen Rueckfrage.
     uebernimmBegegnung: (uebergabe) =>
-      eingebettet.uebernimmBegegnung(sicht.webContents as WebContents, uebergabe)
+      eingebettet.uebernimmBegegnung(sicht.webContents as WebContents, uebergabe),
+    // Die geteilte Initiative: Nachrichten und Lage aus dem Raum.
+    raumNachricht: (von, inhalt) => eingebettet.raumNachricht(sicht.webContents as WebContents, von, inhalt),
+    raumZustand: (lage) => eingebettet.raumZustand(sicht.webContents as WebContents, lage)
   };
 }
 
@@ -859,30 +943,9 @@ async function montiereMonster(id: string, haken: MontageHaken): Promise<Montier
     // Die KI der Sammlung, wie ueberall. Ein eigener Zugang je Werkzeug waere
     // eine zweite Stelle, an der derselbe Schluessel liegt.
     kiQuelle: haken.kiQuelle,
-    anlegen: async (titel, markdown) => {
-      if (!backstoryEmbed) {
-        return { ok: false, text: 'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.' };
-      }
-      const kampagnen = await backstoryEmbed.vault.listCampaigns();
-      if (kampagnen.length === 0) {
-        return { ok: false, text: 'Es gibt noch keine Kampagne, in die das passt.' };
-      }
-      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
-      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
-      // „creature" gibt es in keiner Vorlage — ein Monster ist hier eine
-      // Figur, und notfalls eine freie Notiz.
-      const typ = passenderNotiztyp(kampagne, ['creature', 'character', 'note']);
-      const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
-      await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
-
-      // Dem Story Creator sagen, dass etwas dazugekommen ist — sonst liegt
-      // die Notiz auf der Platte und seine offene Liste zeigt sie nicht.
-      if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
-        backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
-      }
-      haken.onEreignis?.('backstory');
-      return { ok: true, text: `${titel} → ${kampagne.name}` };
-    }
+    // „creature" gibt es in keiner Vorlage — ein Monster ist hier eine
+    // Figur, und notfalls eine freie Notiz.
+    anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['creature', 'character', 'note'], haken)
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
@@ -966,12 +1029,57 @@ async function montiereEncounter(id: string, haken: MontageHaken): Promise<Monti
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
     // Die Suche der Huelle (Strg+K) springt hierher.
     zeigeEintrag: (kennung) =>
-      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung),
-    // Die Gruppe am Tisch steht in den Einstellungen der Huelle: sie
-    // wechselt selten, und sie je Begegnung einzutippen waere Reibung.
-    werkzeugEinstellungen: () => eingebettet.werkzeugEinstellungen(),
-    setzeWerkzeugEinstellung: (feldId, wert) =>
-      eingebettet.setzeWerkzeugEinstellung(sicht.webContents as WebContents, feldId, wert)
+      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+    // Die Gruppe am Tisch stellt man im Werkzeug selbst ein, nicht im
+    // Dialog der Huelle: sie aendert sich von Abend zu Abend.
+  };
+}
+
+/**
+ * Das Nachschlagewerk.
+ *
+ * Kein Datenordner, noch nicht: der Bestand ist der offizielle und kommt aus
+ * `@suite/srd`. Der Ordner kommt mit den Hausregeln.
+ */
+async function montiereNachschlagewerk(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountNachschlagewerk({
+    distDir: appDistDir(id, 'main'),
+    datenordner: datenordner(id),
+    devServerUrl: process.env.NACHSCHLAGEWERK_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    // Die Suche der Huelle (Strg+K) springt hierher — und das ist bei
+    // diesem Werkzeug der haeufigste Weg hinein.
+    zeigeEintrag: (kennung) =>
+      eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
   };
 }
 
@@ -985,29 +1093,8 @@ async function montiereZustaende(id: string, haken: MontageHaken): Promise<Monti
     // Die KI der Sammlung, wie ueberall. Ein eigener Zugang je Werkzeug waere
     // eine zweite Stelle, an der derselbe Schluessel liegt.
     kiQuelle: haken.kiQuelle,
-    anlegen: async (titel, markdown) => {
-      if (!backstoryEmbed) {
-        return { ok: false, text: 'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.' };
-      }
-      const kampagnen = await backstoryEmbed.vault.listCampaigns();
-      if (kampagnen.length === 0) {
-        return { ok: false, text: 'Es gibt noch keine Kampagne, in die das passt.' };
-      }
-      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
-      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
-      // Ein Zustand ist keine Figur und kein Ort — er ist eine Notiz.
-      const typ = passenderNotiztyp(kampagne, ['note', 'event']);
-      const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
-      await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
-
-      // Dem Story Creator sagen, dass etwas dazugekommen ist — sonst liegt
-      // die Notiz auf der Platte und seine offene Liste zeigt sie nicht.
-      if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
-        backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
-      }
-      haken.onEreignis?.('backstory');
-      return { ok: true, text: `${titel} → ${kampagne.name}` };
-    }
+    // Ein Zustand ist keine Figur und kein Ort — er ist eine Notiz.
+    anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['note', 'event'], haken)
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
@@ -1040,5 +1127,91 @@ async function montiereZustaende(id: string, haken: MontageHaken): Promise<Monti
     // Die Suche der Huelle (Strg+K) springt hierher.
     zeigeEintrag: (kennung) =>
       eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+  };
+}
+
+/** Der Magic Item Creator. Eine Ablage im eigenen Datenordner, sonst wie das Nachschlagewerk. */
+async function montiereMagicItems(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountMagicItems({
+    distDir: appDistDir(id, 'main'),
+    datenordner: datenordner(id),
+    devServerUrl: process.env.MAGICITEMS_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+  };
+}
+
+/** Der Loot Generator. Gebaut wie der Magic Item Creator. */
+async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountLoot({
+    distDir: appDistDir(id, 'main'),
+    datenordner: datenordner(id),
+    devServerUrl: process.env.LOOT_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    // Keine Vorlage kennt einen Typ fuer Gegenstaende; wer sich „item"
+    // selbst angelegt hat, bekommt ihn, sonst wird es eine Notiz.
+    anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['item', 'note'], haken),
+    // Der Bestand des Magic Item Creators, gelesen wie fuer die Suche: die
+    // beiden Werkzeuge kennen einander nicht, die Huelle kennt beide.
+    gegenstaende: () => leseNamenUndSeltenheit(app.getPath('userData'))
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
   };
 }

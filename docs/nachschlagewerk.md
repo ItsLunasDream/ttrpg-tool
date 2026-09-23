@@ -1,9 +1,64 @@
-# Nachschlagewerk (Konzept)
+# Nachschlagewerk
 
 Die Regeln offline dabei haben — die offiziellen und die eigenen —, in
 derselben Suche wie alles andere.
 
-**Stand:** Konzept. Nichts davon ist gebaut.
+**Stand:** Das ganze Regelglossar des SRD 5.2.1 ist drin: 155 Einträge,
+wörtlich in beiden Sprachen, gruppiert nach Regeln, Zuständen, Aktionen,
+Wirkungsbereichen, Gefahren und Haltungen. Tabellen stehen als Tabellen da,
+Listen, die Einträge nennen („Aktionen", „Zustände"), sind anklickbar, und
+„Siehe auch" führt als Knopf zum Ziel. Suche im Namen *und* im Text, auf
+Wunsch beide Sprachfassungen nebeneinander; Strg+K findet alle 155.
+Querverweise sind gebaut: kuratierte Begriffe (`@suite/srd/verweise`) werden
+im Text erkannt, nur beim ersten Vorkommen und nie im eigenen Eintrag;
+Darüberfahren zeigt eine Vorschau, ein Klick öffnet. Anders als im Story
+Creator reicht ein einfacher Klick (Strg+Klick geht auch): hier wird nur
+gelesen, nicht geschrieben.
+
+Zauber sind gebaut (Stufe 7): alle 339, beide Sprachen,
+mit Grad, Schule und Klassen unter dem Namen und den vier Eigenschaften
+(Zeitaufwand, Reichweite, Komponenten, Wirkungsdauer) vor dem Text. 317
+automatisch gepaart, 25 von Hand.
+
+Ausrüstung ist gebaut (Stufe 7, Rest): das ganze Kapitel, 180 Einträge in
+beiden Sprachen, von Münzen über Waffen, Eigenschaften, Meisterschaften,
+Rüstung, Werkzeug und Abenteuerausrüstung bis zu Reittieren, Lebenshaltung,
+Diensten und dem Herstellen; dazu die drei Infokästen („Ausrüstung
+verkaufen", „Improvisierte Waffen", „Zaubern in Rüstung") als eigene
+Einträge. Unter dem Namen steht der Abschnitt („Schwer · Eigenschaften").
+Alle 15 Tabellen stehen bei ihrem Eintrag, nicht wo der Druck Platz hatte,
+und haben in beiden Sprachen dieselbe Form; die Waffentabelle mit sechs
+Spalten und den Zwischenzeilen („Einfache Nahkampfwaffen") über die ganze
+Breite. 64 automatisch gepaart, 116 von Hand (die Einheiten, Pfund gegen
+Kilogramm, lassen die Zahlen selten übereinstimmen). Grenze: die
+Zwischenköpfe „Other Tools" / „Anderes Werkzeug" fallen weg; die Werkzeuge
+darunter sind vollständig da.
+
+Magische Gegenstände sind gebaut (Stufe 6): alle 258 aus dem SRD 5.2.1,
+beide Sprachen, mit der gedruckten Zeile unter dem Namen („Wundersamer
+Gegenstand, selten (erfordert Einstimmung)"), Tabellen als Tabellen und
+Wertekästen zeilentreu. Gepaart sind 106 automatisch und 152 von Hand, die
+Tabellen beider Sprachen haben nachweislich dieselbe Form (siehe
+`packages/srd/werkzeug/README.md`). Grenzen: Absätze innerhalb eines
+Gegenstands werden zu einem zusammengezogen (wie im Glossar), und die
+Wertekästen stehen als Zeilen da, nicht als Statblock.
+
+Hausregeln sind gebaut: „+ Hausregel" in der Liste oder „Hausregel dazu" an
+einer offiziellen Regel. Sie liegen als Markdown unter
+`<Datenordner>/nachschlagewerk/hausregeln/`, stehen in der Liste ganz oben,
+werden von Strg+K gefunden und nicht übersetzt. Zeigt eine Hausregel auf
+eine offizielle Regel, trägt diese die Marke „An diesem Tisch gilt: …".
+`[[Name]]` in einer Hausregel verweist auf einen Eintrag; ein Verweis ins
+Leere ist rot gewellt statt still Text.
+
+Notizen am Text sind gebaut: Text markieren, „Notiz" klicken, schreiben.
+Verankert am Block, am ausgewählten Text und am wievielten Vorkommen, nicht
+an Zeichenpositionen; abgelegt in `<Datenordner>/nachschlagewerk/notizen.json`.
+Die Stelle ist hinterlegt, ein Klick darauf öffnet die Notiz. Unter dem
+Eintrag stehen alle seine Notizen, auch die, deren Stelle nicht mehr
+gefunden wird (rot markiert). Strg+K findet Notizen über ihren Text; der
+Treffer öffnet den Eintrag und rollt zur Stelle. Noch nicht an Tabellen
+oder Listen.
 
 ## Wofür es da ist — und wofür nicht
 
@@ -424,7 +479,7 @@ Name darf keine fremde Marke tragen.
 6. **Magische Gegenstände.** Damit steht zugleich die Eichung für
    `docs/magicitems.md`.
 7. **Zauber und Ausrüstung.** Der lange Teil, und der, den man auch erstmal
-   weglassen kann.
+   weglassen kann. Gebaut.
 
 Stufe 1 bis 3 zusammen ergeben schon ein Werkzeug, das man am Tisch aufmacht.
 Stufe 4 und 5 sind das, was man danach nicht mehr hergeben will. Das Verschicken

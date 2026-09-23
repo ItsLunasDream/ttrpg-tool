@@ -535,3 +535,419 @@ body {
 .verhaeltnis[data-einordnung='darueber'] {
   border-left: 3px solid var(--gefahr);
 }
+
+/* ==========================================================================
+   Aufklappbare Abschnitte
+   ========================================================================== */
+
+.klappe {
+  margin-top: 18px;
+}
+
+.klappe__kopf {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--rand);
+  color: var(--text);
+  padding: 4px 0 6px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.klappe__pfeil {
+  display: inline-block;
+  color: var(--text-leise);
+  transition: transform 120ms ease-out;
+}
+
+.klappe.is-auf .klappe__pfeil {
+  transform: rotate(90deg);
+}
+
+.klappe__titel {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.klappe__zusatz {
+  margin-left: auto;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.klappe__inhalt {
+  padding-top: 10px;
+}
+
+/* ==========================================================================
+   Die Gruppe am Tisch
+   ========================================================================== */
+
+.gruppenfeld {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.gruppenfeld__zeile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gruppenfeld__zahl {
+  width: 56px;
+  background: var(--grund);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 4px 6px;
+  font: inherit;
+}
+
+.gruppenfeld__mal {
+  color: var(--text-leise);
+}
+
+/* ==========================================================================
+   Umgebungen als Kacheln
+   ========================================================================== */
+
+.umgebungswahl {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.umgebungskachel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-bottom: 3px solid var(--marke, var(--rand));
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 10px 6px 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.umgebungskachel:hover {
+  border-color: var(--text-leise);
+  border-bottom-color: var(--marke, var(--text-leise));
+}
+
+.umgebungskachel.is-an {
+  background: var(--betont-leise);
+  border-color: var(--marke, var(--betont));
+}
+
+.umgebungskachel__zeichen {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--marke, var(--text-leise));
+}
+
+.umgebungskachel__name {
+  font-size: 12px;
+  text-align: center;
+}
+
+.umgebungskachel--wurf {
+  border-style: dashed;
+}
+
+/* ==========================================================================
+   Der Monsterkatalog
+   ========================================================================== */
+
+.katalog__filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.katalog__suche {
+  flex: 1 1 200px;
+}
+
+.katalog__grad {
+  width: auto;
+}
+
+.katalog__quelle {
+  display: inline-flex;
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.katalog__quelle button {
+  background: var(--grund-hoch);
+  border: 0;
+  color: var(--text-leise);
+  padding: 6px 10px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.katalog__quelle button.is-an {
+  background: var(--betont-leise);
+  color: var(--text);
+}
+
+.katalog__haken {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-leise);
+}
+
+.katalog__tabelle {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.katalog__tabelle th {
+  text-align: left;
+  border-bottom: 1px solid var(--rand);
+  padding: 0;
+}
+
+.katalog__tabelle td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--lasur);
+}
+
+.katalog__sortierer {
+  background: none;
+  border: 0;
+  color: var(--text-leise);
+  font: inherit;
+  font-weight: 600;
+  padding: 6px;
+  cursor: pointer;
+}
+
+.katalog__zahl {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.katalog__name {
+  background: none;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.katalog__name:disabled {
+  cursor: default;
+}
+
+.katalog__name:not(:disabled):hover {
+  text-decoration: underline;
+}
+
+.katalog__marke {
+  margin-left: 6px;
+  color: var(--betont);
+  font-size: 11px;
+}
+
+.katalog__marke--eigen {
+  border: 1px solid var(--rand);
+  border-radius: 4px;
+  padding: 0 4px;
+  color: var(--text-leise);
+}
+
+.katalog__dazu {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 6px;
+  color: var(--text);
+  width: 26px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.katalog__dazu:hover {
+  border-color: var(--betont);
+  color: var(--betont);
+}
+
+.katalog__zeile.is-offen td {
+  background: var(--lasur);
+}
+
+.katalog__unsichtbar {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.wertekasten {
+  padding: 8px 4px 12px;
+  line-height: 1.45;
+}
+
+.wertekasten p {
+  margin: 0 0 4px;
+}
+
+.wertekasten__art {
+  font-style: italic;
+  color: var(--text-leise);
+}
+
+.wertekasten__attribute {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 6px 0;
+}
+
+.wertekasten__abschnitt h5 {
+  margin: 10px 0 4px;
+  font-size: 13px;
+  color: var(--betont);
+  border-bottom: 1px solid var(--rand);
+}
+
+/* ==========================================================================
+   Zusammenstellen lassen
+   ========================================================================== */
+
+.zusammensteller {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.zusammensteller__reihe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.zusammensteller__feld {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-leise);
+}
+
+.zusammensteller__ep {
+  width: 90px;
+}
+
+.zusammensteller__ergebnis {
+  margin: 0;
+}
+
+.zusammensteller__ergebnis.is-abweichend b {
+  color: var(--gefahr);
+}
+
+
+/* ---------- Bewegung (packages/motion) ----------
+ * Knoepfe und Felder reagieren weich, Kacheln kommen gestaffelt herein,
+ * eine Karte blendet beim Oeffnen ein. Bei weniger Bewegung bleibt nur das
+ * Einblenden (siehe motion.css).
+ */
+.knopf,
+button,
+input,
+select,
+textarea {
+  transition:
+    background-color var(--motion-feedback) var(--motion-ease-standard),
+    border-color var(--motion-feedback) var(--motion-ease-standard),
+    color var(--motion-feedback) var(--motion-ease-standard),
+    box-shadow var(--motion-feedback) var(--motion-ease-standard),
+    transform var(--motion-feedback) var(--motion-ease-standard);
+}
+
+.knopf:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.karte {
+  animation: motion-erscheinen var(--motion-state) var(--motion-ease-enter) backwards;
+}
+
+.begegnungskachel, .umgebungskachel {
+  transition:
+    background-color var(--motion-feedback) var(--motion-ease-standard),
+    border-color var(--motion-feedback) var(--motion-ease-standard),
+    box-shadow var(--motion-state) var(--motion-ease-standard),
+    transform var(--motion-state) var(--motion-ease-standard);
+}
+
+.begegnungskachel:hover, .umgebungskachel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.kacheln > li {
+  animation: motion-eintritt var(--motion-place) var(--motion-ease-enter) backwards;
+}
+
+.kacheln > li:nth-child(2) {
+  animation-delay: 25ms;
+}
+.kacheln > li:nth-child(3) {
+  animation-delay: 50ms;
+}
+.kacheln > li:nth-child(4) {
+  animation-delay: 75ms;
+}
+.kacheln > li:nth-child(5) {
+  animation-delay: 100ms;
+}
+.kacheln > li:nth-child(6) {
+  animation-delay: 125ms;
+}
+.kacheln > li:nth-child(7) {
+  animation-delay: 150ms;
+}
+.kacheln > li:nth-child(8) {
+  animation-delay: 175ms;
+}
+.kacheln > li:nth-child(9) {
+  animation-delay: 200ms;
+}
+.kacheln > li:nth-child(10) {
+  animation-delay: 225ms;
+}
+.kacheln > li:nth-child(11) {
+  animation-delay: 250ms;
+}
+.kacheln > li:nth-child(12) {
+  animation-delay: 275ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .begegnungskachel:hover, .umgebungskachel:hover {
+    transform: none;
+  }
+}

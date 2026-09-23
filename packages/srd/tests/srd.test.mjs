@@ -145,3 +145,196 @@ test('weit ueber dem hohen Budget ist eine eigene Antwort, nicht „hoch"', () =
 test('ohne Gruppe gibt es keine Einordnung', () => {
   assert.equal(S.einordnung(1000, []), null);
 });
+
+test('die Monster: 331, jedes in beiden Sprachen, eindeutig', () => {
+  assert.equal(S.SRD_MONSTER.length, 331);
+  const ids = S.SRD_MONSTER.map((m) => m.id);
+  assert.equal(new Set(ids).size, ids.length);
+  for (const m of S.SRD_MONSTER) {
+    assert.ok(m.name.de && m.name.en, m.id);
+    assert.equal(m.attribute.length, 6, m.id);
+    assert.ok(m.rk >= 5 && m.rk <= 25, `${m.id} RK ${m.rk}`);
+    assert.ok(m.tp >= 1, m.id);
+    assert.ok(S.KREATURENTYPEN[m.typ], `${m.id} Typ ${m.typ}`);
+  }
+});
+
+test('die Erfahrungspunkte eines Monsters passen zu seinem Grad', () => {
+  // Eine Gegenprobe der Auslese: EP und HG stehen in derselben Zeile, die
+  // Tabelle der EP je Grad kommt aus einem anderen Kapitel.
+  //
+  // Zwei bekannte Abweichungen, beide so im Dokument selbst:
+  // - Grad 0 gibt 0 EP bei Wesen ohne Angriff (das Regelwerk sagt „0 oder 10").
+  // - Der Archmage steht mit 8.000 EP da, die Tabelle nennt fuer Grad 12
+  //   8.400 — in beiden Sprachfassungen gleich. Uebernommen wird, was im
+  //   Wertekasten steht; dieser Test haelt fest, dass es der einzige Fall ist.
+  const falsch = S.SRD_MONSTER.filter(
+    (m) => S.epFuerGrad(m.hg) !== m.ep && !(m.hg === '0' && m.ep === 0)
+  ).map((m) => `${m.id}: HG ${m.hg}, ${m.ep} EP`);
+  assert.deepEqual(falsch, ['archmage: HG 12, 8000 EP']);
+});
+
+test('legendaere Monster haben einen Abschnitt dafuer, die anderen nicht', () => {
+  for (const m of S.SRD_MONSTER) {
+    assert.equal(m.legendaer, m.abschnitte.some((a) => a.id === 'legendaer'), m.id);
+  }
+  assert.ok(S.SRD_MONSTER.filter((m) => m.legendaer).length > 20);
+});
+
+test('kein Wertekasten traegt Reste der Auslese', () => {
+  for (const m of S.SRD_MONSTER) {
+    for (const a of m.abschnitte) {
+      for (const e of a.eintraege) {
+        for (const t of [e.name.de, e.name.en, e.text.de, e.text.en]) {
+          assert.ok(!/­|System Reference Document|Systemreferenzdokument/.test(t), `${m.id}: ${t.slice(0, 50)}`);
+        }
+        assert.ok(e.name.de && e.name.en, `${m.id}: Eintrag ohne Namen`);
+      }
+    }
+  }
+});
+
+test('das Glossar: 155 Eintraege, jeder in beiden Sprachen', () => {
+  assert.equal(S.GLOSSAR.length, 155);
+  const ids = new Set(S.GLOSSAR.map((e) => e.id));
+  assert.equal(ids.size, 155);
+  for (const e of S.GLOSSAR) {
+    assert.ok(e.name.de && e.name.en, e.id);
+    assert.ok(e.bloecke.length > 0, e.id);
+    for (const v of e.verweise) assert.ok(ids.has(v), `${e.id} verweist auf ${v}`);
+  }
+});
+
+test('Tabellen im Glossar haben gleich viele Spalten in jeder Reihe, in beiden Sprachen', () => {
+  for (const e of S.GLOSSAR) {
+    for (const b of e.bloecke) {
+      if (b.typ !== 'tabelle') continue;
+      for (const sprache of ['de', 'en']) {
+        for (const reihe of b.reihen[sprache]) assert.equal(reihe.length, b.kopf[sprache].length, e.id);
+      }
+      assert.equal(b.reihen.de.length, b.reihen.en.length, e.id);
+    }
+  }
+});
+
+test('im Glossar steht der Zustand Blind so wie in den Zustaenden', () => {
+  const blind = S.GLOSSAR.find((e) => e.id === 'blinded');
+  assert.equal(blind.name.de, 'Blind');
+  assert.equal(blind.tag, 'zustand');
+  const zustand = S.ZUSTAENDE.find((z) => z.id === 'blinded');
+  assert.ok(zustand.text.en.includes(blind.bloecke[1].text.en.slice(0, 30)));
+});
+
+test('jeder Verweisbegriff steht in beiden Sprachen, die laengsten zuerst', () => {
+  for (const sprache of ['de', 'en']) {
+    const formen = S.verweisformen(sprache);
+    assert.ok(formen.length >= 70, `${sprache}: ${formen.length}`);
+    for (let i = 1; i < formen.length; i += 1) {
+      assert.ok(formen[i - 1].form.length >= formen[i].form.length);
+    }
+  }
+  const de = S.verweisformen('de').map((f) => f.form);
+  assert.ok(de.includes('Liegend') && de.includes('schwieriges Gelände') && de.includes('Spurt‑Aktion'));
+});
+
+test('der Wert magischer Gegenstaende folgt der Tabelle des SRD', () => {
+  assert.equal(S.gegenstandswert('common'), 100);
+  assert.equal(S.gegenstandswert('common', { verbrauch: true }), 50);
+  // Das Beispiel aus dem Dokument: +1 Armor (Plate Armor) = 4.000 + 1.500.
+  assert.equal(S.gegenstandswert('rare', { grundpreis: 1500 }), 5500);
+  // Schriftrolle: doppelte Herstellungskosten, Grad 3 = 2 x 150.
+  assert.equal(S.gegenstandswert('uncommon', { schriftrolleGrad: 3 }), 300);
+  assert.deepEqual(S.SELTENHEITEN.map((s) => S.SELTENHEIT_NAME[s].de), [
+    'Gewöhnlich', 'Ungewöhnlich', 'Selten', 'Sehr selten', 'Legendär'
+  ]);
+});
+
+test('die Requisiten-Tabelle hat hundert Paare, ohne Reste aus dem Satz', () => {
+  assert.equal(S.TAND.length, 100);
+  for (const [i, paar] of S.TAND.entries()) {
+    for (const text of [paar.de, paar.en]) {
+      assert.ok(text.length > 5, `${i + 1}: zu kurz`);
+      assert.doesNotMatch(text, /­|\s{2}|^\d|Trinket|Requisite/, `${i + 1}: ${text}`);
+    }
+  }
+  assert.equal(S.TAND[0].en, 'A mummified goblin hand');
+  assert.equal(S.TAND[99].de, 'Metallene Urne mit der Asche eines Helden');
+});
+
+test('die magischen Gegenstaende: alle 258, gepaart, mit gleicher Tabellenform in beiden Sprachen', () => {
+  const G = S.MAGISCHE_GEGENSTAENDE;
+  assert.equal(G.length, 258);
+  assert.equal(new Set(G.map((g) => g.id)).size, 258);
+  const nach = Object.fromEntries(G.map((g) => [g.id, g]));
+  assert.equal(nach['bag-of-holding'].name.de, 'Nimmervoller Beutel');
+  const krabbe = nach['apparatus-of-the-crab'];
+  for (const sprache of ['de', 'en']) {
+    const t = krabbe.bloecke[sprache].find((b) => b.typ === 'tabelle');
+    assert.equal(t.kopf.length, 3, sprache);
+    assert.equal(t.reihen.length, 10, sprache);
+  }
+  for (const g of G) {
+    const form = (s) => g.bloecke[s].filter((b) => b.typ === 'tabelle').map((b) => `${b.kopf.length}x${b.reihen.length}`);
+    assert.deepEqual(form('de'), form('en'), g.id);
+    assert.ok(g.bloecke.de.length > 0 && g.bloecke.en.length > 0, g.id);
+    assert.doesNotMatch(JSON.stringify(g), /­/, g.id);
+  }
+});
+
+test('die Bloecke der Gegenstaende stehen in beiden Sprachen in derselben Folge', () => {
+  for (const g of S.MAGISCHE_GEGENSTAENDE) {
+    assert.deepEqual(g.bloecke.de.map((b) => b.typ), g.bloecke.en.map((b) => b.typ), g.id);
+  }
+  const figur = S.MAGISCHE_GEGENSTAENDE.find((g) => g.id === 'figurine-of-wondrous-power');
+  const i = figur.bloecke.en.findIndex((b) => b.typ === 'punkt' && b.text.startsWith('Golden Lions'));
+  assert.match(figur.bloecke.de[i].text, /^Goldene Löwen/);
+});
+
+test('die Zauber: alle 339, gepaart, in beiden Sprachen gleich gebaut', () => {
+  const Z = S.ZAUBER;
+  assert.equal(Z.length, 339);
+  assert.equal(new Set(Z.map((z) => z.id)).size, 339);
+  const feuerball = Z.find((z) => z.id === 'fireball');
+  assert.equal(feuerball.name.de, 'Feuerball');
+  assert.equal(feuerball.grad, 3);
+  assert.equal(feuerball.schule, 'hervorrufung');
+  assert.deepEqual([...feuerball.klassen], ['magier', 'zauberer']);
+  assert.equal(feuerball.eigenschaften.de.reichweite, '45 Meter');
+  assert.match(feuerball.eigenschaften.de.komponenten, /Fledermaus-Guano/);
+  assert.equal(Z.filter((z) => z.grad === 0).length, 27);
+  for (const z of Z) {
+    assert.deepEqual(z.bloecke.de.map((b) => b.typ), z.bloecke.en.map((b) => b.typ), z.id);
+    for (const s of ['de', 'en']) {
+      for (const k of ['zeit', 'reichweite', 'komponenten', 'dauer']) assert.ok(z.eigenschaften[s][k], `${z.id} ${s} ${k}`);
+    }
+    assert.doesNotMatch(JSON.stringify(z), /­/, z.id);
+  }
+});
+
+test('die Ausruestung: 180 Eintraege, gepaart, Tabellen in beiden Sprachen gleich', () => {
+  const A = S.AUSRUESTUNG;
+  assert.equal(A.length, 180);
+  assert.equal(new Set(A.map((a) => a.id)).size, 180);
+  const tabelle = (id, s) => A.find((a) => a.id === id).bloecke[s].find((b) => b.typ === 'tabelle');
+  // Die Waffentabelle ist seitenbreit gedruckt: sechs Spalten, 38 Waffen
+  // und vier Zwischenzeilen.
+  for (const s of ['de', 'en']) {
+    const w = tabelle('weapons', s);
+    assert.equal(w.kopf.length, 6, s);
+    assert.equal(w.reihen.length, 42, s);
+    assert.equal(w.reihen.filter((r) => r.slice(1).every((c) => !c)).length, 4, s);
+  }
+  assert.deepEqual([...tabelle('weapons', 'de').reihen[1]], ['Beil', '1W6 Hieb', 'Leicht, Wurfwaffe (Reichweite 6/18)', 'Plagen', '1 kg', '5 GM']);
+  assert.equal(tabelle('adventuring-gear', 'en').reihen.length, 82);
+  // Eine Tabelle steht bei ihrem Eintrag, nicht wo der Druck Platz hatte.
+  assert.equal(tabelle('armor', 'en').titel, 'Armor');
+  assert.equal(A.find((a) => a.id === 'selling-equipment').kasten, true);
+  const schmied = A.find((a) => a.id === 'smith-s-tools-20-gp');
+  assert.deepEqual(schmied.bloecke.de.slice(0, 2).map((b) => b.text), ['Attribut: Stärke', 'Gewicht: 4 kg']);
+  for (const a of A) {
+    assert.deepEqual(a.bloecke.de.map((b) => b.typ), a.bloecke.en.map((b) => b.typ), a.id);
+    const form = (s) => a.bloecke[s].filter((b) => b.typ === 'tabelle').map((b) => `${b.kopf.length}x${b.reihen.length}`);
+    assert.deepEqual(form('de'), form('en'), a.id);
+    assert.doesNotMatch(JSON.stringify(a), /\u00ad/, a.id);
+  }
+});

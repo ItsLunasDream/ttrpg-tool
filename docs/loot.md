@@ -2,7 +2,52 @@
 
 Eigene Zufallstabellen, verschachtelbar, und Beute nach Grad.
 
-**Stand:** Konzept. Nichts davon ist gebaut.
+**Stand:** Stufe 1 bis 3 sind gebaut (`packages/tabellen`, `apps/loot`),
+Stufe 4 (Beute nach Grad) geht so nicht: **das SRD 5.2.1 enthält keine
+Schatztabellen nach Herausforderungsgrad** (gegen beide PDFs geprüft; sie
+stehen im Spielleiterhandbuch, das nicht frei lizenziert ist). Eingebaut ist
+stattdessen, was das SRD hat: die W100-Tabelle „Trinkets" / „Requisiten",
+zweisprachig, schreibgeschützt, würfelbar und per `[Trinkets]` bzw.
+`[Requisiten]` aus eigenen Tabellen erreichbar. Dazu die drei Tabellen
+„Waffen", „Rüstung" und „Abenteurerausrüstung" aus dem Kapitel Ausrüstung,
+jeder Gegenstand mit Preis, ohne Würfel (gleich wahrscheinlich), ebenfalls per
+Verweis erreichbar (`[Waffen]` / `[Weapons]`). Was beim Bauen entschieden
+wurde:
+
+- **Eingabe als Zeilen.** Eine Zeile je Eintrag, die Spanne davor ist
+  freiwillig (`1-3: 2d6 × 10 Kupfer`). Die Datei auf der Platte ist
+  dieselbe Liste als Markdown, lesbar in jedem Texteditor.
+- **Weitergeben:** die Ablagedatei genügt, kein eigenes Format.
+  „Weitergeben" schreibt sie irgendwohin, „Einlesen" holt fremde herein,
+  ohne etwas zu überschreiben.
+- **Ohne Zurücklegen je Tabelle**, gültig innerhalb einer Wurfreihe und
+  auch für verwiesene Tabellen. Ist eine Tabelle erschöpft, beginnt sie von
+  vorn. Mit Spannen bleibt die Gewichtung erhalten.
+- **Drei Beispieltabellen** beim allerersten Start, in der dann
+  eingestellten Sprache. Bewusst als Ausnahme von „wir schreiben keine
+  Tabellen": ein leeres Werkzeug ist eine hohe Hürde. Wer sie löscht,
+  bekommt sie nicht wieder. Umkehrbar, falls unerwünscht.
+- **Deutsche Würfel** (`2W6`) gelten wie `2d6`, im Text und als Würfel der
+  Tabelle.
+- **Formprüfung beim Tippen:** Lücken, doppelte Zahlen, Zahlen außerhalb
+  des Würfels, unlesbarer Würfel, Verweise ins Leere und auf sich selbst.
+- **Herkunft:** jedes Ergebnis hat ein aufklappbares „Woher" mit dem Baum
+  der Würfe.
+
+- **Story Creator:** „In den Story Creator" legt den Wurf als Notiz in der
+  zuletzt benutzten Kampagne an, mit den beteiligten Tabellen darunter.
+
+- **Bestand des Magic Item Creators:** die Hülle reicht Name und Seltenheit
+  der abgelegten Gegenstände durch (die Werkzeuge kennen einander nicht).
+  Daraus werden schreibgeschützte Tabellen „Magische Gegenstände" und je
+  vorhandener Seltenheit „Magische Gegenstände (Selten)" usw., erreichbar
+  per Verweis. Leere Seltenheiten fehlen mit Absicht, damit ein Verweis
+  darauf sichtbar ins Leere zeigt.
+
+Noch offen, denkbar als
+Ersatz für Stufe 4, aber nicht gebaut: die SRD-Tabelle „Starting Equipment
+at Higher Levels" (Gold und magische Gegenstände je Stufenbereich) als
+Richtwert für Beute nach Stufe der Gruppe.
 
 ## Warum das kein weiterer Erzeuger ist
 

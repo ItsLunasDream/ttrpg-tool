@@ -16,6 +16,7 @@ import { VORGABE_THEMA, themaMit } from '@suite/farben';
 import { dirname } from 'node:path';
 import { istAnbieterId, KI_VOREINSTELLUNGEN, type KiEinstellungen } from '@suite/ki/einstellungen';
 import { DEFAULT_LANGUAGE, isLanguage, type Language } from '../shared/i18n';
+import { gueltigeGroesse, VORGABE_GROESSE } from '../shared/apps';
 
 export interface ShellSettings {
   language: Language;
@@ -51,6 +52,17 @@ export interface ShellSettings {
    * hier steht nur, welche gerade gilt.
    */
   thema: string;
+  /**
+   * Die Groesse der ganzen Oberflaeche in Prozent, eine der Stufen aus
+   * `GROESSEN` (#61). Gilt wie das Thema fuer das ganze Fenster: Huelle und
+   * alle Werkzeuge.
+   */
+  groesse: number;
+  /**
+   * Der eigene Name im Raum (Austausch, Stufe 2). Leer heisst: ein
+   * Gastname, den die Huelle beim Beitreten vergibt.
+   */
+  tischName: string;
 }
 
 export const DEFAULT_SETTINGS: ShellSettings = {
@@ -58,7 +70,9 @@ export const DEFAULT_SETTINGS: ShellSettings = {
   ki: KI_VOREINSTELLUNGEN,
   claudeSchluessel: '',
   einfuehrungGesehen: [],
-  thema: VORGABE_THEMA
+  thema: VORGABE_THEMA,
+  groesse: VORGABE_GROESSE,
+  tischName: ''
 };
 
 /** Erzwingt gueltige Werte, egal was in der Datei stand. */
@@ -76,6 +90,8 @@ export function sanitizeSettings(roh: unknown): ShellSettings {
      * zurueck — besser als eine Oberflaeche ohne Farben.
      */
     thema: themaMit(typeof wert.thema === 'string' ? wert.thema : '').id,
+    groesse: gueltigeGroesse(wert.groesse),
+    tischName: typeof wert.tischName === 'string' ? wert.tischName.replace(/\s+/g, ' ').trim().slice(0, 40) : '',
     // Nur Zeichenketten, und jede nur einmal: die Liste waechst sonst bei
     // jedem Start um denselben Eintrag.
     einfuehrungGesehen: Array.isArray(wert.einfuehrungGesehen)

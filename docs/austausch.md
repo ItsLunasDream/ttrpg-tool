@@ -4,7 +4,91 @@ Ein Werkzeug, mit dem eine Gruppe, die in Person spielt und die Sammlung
 auf mehreren Rechnern hat, Sachen hin- und herschickt: Notizen, Monster,
 Zustände, Nachrichten.
 
-**Stand:** Konzept. Nichts davon ist gebaut.
+**Stand:** Stufe 1 ist gebaut: die gemeinsame Schnittstelle
+(`packages/austausch`) in drei Werkzeugen (Story Creator, Monster Creator,
+Nachschlagewerk) und der Dialog „Teilen" in der Hülle. Weitergegeben wird
+als Paketdatei oder über den Raum.
+
+Stufe 2 ist gebaut, in einer ersten Fassung: der **Raum im lokalen Netz**
+mit Chat, Direktnachrichten und Paketen an alle oder an eine Person
+(Reiter „Raum" im Dialog „Teilen"). Der Chatverlauf wird nicht
+gespeichert: er lebt nur, solange der Raum offen ist (entschieden).
+
+**Wie Stufe 2 gebaut ist:**
+
+- Wer einen Raum eröffnet, ist **Gastgeber**: ein TCP-Dienst auf einem
+  freien Port, dazu alle 2 Sekunden eine Ankündigung per UDP-Broadcast
+  (Port 47811). Die anderen sehen den Raum in der Liste und verbinden sich
+  mit dem Gastgeber; er verteilt alles. Lässt ein Netz Broadcasts nicht
+  durch, tritt man über die Adresse bei, die beim Gastgeber steht.
+- Auf der Leitung steht je Zeile eine JSON-Nachricht (Protokoll in
+  `packages/austausch/src/raum.ts`). Das **Passwort reist nie**: der
+  Gastgeber schickt eine Zufallszahl, der Gast antwortet mit einem HMAC
+  daraus.
+- **Alles andere ist unverschlüsselt.** Die App sagt das im Raum und bei
+  jeder Direktnachricht. Verschlüsselung bleibt Stufe 4.
+- Der Absender einer Nachricht ist, wer die Leitung hält, nicht, was im
+  Feld steht: ein Gast kann sich nicht als jemand anderes ausgeben.
+- Der eigene Name steht in den Einstellungen (`tischName`); ohne ihn gibt
+  es einen Gastnamen („Gast 42"). Doppelte Namen bekommen eine Zahl.
+- Angekommene Pakete warten im Reiter „Empfangen" und werden über
+  denselben Weg angesehen und angenommen wie eine Paketdatei. Am Knopf
+  „Teilen" zählt eine Zahl neue Nachrichten und Pakete mit.
+- Höchstens 16 Personen, eine Zeile höchstens 80 MB.
+- Unter Windows fragt die Firewall beim ersten Eröffnen, ob die App im
+  Netz erreichbar sein darf. Ohne Zustimmung findet niemand den Raum.
+- Geprüft in `packages/austausch` (Protokoll), in `apps/shell/tests`
+  (Gastgeber und Gäste in einem Prozess: Namen, Passwort, Chat,
+  Direktnachricht, Paket an eine Person, Raumliste) und im Rauchtest
+  `smoke-raum.cjs` (die App als Gastgeber, ein Gast aus dem Protokoll).
+
+**Entschieden (Nutzerin, 23.09.):**
+
+- Die Schnittstelle hat dieselbe Form wie die Einstellungen: ein optionaler
+  Haken je Werkzeug, die Hülle vermittelt.
+- Angenommen wird auch, wenn das Zielwerkzeug zu ist: die Werkzeuge
+  schreiben direkt in ihre Ablage, beim nächsten Öffnen ist der Eintrag da.
+- Räume findet man über eine **Liste im Netz** (Stufe 2).
+- **Bilder reisen mit**, als Base64 im Paket.
+- Im Raum gibt es außerdem einen **Chat**: Nachrichten an alle und
+  **Direktnachrichten** an eine Person. **Dateien und Einträge** lassen sich
+  ebenso an alle oder an **einzelne Personen** schicken. Jede Person gibt
+  sich einen **Namen** (Einstellung „Dein Name am Tisch"); ohne eigenen
+  Namen gilt ein generischer („Gast 1"). Doppelte Namen bekommen im Raum
+  eine Zahl. Solange die Verbindung unverschlüsselt ist, sagt die App bei
+  Direktnachrichten sichtbar, dass sie im selben Netz mitlesbar sind.
+- Der **Initiative Tracker** kann seinen Kampf im Raum **teilen**
+  (Knopf „Im Raum teilen", nur sichtbar im Raum). Wer teilt, führt den
+  Kampf; die anderen sehen ihn live über der eigenen Liste. Gefiltert:
+  Spielerfiguren mit genauen TP, alle anderen nur mit Name, Reihenfolge,
+  Zuständen und einer groben Stufe (unverletzt, angeschlagen, schwer
+  verletzt, kampfunfähig), ohne TP und RK. Mit dem Schalter
+  „Gegnerzustand zeigen“ lässt sich auch die Stufe ganz ausblenden. Über das Rechtsklickmenü einer
+  Zeile gehört eine Figur einer Person im Raum; diese Person darf deren TP
+  und Zustände ändern. Die Änderung geht an den Teilenden, der sie gegen
+  die Zuordnung prüft und den neuen Stand an alle schickt. Alles andere
+  wird abgewiesen. Geprüft in `apps/initiative/tests/teilen.test.mjs` und
+  im Rauchtest `smoke-initiative-raum.cjs`.
+
+**Wie Stufe 1 gebaut ist:**
+
+- Eine Sendung ist das Markdown, das das Werkzeug ohnehin ablegt, dazu
+  Name, Art und die Bilder. Ein Paket ist eine lesbare Markdown-Datei
+  (`.ttrpg.md`); die Verwaltung steht in HTML-Kommentaren.
+- Gibt es eine Kennung schon, wird gefragt: daneben legen (Vorgabe),
+  übernehmen oder verwerfen. Daneben gelegt bekommt der Eintrag eine freie
+  Kennung, eine Notiz auch einen eindeutigen Titel („Der König (2)").
+- Eine Notiz geht in eine Kampagne, die der Empfänger wählt. Kennt die
+  Kampagne den Notiztyp nicht, wird er mit der Beschriftung des Absenders
+  angelegt. Beziehungen auf Notizen, die es beim Empfänger nicht gibt,
+  fallen weg.
+- Offizielle Regeln reisen als Verweis, Hausregeln ganz, Notizen am
+  Regeltext gar nicht.
+- Offene Werkzeuge erfahren vom Empfang: der Story Creator liest neu,
+  Monster Creator und Nachschlagewerk zeigen den angekommenen Eintrag.
+- Geprüft in `packages/austausch` (Paketformat), im Vault-Test des Story
+  Creators (Empfang mit Bild und Typ) und im Rauchtest
+  `smoke-austausch.cjs` (ganzer Weg, Werkzeuge geschlossen).
 
 ## Die Reihenfolge, um die es geht
 

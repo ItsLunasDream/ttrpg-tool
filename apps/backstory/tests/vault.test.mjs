@@ -1090,3 +1090,45 @@ test('Vorschlaege gibt es je Sprache, und die alte Datei geht nicht verloren', a
   const uebernommen = await alt.readPrompts('de');
   assert.equal(uebernommen[0].options[0], 'Ein eigener Vorschlag');
 });
+
+test('eine empfangene Notiz kommt mit Bild, Typ und ohne etwas zu ueberschreiben an', async () => {
+  await withVault(async (vault) => {
+    const quelle = await vault.createCampaign('Quelle');
+    const ziel = await vault.createCampaign('Ziel');
+    const bild = await vault.saveAsset(quelle.id, 'karte.png', new Uint8Array([1, 2, 3]));
+    const notiz = await vault.createNote(quelle.id, quelle.noteTypes[0].id, 'Der König');
+    await vault.saveNote(quelle.id, { ...notiz, body: `Hier: ![](${bild})` });
+    const roh = await vault.rohNotiz(quelle.id, notiz.id);
+    const daten = new Uint8Array(await fs.readFile(vault.assetFile(quelle.id, bild.slice('assets/'.length))));
+
+    const erste = await vault.empfangeNotiz(ziel.id, roh, [{ name: bild, daten }], 'daneben', 'Figur');
+    assert.equal(erste.id, notiz.id);
+    assert.equal(erste.title, 'Der König');
+    const neuesBild = /\]\((assets\/[^)]+)\)/.exec(erste.body)[1];
+    assert.notEqual(neuesBild, undefined);
+    assert.deepEqual([...(await fs.readFile(vault.assetFile(ziel.id, neuesBild.slice('assets/'.length))))], [1, 2, 3]);
+
+    // Dieselbe Notiz nochmal, daneben gelegt: neue Kennung, Titel mit Zahl.
+    const zweite = await vault.empfangeNotiz(ziel.id, roh, [], 'daneben');
+    assert.notEqual(zweite.id, notiz.id);
+    assert.equal(zweite.title, 'Der König (2)');
+    assert.equal((await vault.listNotes(ziel.id)).length, 2);
+
+    // Uebernehmen ersetzt die vorhandene Fassung, statt eine dritte anzulegen.
+    const ersetzt = await vault.empfangeNotiz(ziel.id, roh.replace('Hier:', 'Neu:'), [], 'uebernehmen');
+    assert.equal(ersetzt.id, notiz.id);
+    assert.equal((await vault.listNotes(ziel.id)).length, 2);
+    assert.match((await vault.getNote(ziel.id, notiz.id)).body, /^Neu:/);
+  });
+});
+
+test('ein unbekannter Notiztyp wird beim Empfang in der Kampagne angelegt', async () => {
+  await withVault(async (vault) => {
+    const ziel = await vault.createCampaign('Ziel');
+    const roh = '---\nid: abc-1\ntitle: Das Artefakt\ntype: artefakt\n---\nText';
+    const notiz = await vault.empfangeNotiz(ziel.id, roh, [], 'daneben', 'Artefakt');
+    assert.equal(notiz.type, 'artefakt');
+    const typ = (await vault.getCampaign(ziel.id)).noteTypes.find((t) => t.id === 'artefakt');
+    assert.equal(typ?.label, 'Artefakt');
+  });
+});

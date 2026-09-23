@@ -1,4 +1,6 @@
-# TTRPG-Tools
+# LORE
+
+**Library Of RPG Essentials**
 
 *[Dieses Dokument auf Deutsch: README.de.md](README.de.md)*
 
@@ -23,6 +25,18 @@ the provider you entered.
   tables, from your keyboard or from an AI.
 - **Status Effect Creator** — custom conditions with levels, weighed against
   the ones everyone knows, with a card to read aloud at the table.
+- **Encounter Creator** — encounters from the 331 SRD monsters and your own,
+  with an environment, pushed into the initiative tracker in one go. The
+  difficulty is worked out from the rules; it can also build an encounter
+  for a target CR.
+- **Magic Item Creator** — roll magic items by type and rarity, adjust them,
+  store them. Values follow the SRD table.
+- **Loot Generator** — write your own random tables, one line per entry,
+  with ranges, dice in the text and references to other tables; roll them
+  once from the tile or several times without repeats.
+- **Reference** — the whole rules glossary, the equipment chapter (weapons,
+  armor, tools, gear), all 339 spells and all 258 magic items of the System Reference Document, offline and in both languages, with cross-references, house
+  rules and notes, in the same Ctrl+K search as everything else.
 - **TTRPG Map Editor** — draw battlemaps and world maps, export as Universal
   VTT.
 
@@ -33,9 +47,9 @@ Working titles, icons and tool names are provisional.
 No Node, no npm needed:
 
 1. Open the **Actions** tab, click the topmost **Build** run
-2. Under **Artifacts**, download `ttrpg-tools-windows` and unpack it
-3. Inside: `TTRPGTools-Setup-<version>.exe` (installer) and
-   `TTRPGTools-portable-<version>.exe` (runs without installing)
+2. Under **Artifacts**, download `lore-windows` and unpack it
+3. Inside: `LORE-Setup-<version>.exe` (installer) and
+   `LORE-portable-<version>.exe` (runs without installing)
 
 Notes:
 
@@ -94,6 +108,9 @@ apps/inspiration/  Inspiration
 apps/monster/      Monster Creator
 apps/zustaende/    Status Effect Creator
 apps/encounter/    Encounter Creator
+apps/nachschlagewerk/ Reference (the rules, offline)
+apps/magicitems/   Magic Item Creator
+apps/loot/         Loot Generator
 packages/dice/     Reading and rolling dice expressions
 packages/i18n/     Language choice and text substitution
 packages/motion/   Timings, curves and base animations
@@ -134,6 +151,8 @@ for the title bar and the rail.
   this machine's keychain and would be useless anywhere else, and a backup
   is the last place a key belongs. Restoring is manual and deliberately so:
   close the app, unpack into the data folder, start again.
+- The data folder is `%APPDATA%\LORE` on Windows. Installations from before
+  the rename keep using `%APPDATA%\TTRPG-Tools`; nothing has to be moved.
 - Colours live in one place. `packages/farben` holds fourteen colour *roles*
   („the ground everything sits on“, not „dark blue“) and seven themes that
   fill them — five dark, two light, which is what covers light mode. The
@@ -141,6 +160,18 @@ for the title bar and the rail.
   a tool needs no code for it: its styles.css derives its own variable names
   from the roles and keeps a fallback for each. The themes are tested for
   contrast, not just for looking nice.
+- Sharing (stage 1 of `docs/austausch.md`): the shell's “Share” dialog
+  packs entries from the Story Creator (notes with their images), the
+  Monster Creator and the Reference (house rules; official rules as a
+  reference) into one readable Markdown file, and reads such a file back.
+  An entry that already exists is kept side by side unless you choose to
+  replace it. The tools take entries even while closed. Stage 2 adds a room
+  on the local network: chat to everyone or to one person, and packages to
+  everyone or to one person, under a name you choose. The room is not
+  encrypted, and the app says so.
+- The interface size (80 to 200 percent) works the same way: one setting,
+  applied by the shell to every view; the tools move along with the title bar
+  and the rail instead of slipping underneath them.
 - Settings live in one place. The shell's settings dialog shows its own
   entries (language, AI, icons, introductions) and, underneath, a section per
   running tool. A tool does not draw that section itself — it runs in its own
@@ -606,11 +637,11 @@ What is in `docs/` (all German):
 | `inspirationshilfe.md` | Concept and open points of the Inspiration tool (built) |
 | `monster.md` | Monster Creator: baselines, calibration, Foundry export |
 | `statuseffekte.md` | Status Effect Creator: effects, weight, Foundry export |
-| `encounter.md` | Concept: Encounter Creator (not built) |
+| `encounter.md` | Encounter Creator: collection, environment, the way into the tracker, difficulty |
 | `austausch.md` | Concept: sharing between the group at the table (not built) |
-| `magicitems.md` | Concept: Magic Item Creator (not built) |
-| `nachschlagewerk.md` | Concept: the rules offline plus house rules, in the same search (not built) |
-| `loot.md` | Concept: Loot Generator, own nested random tables (not built) |
+| `magicitems.md` | Magic Item Creator: tables, generator, collection, Foundry export, calibration against the SRD |
+| `nachschlagewerk.md` | Reference: rules glossary, equipment, spells and magic items offline in both languages, cross-references, house rules, notes |
+| `loot.md` | Loot Generator: own nested random tables (stages 1 to 3 built; loot by CR open) |
 
 ## License
 

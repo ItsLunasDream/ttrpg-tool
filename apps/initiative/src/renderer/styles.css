@@ -852,3 +852,169 @@ input[type='number'] {
 .kontextmenue__gefaehrlich {
   color: var(--gefahr);
 }
+
+/* --- Geteilter Kampf aus dem Raum --------------------------------------- */
+.zeile__besitz {
+  color: var(--betont);
+  border-color: color-mix(in srgb, var(--betont) 45%, transparent);
+}
+
+.geteilt {
+  margin: 12px 14px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  background: var(--grund-hoch);
+  max-height: 45%;
+  overflow: auto;
+  flex-shrink: 0;
+}
+
+.geteilt__kopf {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 8px;
+  color: var(--text-leise);
+  font-size: 13px;
+}
+
+.geteilt__kopf strong {
+  color: var(--text);
+}
+
+.geteilt__liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.geteilt__zeile {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto minmax(0, 2fr);
+  gap: 10px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border-left: 3px solid transparent;
+  transition:
+    background var(--motion-kurz, 150ms) ease,
+    border-color var(--motion-kurz, 150ms) ease;
+}
+
+.geteilt__zeile.is-dran {
+  background: var(--betont-leise);
+  border-left-color: var(--betont);
+}
+
+.geteilt__zeile.is-eigen {
+  background: var(--lasur);
+}
+
+.geteilt__zeile.is-dran.is-eigen {
+  background: var(--betont-leise);
+}
+
+.geteilt__name {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
+.geteilt__name > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.geteilt__besitz {
+  font-size: 11px;
+  color: var(--betont);
+  border: 1px solid color-mix(in srgb, var(--betont) 45%, transparent);
+  border-radius: 999px;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.geteilt__koerper {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.geteilt__hpfeld {
+  width: 4em;
+  padding: 1px 4px;
+}
+
+.geteilt__stufe {
+  font-size: 12px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--lasur);
+}
+
+.geteilt__stufe--angeschlagen {
+  color: var(--fest);
+}
+
+.geteilt__stufe--schwer {
+  color: var(--gefahr);
+}
+
+.geteilt__stufe--kampfunfaehig {
+  color: var(--text-leise);
+  text-decoration: line-through;
+}
+
+.geteilt__zustaende {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.geteilt__zustand {
+  font-size: 12px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--rand);
+}
+
+.geteilt__weg {
+  margin-left: 4px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--text-leise);
+  cursor: pointer;
+}
+
+.geteilt__neu {
+  display: flex;
+  gap: 4px;
+}
+
+.geteilt__neu input {
+  width: 9em;
+  padding: 1px 6px;
+}
+
+.geteilt__neu .geteilt__runden {
+  width: 4.5em;
+}
+
+.leiste__schalter {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-leise);
+  white-space: nowrap;
+  cursor: pointer;
+}

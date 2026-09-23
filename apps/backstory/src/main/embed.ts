@@ -33,6 +33,7 @@ import {
 } from './werkzeugeinstellungen';
 import type { KiQuelle } from './ai';
 import type { Eintrag as SuchEintrag } from '@suite/eintraege';
+import { bildverweise, mimeVon, type Teilnehmer } from '@suite/austausch';
 import type { AppSettings } from '../shared/types';
 import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
 
@@ -260,19 +261,7 @@ export interface BackstoryEmbed {
  * lange als eigene Runde ausgewiesen hat.
  */
 export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]> {
-  const eigener = path.join(datenordner, 'backstory');
-  let wurzel = path.join(eigener, 'vault');
-  try {
-    const roh = JSON.parse(await fs.readFile(path.join(eigener, 'settings.json'), 'utf8')) as {
-      vaultRoot?: string;
-    };
-    if (typeof roh.vaultRoot === 'string' && roh.vaultRoot) wurzel = roh.vaultRoot;
-  } catch {
-    // Noch nie gestartet: dann gilt der Vorgabepfad, und der ist womoeglich
-    // auch noch leer. Beides ist kein Fehler.
-  }
-
-  const vault = new Vault(wurzel);
+  const vault = await vaultAus(datenordner);
   const heraus: SuchEintrag[] = [];
   let kampagnen: { id: string; name: string; noteTypes?: { id: string; label: string }[] }[];
   try {
@@ -314,6 +303,104 @@ export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]>
   }
   return heraus;
 }
+
+/** Der Vault, wie ihn der Story Creator beim naechsten Start oeffnen wuerde. */
+async function vaultAus(datenordner: string): Promise<Vault> {
+  const eigener = path.join(datenordner, 'backstory');
+  let wurzel = path.join(eigener, 'vault');
+  try {
+    const roh = JSON.parse(await fs.readFile(path.join(eigener, 'settings.json'), 'utf8')) as {
+      vaultRoot?: string;
+    };
+    if (typeof roh.vaultRoot === 'string' && roh.vaultRoot) wurzel = roh.vaultRoot;
+  } catch {
+    // Noch nie gestartet: dann gilt der Vorgabepfad, und der ist womoeglich
+    // auch noch leer. Beides ist kein Fehler.
+  }
+  return new Vault(wurzel);
+}
+
+/** `kampagne/notiz` in seine zwei Teile. */
+function teile(kennung: string): [string, string] | null {
+  const stelle = kennung.indexOf('/');
+  return stelle > 0 ? [kennung.slice(0, stelle), kennung.slice(stelle + 1)] : null;
+}
+
+/**
+ * Der Story Creator im Austausch (docs/austausch.md): eine Notiz reist als
+ * ihre Datei, mit den Bildern, auf die sie zeigt, und der Beschriftung
+ * ihres Notiztyps. Angenommen wird in eine Kampagne, die der Empfaenger
+ * waehlt (`ziele`). Von der Platte: auch, wenn das Werkzeug zu ist.
+ */
+export const austausch: Teilnehmer = {
+  werkzeug: 'backstory',
+  async gib(datenordner, kennung) {
+    const teil = teile(kennung);
+    if (!teil) return null;
+    const [kampagneId, notizId] = teil;
+    const vault = await vaultAus(datenordner);
+    try {
+      const inhalt = await vault.rohNotiz(kampagneId, notizId);
+      const notiz = await vault.getNote(kampagneId, notizId);
+      const kampagne = await vault.getCampaign(kampagneId);
+      const typ = kampagne.noteTypes.find((t) => t.id === notiz.type);
+      const bilder = [];
+      for (const name of bildverweise(notiz.body)) {
+        try {
+          const daten = await fs.readFile(vault.assetFile(kampagneId, name.slice('assets/'.length)));
+          bilder.push({ name, mime: mimeVon(name), daten: daten.toString('base64') });
+        } catch {
+          // Ein fehlendes Bild haelt die Notiz nicht auf; sie zeigt dann
+          // beim Empfaenger, wie hier, ins Leere.
+        }
+      }
+      return {
+        werkzeug: 'backstory',
+        kennung,
+        name: notiz.title,
+        art: typ?.label ?? notiz.type,
+        inhalt,
+        bilder,
+        zusatz: { typName: typ?.label ?? notiz.type }
+      };
+    } catch {
+      return null;
+    }
+  },
+  async ziele(datenordner) {
+    try {
+      return (await (await vaultAus(datenordner)).listCampaigns()).map((k) => ({ id: k.id, name: k.name }));
+    } catch {
+      return [];
+    }
+  },
+  async gibtEs(datenordner, sendung, ziel) {
+    const teil = teile(sendung.kennung);
+    if (!teil || !ziel) return false;
+    try {
+      return (await (await vaultAus(datenordner)).listNotes(ziel)).some((n) => n.id === teil[1]);
+    } catch {
+      return false;
+    }
+  },
+  async nimmAn(datenordner, sendung, modus, ziel) {
+    if (modus === 'verwerfen') return { ok: true };
+    if (!ziel) return { ok: false, grund: 'keine Kampagne' };
+    if (sendung.inhalt === null) return { ok: false, grund: 'kein Inhalt' };
+    try {
+      const notiz = await (await vaultAus(datenordner)).empfangeNotiz(
+        ziel,
+        sendung.inhalt,
+        sendung.bilder.map((b) => ({ name: b.name, daten: Buffer.from(b.daten, 'base64') })),
+        modus,
+        sendung.zusatz?.typName
+      );
+      return { ok: true, kennung: `${ziel}/${notiz.id}` };
+    } catch (fehler) {
+      return { ok: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };
+    }
+  }
+};
 
 export async function mountBackstory(options: BackstoryEmbedOptions): Promise<BackstoryEmbed> {
   const settingsFile = path.join(options.userDataDir, 'settings.json');

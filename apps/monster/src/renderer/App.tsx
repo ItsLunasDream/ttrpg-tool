@@ -236,7 +236,9 @@ export function App() {
    * auch den Reiter. Wer von aussen kommt, soll dasselbe sehen wie jemand,
    * der von innen klickt.
    */
-  useEffect(() => api.beiSuchtreffer((kennung) => void oeffnen(kennung)));
+  // Die Liste frisch: ein Treffer kann auch ein Monster sein, das gerade
+  // erst angekommen ist (Austausch, docs/austausch.md).
+  useEffect(() => api.beiSuchtreffer((kennung) => void ladeSammlung().then(() => oeffnen(kennung))));
 
   const loeschen = async (eintrag: Eintrag) => {
     if (!window.confirm(`${eintrag.name}?`)) return;

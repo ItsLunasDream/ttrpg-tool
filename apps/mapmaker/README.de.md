@@ -183,6 +183,6 @@ Architektur und Projektregeln stehen in [CLAUDE.md](CLAUDE.md), offene Punkte in
 ## Lizenz
 
 [GNU Affero General Public License v3.0 oder neuer](../../LICENSE) — dieselbe
-Lizenz wie für den Rest von TTRPG-Tools. Freie Software: benutzen, verändern,
+Lizenz wie für den Rest von LORE. Freie Software: benutzen, verändern,
 weitergeben. Wird eine veränderte Fassung über ein Netzwerk angeboten, muss
 ihr Quelltext ebenfalls offenstehen.

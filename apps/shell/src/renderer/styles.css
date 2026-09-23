@@ -214,15 +214,29 @@ body {
   overflow-y: auto;
 }
 
-.menue__frage {
-  font-size: 22px;
+.menue__titel {
+  font-size: 26px;
   font-weight: 600;
-  margin: 0;
+  letter-spacing: 0.02em;
+  margin: 0 0 4px;
 }
 
-.menue__hinweis {
+/* Die Aufloesung des Namens, leise unter Titel oder Banner. */
+.menue__untertitel {
+  margin: 0 0 24px;
   color: var(--text-leise);
-  margin: 0 0 28px;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+}
+
+/* Ein eigenes Banner statt des Titels: so breit wie die Kacheln, nie
+   hoeher als ein Fuenftel des Fensters. */
+.menue__banner {
+  display: block;
+  max-width: min(100%, 960px);
+  max-height: 20vh;
+  object-fit: contain;
+  margin: 0 0 24px;
 }
 
 .menue__version {
@@ -848,6 +862,12 @@ body {
   margin: 0 0 2px !important;
 }
 
+.ueber__untertitel {
+  margin: 0 0 6px !important;
+  color: var(--text-leise);
+  font-size: 13px;
+}
+
 .ueber__autor,
 .ueber__fassung {
   color: var(--text-leise);
@@ -1438,4 +1458,150 @@ body {
     width: 100%;
     margin: 0 10px 4px;
   }
+}
+
+/* ---------- Teilen (Austausch, docs/austausch.md) ---------- */
+
+.austausch {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  min-width: 0;
+}
+
+.austausch__filter {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.austausch__zeile {
+  flex-wrap: wrap;
+}
+
+.austausch__liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 46vh;
+  overflow: auto;
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+}
+
+.austausch__liste li + li {
+  border-top: 1px solid var(--rand);
+}
+
+.austausch__zeile {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.austausch__name {
+  font-weight: 600;
+}
+
+.austausch__art {
+  color: var(--text-leise, var(--text));
+  opacity: 0.75;
+  font-size: 0.9em;
+}
+
+.austausch__konflikt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 8px 36px;
+  font-size: 0.9em;
+}
+
+.austausch__fuss {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.austausch__fehler,
+.austausch__ergebnis .is-fehler {
+  color: var(--warnung, #d9534f);
+}
+
+.austausch__ergebnis {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ---------- Raum (Austausch, Stufe 2) ---------- */
+
+.raum__reihe {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.raum__eingabe {
+  box-sizing: border-box;
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.raum__kopf {
+  margin: 8px 0 0;
+  font-size: 1em;
+}
+
+.raum__warnung {
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.raum__kopfzeile {
+  justify-content: space-between;
+}
+
+.raum__chat {
+  max-height: 38vh;
+  min-height: 160px;
+  overflow: auto;
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.raum__zeile {
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+}
+
+.raum__wer {
+  font-weight: 600;
+}
+
+.raum__zeile.is-privat {
+  border-left: 3px solid var(--betont, currentColor);
+  padding-left: 6px;
+}
+
+.raum__privat {
+  opacity: 0.7;
+}
+
+.raum__text {
+  flex: 3 1 200px;
+}
+
+.titelleiste__zahl {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 0.8em;
+  background: var(--betont, #6b8cff);
+  color: var(--grund, #111);
 }

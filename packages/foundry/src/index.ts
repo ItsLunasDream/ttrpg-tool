@@ -593,3 +593,104 @@ export function kleinUndBindestrich(name: string): string {
 export function dateiname(art: 'Actor' | 'Item', name: string, id: string): string {
   return `fvtt-${art}-${kleinUndBindestrich(name)}-${id}.json`;
 }
+
+// ---------------------------------------------------------------------------
+// Magische Gegenstaende
+// ---------------------------------------------------------------------------
+
+export type GegenstandsArt =
+  | 'waffe'
+  | 'ruestung'
+  | 'schild'
+  | 'wundersam'
+  | 'ring'
+  | 'stab'
+  | 'trank'
+  | 'schriftrolle';
+
+export interface GegenstandEingabe {
+  readonly name: string;
+  readonly art: GegenstandsArt;
+  /** `common` … `legendary`, in der Schreibweise von Foundry (`veryRare`). */
+  readonly seltenheit: string;
+  readonly einstimmung: boolean;
+  readonly wirkungen: readonly string[];
+  readonly fluch: string;
+  /** Wert in Goldmuenzen. */
+  readonly wert: number;
+}
+
+/**
+ * Welcher Foundry-Typ zu welcher Art gehoert.
+ *
+ * BELEGT an echten Exporten (docs/magicitems.md): Waffe (`weapon`),
+ * Wundersames (`equipment`/`wondrous`), Schild (`equipment`/`shield`), Stab
+ * (`equipment`/`rod`) und Trank (`consumable`/`potion`).
+ *
+ * NICHT belegt, sondern aus den Typlisten des dnd5e-Systems: Ring
+ * (`equipment`/`ring`), Ruestung (`equipment`/`medium`) und Schriftrolle
+ * (`consumable`/`scroll`). Die Felder sind dieselben wie bei den belegten
+ * Geschwistern; ob Foundry die Werte so annimmt, ist an einem echten Import
+ * noch zu pruefen.
+ */
+const GEGENSTANDSTYP: Record<GegenstandsArt, { readonly type: string; readonly value: string }> = {
+  waffe: { type: 'weapon', value: '' },
+  ruestung: { type: 'equipment', value: 'medium' },
+  schild: { type: 'equipment', value: 'shield' },
+  wundersam: { type: 'equipment', value: 'wondrous' },
+  ring: { type: 'equipment', value: 'ring' },
+  stab: { type: 'equipment', value: 'rod' },
+  trank: { type: 'consumable', value: 'potion' },
+  schriftrolle: { type: 'consumable', value: 'scroll' }
+};
+
+/**
+ * Ein magischer Gegenstand als Foundry-Item.
+ *
+ * Wie beim Zustand OHNE Effekte und Taetigkeiten: die Wirkungen sind Saetze,
+ * keine Feldnamen. Seltenheit, Einstimmung und Preis stehen in den Feldern,
+ * die Foundry dafuer hat; alles andere steht als Liste in der Beschreibung,
+ * wo es jemand liest. Ein Verbrauchsgegenstand verbraucht sich selbst
+ * (`uses.max: "1"`, `autoDestroy`), wie der Heiltrank im Beleg.
+ */
+export function alsFoundryGegenstand(g: GegenstandEingabe): Record<string, unknown> {
+  const typ = GEGENSTANDSTYP[g.art];
+  const teile: string[] = [];
+  const wirkungen = g.wirkungen.filter((w) => w.trim());
+  if (wirkungen.length) teile.push(`<ul>${wirkungen.map((w) => `<li><p>${maskiere(w.trim())}</p></li>`).join('')}</ul>`);
+  if (g.fluch.trim()) teile.push(`<p><strong>${maskiere(g.fluch.trim())}</strong></p>`);
+
+  const verbrauch = typ.type === 'consumable';
+  const system: Record<string, unknown> = {
+    activities: {},
+    attuned: false,
+    attunement: g.einstimmung ? 'required' : '',
+    container: null,
+    description: { value: teile.join(''), chat: '' },
+    equipped: false,
+    identified: true,
+    identifier: kleinUndBindestrich(g.name),
+    price: { value: g.wert, denomination: 'gp' },
+    properties: ['mgc'],
+    quantity: 1,
+    rarity: g.seltenheit,
+    source: { revision: 1, rules: REGELN },
+    type: typ.type === 'equipment' ? { value: typ.value, baseItem: '' } : { value: typ.value, subtype: '' },
+    unidentified: { description: '' },
+    uses: verbrauch ? { max: '1', spent: 0, recovery: [], autoDestroy: true } : { max: '', spent: 0, recovery: [] },
+    weight: { value: 0, units: 'lb' }
+  };
+  if (typ.type === 'weapon') system.type = { value: '', baseItem: '' };
+
+  return {
+    name: g.name,
+    type: typ.type,
+    img: verbrauch ? 'icons/svg/tankard.svg' : 'icons/svg/item-bag.svg',
+    system,
+    effects: [],
+    folder: null,
+    flags: {},
+    _stats: stats(),
+    ownership: { default: 0 }
+  };
+}

@@ -9,20 +9,14 @@ import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 const TEXTE = {
   titel: ['Encounter Creator', 'Encounter Creator'],
   untertitel: [
-    'Begegnungen zusammenstellen — und in einem Zug in den Tracker schieben.',
-    'Put an encounter together — and push it into the tracker in one go.'
+    'Begegnungen zusammenstellen und in den Tracker schieben.',
+    'Build encounters and send them to the tracker.'
   ],
 
-  'liste.leer': [
-    'Noch keine Begegnung. Leg eine an, gib ihr einen Namen, und füll sie danach.',
-    'No encounters yet. Create one, give it a name, and fill it afterwards.'
-  ],
+  'liste.leer': ['Noch keine Begegnung.', 'No encounters yet.'],
   'liste.anzahl': ['{anzahl} Begegnungen', '{anzahl} encounters'],
   'liste.eine': ['1 Begegnung', '1 encounter'],
-  'liste.nichts': [
-    'Nichts gefunden. Gesucht wird im Namen und in den Gegnern.',
-    'Nothing found. The search covers names and the creatures in them.'
-  ],
+  'liste.nichts': ['Nichts gefunden.', 'Nothing found.'],
   'liste.suche': ['Suchen', 'Search'],
   'liste.sortieren': ['Sortieren', 'Sort'],
   'liste.nachDatum': ['Zuletzt geändert', 'Last changed'],
@@ -30,9 +24,6 @@ const TEXTE = {
   'liste.nachGegnern': ['Nach Gegnerzahl', 'By creature count'],
 
   neu: ['Neue Begegnung', 'New encounter'],
-  'neu.name': ['Wie soll sie heißen?', 'What should it be called?'],
-  'neu.platzhalter': ['Hinterhalt am Fluss', 'Ambush at the river'],
-  'neu.anlegen': ['Anlegen', 'Create'],
   abbrechen: ['Abbrechen', 'Cancel'],
   speichern: ['Speichern', 'Save'],
   gespeichert: ['Gespeichert.', 'Saved.'],
@@ -45,15 +36,8 @@ const TEXTE = {
 
   'feld.name': ['Name', 'Name'],
   'feld.notiz': ['Notiz', 'Note'],
-  'feld.notizHinweis': [
-    'Taktik, Vorlesetext, was sonst dazugehört. Bleibt beim Speichern erhalten.',
-    'Tactics, read-aloud text, whatever else belongs. Kept when you save.'
-  ],
 
-  'gegner.keine': [
-    'Noch keine Gegner. Such dir unten welche aus deiner Monstersammlung.',
-    'No creatures yet. Pick some from your monster collection below.'
-  ],
+  'gegner.keine': ['Noch keine Gegner.', 'No creatures yet.'],
   'gegner.zahl': ['{anzahl} Wesen', '{anzahl} creatures'],
   'gegner.titel': ['Gegner', 'Creatures'],
   'gegner.weg': ['Entfernen', 'Remove'],
@@ -63,22 +47,54 @@ const TEXTE = {
   ],
   'gegner.fehltKurz': ['fehlt', 'missing'],
 
-  'monster.titel': ['Aus deiner Sammlung', 'From your collection'],
+  'monster.titel': ['Monster', 'Monsters'],
   'monster.suche': ['Monster suchen', 'Search monsters'],
-  'monster.leer': [
-    'Im Monster Creator liegt noch nichts. Bau dir eines, dann steht es hier.',
-    'Nothing in the Monster Creator yet. Build one and it shows up here.'
-  ],
   'monster.nichts': ['Kein Monster passt dazu.', 'No monster matches that.'],
   'monster.dazu': ['Dazu', 'Add'],
-  'monster.grad': ['Grad {cr}', 'CR {cr}'],
-  'monster.werte': ['{tp} TP · RK {rk}', '{tp} HP · AC {rk}'],
+
+  'katalog.quelle': ['Quelle', 'Source'],
+  'katalog.quelle.alle': ['Alle', 'All'],
+  'katalog.quelle.srd': ['Offiziell', 'Official'],
+  'katalog.quelle.eigen': ['Eigene', 'Homebrew'],
+  'katalog.typ': ['Typ', 'Type'],
+  'katalog.alleTypen': ['Alle Typen', 'All types'],
+  'katalog.hgVon': ['HG ab', 'CR from'],
+  'katalog.hgBis': ['HG bis', 'CR to'],
+  'katalog.legendaer': ['Legendär', 'Legendary'],
+  'katalog.anzahl': ['{anzahl} Monster', '{anzahl} monsters'],
+  'katalog.name': ['Name', 'Name'],
+  'katalog.hg': ['HG', 'CR'],
+  'katalog.tp': ['TP', 'HP'],
+  'katalog.rk': ['RK', 'AC'],
+  'katalog.mehr': ['{anzahl} weitere zeigen', 'Show {anzahl} more'],
+  'katalog.eigen': ['eigen', 'homebrew'],
+
+  'bau.titel': ['Zusammenstellen lassen', 'Build automatically'],
+  'bau.ziel': ['Ziel', 'Target'],
+  'bau.hg': ['HG', 'CR'],
+  'bau.ep': ['EP', 'XP'],
+  'bau.anzahl': ['Gegner', 'Opponents'],
+  'bau.beliebig': ['egal', 'any'],
+  'bau.quelle.srd': ['Offiziell', 'Official'],
+  'bau.quelle.eigen': ['Eigene', 'Homebrew'],
+  'bau.quelle.gemischt': ['Gemischt', 'Mixed'],
+  'bau.behalten': ['Vorhandene Gegner behalten', 'Keep current opponents'],
+  'bau.los': ['Zusammenstellen', 'Build'],
+  'bau.hinweis': [
+    'Ein HG als Ziel heißt: so viele EP wie ein Monster dieses Grades. Gegner, die schon in der Begegnung stehen, bleiben drin, wenn der Haken gesetzt ist.',
+    'A CR target means as much XP as one monster of that CR. Opponents already in the encounter stay if the box is checked.'
+  ],
+  'bau.ergebnis': [
+    'Ziel {ziel} EP (HG {zielGrad}), erreicht {ep} EP (etwa HG {grad}).',
+    'Target {ziel} XP (CR {zielGrad}), reached {ep} XP (about CR {grad}).'
+  ],
+  'bau.abweichung': ['Weicht um {prozent} % ab.', 'Off by {prozent}%.'],
+  'bau.nichts': [
+    'Keine passenden Monster gefunden. Quelle oder Typ weiter fassen.',
+    'No matching monsters. Try a wider source or type.'
+  ],
 
   'umgebung.titel': ['Umgebung', 'Environment'],
-  'umgebung.satz': [
-    'Was man sieht, und was am Tisch wirkt. Ohne das Zweite ist eine Umgebung Deko.',
-    'What you see, and what actually applies at the table. Without the latter an environment is set dressing.'
-  ],
   'umgebung.keine': ['Keine', 'None'],
   'umgebung.wuerfeln': ['Würfeln', 'Roll'],
   'umgebung.anblick': ['Was man sieht', 'What you see'],
@@ -111,13 +127,21 @@ const TEXTE = {
     '{punkte} XP · moderate budget {budget} XP'
   ],
   'verhaeltnis.keineGrade': [
-    'Keine Einordnung: keiner der Gegner hat einen Grad, den die Tabelle kennt.',
-    'No rating: none of the opponents has a challenge rating the table knows.'
+    'Keine Einordnung: kein Gegner hat einen bekannten Grad.',
+    'No rating: no opponent has a known challenge rating.'
   ],
   'verhaeltnis.gruppeFehlt': [
-    'Für eine Einordnung fehlt die Gruppe. Sie steht in den Einstellungen.',
-    'A rating needs the party. It is set in the settings.'
+    'Für eine Einordnung fehlt die Gruppe.',
+    'A rating needs the party.'
   ],
+
+  'gruppe.titel': ['Gruppe am Tisch', 'Party'],
+  'gruppe.leer': ['Noch keine Gruppe eingetragen.', 'No party set yet.'],
+  'gruppe.figuren': ['Figuren', 'characters'],
+  'gruppe.stufe': ['Stufe', 'level'],
+  'gruppe.dazu': ['Zeile', 'Row'],
+  'gruppe.weg': ['Zeile entfernen', 'Remove row'],
+  'gruppe.kurz': ['{anzahl} × Stufe {stufe}', '{anzahl} × level {stufe}'],
 
   'tracker.knopf': ['In den Tracker', 'To the tracker'],
   'tracker.unterwegs': [

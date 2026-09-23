@@ -149,8 +149,8 @@ app.whenReady().then(async () => {
   // Voreingestellt ist Englisch. Stuende hier Deutsch, waere die
   // Sprachwahl irgendwo ueberschrieben worden.
   pruefe(
-    (await js("document.querySelector('.menue__frage').textContent")) ===
-      'What would you like to work on?',
+    (await js("document.querySelector('.menue__gruppenname').textContent")) ===
+      'For everyone at the table',
     'Oberflaeche startet auf Englisch'
   );
 
@@ -535,7 +535,7 @@ app.whenReady().then(async () => {
         'der Story Creator hat die vom Karteneditor gesetzte Sprache uebernommen'
       );
       pruefe(
-        (await js("document.querySelector('.titelleiste__knopf').textContent")) === 'Einstellungen',
+        (await js("document.querySelector('[data-einstellungen-knopf]').textContent")) === 'Einstellungen',
         'die Huelle selbst hat ebenfalls auf Deutsch umgeschaltet'
       );
 
@@ -576,7 +576,7 @@ app.whenReady().then(async () => {
       await warte(500);
 
       pruefe(
-        (await js("document.querySelector('.titelleiste__knopf').textContent")) === 'Settings',
+        (await js("document.querySelector('[data-einstellungen-knopf]').textContent")) === 'Settings',
         'eine Aenderung im Story Creator erreicht auch die Huelle'
       );
       pruefe(
@@ -594,7 +594,7 @@ app.whenReady().then(async () => {
   // Anwendungen. Der interessante Fall ist deshalb der mit einer geoeffneten
   // Anwendung: ohne das Zuruecktreten waere der Dialog im DOM und trotzdem
   // nicht zu sehen.
-  await js("[...document.querySelectorAll('.titelleiste__knopf')][0].click()");
+  await js("document.querySelector('[data-einstellungen-knopf]').click()");
   await warte(900);
   pruefe(await js("Boolean(document.querySelector('.dialog'))"), 'Einstellungen gehen auf');
   pruefe(
@@ -644,7 +644,7 @@ app.whenReady().then(async () => {
   pruefe(!(await js("Boolean(document.querySelector('.dialog'))")), 'Escape schliesst den Dialog');
 
   // Ueber: die Fassung muss darin stehen, sonst kaeme sie nicht durch.
-  await js("[...document.querySelectorAll('.titelleiste__knopf')][1].click()");
+  await js("document.querySelector('[data-ueber-knopf]').click()");
   await warte(900);
   pruefe(await js("Boolean(document.querySelector('.ueber'))"), 'Über geht auf');
   pruefe(

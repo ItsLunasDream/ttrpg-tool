@@ -238,3 +238,19 @@ export function leereBegegnung(name: string, jetzt: string): Begegnung {
     geaendert: jetzt
   };
 }
+
+/**
+ * Ein Name fuer eine Begegnung, der man keinen gegeben hat.
+ *
+ * Beim Anlegen nach einem Namen zu fragen war eine Huerde vor dem
+ * eigentlichen Tun (Rueckmeldung: „Man soll neuen Encountern nicht direkt
+ * Namen geben muessen"). Also: „Encounter_1", „Encounter_2", … — die
+ * kleinste Nummer, die noch frei ist. Gross und klein zaehlen gleich,
+ * damit „encounter_1" nicht neben „Encounter_1" entsteht.
+ */
+export function naechsterName(vorhandene: readonly string[], basis = 'Encounter'): string {
+  const vergeben = new Set(vorhandene.map((name) => name.trim().toLowerCase()));
+  let nummer = 1;
+  while (vergeben.has(`${basis}_${nummer}`.toLowerCase())) nummer += 1;
+  return `${basis}_${nummer}`;
+}

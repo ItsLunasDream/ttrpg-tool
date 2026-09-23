@@ -21,6 +21,7 @@ import { alsEintrag, alsMarkdown, zuId, type Abgelegt, type Eintrag } from '../s
 import { anweisung, systemAnweisung, uebernehmbar, type Frage } from '../shared/kiAufgaben';
 import type { Sprache } from '../shared/tabellen';
 import type { Eintrag as SuchEintrag } from '@suite/eintraege';
+import { freieKennung, setzeKopfwert, type Teilnehmer } from '@suite/austausch';
 
 export type KiQuelle = () => { einstellungen: KiEinstellungen; schluessel: string };
 
@@ -29,6 +30,53 @@ export interface KiErgebnis<T> {
   readonly wert: T | null;
   /** Ein Textschluessel, kein fertiger Satz — die Oberflaeche uebersetzt. */
   readonly grund: string;
+}
+
+/**
+ * Der Monster Creator im Austausch (docs/austausch.md): ein Monster reist
+ * als seine Markdown-Datei. Daneben gelegt bekommt es eine freie Kennung,
+ * die im Kopf steht; der Name bleibt.
+ *
+ * Von der Platte, wie die Suche: angenommen wird auch, wenn das Werkzeug zu
+ * ist.
+ */
+export const austausch: Teilnehmer = {
+  werkzeug: 'monster',
+  async gib(datenordner, kennung) {
+    try {
+      const inhalt = await readFile(path.join(ablageOrdner(datenordner), `${zuId(kennung)}.md`), 'utf8');
+      const eintrag = alsEintrag(inhalt, zuId(kennung));
+      return { werkzeug: 'monster', kennung: eintrag.id, name: eintrag.name, art: 'Monster', inhalt, bilder: [] };
+    } catch {
+      return null;
+    }
+  },
+  async gibtEs(datenordner, sendung) {
+    return (await vorhandene(datenordner)).includes(zuId(sendung.kennung));
+  },
+  async nimmAn(datenordner, sendung, modus) {
+    if (modus === 'verwerfen') return { ok: true };
+    if (sendung.inhalt === null) return { ok: false, grund: 'kein Inhalt' };
+    const ordner = ablageOrdner(datenordner);
+    await mkdir(ordner, { recursive: true });
+    const wunsch = zuId(sendung.kennung);
+    const id = modus === 'daneben' ? freieKennung(wunsch, await vorhandene(datenordner)) : wunsch;
+    await writeFile(path.join(ordner, `${id}.md`), setzeKopfwert(sendung.inhalt, 'id', id), 'utf8');
+    return { ok: true, kennung: id };
+  }
+};
+
+function ablageOrdner(datenordner: string): string {
+  // Zweimal `monster`: siehe leseEintraege.
+  return path.join(datenordner, 'monster', 'monster');
+}
+
+async function vorhandene(datenordner: string): Promise<string[]> {
+  try {
+    return (await readdir(ablageOrdner(datenordner))).filter((n) => n.endsWith('.md')).map((n) => n.slice(0, -3));
+  } catch {
+    return [];
+  }
 }
 
 /**

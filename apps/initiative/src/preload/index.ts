@@ -8,6 +8,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
 import type { Begegnung, Kampf } from '../shared/types';
 import type { Uebergabe } from '@suite/uebergabe';
+import type { RaumLage } from '../shared/teilen';
 
 const api = {
   /**
@@ -47,6 +48,29 @@ const api = {
   },
   bild: {
     waehlen: () => ipcRenderer.invoke(kanal('bild:waehlen')) as Promise<string | null>
+  },
+  /** Der Raum im lokalen Netz: die geteilte Initiative. */
+  raum: {
+    sende: (inhalt: string, an: string | null) => ipcRenderer.invoke(kanal('raum:senden'), inhalt, an) as Promise<boolean>,
+    anfang: () =>
+      ipcRenderer.invoke(kanal('raum:anfang')) as Promise<{
+        lage: RaumLage;
+        nachrichten: { von: { id: string; name: string }; inhalt: string }[];
+      }>,
+    beiNachricht: (hoerer: (von: { id: string; name: string }, inhalt: string) => void) => {
+      const lauscher = (_e: unknown, von: { id: string; name: string }, inhalt: string) => hoerer(von, inhalt);
+      ipcRenderer.on(kanal('raum:nachricht'), lauscher);
+      return () => {
+        ipcRenderer.off(kanal('raum:nachricht'), lauscher);
+      };
+    },
+    beiZustand: (hoerer: (lage: RaumLage) => void) => {
+      const lauscher = (_e: unknown, lage: RaumLage) => hoerer(lage);
+      ipcRenderer.on(kanal('raum:zustand'), lauscher);
+      return () => {
+        ipcRenderer.off(kanal('raum:zustand'), lauscher);
+      };
+    }
   }
 };
 

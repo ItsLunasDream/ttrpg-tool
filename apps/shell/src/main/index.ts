@@ -17,6 +17,8 @@
  * steht fuer sich. Die Aufteilung ist aber schon so angelegt, dass das
  * Einbetten spaeter nichts daran umstellt.
  */
+// Zuerst: der Datenordner, bevor irgendetwas ihn erfragt.
+import './datenordner';
 import { app, BaseWindow, WebContentsView, dialog, ipcMain, screen, shell, type IpcMainInvokeEvent, type WebContents } from 'electron';
 /**
  * Startzeit messen, wenn TTRPG_TOOLS_STARTZEIT gesetzt ist.
@@ -53,17 +55,31 @@ import { join } from 'node:path';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { berechneAppFlaeche } from '../shared/apps';
 import {
+  meldeStoryCreatorAenderung,
   mountApp,
   registerSchemes,
   setzeSuchtaste,
   type MontageHaken,
-  type MontierteApp
+  type MontierteApp,
+  type RaumLage
 } from './apps';
 import type { Wert } from '@suite/einstellungen';
 import type { Uebergabe } from '@suite/uebergabe';
-import { beobachteFarbe, setzeThema as setzeFarbthema } from './farbe';
+import { beobachteFarbe, gewaehlteGroesse, setzeGroesse, setzeThema as setzeFarbthema } from './farbe';
 import { schreibeSicherung } from './sicherung';
 import { alleEintraege } from './suche';
+import {
+  ankuenfte,
+  konflikte,
+  lesePaketDatei,
+  nimmAn as nimmAustauschAn,
+  schnuere,
+  schreibePaket,
+  teilbar,
+  zieleFuer
+} from './austausch';
+import { alsPaket, gastname, lesePaket, PAKET_ENDUNG, type Modus, type Paket } from '@suite/austausch';
+import { Raumdienst, type Raumereignis } from './raum';
 import { sicherungsname } from '../shared/sicherung';
 import { brichFahrtAb, fahreEin } from './fahrt';
 import {
@@ -167,7 +183,7 @@ function legeHuelleAus(): void {
   // Auch die unsichtbaren werden mitgelegt: sonst stuenden sie beim naechsten
   // Hervorholen in der Groesse von vorletzter Woche da und muessten erst
   // umbrechen.
-  const flaeche = berechneAppFlaeche(width, height);
+  const flaeche = berechneAppFlaeche(width, height, gewaehlteGroesse());
   for (const montiert of offen.values()) {
     montiert.sicht.setBounds(flaeche);
   }
@@ -186,7 +202,7 @@ function holeNachVorn(montiert: MontierteApp, mitFahrt: boolean): void {
   montiert.sicht.setVisible(true);
   if (mitFahrt) {
     const { width, height } = fenster.getContentBounds();
-    fahreEin(montiert.sicht, berechneAppFlaeche(width, height), wenigerBewegung);
+    fahreEin(montiert.sicht, berechneAppFlaeche(width, height, gewaehlteGroesse()), wenigerBewegung);
   }
   // Ohne das behielte die Huelle die Tastatur, und Tippen im Editor kaeme
   // nicht an.
@@ -399,6 +415,24 @@ async function oeffneKarteImEditor(
   return true;
 }
 
+/**
+ * Der Raum im lokalen Netz (Austausch, Stufe 2). Modulweit, weil ihn neben
+ * den IPC-Kanaelen auch die Werkzeuge erreichen (geteilte Initiative).
+ * Angelegt wird er beim Einrichten der Kanaele.
+ */
+let raumDienst: Raumdienst | null = null;
+/**
+ * Der zuletzt geteilte Stand je Person, fuer ein Werkzeug, das erst spaeter
+ * aufgeht: der Tracker soll den geteilten Kampf sofort zeigen und nicht erst
+ * nach der naechsten Aenderung.
+ */
+const geteilteStaende = new Map<string, { von: { id: string; name: string }; inhalt: string }>();
+
+function raumLage(): RaumLage {
+  const z = raumDienst?.zustand();
+  return z ? { rolle: z.rolle, ich: z.ich, personen: z.personen } : { rolle: 'aus', ich: null, personen: [] };
+}
+
 function montageHaken(herkunft: string, sprache: Language): MontageHaken {
   return {
     language: sprache,
@@ -408,6 +442,13 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
     // wischen — einheitlich fuer alle Werkzeuge, gleich wer es ausloest.
     onEreignis: (appId) => huelle?.webContents.send('app:ereignis', appId),
     onOrt: (ort) => meldeOrt(herkunft, ort),
+    raum: {
+      sende: (werkzeug, inhalt, an) => raumDienst?.sendeWerkzeug(werkzeug, inhalt, an) ?? false,
+      anfang: (werkzeug) => ({
+        lage: raumLage(),
+        nachrichten: werkzeug === 'initiative' ? [...geteilteStaende.values()] : []
+      })
+    },
     // Die KI wird einmal in der Huelle eingerichtet und hier durchgereicht.
     // Bei jedem Aufruf frisch gelesen: wer sie umstellt, soll das im
     // naechsten Klick merken und nicht erst nach einem Neustart.
@@ -477,7 +518,7 @@ async function erzeugeFenster(): Promise<void> {
     frame: false,
     backgroundColor: '#14161c',
     show: false,
-    title: 'TTRPG-Tools'
+    title: 'LORE'
   });
 
   huelle = new WebContentsView({
@@ -532,6 +573,7 @@ async function erzeugeFenster(): Promise<void> {
   // Anmelden statt faerben: gefaerbt wird bei `dom-ready`, und das kommt
   // gleich. Vor dem Laden einzuspritzen haelt den Start an — siehe farbe.ts.
   await setzeFarbthema(gemerkteEinstellungen.thema);
+  setzeGroesse(gemerkteEinstellungen.groesse);
   beobachteFarbe(huelle.webContents as WebContents);
 
   if (devServerUrl) {
@@ -765,6 +807,12 @@ function registriereKanaele(): void {
     if (aktualisiert.thema !== vorher.thema) {
       void verteileThema(aktualisiert.thema);
     }
+    // Die Groesse ebenso; dazu rutschen die Werkzeuge an die neue Kante von
+    // Titelleiste und Schiene.
+    if (aktualisiert.groesse !== vorher.groesse) {
+      setzeGroesse(aktualisiert.groesse);
+      legeHuelleAus();
+    }
     return ohneSchluessel(aktualisiert);
   });
 
@@ -808,6 +856,191 @@ function registriereKanaele(): void {
    * Verzeichnis gefuehrt wird.
    */
   handle('suche:eintraege', () => alleEintraege(app.getPath('userData')));
+
+  /*
+   * Der Austausch (docs/austausch.md, Stufe 1): weitergeben als Paketdatei,
+   * einlesen aus einer. Das eingelesene Paket bleibt hier im Hauptprozess,
+   * bis angenommen ist; die Oberflaeche bekommt nur, was sie zum Entscheiden
+   * braucht, nicht die Bilder.
+   *
+   * Der optionale Dateipfad ist fuer den Rauchtest: ein Dateidialog laesst
+   * sich dort nicht bedienen.
+   */
+  let eingang: Paket | null = null;
+
+  handle('austausch:teilbar', () => teilbar(app.getPath('userData')));
+
+  handle(
+    'austausch:speichern',
+    async (_event, auswahl: { werkzeug: string; kennung: string }[], datei?: string) => {
+      let ziel = datei;
+      if (!ziel) {
+        if (!fenster) return { ok: false, abgebrochen: true, anzahl: 0 };
+        const heute = new Date().toISOString().slice(0, 10);
+        const antwort = await dialog.showSaveDialog(fenster as never, {
+          defaultPath: `paket-${heute}${PAKET_ENDUNG}`,
+          filters: [{ name: 'LORE', extensions: ['md'] }]
+        });
+        if (antwort.canceled || !antwort.filePath) return { ok: false, abgebrochen: true, anzahl: 0 };
+        ziel = antwort.filePath;
+      }
+      const paket = await schnuere(app.getPath('userData'), auswahl);
+      await schreibePaket(ziel, paket);
+      return { ok: true, abgebrochen: false, anzahl: paket.sendungen.length, datei: ziel };
+    }
+  );
+
+  handle('austausch:oeffnen', async (_event, datei?: string) => {
+    let quelle = datei;
+    if (!quelle) {
+      if (!fenster) return { ok: false, abgebrochen: true };
+      const antwort = await dialog.showOpenDialog(fenster as never, {
+        properties: ['openFile'],
+        filters: [{ name: 'LORE', extensions: ['md'] }]
+      });
+      if (antwort.canceled || !antwort.filePaths[0]) return { ok: false, abgebrochen: true };
+      quelle = antwort.filePaths[0];
+    }
+    try {
+      eingang = await lesePaketDatei(quelle);
+    } catch (fehler) {
+      eingang = null;
+      return { ok: false, abgebrochen: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };
+    }
+    return {
+      ok: true,
+      abgebrochen: false,
+      ankuenfte: ankuenfte(eingang),
+      ziele: await zieleFuer(app.getPath('userData'), eingang.sendungen.map((s) => s.werkzeug))
+    };
+  });
+
+  /*
+   * Der Raum im lokalen Netz (Stufe 2). Der Dienst lebt im Hauptprozess,
+   * damit Chat und Verbindung einen geschlossenen Dialog ueberstehen.
+   * Angekommene Pakete warten hier, bis jemand sie ansieht; angesehen wird
+   * ueber denselben Weg wie eine Paketdatei.
+   */
+  const raumPakete: { id: number; von: string; titel: string; paket: string; zeit: string }[] = [];
+  let naechstesRaumpaket = 1;
+  const raum = new Raumdienst((ereignis: Raumereignis) => {
+    if (ereignis.art === 'werkzeug') {
+      // Nicht an die Oberflaeche der Huelle: sie reicht nur weiter. Den
+      // letzten Stand der Initiative je Person merken (siehe oben).
+      if (ereignis.werkzeug === 'initiative') {
+        let art = '';
+        try {
+          art = String((JSON.parse(ereignis.inhalt) as { art?: unknown }).art ?? '');
+        } catch {
+          // Unlesbar: das Werkzeug verwirft es ohnehin.
+        }
+        if (art === 'stand') geteilteStaende.set(ereignis.von.id, { von: ereignis.von, inhalt: ereignis.inhalt });
+        if (art === 'ende') geteilteStaende.delete(ereignis.von.id);
+      }
+      offen.get(ereignis.werkzeug)?.raumNachricht?.(ereignis.von, ereignis.inhalt);
+      return;
+    }
+    if (ereignis.art === 'zustand') {
+      if (ereignis.zustand.rolle === 'aus') geteilteStaende.clear();
+      // Wer gegangen ist, hat auch nichts mehr geteilt.
+      const da = new Set(ereignis.zustand.personen.map((p) => p.id));
+      for (const id of [...geteilteStaende.keys()]) if (!da.has(id)) geteilteStaende.delete(id);
+      const lage = { rolle: ereignis.zustand.rolle, ich: ereignis.zustand.ich, personen: ereignis.zustand.personen };
+      for (const montiert of offen.values()) montiert.raumZustand?.(lage);
+    }
+    if (ereignis.art === 'paket') {
+      raumPakete.push({
+        id: naechstesRaumpaket++,
+        von: ereignis.von.name,
+        titel: ereignis.titel,
+        paket: ereignis.paket,
+        zeit: new Date().toISOString()
+      });
+      huelle?.webContents.send('raum:ereignis', { art: 'pakete', pakete: raumPakete.map(({ paket: _p, ...rest }) => rest) });
+      return;
+    }
+    huelle?.webContents.send('raum:ereignis', ereignis);
+  });
+  raumDienst = raum;
+  app.on('will-quit', () => raum.beende());
+  /** Der eigene Name, sonst ein Gastname mit einer Zahl, die selten doppelt ist. */
+  const meinName = () =>
+    gemerkteEinstellungen.tischName ||
+    gastname(1 + Math.floor(Math.random() * 99), gemerkteEinstellungen.language === 'de' ? 'de' : 'en');
+
+  handle('raum:zustand', () => ({
+    zustand: raum.zustand(),
+    raeume: raum.raeume(),
+    pakete: raumPakete.map(({ paket: _p, ...rest }) => rest)
+  }));
+  handle('raum:suchen', () => {
+    raum.suche();
+    return raum.raeume();
+  });
+  handle('raum:eroeffnen', async (_event, name: string, passwort: string) => {
+    try {
+      return { ok: true, port: await raum.eroeffne(name, passwort, meinName()) };
+    } catch (fehler) {
+      return { ok: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };
+    }
+  });
+  handle('raum:beitreten', async (_event, adresse: string, port: number, passwort: string) => {
+    await raum.trittBei(adresse, port, passwort, meinName());
+    return raum.zustand();
+  });
+  handle('raum:verlassen', () => {
+    raum.verlasse();
+    return raum.zustand();
+  });
+  handle('raum:chat', (_event, text: string, an: string | null) => raum.chatte(text, an));
+  handle('raum:senden', async (_event, auswahl: { werkzeug: string; kennung: string }[], an: string | null) => {
+    const paket = await schnuere(app.getPath('userData'), auswahl);
+    if (paket.sendungen.length === 0) return { ok: false, anzahl: 0 };
+    const namen = paket.sendungen.map((s) => s.name);
+    const titel = `${namen.length}: ${namen.slice(0, 4).join(', ')}${namen.length > 4 ? ', …' : ''}`;
+    return { ok: raum.sende(alsPaket(paket), titel, an), anzahl: paket.sendungen.length };
+  });
+  handle('austausch:raumpaket', async (_event, id: number) => {
+    const angekommen = raumPakete.find((p) => p.id === id);
+    if (!angekommen) return { ok: false, abgebrochen: false, grund: 'weg' };
+    try {
+      eingang = lesePaket(angekommen.paket);
+    } catch (fehler) {
+      eingang = null;
+      return { ok: false, abgebrochen: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };
+    }
+    return {
+      ok: true,
+      abgebrochen: false,
+      ankuenfte: ankuenfte(eingang),
+      ziele: await zieleFuer(app.getPath('userData'), eingang.sendungen.map((s) => s.werkzeug))
+    };
+  });
+
+  handle('austausch:konflikte', async (_event, ziele: Record<string, string>) =>
+    eingang ? konflikte(app.getPath('userData'), eingang, ziele) : []
+  );
+
+  handle(
+    'austausch:annehmen',
+    async (_event, entscheidungen: { nummer: number; modus?: Modus }[], ziele: Record<string, string>) => {
+      if (!eingang) return [];
+      const ergebnisse = await nimmAustauschAn(app.getPath('userData'), eingang, entscheidungen, ziele);
+      // Offene Werkzeuge erfahren davon; ein geschlossenes liest beim
+      // naechsten Oeffnen ohnehin frisch.
+      const angekommen = ergebnisse.filter((e) => e.ok && e.kennung);
+      for (const werkzeug of new Set(angekommen.map((e) => e.werkzeug))) {
+        huelle?.webContents.send('app:ereignis', werkzeug);
+        if (werkzeug === 'backstory') {
+          meldeStoryCreatorAenderung();
+          continue;
+        }
+        const letzte = angekommen.filter((e) => e.werkzeug === werkzeug).at(-1);
+        if (letzte?.kennung) void offen.get(werkzeug)?.zeigeEintrag?.(letzte.kennung);
+      }
+      return ergebnisse;
+    }
+  );
 
   /**
    * Zeigt einen Treffer in seinem Werkzeug.

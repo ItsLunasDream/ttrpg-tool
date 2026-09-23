@@ -180,6 +180,6 @@ in [BACKLOG.md](BACKLOG.md) — both in German for now.
 ## License
 
 [GNU Affero General Public License v3.0 or later](../../LICENSE) — the same
-license as the rest of TTRPG-Tools. Free software: use it, change it, pass it
+license as the rest of LORE. Free software: use it, change it, pass it
 on. If you offer a modified version over a network, its source has to be
 available too.

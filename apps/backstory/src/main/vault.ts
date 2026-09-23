@@ -577,6 +577,67 @@ export class Vault {
     return normalizeNote(noteId, data, body);
   }
 
+  /** Die Notiz als Text, genau so, wie sie auf der Platte liegt (Austausch). */
+  async rohNotiz(campaignId: string, noteId: string): Promise<string> {
+    return fs.readFile(this.noteFile(campaignId, noteId), 'utf8');
+  }
+
+  /**
+   * Nimmt eine Notiz aus einer anderen Sammlung an (docs/austausch.md).
+   *
+   * - `daneben`: gibt es die Kennung hier schon, bekommt die Notiz eine
+   *   neue. Nichts wird ueberschrieben.
+   * - `uebernehmen`: die vorhandene Fassung wird ersetzt.
+   *
+   * Ein Titel, den hier schon eine ANDERE Notiz traegt, bekommt eine Zahl
+   * dahinter — sonst zeigten [[Verweise]] auf zwei Notizen. Den Notiztyp
+   * legt die Kampagne an, wenn sie ihn nicht kennt, unter der Beschriftung
+   * des Absenders. Bilder landen in `assets/` unter neuem Namen, der Text
+   * zeigt auf sie. Beziehungen auf Notizen, die es hier nicht gibt, fallen
+   * weg: sie zeigten ins Leere.
+   */
+  async empfangeNotiz(
+    campaignId: string,
+    roh: string,
+    bilder: readonly { name: string; daten: Uint8Array }[],
+    modus: 'uebernehmen' | 'daneben',
+    typName?: string
+  ): Promise<Note> {
+    const { data, body } = parseFrontmatter(roh);
+    const vorhandene = await this.listNotes(campaignId);
+    const wunsch = typeof data.id === 'string' && data.id ? data.id : randomUUID();
+    assertSafeId(wunsch);
+    const gibt = vorhandene.some((n) => n.id === wunsch);
+    const id = modus === 'daneben' && gibt ? randomUUID() : wunsch;
+    let note = normalizeNote(id, data, body);
+
+    const belegt = new Set(vorhandene.filter((n) => n.id !== id).map((n) => n.title.toLocaleLowerCase('de-DE')));
+    if (belegt.has(note.title.toLocaleLowerCase('de-DE'))) {
+      let n = 2;
+      while (belegt.has(`${note.title} (${n})`.toLocaleLowerCase('de-DE'))) n += 1;
+      note = { ...note, title: `${note.title} (${n})` };
+    }
+
+    const campaign = await this.readCampaign(campaignId);
+    if (!isKnownNoteType(campaign.noteTypes, note.type)) {
+      const name = typName?.trim() || note.type;
+      await this.updateNoteTypes(campaignId, [
+        ...campaign.noteTypes,
+        { id: note.type, label: name, plural: name, fields: [] }
+      ]);
+    }
+
+    let text = note.body;
+    for (const bild of bilder) {
+      const neu = await this.saveAsset(campaignId, bild.name, bild.daten);
+      text = text.split(`](${bild.name})`).join(`](${neu})`);
+    }
+    const ids = new Set([...vorhandene.map((n) => n.id), id]);
+    note = { ...note, body: text, relations: note.relations.filter((r) => ids.has(r.targetId)) };
+    await this.writeNote(campaignId, note);
+    return note;
+  }
+
   async createNote(campaignId: string, type: NoteType, title: string): Promise<Note> {
     const trimmed = title.trim();
     if (!trimmed) throw new VaultError('error.noteTitle');

@@ -6,3 +6,4 @@ release/
 package-verify.log
 .schuesse/
 .bauen-probe.tmp
+__pycache__/

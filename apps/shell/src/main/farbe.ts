@@ -21,12 +21,20 @@
  *    Laden zu faerben waere also auch dann nutzlos, wenn es ginge.
  *
  * Deshalb: an `dom-ready` haengen und bei jedem Laden neu einspritzen.
+ *
+ * Die Groesse der Oberflaeche (#61) geht denselben Weg: sie gilt wie das
+ * Thema fuer alle Ansichten, und dieselbe Liste der lebenden Ansichten
+ * erreicht sie. Sie wird ebenfalls bei jedem Laden neu gesetzt; Chromium
+ * merkt sich den Zoom zwar je Herkunft, aber darauf zu bauen hiesse, dass
+ * ein Werkzeug von einem Entwicklungsserver anders aussieht als gepackt.
  */
 import type { WebContents } from 'electron';
 import { alsCssText, themaMit, VORGABE_THEMA } from '@suite/farben';
 
 /** Was gerade gilt. Neue Ansichten bekommen genau das. */
 let aktuell = VORGABE_THEMA;
+/** Die Groesse der Oberflaeche in Prozent. */
+let groesse = 100;
 
 /** Welcher eingefuegte Block zu welcher Ansicht gehoert. */
 const eingefuegt = new WeakMap<WebContents, string>();
@@ -49,8 +57,18 @@ function regel(themaId: string): string {
   return `:root {\n${alsCssText(thema)}\ncolor-scheme: ${thema.hell ? 'light' : 'dark'};\n}`;
 }
 
+function zoome(webContents: WebContents): void {
+  if (webContents.isDestroyed()) return;
+  try {
+    webContents.setZoomFactor(groesse / 100);
+  } catch {
+    // Wie beim Einspritzen: beim naechsten `dom-ready` klappt es.
+  }
+}
+
 async function spritzeEin(webContents: WebContents): Promise<void> {
   if (webContents.isDestroyed()) return;
+  zoome(webContents);
   try {
     const alt = eingefuegt.get(webContents);
     // Die alte Regel muss weg, sonst stapeln sich sieben Themen uebereinander
@@ -95,6 +113,20 @@ export async function setzeThema(themaId: string): Promise<void> {
     if (webContents.isDestroyed()) ansichten.delete(webContents);
     else await spritzeEin(webContents);
   }
+}
+
+/** Setzt die Groesse fuer alle beobachteten Ansichten, in Prozent. */
+export function setzeGroesse(prozent: number): void {
+  groesse = prozent;
+  for (const webContents of ansichten) {
+    if (webContents.isDestroyed()) ansichten.delete(webContents);
+    else zoome(webContents);
+  }
+}
+
+/** Die Groesse, die gerade gilt, in Prozent. */
+export function gewaehlteGroesse(): number {
+  return groesse;
 }
 
 /** Was gerade gilt — fuer eine Ansicht, die erst noch dazukommt. */

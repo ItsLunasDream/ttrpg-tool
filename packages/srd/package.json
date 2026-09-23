@@ -6,7 +6,14 @@
   "description": "Alles, was aus dem SRD 5.2.1 kommt, an einer Stelle — zweisprachig und plattformfrei",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./monster": "./src/monster.ts",
+    "./glossar": "./src/glossar.ts",
+    "./verweise": "./src/verweisbegriffe.ts",
+    "./tand": "./src/tand.ts",
+    "./magische-gegenstaende": "./src/magische-gegenstaende.ts",
+    "./zauber": "./src/zauber.ts",
+    "./ausruestung": "./src/ausruestung.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

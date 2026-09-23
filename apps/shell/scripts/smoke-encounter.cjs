@@ -69,7 +69,7 @@ const dateien = () => {
 setTimeout(() => {
   console.log('\nABBRUCH: Zeitwaechter');
   app.exit(2);
-}, 130000);
+}, 180000);
 
 app.whenReady().then(async () => {
   await warte(4500);
@@ -116,10 +116,18 @@ app.whenReady().then(async () => {
   );
 
   // --- Anlegen -------------------------------------------------------------
+  //
+  // Ohne Namensabfrage: der Knopf fuehrt gleich in die Begegnung, und auf
+  // die Platte kommt sie erst mit dem Speichern.
   await js(
     `[...document.querySelectorAll('button')].find(b => /Neue Begegnung|New encounter/.test(b.textContent)).click(); true`
   );
   await warte(500);
+  pruefe(
+    (await js("document.querySelectorAll('.gegnerliste, .hinweis').length")) > 0 &&
+      dateien().length === 0,
+    'der Knopf oeffnet gleich die Begegnung, ohne erst nach dem Namen zu fragen'
+  );
   await js(`(() => {
     const feld = document.querySelector('.feld__eingabe');
     const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
@@ -129,7 +137,7 @@ app.whenReady().then(async () => {
   })()`);
   await warte(300);
   await js(
-    `[...document.querySelectorAll('button')].find(b => /Anlegen|Create/.test(b.textContent)).click(); true`
+    `[...document.querySelectorAll('button')].find(b => /^(Speichern|Save)$/.test(b.textContent.trim())).click(); true`
   );
   await warte(900);
 
@@ -158,51 +166,84 @@ app.whenReady().then(async () => {
   pruefe(/Die Bruecke bricht in Runde 3\./.test(aufDerPlatte), 'die Notiz steht in der Datei');
   pruefe(/^---/.test(aufDerPlatte) && /name: /.test(aufDerPlatte), 'mit Kopfzahlen darueber');
 
-  // --- Monster aus der eigenen Sammlung ------------------------------------
+  // --- Der Monsterkatalog --------------------------------------------------
   //
-  // Sie liegen schon auf der Platte, ohne dass der Monster Creator in
-  // dieser Sitzung offen war. Genau das ist der Grundsatz: die Werkzeuge
-  // treffen sich ueber Dateien, nicht ueber einen Kanal.
-  pruefe(
-    (await js("document.querySelectorAll('.monsterzeile').length")) === 1,
-    'das Monster aus der Sammlung steht zur Auswahl'
-  );
-  pruefe(
-    /Bounty Hounter/.test(await js("document.querySelector('.monsterzeile')?.textContent ?? ''")),
-    'und zwar mit seinem Namen'
-  );
-
-  // Suchen: Teilwort, Thema, Grad.
-  for (const [wort, erwartet] of [
-    ['bounty', 1],
-    ['untot', 1],
-    ['cr 5', 1],
-    ['drache', 0]
-  ]) {
-    await js(`(() => {
-      const feld = document.querySelector('input[type=search]');
-      const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-      setzer.call(feld, ${JSON.stringify(wort)});
-      feld.dispatchEvent(new Event('input', { bubbles: true }));
-      return true;
-    })()`);
-    await warte(250);
-    const treffer = await js("document.querySelectorAll('.monsterzeile').length");
-    pruefe(treffer === erwartet, `„${wort}" findet ${erwartet} (${treffer})`);
-  }
-
-  // Zweimal dazu ergibt Anzahl 2, nicht zwei Zeilen.
-  await js(`(() => {
-    const feld = document.querySelector('input[type=search]');
+  // Die eigenen Monster liegen schon auf der Platte, ohne dass der Monster
+  // Creator in dieser Sitzung offen war: die Werkzeuge treffen sich ueber
+  // Dateien. Daneben stehen die offiziellen aus dem SRD.
+  const tippe = (wert) => js(`(() => {
+    const feld = document.querySelector('.katalog__suche');
     const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-    setzer.call(feld, '');
+    setzer.call(feld, ${JSON.stringify(wert)});
     feld.dispatchEvent(new Event('input', { bubbles: true }));
     return true;
   })()`);
+  const zeilen = () => js("document.querySelectorAll('.katalog__zeile').length");
+  const anzahlText = () => js("document.querySelector('.katalog .anzahl')?.textContent ?? ''");
+
+  pruefe(/33[12]/.test(await anzahlText()), `der Katalog fuehrt SRD und eigene (${await anzahlText()})`);
+
+  await js(`document.querySelector('[data-quelle="eigen"]').click(); true`);
   await warte(250);
-  await js("document.querySelector('.monsterzeile').click(); true");
+  pruefe((await zeilen()) === 1, 'nur eigene: das Monster aus der Sammlung');
+  pruefe(
+    /Bounty Hounter/.test(await js("document.querySelector('.katalog__zeile')?.textContent ?? ''")),
+    'und zwar mit seinem Namen'
+  );
+  for (const [wort, erwartet] of [
+    ['bounty', 1],
+    ['untot', 1],
+    ['drache', 0]
+  ]) {
+    await tippe(wort);
+    await warte(250);
+    const treffer = await zeilen();
+    pruefe(treffer === erwartet, `„${wort}" findet ${erwartet} (${treffer})`);
+  }
+  await tippe('');
   await warte(250);
-  await js("document.querySelector('.monsterzeile').click(); true");
+
+  // Offiziell: Typ, legendaer, Sortierung nach Grad.
+  await js(`document.querySelector('[data-quelle="srd"]').click(); true`);
+  await warte(300);
+  pruefe(/331/.test(await anzahlText()), `offiziell sind es 331 (${await anzahlText()})`);
+  await js(`(() => {
+    const wahl = document.querySelector('select[data-filter="typ"]');
+    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    setzer.call(wahl, 'dragon');
+    wahl.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  await js(`document.querySelector('input[data-filter="legendaer"]').click(); true`);
+  await warte(300);
+  const drachen = await zeilen();
+  pruefe(
+    drachen > 5 && (await js("[...document.querySelectorAll('.katalog__zeile')].every(z => z.textContent.includes('★'))")),
+    `Typ und legendaer filtern (${drachen} legendaere Drachen)`
+  );
+  await js(`document.querySelector('[data-sortiere="hg"]').click(); true`);
+  await warte(250);
+  const oberster = await js("document.querySelector('.katalog__zeile td:nth-child(3)')?.textContent");
+  pruefe(oberster === '24', `nach Grad sortiert steht der staerkste oben (HG ${oberster})`);
+  await js(`document.querySelector('.katalog__zeile .katalog__name').click(); true`);
+  await warte(250);
+  const blatt = await js("document.querySelector('.wertekasten')?.textContent ?? ''");
+  pruefe(/Legendary Actions|Legendäre Aktionen/.test(blatt), 'ein Klick auf den Namen zeigt den ganzen Wertekasten');
+
+  // Zurueck auf die eigenen; zweimal dazu ergibt Anzahl 2, nicht zwei Zeilen.
+  await js(`document.querySelector('input[data-filter="legendaer"]').click(); true`);
+  await js(`(() => {
+    const wahl = document.querySelector('select[data-filter="typ"]');
+    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    setzer.call(wahl, '');
+    wahl.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  await js(`document.querySelector('[data-quelle="eigen"]').click(); true`);
+  await warte(300);
+  await js("document.querySelector('.katalog__dazu').click(); true");
+  await warte(250);
+  await js("document.querySelector('.katalog__dazu').click(); true");
   await warte(350);
   pruefe(
     (await js("document.querySelectorAll('.gegnerzeile').length")) === 1,
@@ -230,17 +271,27 @@ app.whenReady().then(async () => {
     (await js("document.querySelectorAll('.umgebung').length")) === 0,
     'ohne Wahl steht kein Umgebungsblatt da'
   );
-  await js(`(() => {
-    const wahl = [...document.querySelectorAll('select')].find(
-      (s) => [...s.options].some((o) => o.value === 'wald')
-    );
-    if (!wahl) return false;
-    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-    setzer.call(wahl, 'wald');
-    wahl.dispatchEvent(new Event('change', { bubbles: true }));
-    return true;
-  })()`);
+  // Gewaehlt wird an Kacheln mit Zeichen, nicht in einer Auswahlliste.
+  pruefe(
+    (await js("document.querySelectorAll('.umgebungskachel[data-umgebung]').length")) >= 17,
+    'die Umgebungen stehen als Kacheln da'
+  );
+  await js(`document.querySelector('.umgebungskachel[data-umgebung="wald"]').click(); true`);
   await warte(350);
+  pruefe(
+    await js(`document.querySelector('.umgebungskachel[data-umgebung="wald"]').getAttribute('aria-pressed') === 'true'`),
+    'die gewaehlte Kachel ist markiert'
+  );
+  // Zu- und wieder aufklappen; zugeklappt nennt der Kopf die Wahl.
+  await js(`document.querySelector('.klappe[data-klappe="umgebung"] .klappe__kopf').click(); true`);
+  await warte(250);
+  const zu = await js(`document.querySelector('.klappe[data-klappe="umgebung"]').textContent`);
+  pruefe(
+    (await js("document.querySelectorAll('.umgebungswahl').length")) === 0 && /Wald|Forest/i.test(zu),
+    `die Umgebung laesst sich zuklappen und nennt dann die Wahl (${zu.slice(0, 40)})`
+  );
+  await js(`document.querySelector('.klappe[data-klappe="umgebung"] .klappe__kopf').click(); true`);
+  await warte(250);
   pruefe(
     (await js("document.querySelectorAll('.umgebung__teil').length")) === 2,
     'nach der Wahl stehen beide Sorten da'
@@ -285,12 +336,63 @@ app.whenReady().then(async () => {
   })()`);
   await warte(300);
   await js(
-    `[...document.querySelectorAll('button')].find(b => /Anlegen|Create/.test(b.textContent)).click(); true`
+    `[...document.querySelectorAll('button')].find(b => /^(Speichern|Save)$/.test(b.textContent.trim())).click(); true`
   );
   await warte(900);
   pruefe(
     dateien().length === 2,
     `die zweite gleichnamige ueberschreibt die erste nicht (${dateien().join(', ')})`
+  );
+
+  // Ohne Namen gespeichert heisst sie „Encounter_1".
+  await js(
+    `[...document.querySelectorAll('button')].find(b => /Zurück zur Liste|Back to the list/.test(b.textContent)).click(); true`
+  );
+  await warte(500);
+  await js(
+    `[...document.querySelectorAll('button')].find(b => /Neue Begegnung|New encounter/.test(b.textContent)).click(); true`
+  );
+  await warte(400);
+  await js(
+    `[...document.querySelectorAll('button')].find(b => /^(Speichern|Save)$/.test(b.textContent.trim())).click(); true`
+  );
+  await warte(900);
+  pruefe(
+    dateien().includes('encounter-1.md') &&
+      /name: Encounter_1/.test(fs.readFileSync(path.join(ordner, 'encounter-1.md'), 'utf8')),
+    `ohne Namen gespeichert heisst sie Encounter_1 (${dateien().join(', ')})`
+  );
+
+  // --- Zusammenstellen lassen -------------------------------------------------
+  //
+  // Die umgekehrte Richtung: Ziel HG 5, vier Gegner, nur offizielle.
+  await js(`(() => {
+    const wahl = document.querySelector('select[data-bau="grad"]');
+    const setzer = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    setzer.call(wahl, '5');
+    wahl.dispatchEvent(new Event('change', { bubbles: true }));
+    const feld = document.querySelector('input[data-bau="anzahl"]');
+    const zahl = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    zahl.call(feld, '4');
+    feld.dispatchEvent(new Event('input', { bubbles: true }));
+    document.querySelector('[data-bau-quelle="srd"]').click();
+    return true;
+  })()`);
+  await warte(300);
+  await js(`document.querySelector('[data-bau="los"]').click(); true`);
+  await warte(600);
+  const gebaut = await js(
+    "[...document.querySelectorAll('.gegnerzeile__anzahl')].reduce((s, e) => s + Number(e.value), 0)"
+  );
+  const bericht = await js("document.querySelector('[data-bau-ergebnis]')?.textContent ?? ''");
+  pruefe(gebaut === 4, `zusammengestellt: genau vier Gegner (${gebaut})`);
+  pruefe(
+    /1[.,]800/.test(bericht) && /(HG|CR) 5/.test(bericht),
+    `mit Ziel und Ergebnis daneben (${bericht.slice(0, 80)})`
+  );
+  pruefe(
+    await js("[...document.querySelectorAll('.gegnerzeile')].every(z => z.dataset.monster.startsWith('srd:'))"),
+    'und nur aus den offiziellen, wie gewaehlt'
   );
 
   // --- Die Sammlung --------------------------------------------------------
@@ -299,14 +401,14 @@ app.whenReady().then(async () => {
   );
   await warte(700);
   pruefe(
-    (await js("document.querySelectorAll('.begegnungskachel').length")) === 2,
-    'beide stehen in der Sammlung'
+    (await js("document.querySelectorAll('.begegnungskachel').length")) === 3,
+    'alle drei stehen in der Sammlung'
   );
 
   // --- Die Suche der Huelle findet sie, ohne dass sie offen war ------------
   const eintraege = await hjs('window.shell.suche.eintraege()');
   const meine = (eintraege ?? []).filter((e) => e.werkzeug === 'encounter');
-  pruefe(meine.length === 2, `die Suche der Huelle kennt sie (${meine.length})`);
+  pruefe(meine.length === 3, `die Suche der Huelle kennt sie (${meine.length})`);
 
   // --- Der Weg in den Initiative Tracker -----------------------------------
   //
@@ -345,18 +447,37 @@ app.whenReady().then(async () => {
     'und ohne Gruppe keine Einordnung'
   );
   pruefe(
-    /Einstellungen|settings/i.test(ohneGruppe),
-    'sondern der Hinweis, wo die Gruppe steht'
+    /fehlt die Gruppe|needs the party/i.test(ohneGruppe),
+    'sondern der Hinweis, dass die Gruppe fehlt'
   );
 
-  // Die Gruppe kommt aus den Einstellungen der Huelle, nicht aus dem
-  // Werkzeug — derselbe Weg, den ein Mensch im Dialog nimmt.
-  const beschreibung = await hjs(`window.shell.werkzeug.setzen('encounter', 'gruppe', '3x4, 1x6')`);
-  pruefe(
-    Boolean(beschreibung) && beschreibung.appId === 'encounter',
-    'die Huelle nimmt die Gruppe entgegen'
-  );
+  // Die Gruppe steht im Werkzeug selbst, nicht in den Einstellungen der
+  // Huelle: sie aendert sich von Abend zu Abend. 3x4 und 1x6 eintragen,
+  // so wie ein Mensch es tut.
+  const setzeZahl = (zeile, stelle, wert) => js(`(() => {
+    const feld = document.querySelectorAll('[data-gruppenzeile="${zeile}"] input')[${stelle}];
+    if (!feld) return false;
+    const setzer = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setzer.call(feld, '${wert}');
+    feld.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  })()`);
+  await js(`document.querySelector('[data-gruppe-dazu]').click(); true`);
+  await warte(300);
+  await setzeZahl(0, 0, 3);
+  await warte(200);
+  await setzeZahl(0, 1, 4);
+  await warte(200);
+  await js(`document.querySelector('[data-gruppe-dazu]').click(); true`);
+  await warte(300);
+  await setzeZahl(1, 0, 1);
+  await warte(200);
+  await setzeZahl(1, 1, 6);
   await warte(600);
+  pruefe(
+    /3x4, 1x6/.test(fs.readFileSync(path.join(ordner, 'einstellungen.json'), 'utf8')),
+    'die Gruppe, im Werkzeug eingetragen, liegt so auf der Platte'
+  );
   const mitGruppe = await js("document.querySelector('.verhaeltnis')?.textContent ?? ''");
   pruefe(/4/.test(mitGruppe) && /6/.test(mitGruppe), `die Gruppe steht daneben (${mitGruppe.slice(0, 60)})`);
   pruefe(

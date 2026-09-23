@@ -79,6 +79,14 @@ export interface AppEntry {
   readonly id: string;
   readonly status: AppStatus;
   readonly rolle: Rolle;
+  /**
+   * Ob das Werkzeug eigene Einstellungen hat, die im Dialog der Huelle
+   * stehen. Fest hier und nicht beim Werkzeug erfragt: ein Werkzeug, das
+   * nicht laeuft, kann nicht antworten, und die Liste soll nicht davon
+   * abhaengen, was man gerade offen hat. Sprache, Thema und KI gehoeren
+   * der Huelle und zaehlen nicht.
+   */
+  readonly einstellungen?: true;
 }
 
 /** Schluessel des Anzeigenamens. Arbeitstitel — die endgueltigen Namen kommen spaeter. */
@@ -106,10 +114,16 @@ export const STATUS_KEY: Record<AppStatus, MessageKey> = {
  * andere ist Vorbereitung oder Leitung am Tisch.
  */
 export const APPS: readonly AppEntry[] = [
-  { id: 'backstory', status: 'bereit', rolle: 'alle' },
+  { id: 'backstory', status: 'bereit', rolle: 'alle', einstellungen: true },
   { id: 'dice', status: 'bereit', rolle: 'alle' },
+  // Bei „alle", nicht bei „leitung": ein Nachschlagewerk brauchen Spielende
+  // genauso, und am Tisch schlaegt meist jemand anderes nach als der, der
+  // leitet.
+  { id: 'nachschlagewerk', status: 'bereit', rolle: 'alle' },
   { id: 'monster', status: 'bereit', rolle: 'leitung' },
   { id: 'zustaende', status: 'bereit', rolle: 'leitung' },
+  { id: 'magicitems', status: 'bereit', rolle: 'leitung' },
+  { id: 'loot', status: 'bereit', rolle: 'leitung' },
   { id: 'initiative', status: 'bereit', rolle: 'leitung' },
   { id: 'mapmaker', status: 'bereit', rolle: 'leitung' },
   { id: 'npc', status: 'bereit', rolle: 'leitung' },
@@ -154,15 +168,36 @@ export const CHROME = {
  */
 export function berechneAppFlaeche(
   fensterBreite: number,
-  fensterHoehe: number
+  fensterHoehe: number,
+  groesse = 100
 ): { x: number; y: number; width: number; height: number } {
+  // Titelleiste und Schiene sind CSS-Pixel der Huelle. Ist die Oberflaeche
+  // vergroessert, sind sie im Fenster entsprechend breiter; die Anwendung
+  // muss dann weiter rechts und weiter unten anfangen.
+  const schiene = Math.round((CHROME.schieneBreite * groesse) / 100);
+  const titel = Math.round((CHROME.titelleisteHoehe * groesse) / 100);
   return {
-    x: CHROME.schieneBreite,
-    y: CHROME.titelleisteHoehe,
+    x: schiene,
+    y: titel,
     // Sehr kleine Fenster sind durch minWidth/minHeight ausgeschlossen, aber
     // waehrend eines Wechsels kann kurz eine Groesse von 0 durchlaufen. Eine
     // negative Breite wuerde Electron werfen lassen.
-    width: Math.max(0, fensterBreite - CHROME.schieneBreite),
-    height: Math.max(0, fensterHoehe - CHROME.titelleisteHoehe)
+    width: Math.max(0, fensterBreite - schiene),
+    height: Math.max(0, fensterHoehe - titel)
   };
+}
+
+/**
+ * Die waehlbaren Groessen der ganzen Oberflaeche, in Prozent (#61).
+ *
+ * Feste Stufen statt eines Schiebers: eine krumme Zahl wie 117 Prozent
+ * zeichnet Linien und Schrift unscharf, und wer die Groesse sucht, will
+ * „etwas groesser", nicht einen Wert.
+ */
+export const GROESSEN = [80, 90, 100, 110, 125, 150, 175, 200] as const;
+export const VORGABE_GROESSE = 100;
+
+/** Eine Groesse aus der Datei, auf eine erlaubte Stufe gebracht. */
+export function gueltigeGroesse(roh: unknown): number {
+  return typeof roh === 'number' && (GROESSEN as readonly number[]).includes(roh) ? roh : VORGABE_GROESSE;
 }

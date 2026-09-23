@@ -51,6 +51,16 @@ import { Kontextmenue } from './Kontextmenue';
 import { Zeile } from './Zeile';
 import { Begegnungen } from './Begegnungen';
 import { Dialog } from './Dialog';
+import { Geteilt } from './Geteilt';
+import {
+  KEIN_RAUM,
+  leseBotschaft,
+  setzeBesitz,
+  teileKampf,
+  wendeAn,
+  type GeteilterKampf,
+  type RaumLage
+} from '../shared/teilen';
 
 export function App() {
   const [kampf, setKampf] = useState<Kampf>(leererKampf);
@@ -94,6 +104,24 @@ export function App() {
   const [wartendeUebergabe, setWartendeUebergabe] = useState<Uebergabe | null>(null);
   /** Wer gerade umbenannt wird. Der Dialog fragt nach dem neuen Namen. */
   const [umbenennen, setUmbenennen] = useState<{ id: string; name: string } | null>(null);
+  /*
+   * Der Raum (docs/austausch.md). `teilt`: dieser Kampf geht an alle im
+   * Raum. `geteilt`: der Kampf, den jemand anderes teilt — nur einer zur
+   * Zeit, der zuletzt gemeldete.
+   */
+  const [raum, setRaum] = useState<RaumLage>(KEIN_RAUM);
+  const [teilt, setTeilt] = useState(false);
+  /** Sehen die Spieler den groben Zustand der Gegner? Merkt sich die Wahl. */
+  const [stufenZeigen, setStufenZeigen] = useState(() => {
+    try {
+      return localStorage.getItem('initiative.stufenZeigen') !== 'nein';
+    } catch {
+      return true;
+    }
+  });
+  const [geteilt, setGeteilt] = useState<{ von: { id: string; name: string }; stand: GeteilterKampf } | null>(
+    null
+  );
 
   // Die Sprache kann von der Huelle gesetzt werden, ohne dass hier jemand
   // klickt. Ohne diesen Anschluss bliebe die Oberflaeche auf dem alten Stand.
@@ -402,6 +430,83 @@ export function App() {
 
   const aktive = useMemo(() => sortiert.filter(istAktiv).length, [sortiert]);
 
+  /*
+   * Nachrichten aus dem Raum. Ein Stand ersetzt den vorigen derselben
+   * Person; eine Aenderung wird nur angenommen, solange hier geteilt wird,
+   * und nur fuer die eigene Figur des Absenders (`wendeAn`).
+   */
+  const teiltRef = useRef(teilt);
+  teiltRef.current = teilt;
+  const verarbeite = useCallback(
+    (von: { id: string; name: string }, inhalt: string) => {
+      const botschaft = leseBotschaft(inhalt);
+      if (!botschaft) return;
+      if (botschaft.art === 'stand') {
+        setGeteilt({ von, stand: botschaft.stand });
+        return;
+      }
+      if (botschaft.art === 'ende') {
+        setGeteilt((vorher) => (vorher && vorher.von.id === von.id ? null : vorher));
+        return;
+      }
+      if (!teiltRef.current) return;
+      const neu = wendeAn(standRef.current, botschaft.aenderung, von.name);
+      if (neu) setzeUndSichere(neu);
+    },
+    [setzeUndSichere]
+  );
+
+  useEffect(() => {
+    let aus = false;
+    void api.raum.anfang().then(({ lage, nachrichten }) => {
+      if (aus) return;
+      setRaum(lage);
+      for (const n of nachrichten) verarbeite(n.von, n.inhalt);
+    });
+    const weg1 = api.raum.beiNachricht(verarbeite);
+    const weg2 = api.raum.beiZustand((lage) => {
+      setRaum(lage);
+      if (lage.rolle === 'aus') {
+        setTeilt(false);
+        setGeteilt(null);
+      } else {
+        // Wer den Raum verlassen hat, teilt auch nichts mehr.
+        setGeteilt((vorher) => (vorher && lage.personen.some((p) => p.id === vorher.von.id) ? vorher : null));
+      }
+    });
+    return () => {
+      aus = true;
+      weg1();
+      weg2();
+    };
+  }, [verarbeite]);
+
+  /*
+   * Teilen: jede Aenderung, und jede neue Person im Raum, bekommt den Stand.
+   * Kurz gebuendelt, damit Tippen in ein Feld nicht jeden Buchstaben schickt.
+   */
+  const ansicht = useMemo(
+    () => JSON.stringify({ art: 'stand', stand: teileKampf(kampf, stufenZeigen) }),
+    [kampf, stufenZeigen]
+  );
+  const personenSchluessel = raum.personen.map((p) => p.id).join(',');
+  useEffect(() => {
+    if (!teilt) return;
+    const zeit = window.setTimeout(() => void api.raum.sende(ansicht, null), 150);
+    return () => window.clearTimeout(zeit);
+  }, [teilt, ansicht, personenSchluessel]);
+
+  const schalteTeilen = useCallback(() => {
+    if (teilt) void api.raum.sende(JSON.stringify({ art: 'ende' }), null);
+    setTeilt(!teilt);
+  }, [teilt]);
+
+  /** Die anderen im Raum: ihnen kann eine Figur gehoeren. */
+  const andere = useMemo(
+    () => raum.personen.filter((p) => p.id !== raum.ich?.id),
+    [raum]
+  );
+
   if (!geladen) return <div className="laedt" />;
 
   return (
@@ -477,6 +582,37 @@ export function App() {
         >
           {t('feld.taktik')}
         </button>
+        {raum.rolle !== 'aus' ? (
+          <button
+            type="button"
+            className={teilt ? 'knopf--an' : ''}
+            onClick={schalteTeilen}
+            aria-pressed={teilt}
+            title={t('raum.teilenTitel')}
+            data-initiative-teilen
+          >
+            {teilt ? t('raum.teilenEnde') : t('raum.teilen')}
+          </button>
+        ) : null}
+        {raum.rolle !== 'aus' ? (
+          <label className="leiste__schalter" title={t('raum.stufenTitel')}>
+            <input
+              type="checkbox"
+              checked={stufenZeigen}
+              data-initiative-stufen
+              onChange={(e) => {
+                const an = e.target.checked;
+                setStufenZeigen(an);
+                try {
+                  localStorage.setItem('initiative.stufenZeigen', an ? 'ja' : 'nein');
+                } catch {
+                  // Ohne Speicher gilt die Wahl nur bis zum Schliessen.
+                }
+              }}
+            />
+            {t('raum.stufen')}
+          </label>
+        ) : null}
         {/*
           Hier stand ein eigener EN/DE-Waehler. Die Sprache steht in den
           Einstellungen der Huelle und wird von dort durchgereicht; zwei
@@ -503,6 +639,17 @@ export function App() {
           placeholder={t('feld.taktik')}
           value={taktik}
           onChange={(ereignis) => setTaktik(ereignis.target.value)}
+        />
+      ) : null}
+
+      {geteilt ? (
+        <Geteilt
+          von={geteilt.von.name}
+          stand={geteilt.stand}
+          ich={raum.ich?.name ?? null}
+          onAenderung={(aenderung) =>
+            void api.raum.sende(JSON.stringify({ art: 'aenderung', aenderung }), geteilt.von.id)
+          }
         />
       ) : null}
 
@@ -583,6 +730,26 @@ export function App() {
                   );
                 }
               }}
+              besitzer={kampf.besitz?.[teilnehmer.id]}
+              zusatzMenue={
+                raum.rolle === 'aus' || teilnehmer.istTerrain
+                  ? undefined
+                  : [
+                      ...andere.map((person) => ({
+                        text: t('raum.gehoert', { name: person.name }),
+                        onWahl: () =>
+                          setzeUndSichere((vorher) => setzeBesitz(vorher, teilnehmer.id, person.name))
+                      })),
+                      ...(kampf.besitz?.[teilnehmer.id]
+                        ? [
+                            {
+                              text: t('raum.loesen'),
+                              onWahl: () => setzeUndSichere((vorher) => setzeBesitz(vorher, teilnehmer.id, null))
+                            }
+                          ]
+                        : [])
+                    ]
+              }
               bildUrl={teilnehmer.bild ? `${BILD_SCHEMA}://${encodeURIComponent(teilnehmer.bild)}` : null}
             />
           ))

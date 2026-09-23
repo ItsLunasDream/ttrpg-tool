@@ -117,35 +117,15 @@ app.whenReady().then(async () => {
   );
 
   /*
-   * ALLE Werkzeuge stehen da, nicht nur das laufende.
-   *
-   * Vorher haing die Liste davon ab, was man in dieser Sitzung schon offen
-   * hatte — und wer den Story Creator vermisste, suchte den Fehler bei
-   * sich.
+   * NUR Werkzeuge mit eigenen Einstellungen stehen da — die aber immer,
+   * nicht nur, wenn sie gerade laufen. Eine leere Seite je Werkzeug war
+   * Rauschen (Rueckmeldung: „Es sollen nur Apps aufgelistet sein, die
+   * eigene Einstellungen haben").
    */
   const werkzeugbereiche = bereiche.filter((b) => b && b.startsWith('werkzeug:'));
   pruefe(
-    werkzeugbereiche.length >= 8,
-    `alle Werkzeuge stehen in der Liste (${werkzeugbereiche.length})`
-  );
-
-  // Ein Werkzeug, das nicht laeuft, sagt warum — und bietet den Weg an.
-  await js(`(() => {
-    const k = document.querySelector('.einst__nav-knopf[data-bereich="werkzeug:dice"]');
-    if (k) k.click();
-    return Boolean(k);
-  })()`);
-  await warte(500);
-  const zuText = await js("document.querySelector('.einst__inhalt')?.textContent ?? ''");
-  pruefe(
-    /not running|laeuft nicht|läuft nicht/.test(zuText),
-    `ein nicht laufendes Werkzeug sagt, warum es nichts zeigt (${zuText.slice(0, 70)})`
-  );
-  pruefe(
-    await js(
-      "[...document.querySelectorAll('.feld__knoepfe button')].some(b => /Dice/.test(b.textContent))"
-    ),
-    'und bietet einen Knopf zum Oeffnen an'
+    werkzeugbereiche.length === 1 && werkzeugbereiche[0] === 'werkzeug:backstory',
+    `nur Werkzeuge mit eigenen Einstellungen stehen in der Liste (${werkzeugbereiche.join(', ')})`
   );
 
   await js(`(() => {
@@ -161,6 +141,15 @@ app.whenReady().then(async () => {
   pruefe(
     /Writing|Schreiben/.test(gruppen) && /Storage|Speicherort/.test(gruppen),
     `mit seinen Gruppen (${gruppen})`
+  );
+  // Die Sprache gehoert der Huelle. Ein zweites Sprachfeld im Werkzeug
+  // war schon einmal weg und kam zurueck — darum hier festgehalten.
+  const feldnamen = await js(
+    "[...document.querySelectorAll('.werkzeugfelder__gruppe .feld__name')].map(e => e.textContent.trim()).join('|')"
+  );
+  pruefe(
+    feldnamen.length > 0 && !feldnamen.split('|').some((n) => /^(Sprache|Language)$/.test(n)),
+    `der Story Creator hat kein eigenes Sprachfeld (${feldnamen.slice(0, 120)})`
   );
 
   // --- Eine Aenderung geht den ganzen Weg ----------------------------------

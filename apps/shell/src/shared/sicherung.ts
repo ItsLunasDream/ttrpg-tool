@@ -143,5 +143,5 @@ export function sicherungsname(jetzt: Date): string {
   const zwei = (zahl: number) => String(zahl).padStart(2, '0');
   const datum = `${jetzt.getFullYear()}-${zwei(jetzt.getMonth() + 1)}-${zwei(jetzt.getDate())}`;
   const zeit = `${zwei(jetzt.getHours())}${zwei(jetzt.getMinutes())}`;
-  return `ttrpg-tools-sicherung-${datum}-${zeit}.zip`;
+  return `lore-sicherung-${datum}-${zeit}.zip`;
 }

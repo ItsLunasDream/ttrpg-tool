@@ -37,8 +37,8 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
     id: WILLKOMMEN,
     titel: { de: 'Willkommen', en: 'Welcome' },
     satz: {
-      de: 'Sechs Werkzeuge für Pen-&-Paper-Runden, nebeneinander in einem Fenster.',
-      en: 'Six tools for tabletop campaigns, side by side in one window.'
+      de: 'Werkzeuge für Pen-&-Paper-Runden, nebeneinander in einem Fenster.',
+      en: 'Tools for tabletop campaigns, side by side in one window.'
     },
     punkte: [
       {
@@ -281,8 +281,82 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
         en: 'An encounter is a template, not a saved game: the tracker reads it and never writes back.'
       },
       {
-        de: 'Noch im Bau: Monster aus deiner Sammlung, die Umgebung und der Weg in den Tracker.',
-        en: 'Still being built: monsters from your collection, the environment, and the way into the tracker.'
+        de: 'Die Monster kommen aus deiner eigenen Sammlung, und „In den Tracker" schiebt alles in einem Zug hinüber.',
+        en: 'The monsters come from your own collection, and “To the tracker” pushes everything across in one go.'
+      },
+      {
+        de: 'Trag die Gruppe am Tisch ein, dann steht darunter die Schwierigkeit, gerechnet nach dem Regelwerk. Oder lass die Begegnung nach Ziel-HG zusammenstellen.',
+        en: 'Enter your party and the difficulty appears underneath, worked out from the rules. Or let it build an encounter for a target CR.'
+      }
+    ]
+  },
+  {
+    id: 'nachschlagewerk',
+    titel: { de: 'Nachschlagewerk', en: 'Reference' },
+    satz: {
+      de: 'Die Regeln aus dem Systemreferenzdokument — offline, zweisprachig und in derselben Suche wie alles andere.',
+      en: 'The rules from the System Reference Document — offline, in both languages, and in the same search as everything else.'
+    },
+    punkte: [
+      {
+        de: 'Das ganze Regelglossar, das Kapitel Ausrüstung, alle Zauber und alle magischen Gegenstände. Gesucht wird auch im Text; Begriffe im Text zeigen beim Darüberfahren eine Vorschau.',
+        en: 'The whole rules glossary, the equipment chapter, every spell and every magic item. The search covers the text; terms in the text show a preview on hover.'
+      },
+      {
+        de: 'Beide Sprachen gleichzeitig: wer auf Deutsch steht und „prone" tippt, findet „Liegend".',
+        en: 'Both languages at once: typing “liegend” finds Prone even when the tool is in English.'
+      },
+      {
+        de: 'Bei einer Abweichung gilt die englische Fassung — „Andere Sprache daneben" zeigt sie neben der deutschen.',
+        en: 'Where the two differ, the English version applies — “Other language alongside” shows both.'
+      },
+      {
+        de: 'Eigene Hausregeln hängen an der offiziellen Regel, und markierter Text bekommt eine Notiz.',
+        en: 'Your own house rules attach to the official rule, and selected text can take a note.'
+      }
+    ]
+  },
+  {
+    id: 'magicitems',
+    titel: { de: 'Magic Item Creator', en: 'Magic Item Creator' },
+    satz: {
+      de: 'Magische Gegenstände würfeln, anpassen und ablegen.',
+      en: 'Roll, adjust and store magic items.'
+    },
+    punkte: [
+      {
+        de: 'Art und Seltenheit wählen oder dem Zufall überlassen, dann „Würfeln".',
+        en: 'Pick a type and rarity or leave them to chance, then “Roll”.'
+      },
+      {
+        de: 'Der Wert kommt aus der Tabelle des SRD; alles andere lässt sich frei ändern.',
+        en: 'The value comes from the SRD table; everything else can be edited freely.'
+      },
+      {
+        de: 'Abgelegt wird erst mit „Speichern"; „Neu würfeln" verwirft den Entwurf.',
+        en: 'Nothing is stored until you “Save”; “Reroll” discards the draft.'
+      }
+    ]
+  },
+  {
+    id: 'loot',
+    titel: { de: 'Loot Generator', en: 'Loot Generator' },
+    satz: {
+      de: 'Eigene Zufallstabellen schreiben und würfeln.',
+      en: 'Write and roll your own random tables.'
+    },
+    punkte: [
+      {
+        de: 'Eine Zeile je Eintrag, auf Wunsch mit Spanne davor: „1-3: 2d6 × 10 Kupfer".',
+        en: 'One line per entry, optionally with a range in front: “1-3: 2d6 × 10 copper”.'
+      },
+      {
+        de: 'Eine andere Tabelle in eckigen Klammern wird mitgewürfelt: „[Taschenkram]".',
+        en: 'Another table in square brackets is rolled too: “[Pocket Junk]”.'
+      },
+      {
+        de: 'Der Würfel auf einer Kachel würfelt sofort, ohne die Tabelle zu öffnen.',
+        en: 'The die on a tile rolls right away, without opening the table.'
       }
     ]
   }

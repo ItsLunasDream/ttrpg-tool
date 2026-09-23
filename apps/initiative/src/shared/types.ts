@@ -109,6 +109,12 @@ export interface Kampf {
   readonly runde: number;
   /** Ob der Kampf laeuft. Vorher lassen sich Werte in Ruhe eintragen. */
   readonly laeuft: boolean;
+  /**
+   * Wem im Raum eine Figur gehoert (Teilnehmer-Kennung -> Name der Person),
+   * fuer die geteilte Initiative. Nach Namen und nicht nach Kennung: die
+   * Kennung im Raum ist jedes Mal neu, der Name am Tisch bleibt.
+   */
+  readonly besitz?: Readonly<Record<string, string>>;
 }
 
 /** Eine gespeicherte Begegnung: Markdown mit YAML-Kopf (Konvention 1). */

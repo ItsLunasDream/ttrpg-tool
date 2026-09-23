@@ -1,12 +1,12 @@
 # Drittinhalte und Namensnennung
 
-Der Quelltext von TTRPG-Tools steht unter der AGPL-3.0-or-later (siehe
+Der Quelltext von LORE steht unter der AGPL-3.0-or-later (siehe
 [LICENSE](LICENSE)). Einzelne **Daten** darin stammen aus fremden Werken, die
 unter anderen Lizenzen stehen. Diese Lizenzen verlangen eine Namensnennung,
 und die steht hier.
 
 Diese Datei ist nicht schmückendes Beiwerk: sie wegzulassen wäre ein
-Lizenzbruch. Wer TTRPG-Tools weitergibt — als Quelltext, als Installer oder
+Lizenzbruch. Wer LORE weitergibt — als Quelltext, als Installer oder
 als veränderte Fassung —, gibt sie mit.
 
 ---

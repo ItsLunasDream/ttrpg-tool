@@ -55,6 +55,7 @@ const api = {
   /** Die Gruppe am Tisch, aus den Einstellungen der Huelle. */
   gruppe: {
     lesen: () => ipcRenderer.invoke(kanal('gruppe')) as Promise<Gruppe>,
+    setzen: (zeile: string) => ipcRenderer.invoke(kanal('gruppe:setzen'), zeile) as Promise<Gruppe>,
     beiWechsel: (hoerer: (gruppe: Gruppe) => void) => {
       const lauscher = (_e: unknown, gruppe: Gruppe) => hoerer(gruppe);
       ipcRenderer.on(kanal('gruppe:gesetzt'), lauscher);

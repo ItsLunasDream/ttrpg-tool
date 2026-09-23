@@ -103,6 +103,55 @@ export const EncounterIcon = (p: IconProps) => (
   </Rahmen>
 );
 
+/**
+ * Ein aufgeschlagenes Buch mit Lesezeichen.
+ *
+ * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
+ * `resources/symbole/nachschlagewerk.png` eines liegt.
+ */
+export const NachschlagewerkIcon = (p: IconProps) => (
+  <Rahmen {...p}>
+    <path d="M24,14 C19,11 12,11 7,13 L7,37 C12,35 19,35 24,38" />
+    <path d="M24,14 C29,11 36,11 41,13 L41,37 C36,35 29,35 24,38" />
+    <line x1="24" y1="14" x2="24" y2="38" />
+    <path d="M33,11.6 L33,22 L35.5,19.5 L38,22 L38,12" />
+    <line x1="11" y1="19" x2="20" y2="19" />
+    <line x1="11" y1="24" x2="20" y2="24" />
+    <line x1="11" y1="29" x2="18" y2="29" />
+  </Rahmen>
+);
+
+/**
+ * Ein Edelstein mit Funkeln.
+ *
+ * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
+ * `resources/symbole/magicitems.png` eines liegt.
+ */
+export const MagicItemsIcon = (p: IconProps) => (
+  <Rahmen {...p}>
+    <path d="M14,18 L20,11 L28,11 L34,18 L24,37 Z" />
+    <path d="M14,18 L34,18" />
+    <path d="M20,11 L22,18 L24,37 L26,18 L28,11" />
+    <path d="M38,8 L38,14 M35,11 L41,11" />
+    <path d="M10,30 L10,34 M8,32 L12,32" />
+  </Rahmen>
+);
+
+/**
+ * Eine Truhe mit Deckel und Schloss.
+ *
+ * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
+ * `resources/symbole/loot.png` eines liegt.
+ */
+export const LootIcon = (p: IconProps) => (
+  <Rahmen {...p}>
+    <path d="M9,21 L39,21 L39,37 L9,37 Z" />
+    <path d="M9,21 C9,13 14,11 24,11 C34,11 39,13 39,21" />
+    <path d="M9,27 L39,27" />
+    <path d="M21,24 L27,24 L27,30 L21,30 Z" />
+  </Rahmen>
+);
+
 /** Die Marke der Sammlung: ein Sechseck mit Stern. */
 export const SuiteIcon = (p: IconProps) => (
   <Rahmen {...p}>
@@ -191,7 +240,10 @@ const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
   inspiration: InspirationIcon,
   monster: MonsterIcon,
   zustaende: ZustaendeIcon,
-  encounter: EncounterIcon
+  encounter: EncounterIcon,
+  nachschlagewerk: NachschlagewerkIcon,
+  magicitems: MagicItemsIcon,
+  loot: LootIcon
 };
 
 /**

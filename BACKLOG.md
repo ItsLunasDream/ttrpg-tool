@@ -1139,7 +1139,10 @@ Aufgabe, keiner davon hat ein Konzept.
 
 ## Vorgemerkt: ein Name für die Sammlung nach außen
 
-Nur festgehalten, nicht entschieden. Es geht um den Namen nach außen und in
+**Entschieden (#125): LORE**, Untertitel *Library Of RPG Essentials*.
+Der Datenordner bleibt bei bestehenden Installationen unter dem alten Namen
+(`apps/shell/src/main/datenordner.ts`). Das Folgende ist die frühere
+Sammlung von Vorschlägen. Es geht um den Namen nach außen und in
 Texten; intern darf der Code `ttrpg-tools-shell` heißen.
 
 Mit Bezug auf Würfel und Vorteil:

@@ -53,6 +53,13 @@ export interface Umgebung {
   readonly id: string;
   readonly name: Paar;
   /**
+   * Ein Schriftzeichen und eine Farbe fuer die Kachel — wie die Zustaende
+   * im Status Effect Creator. Ein Zeichen statt eines Bildes: es skaliert,
+   * braucht keine Datei und nimmt die Farbe des Themas an.
+   */
+  readonly zeichen: string;
+  readonly farbe: string;
+  /**
    * Zu welchen Themen sie passt. Leer heisst: zu allen.
    *
    * Absichtlich grosszuegig: ausgeschlossen wird nur, was am Tisch stutzig
@@ -80,6 +87,8 @@ export interface Umgebung {
 export const UMGEBUNGEN: readonly Umgebung[] = [
   {
     id: 'wald',
+    zeichen: '♣',
+    farbe: '#4f8a4a',
     name: { de: 'Wald', en: 'forest' },
     wasser: true,
     grabbar: true,
@@ -96,6 +105,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'hain',
+    zeichen: '❀',
+    farbe: '#c78ad6',
     name: { de: 'Feenhain', en: 'fae grove' },
     wasser: true,
     grabbar: true,
@@ -112,6 +123,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'unterreich',
+    zeichen: '◉',
+    farbe: '#8a7fb0',
     name: { de: 'Unterreich', en: 'underdark' },
     wasser: true,
     grabbar: true,
@@ -128,6 +141,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'stadt',
+    zeichen: '▦',
+    farbe: '#b0916a',
     name: { de: 'Stadt', en: 'city' },
     wasser: false,
     grabbar: false,
@@ -144,6 +159,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'turm',
+    zeichen: '♜',
+    farbe: '#9a8fc7',
     name: { de: 'Zauberturm', en: 'wizard’s tower' },
     wasser: false,
     grabbar: false,
@@ -160,6 +177,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'tiefsee',
+    zeichen: '≈',
+    farbe: '#3f7fb8',
     name: { de: 'Tiefsee', en: 'deep sea' },
     wasser: true,
     grabbar: false,
@@ -176,6 +195,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'kueste',
+    zeichen: '⚓',
+    farbe: '#5aa3b3',
     name: { de: 'Küste', en: 'coast' },
     wasser: true,
     grabbar: true,
@@ -192,6 +213,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'sumpf',
+    zeichen: '❦',
+    farbe: '#6f8a4a',
     name: { de: 'Sumpf', en: 'swamp' },
     wasser: true,
     grabbar: true,
@@ -208,6 +231,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'wueste',
+    zeichen: '☼',
+    farbe: '#d9a441',
     name: { de: 'Wüste', en: 'desert' },
     wasser: false,
     grabbar: true,
@@ -224,6 +249,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'gebirge',
+    zeichen: '▲',
+    farbe: '#8e9aa6',
     name: { de: 'Gebirge', en: 'mountains' },
     wasser: false,
     grabbar: true,
@@ -240,6 +267,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'eiswueste',
+    zeichen: '❄',
+    farbe: '#8fc3e8',
     name: { de: 'Eiswüste', en: 'ice waste' },
     wasser: false,
     grabbar: true,
@@ -256,6 +285,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'vulkan',
+    zeichen: '♨',
+    farbe: '#d9582f',
     name: { de: 'Vulkanland', en: 'volcanic land' },
     wasser: false,
     grabbar: true,
@@ -272,6 +303,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'aschewueste',
+    zeichen: '☁',
+    farbe: '#8a8580',
     name: { de: 'Aschewüste', en: 'ash waste' },
     wasser: false,
     grabbar: true,
@@ -288,6 +321,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'ruinen',
+    zeichen: '⌂',
+    farbe: '#a89274',
     name: { de: 'Ruinen', en: 'ruins' },
     wasser: false,
     grabbar: true,
@@ -304,6 +339,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'grabmal',
+    zeichen: '✝',
+    farbe: '#a0a0b8',
     name: { de: 'Grabmal', en: 'tomb' },
     wasser: false,
     grabbar: true,
@@ -320,6 +357,8 @@ export const UMGEBUNGEN: readonly Umgebung[] = [
   },
   {
     id: 'ebene',
+    zeichen: '☘',
+    farbe: '#8fb34f',
     name: { de: 'Ebene', en: 'plains' },
     wasser: false,
     grabbar: true,

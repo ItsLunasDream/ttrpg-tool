@@ -21,7 +21,8 @@ import {
   descriptionKey,
   findApp,
   istWaehlbar,
-  nameKey
+  nameKey,
+  VORGABE_GROESSE
 } from '../shared/apps';
 import {
   DEFAULT_LANGUAGE,
@@ -47,6 +48,7 @@ import { VORGABE_THEMA } from '@suite/farben';
 import { WERKZEUG_APP, type Eintrag } from '@suite/eintraege';
 import { Einstellungen, type KiZustandAnsicht } from './Einstellungen';
 import { Suche } from './Suche';
+import { Austausch } from './Austausch';
 import { Ueber } from './Ueber';
 import { Einfuehrung } from './Einfuehrung';
 import { WILLKOMMEN, einfuehrungFuer, stehtAus } from '../shared/einfuehrung';
@@ -145,6 +147,8 @@ export function App() {
    * Hauptprozess (`farbe.ts`); die Huelle faerbt sich hier selbst.
    */
   const [thema, setThema] = useState(VORGABE_THEMA);
+  /** Die Groesse der Oberflaeche in Prozent; gezoomt wird im Hauptprozess. */
+  const [groesse, setGroesse] = useState(VORGABE_GROESSE);
   /**
    * Welche Werkzeuge schon einmal wirklich offen waren.
    *
@@ -183,7 +187,7 @@ export function App() {
     phase: 'waechst' | 'wartet';
   } | null>(null);
   /** Welcher Dialog offen ist, oder `null`. Es ist immer hoechstens einer. */
-  const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | null>(null);
+  const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | null>(null);
   /**
    * Ob zurueck und vorwaerts gerade moeglich sind.
    *
@@ -215,7 +219,7 @@ export function App() {
    * liegt unter den Anwendungen. Ohne diese Meldung waere ein geoeffneter
    * Dialog hinter der laufenden Anwendung nicht zu sehen.
    */
-  const zeigeDialog = useCallback((welcher: 'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | null) => {
+  const zeigeDialog = useCallback((welcher: 'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | null) => {
     setDialog(welcher);
     void window.shell.app.dialog(welcher !== null);
   }, []);
@@ -227,7 +231,7 @@ export function App() {
    * Hauptprozesses heraus aufgerufen wird und dort der Zustand von vorhin
    * stuende.
    */
-  const dialogRef = useRef<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | null>(null);
+  const dialogRef = useRef<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | null>(null);
   dialogRef.current = dialog;
 
   /**
@@ -290,6 +294,7 @@ export function App() {
       setSprache(e.language);
       setKi(e.ki);
       setThema(e.thema);
+      setGroesse(e.groesse);
       setGesehen(e.einfuehrungGesehen);
       // Das Willkommen beim allerersten Start. Es steht hier und nicht in
       // einem eigenen Effekt, weil es genau die Antwort braucht, die gerade
@@ -575,6 +580,31 @@ export function App() {
     []
   );
 
+  /*
+   * Neues aus dem Raum, solange der Dialog „Teilen" zu ist: Nachrichten
+   * anderer und angekommene Pakete. Der Zaehler steht am Knopf; beim
+   * Oeffnen ist er weg.
+   */
+  const [ungelesen, setUngelesen] = useState(0);
+  const dialogJetzt = useRef(dialog);
+  dialogJetzt.current = dialog;
+  useEffect(
+    () =>
+      window.shell.raum.beiEreignis((e) => {
+        if (dialogJetzt.current === 'teilen') return;
+        if ((e.art === 'chat' && !e.zeile.eigene) || e.art === 'pakete') setUngelesen((n) => n + 1);
+      }),
+    []
+  );
+  useEffect(() => {
+    if (dialog === 'teilen') setUngelesen(0);
+  }, [dialog]);
+
+  const setzeGroesse = useCallback(async (prozent: number) => {
+    const e = await window.shell.einstellungen.schreiben({ groesse: prozent });
+    setGroesse(e.groesse);
+  }, []);
+
   const setzeThema = useCallback(async (neu: string) => {
     // Nur schreiben. Das Faerben und die Rueckmeldung kommen vom
     // Hauptprozess, auf demselben Weg wie bei jeder anderen Aenderung.
@@ -689,17 +719,28 @@ export function App() {
             </svg>
           </button>
         </span>
-        <span className="titelleiste__name">TTRPG-Tools</span>
+        <span className="titelleiste__name" title={t('menu.subtitle')}>
+          LORE
+        </span>
         {eintrag && <span className="titelleiste__pfad">› {t(nameKey(eintrag.id))}</span>}
         <span className="titelleiste__fueller" />
+        <button type="button" className="titelleiste__knopf" data-teilen-knopf onClick={() => zeigeDialog('teilen')}>
+          {t('title.share')}
+          {ungelesen > 0 && (
+            <span className="titelleiste__zahl" data-ungelesen>
+              {ungelesen}
+            </span>
+          )}
+        </button>
         <button
           type="button"
           className="titelleiste__knopf"
+          data-einstellungen-knopf
           onClick={() => zeigeDialog('einstellungen')}
         >
           {t('title.settings')}
         </button>
-        <button type="button" className="titelleiste__knopf" onClick={() => zeigeDialog('ueber')}>
+        <button type="button" className="titelleiste__knopf" data-ueber-knopf onClick={() => zeigeDialog('ueber')}>
           {t('title.about')}
         </button>
         <div className="fensterknoepfe">
@@ -779,6 +820,8 @@ export function App() {
           setzeSprache={setzeSprache}
           thema={thema}
           setzeThema={setzeThema}
+          groesse={groesse}
+          setzeGroesse={setzeGroesse}
           ki={ki}
           setzeKi={setzeKi}
           kiZustand={kiZustand}
@@ -800,10 +843,12 @@ export function App() {
            * Vorgeschichte anders aus, und man musste ein Werkzeug oeffnen,
            * bevor man es einstellen konnte. Das ist verkehrt herum.
            *
-           * Jetzt stehen alle da; wer eines waehlt, das nicht laeuft,
-           * bekommt statt der Felder einen Knopf, der es oeffnet.
+           * Jetzt stehen alle da, die eigene Einstellungen HABEN; wer eines
+           * waehlt, das nicht laeuft, bekommt statt der Felder einen Knopf,
+           * der es oeffnet. Werkzeuge ohne eigene Einstellungen stehen gar
+           * nicht in der Liste — eine leere Seite je Werkzeug war Rauschen.
            */
-          werkzeuge={APPS.filter((app) => istWaehlbar(app.status)).map((app) => ({
+          werkzeuge={APPS.filter((app) => istWaehlbar(app.status) && app.einstellungen).map((app) => ({
             id: app.id,
             name: t(nameKey(app.id)),
             laeuft: montierte.has(app.id)
@@ -825,6 +870,8 @@ export function App() {
           t={t}
         />
       )}
+      {dialog === 'teilen' && <Austausch onClose={() => zeigeDialog(null)} t={t} />}
+
       {dialog === 'suche' && (
         <Suche
           eintraege={[...appEintraege, ...eintraege]}
@@ -890,8 +937,17 @@ function Startmenue({
 }) {
   return (
     <main className="menue">
-      <h1 className="menue__frage">{t('menu.question')}</h1>
-      <p className="menue__hinweis">{t('menu.hint')}</p>
+      {/*
+        Oben der Titel — oder ein Banner, sobald eines da ist. Es kommt
+        denselben Weg wie die Symbole: `banner.png` im Symbolordner, der
+        mitgelieferte oder der eigene im Datenordner.
+      */}
+      {symbole.banner ? (
+        <img className="menue__banner" src={symbole.banner} alt={t('menu.title')} />
+      ) : (
+        <h1 className="menue__titel">{t('menu.title')}</h1>
+      )}
+      <p className="menue__untertitel">{t('menu.subtitle')}</p>
 
       {/*
         Nach Rolle am Tisch gruppiert statt alle neun nebeneinander.
@@ -943,7 +999,10 @@ function Startmenue({
                       </span>
                       <span className="kachel__name">{t(nameKey(app.id))}</span>
                       <span className="kachel__text">{t(descriptionKey(app.id))}</span>
-                      <span className="kachel__marke">{t(STATUS_KEY[app.status])}</span>
+                      {/* „Bereit" sagt nichts, was die Kachel nicht schon sagt. */}
+                      {app.status === 'bereit' ? null : (
+                        <span className="kachel__marke">{t(STATUS_KEY[app.status])}</span>
+                      )}
                     </button>
                   );
                 })}
@@ -1052,7 +1111,7 @@ function Buehne({
       <nav
         className="schiene"
         style={{ width: CHROME.schieneBreite }}
-        aria-label="TTRPG-Tools"
+        aria-label="LORE"
         ref={schiene}
       >
         {markeOben !== null && (

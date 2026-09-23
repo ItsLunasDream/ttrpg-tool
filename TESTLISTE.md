@@ -17,7 +17,7 @@ später eine Rückfrage.
 ## Zuerst: der frische Start
 
 Am aussagekräftigsten auf einem Rechner, auf dem die Sammlung noch nie lief.
-Ersatzweise den Datenordner umbenennen (`%APPDATA%\ttrpg-tools`).
+Ersatzweise den Datenordner umbenennen (`%APPDATA%\LORE`, bei älteren Installationen `%APPDATA%\TTRPG-Tools`).
 
 - [ ] Beim allerersten Start geht das Willkommen auf, mit Symbol und vier Punkten
 - [ ] „Los geht's" schließt es, und es kommt beim nächsten Start **nicht** wieder
@@ -48,7 +48,7 @@ setx TTRPG_TOOLS_TASTEN_LOG 1        (einmalig, danach neues Fenster)
 
 Dann die Anwendung starten, im Startmenü zweimal die Daumentasten drücken,
 ein Werkzeug öffnen, dort noch einmal drücken, beenden. Die Datei
-`maustasten.log` im Datenordner (`%APPDATA%\ttrpg-tools`) enthält je Signal
+`maustasten.log` im Datenordner (`%APPDATA%\LORE`, bei älteren Installationen `%APPDATA%\TTRPG-Tools`) enthält je Signal
 eine Zeile: ob es als `app-command` am Fenster ankam oder aus dem Dokument,
 aus welchem Werkzeug, und welches Ereignis es war. Bleibt sie beim Druck im
 Werkzeug leer, kommt die Taste gar nicht an — dann liegt es an Chromium oder
