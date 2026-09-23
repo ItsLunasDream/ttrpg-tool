@@ -214,6 +214,8 @@ export interface MontageHaken {
    */
   readonly raum?: {
     sende(werkzeug: string, inhalt: string, an: string | null): boolean;
+    /** Eine gewoehnliche Chatzeile, etwa ein Wurf aus dem Wuerfel. */
+    chatte(text: string, an: string | null): boolean;
     anfang(werkzeug: string): {
       lage: RaumLage;
       nachrichten: readonly { von: { id: string; name: string }; inhalt: string }[];
@@ -446,7 +448,16 @@ async function montiereDice(id: string, haken: MontageHaken): Promise<MontierteA
     partition: sitzung(id),
     devServerUrl: process.env.DICE_DEV_SERVER_URL,
     language: haken.language,
-    onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    raum: haken.raum
+      ? {
+          lage: () => {
+            const lage = haken.raum!.anfang('dice').lage;
+            return { rolle: lage.rolle, ichId: lage.ich?.id ?? null };
+          },
+          chatte: (text, an) => haken.raum!.chatte(text, an)
+        }
+      : undefined
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);

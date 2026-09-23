@@ -25,7 +25,15 @@ export interface Einstellungen {
   /** Seitenzahl des eigenen Wuerfels. */
   readonly eigeneSeiten: number;
   readonly sprache: 'de' | 'en';
+  /**
+   * Ob Wuerfe in den Raum gehen (Teilen, im lokalen Netz): gar nicht, an
+   * alle oder nur an die Spielleitung (den Gastgeber des Raums).
+   */
+  readonly teilen: Teilen;
 }
+
+export const TEILEN = ['aus', 'alle', 'dm'] as const;
+export type Teilen = (typeof TEILEN)[number];
 
 export const STANDARD: Einstellungen = {
   schemaVersion: 1,
@@ -35,7 +43,8 @@ export const STANDARD: Einstellungen = {
   streifenAn: true,
   dreiD: false,
   eigeneSeiten: 3,
-  sprache: 'en'
+  sprache: 'en',
+  teilen: 'aus'
 };
 
 /**
@@ -60,7 +69,8 @@ export function bereinige(roh: unknown): Einstellungen {
     // nur ein ausdrueckliches true.
     dreiD: e.dreiD === true,
     eigeneSeiten: seiten,
-    sprache: e.sprache === 'de' ? 'de' : 'en'
+    sprache: e.sprache === 'de' ? 'de' : 'en',
+    teilen: TEILEN.includes(e.teilen as Teilen) ? (e.teilen as Teilen) : STANDARD.teilen
   };
 }
 

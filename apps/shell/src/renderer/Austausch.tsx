@@ -250,7 +250,7 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
   );
 
   return (
-    <Dialog titel={t('share.title')} schliessenText={t('dialog.close')} onClose={onClose}>
+    <Dialog titel={t('share.title')} schliessenText={t('dialog.close')} onClose={onClose} klasse="dialog--teilen">
       <div className="austausch__marke">
         <AppSymbol id="austausch" size={28} bild={symbole.austausch} />
         <div className="segment" role="group" aria-label={t('share.title')}>

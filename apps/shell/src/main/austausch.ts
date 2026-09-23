@@ -10,9 +10,12 @@
  * Datei. Genau derselbe Weg wird spaeter der Raum im lokalen Netz gehen —
  * nur dass das Paket dann nicht auf der Platte liegt, sondern ankommt.
  */
-import { readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import {
   alsPaket,
+  freieKennung,
+  setzeKopfwert,
   lesePaket,
   MAX_PAKET_BYTES,
   PaketFehler,
@@ -29,13 +32,101 @@ import { austausch as monster } from '../../../monster/src/main/embed';
 import { austausch as notizen } from '../../../backstory/src/main/embed';
 import { austausch as regeln } from '../../../nachschlagewerk/src/main/embed';
 import { alleEintraege } from './suche';
+import { regelNach } from '../../../nachschlagewerk/src/shared/bestand';
+
+/** Eine Kennung, die gefahrlos zum Dateinamen werden darf. */
+function sichereKennung(kennung: string): string | null {
+  return /^[\p{L}\p{N}][\p{L}\p{N}_.-]{0,199}$/u.test(kennung) && !kennung.includes('..') ? kennung : null;
+}
+
+/** Der Name aus dem Kopf (`name: …`, auch in Anfuehrungszeichen), sonst die Kennung. */
+function kopfname(inhalt: string, ersatz: string): string {
+  const kopf = /^---\r?\n([\s\S]*?)\r?\n---/.exec(inhalt)?.[1] ?? '';
+  const roh = /^name:\s*(.*)$/m.exec(kopf)?.[1]?.trim() ?? '';
+  if (!roh) return ersatz;
+  if (roh.startsWith('"')) {
+    try {
+      return String(JSON.parse(roh)) || ersatz;
+    } catch {
+      return ersatz;
+    }
+  }
+  return roh.replace(/^'(.*)'$/, '$1') || ersatz;
+}
+
+/**
+ * Ein Werkzeug, dessen Eintraege je eine Markdown-Datei in einem Ordner
+ * sind: Zustaende, Begegnungen (Initiative und Encounter), magische
+ * Gegenstaende, Zufallstabellen. Gleich gebaut wie der Monster Creator,
+ * nur ohne dass jedes Werkzeug es noch einmal schreiben muss.
+ *
+ * Bilder reisen hier nicht mit (Bilder der Initiative bleiben daheim).
+ */
+function ordnerTeilnehmer(werkzeug: string, art: string, ordnerIn: (datenordner: string) => string): Teilnehmer {
+  const vorhandene = async (ordner: string) => {
+    try {
+      return (await readdir(ordner)).filter((n) => n.endsWith('.md')).map((n) => n.slice(0, -3));
+    } catch {
+      return [];
+    }
+  };
+  return {
+    werkzeug,
+    async gib(datenordner, kennung) {
+      const id = sichereKennung(kennung);
+      if (!id) return null;
+      try {
+        const inhalt = await readFile(path.join(ordnerIn(datenordner), `${id}.md`), 'utf8');
+        return { werkzeug, kennung: id, name: kopfname(inhalt, id), art, inhalt, bilder: [] };
+      } catch {
+        return null;
+      }
+    },
+    async gibtEs(datenordner, sendung) {
+      const id = sichereKennung(sendung.kennung);
+      return id !== null && (await vorhandene(ordnerIn(datenordner))).includes(id);
+    },
+    async nimmAn(datenordner, sendung, modus) {
+      if (modus === 'verwerfen') return { ok: true };
+      if (sendung.inhalt === null) return { ok: false, grund: 'kein Inhalt' };
+      const wunsch = sichereKennung(sendung.kennung);
+      if (!wunsch) return { ok: false, grund: 'ungueltige Kennung' };
+      const ordner = ordnerIn(datenordner);
+      await mkdir(ordner, { recursive: true });
+      const id = modus === 'daneben' ? freieKennung(wunsch, await vorhandene(ordner)) : wunsch;
+      await writeFile(path.join(ordner, `${id}.md`), setzeKopfwert(sendung.inhalt, 'id', id), 'utf8');
+      return { ok: true, kennung: id };
+    }
+  };
+}
 
 /**
  * Wer mitmacht. Ein Werkzeug ohne Eintrag hier taucht im Austausch nicht
  * auf; die Huelle muss ueber es nichts wissen.
+ *
+ * Die Ordner sind dieselben, die die Leser der Suche (suche.ts) lesen.
  */
+/** Wo die Werkzeuge ihre Dateien ablegen, je eine Markdown-Datei pro Eintrag. */
+const ORDNER: Readonly<Record<string, (datenordner: string) => string>> = {
+  monster: (d) => path.join(d, 'monster', 'monster'),
+  zustaende: (d) => path.join(d, 'zustaende', 'zustaende'),
+  initiative: (d) => path.join(d, 'initiative', 'begegnungen'),
+  encounter: (d) => path.join(d, 'encounter', 'encounter'),
+  magicitems: (d) => path.join(d, 'magicitems', 'gegenstaende'),
+  loot: (d) => path.join(d, 'loot', 'tabellen')
+};
+
 const TEILNEHMER: ReadonlyMap<string, Teilnehmer> = new Map(
-  [monster, notizen, regeln].map((t) => [t.werkzeug, t])
+  [
+    monster,
+    notizen,
+    regeln,
+    ordnerTeilnehmer('zustaende', 'Zustand', ORDNER.zustaende),
+    ordnerTeilnehmer('initiative', 'Begegnung', ORDNER.initiative),
+    ordnerTeilnehmer('encounter', 'Begegnung', ORDNER.encounter),
+    ordnerTeilnehmer('magicitems', 'Magischer Gegenstand', ORDNER.magicitems),
+    ordnerTeilnehmer('loot', 'Zufallstabelle', ORDNER.loot)
+  ].map((t) => [t.werkzeug, t])
 );
 
 export function machtMit(werkzeug: string): boolean {
@@ -48,9 +139,63 @@ export function machtMit(werkzeug: string): boolean {
  * (docs/austausch.md).
  */
 export async function teilbar(datenordner: string): Promise<readonly Eintrag[]> {
-  return (await alleEintraege(datenordner)).filter(
+  const eintraege = (await alleEintraege(datenordner)).filter(
     (e) => machtMit(e.werkzeug) && !(e.werkzeug === 'nachschlagewerk' && e.kennung.startsWith('notiz/'))
   );
+  // „Zuletzt hinzugefuegt" braucht ein Datum. Wer keines mitbringt und als
+  // Datei im eigenen Ordner liegt, bekommt das der Datei.
+  return Promise.all(
+    eintraege.map(async (e) => {
+      if (e.geaendert) return e;
+      // Hausregeln liegen als Datei im Nachschlagewerk; die offiziellen
+      // Regeln haben kein Datum und bleiben ohne.
+      const hausregel = e.werkzeug === 'nachschlagewerk' && e.kennung.startsWith('hausregel/');
+      const ordner = hausregel ? (d: string) => path.join(d, 'nachschlagewerk', 'hausregeln') : ORDNER[e.werkzeug];
+      const id = sichereKennung(hausregel ? e.kennung.slice('hausregel/'.length) : e.kennung);
+      if (!ordner || !id) return e;
+      try {
+        return { ...e, geaendert: (await stat(path.join(ordner(datenordner), `${id}.md`))).mtime.toISOString() };
+      } catch {
+        return e;
+      }
+    })
+  );
+}
+
+/** Kopfzeilen, die in einer Vorschau nur stoeren. */
+const OHNE_IN_VORSCHAU = /^(id|schemaVersion|geaendert|erstellt|loot|paket|paket_name|name|teilnehmer)\s*:/;
+
+/**
+ * Ein kurzer Blick in einen Eintrag, fuer die Vorschau beim Darueberfahren
+ * im Teilen. Klartext, hoechstens einige hundert Zeichen.
+ */
+export async function vorschau(
+  datenordner: string,
+  werkzeug: string,
+  kennung: string,
+  sprache: 'de' | 'en'
+): Promise<string> {
+  let text = '';
+  if (werkzeug === 'nachschlagewerk' && !kennung.startsWith('hausregel/')) {
+    text = regelNach(kennung)?.text[sprache] ?? '';
+  } else {
+    const inhalt = (await TEILNEHMER.get(werkzeug)?.gib(datenordner, kennung))?.inhalt ?? '';
+    const kopf = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(inhalt);
+    const kopfzeilen = (kopf?.[1] ?? '')
+      .split(/\r?\n/)
+      .filter((z) => z.trim() && !OHNE_IN_VORSCHAU.test(z) && !/^\s*-/.test(z))
+      .map((z) => z.replace(/^(\w+):\s*"?(.*?)"?$/, '$1: $2'))
+      .filter((z) => !/:\s*$/.test(z));
+    const rumpf = kopf ? inhalt.slice(kopf[0].length) : inhalt;
+    text = [...kopfzeilen, '', rumpf].join('\n');
+  }
+  const klar = text
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[\[([^\]|]+)(\|[^\]]+)?\]\]/g, '$1')
+    .replace(/[*_`#>]+/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return klar.length > 700 ? `${klar.slice(0, 700).trimEnd()} …` : klar;
 }
 
 /** Schnuert die gewaehlten Eintraege. Was es nicht mehr gibt, faellt heraus. */

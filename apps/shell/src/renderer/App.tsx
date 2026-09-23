@@ -591,11 +591,21 @@ export function App() {
   const [ungelesen, setUngelesen] = useState(0);
   const dialogJetzt = useRef(dialog);
   dialogJetzt.current = dialog;
+  // Pakete zaehlen nur, wenn eines dazukommt; ein angenommenes, das aus der
+  // Liste verschwindet, ist nichts Neues.
+  const paketeVorher = useRef(0);
   useEffect(
     () =>
       window.shell.raum.beiEreignis((e) => {
+        if (e.art === 'pakete') {
+          const neu = e.pakete.length - paketeVorher.current;
+          paketeVorher.current = e.pakete.length;
+          if (neu > 0 && dialogJetzt.current !== 'teilen') setUngelesen((n) => n + neu);
+          return;
+        }
         if (dialogJetzt.current === 'teilen') return;
-        if ((e.art === 'chat' && !e.zeile.eigene) || e.art === 'pakete') setUngelesen((n) => n + 1);
+        // Chat, auch Wuerfe aus dem Wuerfel-Werkzeug: sie kommen als Chat an.
+        if (e.art === 'chat' && !e.zeile.eigene) setUngelesen((n) => n + 1);
       }),
     []
   );
@@ -731,8 +741,8 @@ export function App() {
           <AppSymbol id="austausch" size={16} bild={symbole.austausch} />
           {t('title.share')}
           {ungelesen > 0 && (
-            <span className="titelleiste__zahl" data-ungelesen>
-              {ungelesen}
+            <span className="titelleiste__zahl" data-ungelesen aria-label={t('share.unread', { n: ungelesen })}>
+              {ungelesen > 99 ? '99+' : ungelesen}
             </span>
           )}
         </button>

@@ -15,10 +15,13 @@
  * Ganz oben „Zuletzt geoeffnet": die letzten zehn Eintraege, die in einem
  * Werkzeug offen waren (Rueckmeldung), als eigene Gruppe wie „Monster".
  *
- * Die offiziellen Regeln des Nachschlagewerks (ueber 900) stehen nur bei
- * einer Suche in der Liste; sonst waeren sie eine Wand.
+ * Die Gruppen sind eingeklappt, bis man sie oeffnet (Rueckmeldung); so
+ * stehen auch die ueber 900 offiziellen Regeln in der Liste, ohne eine Wand
+ * zu sein. Waehrend einer Suche sind alle Gruppen mit Treffern offen.
+ * „Zuletzt geoeffnet" ist von Anfang an offen: es ist der schnelle Griff.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { eintragsSchluessel, finde, type Eintrag } from '@suite/eintraege';
 import type { MessageKey, MessageParams } from '../shared/i18n';
 import { nameKey } from '../shared/apps';
@@ -36,10 +39,9 @@ interface Props {
 
 /** Kennung der Gruppe „Zuletzt geoeffnet" — kein Werkzeug heisst so. */
 const ZULETZT = '~zuletzt';
-
-function istOffiziell(e: Eintrag): boolean {
-  return e.werkzeug === 'nachschlagewerk' && !e.kennung.startsWith('hausregel/');
-}
+/** Kennung der Gruppe „Zuletzt hinzugefuegt": neueste Speicherzeit zuerst. */
+const NEU = '~neu';
+const istSondergruppe = (id: string) => id === ZULETZT || id === NEU;
 
 /** Wie viele „Zuletzt geoeffnet" zeigt. */
 const ZULETZT_ANZAHL = 10;
@@ -47,21 +49,20 @@ const ZULETZT_ANZAHL = 10;
 export function Auswahl({ teilbar, zuletzt = [], gewaehlt, setGewaehlt, symbole, t }: Props) {
   const [suche, setSuche] = useState('');
   const [apps, setApps] = useState<ReadonlySet<string>>(new Set());
+  const [offen, setOffen] = useState<ReadonlySet<string>>(new Set([ZULETZT, NEU]));
   const werkzeugName = (id: string) => t(nameKey(id));
 
-  /** Die Apps mit Eintraegen, und wie viele (ohne die offiziellen Regeln). */
+  /** Die Apps mit Eintraegen, und wie viele. */
   const chips = useMemo(() => {
     const zahl = new Map<string, number>();
-    for (const e of teilbar ?? []) if (!istOffiziell(e)) zahl.set(e.werkzeug, (zahl.get(e.werkzeug) ?? 0) + 1);
+    for (const e of teilbar ?? []) zahl.set(e.werkzeug, (zahl.get(e.werkzeug) ?? 0) + 1);
     return [...zahl.entries()].sort((a, b) => werkzeugName(a[0]).localeCompare(werkzeugName(b[0])));
   }, [teilbar, t]);
 
   const gruppen = useMemo(() => {
     if (!teilbar) return [];
     const imFilter = (e: Eintrag) => apps.size === 0 || apps.has(e.werkzeug);
-    const liste = suche.trim()
-      ? [...finde(teilbar.filter(imFilter), suche, 300)]
-      : teilbar.filter((e) => imFilter(e) && !istOffiziell(e));
+    const liste = suche.trim() ? [...finde(teilbar.filter(imFilter), suche, 300)] : teilbar.filter(imFilter);
     const nachApp = new Map<string, Eintrag[]>();
     for (const e of liste) nachApp.set(e.werkzeug, [...(nachApp.get(e.werkzeug) ?? []), e]);
     const nachAppGruppen = [...nachApp.entries()]
@@ -74,9 +75,7 @@ export function Auswahl({ teilbar, zuletzt = [], gewaehlt, setGewaehlt, symbole,
      * Zuletzt geoeffnet: der Ort eines Werkzeugs ist die Kennung des
      * Eintrags; im Story Creator nur die Notiz, ohne Kampagne davor.
      */
-    // Hier zaehlt nur der App-Filter (und eine Suche): was man gerade offen
-    // hatte, gehoert dazu, auch wenn es eine offizielle Regel ist.
-    const imBlick = new Set((suche.trim() ? liste : teilbar.filter(imFilter)).map(eintragsSchluessel));
+    const imBlick = new Set(liste.map(eintragsSchluessel));
     const neu: Eintrag[] = [];
     for (const z of zuletzt) {
       const e = teilbar.find(
@@ -85,8 +84,62 @@ export function Auswahl({ teilbar, zuletzt = [], gewaehlt, setGewaehlt, symbole,
       if (e && imBlick.has(eintragsSchluessel(e)) && !neu.includes(e)) neu.push(e);
       if (neu.length >= ZULETZT_ANZAHL) break;
     }
-    return neu.length ? [{ werkzeug: ZULETZT, eintraege: neu }, ...nachAppGruppen] : nachAppGruppen;
+    // Zuletzt hinzugefuegt (oder geaendert): nach der Speicherzeit, die die
+    // Huelle mitliefert. Offizielle Regeln haben keine und fehlen hier.
+    const frisch = liste
+      .filter((e) => e.geaendert)
+      .sort((a, b) => (b.geaendert ?? '').localeCompare(a.geaendert ?? ''))
+      .slice(0, ZULETZT_ANZAHL);
+    return [
+      ...(neu.length ? [{ werkzeug: ZULETZT, eintraege: neu }] : []),
+      ...(frisch.length ? [{ werkzeug: NEU, eintraege: frisch }] : []),
+      ...nachAppGruppen
+    ];
   }, [teilbar, suche, apps, t, zuletzt]);
+
+  /*
+   * Vorschau beim Darueberfahren: nach kurzem Verweilen, damit ein Wischen
+   * ueber die Liste nicht zehn Anfragen losschickt. Gelesenes bleibt im
+   * Speicher, solange der Dialog offen ist.
+   */
+  const [vorschau, setVorschau] = useState<{ schluessel: string; text: string; x: number; y: number } | null>(null);
+  const gelesen = useRef(new Map<string, string>());
+  const warte = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (warte.current) clearTimeout(warte.current);
+  }, []);
+  const zeigeVorschau = (e: Eintrag, ziel: HTMLElement) => {
+    if (warte.current) clearTimeout(warte.current);
+    const schluessel = eintragsSchluessel(e);
+    warte.current = setTimeout(() => {
+      const kasten = ziel.getBoundingClientRect();
+      const ort = { x: kasten.left, y: kasten.bottom + 6 };
+      const bekannt = gelesen.current.get(schluessel);
+      if (bekannt !== undefined) {
+        setVorschau({ schluessel, text: bekannt, ...ort });
+        return;
+      }
+      void window.shell.austausch.vorschau(e.werkzeug, e.kennung).then(
+        (text) => {
+          gelesen.current.set(schluessel, text);
+          setVorschau((alt) => (alt === null || alt.schluessel === schluessel ? { schluessel, text, ...ort } : alt));
+        },
+        () => undefined
+      );
+      setVorschau({ schluessel, text: '…', ...ort });
+    }, 350);
+  };
+  const versteckeVorschau = () => {
+    if (warte.current) clearTimeout(warte.current);
+    setVorschau(null);
+  };
+
+  const schalteGruppe = (id: string) => {
+    const neu = new Set(offen);
+    if (neu.has(id)) neu.delete(id);
+    else neu.add(id);
+    setOffen(neu);
+  };
 
   const schalteApp = (id: string) => {
     const neu = new Set(apps);
@@ -142,6 +195,22 @@ export function Auswahl({ teilbar, zuletzt = [], gewaehlt, setGewaehlt, symbole,
         onChange={(e) => setSuche(e.target.value)}
       />
 
+      {vorschau && vorschau.text
+        ? createPortal(
+        <div
+          className="auswahl__vorschau motion-erscheinen"
+          data-vorschau={vorschau.schluessel}
+          style={{
+            left: Math.min(vorschau.x, window.innerWidth - 380),
+            top: Math.min(vorschau.y, window.innerHeight - 240)
+          }}
+        >
+          {vorschau.text}
+        </div>,
+            document.body
+          )
+        : null}
+
       {gruppen.length === 0 ? (
         <p className="einst__satz">{t('share.nothing')}</p>
       ) : (
@@ -149,19 +218,41 @@ export function Auswahl({ teilbar, zuletzt = [], gewaehlt, setGewaehlt, symbole,
           {gruppen.map(({ werkzeug, eintraege }) => {
             const schluessel = eintraege.map(eintragsSchluessel);
             const alle = schluessel.every((k) => gewaehlt.has(k));
+            const aufgeklappt = offen.has(werkzeug) || suche.trim() !== '';
+            const gewaehltHier = schluessel.filter((k) => gewaehlt.has(k)).length;
             return (
-              <section key={werkzeug} className="auswahl__gruppe motion-erscheinen" data-gruppe={werkzeug}>
+              <section
+                key={werkzeug}
+                className={aufgeklappt ? 'auswahl__gruppe is-offen motion-erscheinen' : 'auswahl__gruppe motion-erscheinen'}
+                data-gruppe={werkzeug}
+                data-offen={aufgeklappt}
+              >
                 <header className="auswahl__kopf">
-                  {werkzeug === ZULETZT ? (
+                  <button
+                    type="button"
+                    className="auswahl__klappe"
+                    aria-expanded={aufgeklappt}
+                    data-gruppe-klappe={werkzeug}
+                    onClick={() => schalteGruppe(werkzeug)}
+                  >
+                    <span className="auswahl__pfeil" aria-hidden="true">
+                      ›
+                    </span>
+                  </button>
+                  {istSondergruppe(werkzeug) ? (
                     <span className="auswahl__uhr" aria-hidden="true">
-                      ⏲
+                      {werkzeug === NEU ? '✚' : '⏲'}
                     </span>
                   ) : (
                     <AppSymbol id={werkzeug} size={20} bild={symbole[werkzeug]} />
                   )}
-                  <strong>{werkzeug === ZULETZT ? t('share.recent') : werkzeugName(werkzeug)}</strong>
-                  <span className="auswahl__zahl">{eintraege.length}</span>
-                  <span className="auswahl__luecke" />
+                  <strong>
+                    {werkzeug === ZULETZT ? t('share.recent') : werkzeug === NEU ? t('share.recentlyAdded') : werkzeugName(werkzeug)}
+                  </strong>
+                  <span className="auswahl__zahl">
+                    {gewaehltHier > 0 ? `${gewaehltHier} / ${eintraege.length}` : eintraege.length}
+                  </span>
+                  <span className="auswahl__luecke" onClick={() => schalteGruppe(werkzeug)} />
                   <button
                     type="button"
                     className="auswahl__alle"
@@ -171,20 +262,25 @@ export function Auswahl({ teilbar, zuletzt = [], gewaehlt, setGewaehlt, symbole,
                     {alle ? t('share.noneInGroup') : t('share.allInGroup')}
                   </button>
                 </header>
+                {aufgeklappt ? (
                 <ul className="auswahl__liste">
                   {eintraege.map((e) => {
                     const k = eintragsSchluessel(e);
                     const an = gewaehlt.has(k);
                     return (
                       <li key={k}>
-                        <label className={an ? 'auswahl__karte is-an' : 'auswahl__karte'}>
+                        <label
+                          className={an ? 'auswahl__karte is-an' : 'auswahl__karte'}
+                          onMouseEnter={(ev) => zeigeVorschau(e, ev.currentTarget)}
+                          onMouseLeave={versteckeVorschau}
+                        >
                           <input
                             type="checkbox"
                             data-teilen={k}
                             checked={an}
                             onChange={() => schalte([k], !an)}
                           />
-                          {werkzeug === ZULETZT ? <AppSymbol id={e.werkzeug} size={16} bild={symbole[e.werkzeug]} /> : null}
+                          {istSondergruppe(werkzeug) ? <AppSymbol id={e.werkzeug} size={16} bild={symbole[e.werkzeug]} /> : null}
                           <span className="auswahl__name">{e.name}</span>
                           {e.art ? <span className="auswahl__art">{e.art}</span> : null}
                         </label>
@@ -192,6 +288,7 @@ export function Auswahl({ teilbar, zuletzt = [], gewaehlt, setGewaehlt, symbole,
                     );
                   })}
                 </ul>
+                ) : null}
               </section>
             );
           })}

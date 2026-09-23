@@ -179,6 +179,17 @@ export class Raumdienst {
     }, 2000);
   }
 
+  /**
+   * Liste leeren und neu sammeln. Die Gastgeber melden sich alle zwei
+   * Sekunden; wer noch da ist, steht gleich wieder drin. Gegen Eintraege,
+   * die haengen geblieben sind, und fuer das Gefuehl, etwas getan zu haben.
+   */
+  aktualisiereSuche(): void {
+    this.suche();
+    this.gefunden.clear();
+    this.meldeRaeume();
+  }
+
   raeume(): GefundenerRaum[] {
     return [...this.gefunden.values()].map(({ gesehen: _g, ...r }) => r);
   }

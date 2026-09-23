@@ -297,7 +297,8 @@ export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]>
         art: beschriftung.get(notiz.type) ?? notiz.type,
         // Die Kampagne gehoert dazu: wer „Waldheim Koenig" tippt, meint den
         // Koenig aus genau dieser Kampagne.
-        stichworte: [kampagne.name, ...notiz.aliases, ...notiz.tags].join(' ')
+        stichworte: [kampagne.name, ...notiz.aliases, ...notiz.tags].join(' '),
+        geaendert: notiz.updatedAt
       });
     }
   }

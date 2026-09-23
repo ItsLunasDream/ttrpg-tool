@@ -1462,6 +1462,11 @@ body {
 
 /* ---------- Teilen (Austausch, docs/austausch.md) ---------- */
 
+/* Doppelt so breit wie die uebrigen Dialoge: Auswahl und Chat brauchen Platz. */
+.dialog--teilen {
+  width: min(920px, calc(100vw - 48px));
+}
+
 .austausch {
   display: flex;
   flex-direction: column;
@@ -1557,6 +1562,47 @@ body {
   font-size: 1em;
 }
 
+.raum__suchkopf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.raum__suchkopf .raum__kopf {
+  margin: 0;
+  flex: 1;
+}
+
+/* Der kleine Kreis beim Aktualisieren. Unsichtbar, solange nichts passiert,
+   damit der Knopf nicht springt. */
+.raum__kreis {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--rand);
+  border-top-color: var(--betont);
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.raum__kreis.is-an {
+  opacity: 1;
+  animation: raum-kreis 0.8s linear infinite;
+}
+
+@keyframes raum-kreis {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .raum__kreis.is-an {
+    animation-duration: 2.4s;
+  }
+}
+
 .raum__warnung {
   font-size: 0.85em;
   opacity: 0.8;
@@ -1597,13 +1643,29 @@ body {
   flex: 3 1 200px;
 }
 
+/* Wie bei Discord oder WhatsApp: ein rotes Abzeichen mit der Zahl. */
 .titelleiste__zahl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
   margin-left: 6px;
-  padding: 0 6px;
-  border-radius: 8px;
-  font-size: 0.8em;
-  background: var(--betont, #6b8cff);
-  color: var(--grund, #111);
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  background: var(--gefahr, #e5484d);
+  color: #fff;
+  animation: zahl-kommt 220ms ease-out;
+}
+
+@keyframes zahl-kommt {
+  from {
+    transform: scale(0.4);
+  }
 }
 
 /* Die Teilen-App traegt ihr Symbol in der Titelleiste. */
@@ -1683,11 +1745,46 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.auswahl__gruppe.is-offen .auswahl__kopf {
   margin-bottom: 6px;
+}
+
+.auswahl__klappe {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-leise);
+  cursor: pointer;
+}
+
+.auswahl__klappe:hover {
+  background: var(--lasur, rgb(255 255 255 / 0.06));
+  color: var(--text);
+}
+
+.auswahl__pfeil {
+  display: inline-block;
+  font-size: 18px;
+  line-height: 1;
+  transition: transform var(--dauer-kurz, 150ms) ease;
+}
+
+.auswahl__gruppe.is-offen .auswahl__pfeil {
+  transform: rotate(90deg);
 }
 
 .auswahl__luecke {
   flex: 1;
+  align-self: stretch;
+  cursor: pointer;
 }
 
 .auswahl__alle {
@@ -1743,6 +1840,28 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Vorschau beim Darueberfahren: schwebt unter der Karte, faengt keine Maus. */
+.auswahl__vorschau {
+  position: fixed;
+  z-index: 50;
+  width: 360px;
+  max-height: 220px;
+  overflow: hidden;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--rand);
+  border-radius: 10px;
+  background: var(--grund);
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  pointer-events: none;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.35);
+  -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent);
+  mask-image: linear-gradient(to bottom, #000 80%, transparent);
 }
 
 .auswahl__uhr {

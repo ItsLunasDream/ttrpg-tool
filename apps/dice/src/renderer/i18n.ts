@@ -19,6 +19,18 @@ export const texte = {
   'verlauf.hinweis': ['Nur für diese Sitzung', 'This session only'],
   'verlauf.holen': ['Diesen Wurf zurückholen', 'Load this pool again'],
   'verlauf.leeren': ['Verlauf leeren', 'Clear history'],
+  'teilen.titel': ['Würfe im Raum teilen', 'Share rolls in the room'],
+  'teilen.aus': ['Nicht teilen', 'Don’t share'],
+  'teilen.alle': ['An alle', 'Everyone'],
+  'teilen.dm': ['Nur an DM', 'DM only'],
+  'teilen.keinRaum': [
+    'Du bist in keinem Raum. Öffne einen unter „Teilen“, dann gehen die Würfe hinaus.',
+    'You are not in a room. Open one under “Share” and rolls will go out.'
+  ],
+  'teilen.gesendetAlle': ['Wurf an alle geschickt.', 'Roll sent to everyone.'],
+  'teilen.gesendetDm': ['Wurf an die Spielleitung geschickt.', 'Roll sent to the DM.'],
+  'teilen.selbstDm': ['Du leitest den Raum: der Wurf bleibt bei dir.', 'You host the room: the roll stays with you.'],
+  'teilen.fehler': ['Der Wurf konnte nicht geschickt werden.', 'The roll could not be sent.'],
   'aussehen.titel': ['Aussehen', 'Appearance'],
   'aussehen.farbe': ['Farbe', 'Colour'],
   'aussehen.muster': ['Muster', 'Pattern'],

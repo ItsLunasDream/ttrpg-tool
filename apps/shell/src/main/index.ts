@@ -77,6 +77,7 @@ import {
   schnuere,
   schreibePaket,
   teilbar,
+  vorschau as austauschVorschau,
   zieleFuer
 } from './austausch';
 import { alsPaket, gastname, lesePaket, PAKET_ENDUNG, type Modus, type Paket } from '@suite/austausch';
@@ -457,6 +458,7 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
     onOrt: (ort) => meldeOrt(herkunft, ort),
     raum: {
       sende: (werkzeug, inhalt, an) => raumDienst?.sendeWerkzeug(werkzeug, inhalt, an) ?? false,
+      chatte: (text, an) => raumDienst?.chatte(text, an) ?? false,
       anfang: (werkzeug) => ({
         lage: raumLage(),
         nachrichten: werkzeug === 'initiative' ? [...geteilteStaende.values()] : []
@@ -884,6 +886,14 @@ function registriereKanaele(): void {
   let eingang: Paket | null = null;
 
   handle('austausch:teilbar', () => teilbar(app.getPath('userData')));
+  handle('austausch:vorschau', (_event, werkzeug: string, kennung: string) =>
+    austauschVorschau(
+      app.getPath('userData'),
+      String(werkzeug),
+      String(kennung),
+      gemerkteEinstellungen?.language === 'de' ? 'de' : 'en'
+    )
+  );
   handle('austausch:zuletzt', () => [...zuletztGeoeffnet]);
 
   handle(
@@ -991,6 +1001,10 @@ function registriereKanaele(): void {
   }));
   handle('raum:suchen', () => {
     raum.suche();
+    return raum.raeume();
+  });
+  handle('raum:aktualisieren', () => {
+    raum.aktualisiereSuche();
     return raum.raeume();
   });
   handle('raum:eroeffnen', async (_event, name: string, passwort: string) => {

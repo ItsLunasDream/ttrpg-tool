@@ -8,6 +8,13 @@ const api = {
     lesen: () => ipcRenderer.invoke(kanal('einstellungen:lesen')) as Promise<Einstellungen>,
     schreiben: (neu: Einstellungen) =>
       ipcRenderer.invoke(kanal('einstellungen:schreiben'), neu) as Promise<Einstellungen>
+  },
+  /** Der Raum der Huelle: Lage abfragen und einen Wurf hineinschicken. */
+  raum: {
+    lage: () =>
+      ipcRenderer.invoke(kanal('raum:lage')) as Promise<{ rolle: 'aus' | 'gastgeber' | 'gast'; ichId: string | null }>,
+    wurf: (text: string, ziel: 'alle' | 'dm') =>
+      ipcRenderer.invoke(kanal('raum:wurf'), text, ziel) as Promise<'ok' | 'aus' | 'selbst' | 'fehler'>
   }
 };
 

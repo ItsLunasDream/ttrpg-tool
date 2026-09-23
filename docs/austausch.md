@@ -5,9 +5,33 @@ auf mehreren Rechnern hat, Sachen hin- und herschickt: Notizen, Monster,
 Zustände, Nachrichten.
 
 **Stand:** Stufe 1 ist gebaut: die gemeinsame Schnittstelle
-(`packages/austausch`) in drei Werkzeugen (Story Creator, Monster Creator,
-Nachschlagewerk) und der Dialog „Teilen" in der Hülle. Weitergegeben wird
-als Paketdatei oder über den Raum.
+(`packages/austausch`) und der Dialog „Teilen" in der Hülle. Es machen alle
+Werkzeuge mit Einträgen mit: Story Creator, Monster Creator,
+Nachschlagewerk, Zustände, Initiative (Begegnungen), Encounter, Magic Items
+und Loot. Die fünf zuletzt genannten legen je eine Markdown-Datei pro
+Eintrag ab; für sie baut die Hülle den Teilnehmer selbst
+(`ordnerTeilnehmer` in `apps/shell/src/main/austausch.ts`). Bilder der
+Initiative reisen dabei nicht mit. Weitergegeben wird als Paketdatei oder
+über den Raum.
+
+**Die Auswahl im Dialog:** doppelt so breit wie die übrigen Dialoge. Oben
+„Zuletzt geöffnet" (aus dem Verlauf der Hülle) und „Zuletzt hinzugefügt"
+(nach der Speicherzeit, auch Geändertes), beide offen; darunter je App eine
+Gruppe, eingeklappt, auch die über 900 offiziellen Regeln. Eine Suche
+klappt die Gruppen mit Treffern auf. Beim Darüberfahren zeigt eine
+Vorschau den Anfang des Eintrags.
+
+**Würfe:** Der Würfel kann jeden Wurf in den Raum schicken, einstellbar
+„Nicht teilen", „An alle" oder „Nur an DM" (an den Gastgeber). Wer selbst
+Gastgeber ist, würfelt mit „Nur an DM" verdeckt: nichts geht hinaus. Ein
+Wurf ist eine gewöhnliche Chatzeile mit 🎲 davor.
+
+**Neues im Raum** zeigt ein rotes Abzeichen mit der Zahl am Knopf
+„Teilen", solange der Dialog zu ist: Nachrichten anderer, Würfe und neu
+angekommene Pakete. Die Liste der Räume im Netz aktualisiert sich von
+selbst (Ankündigung alle 2 Sekunden, verschwundene Räume nach 8 Sekunden);
+„Aktualisieren" leert sie und sammelt neu, ein kleiner Kreis dreht dabei und
+auch dann, wenn sich die Liste von selbst ändert.
 
 Stufe 2 ist gebaut, in einer ersten Fassung: der **Raum im lokalen Netz**
 mit Chat, Direktnachrichten und Paketen an alle oder an eine Person

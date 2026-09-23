@@ -30,6 +30,27 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   const [text, setText] = useState('');
   const [an, setAn] = useState('');
   const liste = useRef<HTMLDivElement>(null);
+  // Der Kreis neben „Aktualisieren": dreht beim Klick und immer dann kurz,
+  // wenn sich die Liste von selbst aendert (ein Raum kommt oder geht).
+  const [dreht, setDreht] = useState(false);
+  const drehTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const drehe = (ms: number) => {
+    setDreht(true);
+    if (drehTimer.current) clearTimeout(drehTimer.current);
+    drehTimer.current = setTimeout(() => setDreht(false), ms);
+  };
+  const raumSchluessel = raeume
+    .map((r) => `${r.adresse}:${r.port}:${r.raum}`)
+    .sort()
+    .join('|');
+  const vorigeSchluessel = useRef<string | null>(null);
+  useEffect(() => {
+    if (vorigeSchluessel.current !== null && vorigeSchluessel.current !== raumSchluessel) drehe(700);
+    vorigeSchluessel.current = raumSchluessel;
+  }, [raumSchluessel]);
+  useEffect(() => () => {
+    if (drehTimer.current) clearTimeout(drehTimer.current);
+  }, []);
 
   useEffect(() => {
     void window.shell.einstellungen.lesen().then((e) => setName(e.tischName));
@@ -61,7 +82,22 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
         </label>
         <p className="einst__satz raum__warnung">{t('room.unencrypted')}</p>
 
-        <h3 className="raum__kopf">{t('room.found')}</h3>
+        <div className="raum__suchkopf">
+          <h3 className="raum__kopf">{t('room.found')}</h3>
+          <span className={dreht ? 'raum__kreis is-an' : 'raum__kreis'} aria-hidden="true" data-raum-kreis={dreht} />
+          <button
+            type="button"
+            className="dialog__knopf"
+            data-raum-aktualisieren
+            onClick={() => {
+              // Zwei Sekunden: so lange braucht ein Gastgeber, um sich wieder zu melden.
+              drehe(2000);
+              void window.shell.raum.aktualisieren();
+            }}
+          >
+            {t('room.refresh')}
+          </button>
+        </div>
         {raeume.length === 0 ? (
           <p className="einst__satz">{t('room.noneFound')}</p>
         ) : (
