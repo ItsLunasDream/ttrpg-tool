@@ -993,6 +993,15 @@ function registriereKanaele(): void {
     return raum.zustand();
   });
   handle('raum:chat', (_event, text: string, an: string | null) => raum.chatte(text, an));
+  // Im offenen Raum umbenennen: gilt sofort im Raum und bleibt als eigener
+  // Name in den Einstellungen, wie beim Eroeffnen.
+  handle('raum:umbenennen', async (_event, name: string) => {
+    if (!raum.umbenennen(name)) return false;
+    const vorher = await readSettings(einstellungsDatei);
+    await writeSettings(einstellungsDatei, { ...vorher, tischName: name.trim().slice(0, 64) });
+    gemerkteEinstellungen = await readSettings(einstellungsDatei);
+    return true;
+  });
   handle('raum:senden', async (_event, auswahl: { werkzeug: string; kennung: string }[], an: string | null) => {
     const paket = await schnuere(app.getPath('userData'), auswahl);
     if (paket.sendungen.length === 0) return { ok: false, anzahl: 0 };

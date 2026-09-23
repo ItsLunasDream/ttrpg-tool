@@ -144,3 +144,31 @@ test('Werkzeugnachrichten gehen an alle oder an eine Person, ohne Echo an den Ab
     g.d.beende();
   }
 });
+
+test('im offenen Raum umbenennen: Gast und Gastgeber, eindeutig und bei allen', async () => {
+  const g = dienst(47905);
+  const a = dienst(47905);
+  const b = dienst(47905);
+  try {
+    const port = await g.d.eroeffne('Runde', '', 'SL');
+    await a.d.trittBei('127.0.0.1', port, '', 'Anna');
+    await b.d.trittBei('127.0.0.1', port, '', 'Ben');
+    await bis(() => g.d.zustand().personen.length === 3);
+
+    assert.equal(a.d.umbenennen('Mira'), true);
+    await bis(() => b.d.zustand().personen.some((p) => p.name === 'Mira'));
+    await bis(() => a.d.zustand().ich.name === 'Mira');
+    // Ein vergebener Name bekommt eine Zahl, wie beim Beitreten.
+    b.d.umbenennen('Mira');
+    await bis(() => b.d.zustand().ich.name === 'Mira (2)');
+    // Der Gastgeber benennt sich selbst um, und alle sehen es.
+    g.d.umbenennen('Spielleitung');
+    await bis(() => a.d.zustand().personen.some((p) => p.name === 'Spielleitung'));
+    assert.deepEqual(g.d.zustand().personen.map((p) => p.name), ['Spielleitung', 'Mira', 'Mira (2)']);
+    assert.equal(g.d.umbenennen('   '), false);
+  } finally {
+    a.d.beende();
+    b.d.beende();
+    g.d.beende();
+  }
+});

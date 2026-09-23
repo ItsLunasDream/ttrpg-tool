@@ -299,6 +299,17 @@ export class Raumdienst {
       this.verteilePersonen();
       return;
     }
+    if (n.typ === 'name') {
+      const alt = gast.person;
+      const neu = {
+        ...alt,
+        name: eindeutigerName(n.name.trim(), this.personen.filter((p) => p.id !== alt.id).map((p) => p.name))
+      };
+      gast.person = neu;
+      this.personen = this.personen.map((p) => (p.id === neu.id ? neu : p));
+      this.verteilePersonen();
+      return;
+    }
     // Absender ist, wer die Leitung haelt — nicht, wer im Feld steht.
     if (n.typ === 'chat') this.verteile({ ...n, von: gast.person.id, zeit: new Date().toISOString() });
     if (n.typ === 'paket') this.verteile({ ...n, von: gast.person.id, zeit: new Date().toISOString() });
@@ -365,6 +376,9 @@ export class Raumdienst {
             ende();
           } else if (n.typ === 'personen') {
             this.personen = [...n.personen];
+            // Der eigene Name kann sich geaendert haben (umbenannt, eindeutig gemacht).
+            const selbst = this.personen.find((p) => p.id === this.ich?.id);
+            if (selbst) this.ich = selbst;
             this.meldeZustand();
           } else if (n.typ === 'chat' || n.typ === 'paket' || n.typ === 'werkzeug') {
             this.empfange(n);
@@ -431,6 +445,31 @@ export class Raumdienst {
   }
 
   /** Eine Nachricht eines Werkzeugs an alle (`an` = null) oder an eine Person. */
+  /**
+   * Den eigenen Namen im offenen Raum aendern. Der Gastgeber setzt ihn
+   * selbst und verteilt die Liste; ein Gast bittet den Gastgeber darum, der
+   * ihn eindeutig macht und die Liste an alle schickt.
+   */
+  umbenennen(name: string): boolean {
+    const neuName = name.trim().slice(0, 64);
+    if (!neuName || !this.ich) return false;
+    if (this.rolle === 'gastgeber') {
+      const ich = this.ich;
+      this.ich = {
+        ...ich,
+        name: eindeutigerName(neuName, this.personen.filter((p) => p.id !== ich.id).map((p) => p.name))
+      };
+      this.personen = this.personen.map((p) => (p.id === ich.id ? this.ich! : p));
+      this.verteilePersonen();
+      return true;
+    }
+    if (this.rolle === 'gast' && this.leitung) {
+      this.leitung.write(kodiere({ typ: 'name', name: neuName }));
+      return true;
+    }
+    return false;
+  }
+
   sendeWerkzeug(werkzeug: string, inhalt: string, an: string | null): boolean {
     if (!this.ich) return false;
     const n = { typ: 'werkzeug' as const, von: this.ich.id, an, werkzeug, inhalt, zeit: new Date().toISOString() };
