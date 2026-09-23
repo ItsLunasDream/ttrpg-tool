@@ -57,6 +57,17 @@ gespeichert wird; vorläufig lebt er nur, solange der Raum offen ist.
   Namen gilt ein generischer („Gast 1"). Doppelte Namen bekommen im Raum
   eine Zahl. Solange die Verbindung unverschlüsselt ist, sagt die App bei
   Direktnachrichten sichtbar, dass sie im selben Netz mitlesbar sind.
+- Der **Initiative Tracker** kann seinen Kampf im Raum **teilen**
+  (Knopf „Im Raum teilen", nur sichtbar im Raum). Wer teilt, führt den
+  Kampf; die anderen sehen ihn live über der eigenen Liste. Gefiltert:
+  Spielerfiguren mit genauen TP, alle anderen nur mit Name, Reihenfolge,
+  Zuständen und einer groben Stufe (unverletzt, angeschlagen, schwer
+  verletzt, kampfunfähig), ohne TP und RK. Über das Rechtsklickmenü einer
+  Zeile gehört eine Figur einer Person im Raum; diese Person darf deren TP
+  und Zustände ändern. Die Änderung geht an den Teilenden, der sie gegen
+  die Zuordnung prüft und den neuen Stand an alle schickt. Alles andere
+  wird abgewiesen. Geprüft in `apps/initiative/tests/teilen.test.mjs` und
+  im Rauchtest `smoke-initiative-raum.cjs`.
 
 **Wie Stufe 1 gebaut ist:**
 

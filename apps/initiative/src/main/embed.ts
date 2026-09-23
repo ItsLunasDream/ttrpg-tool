@@ -20,6 +20,7 @@ import { registriereIpc, entferneIpc } from './ipc';
 import { behandleBildProtokoll, registriereBildSchema } from './bildProtokoll';
 import { kanal, BILD_SCHEMA } from '../shared/kanaele';
 import type { Uebergabe } from '@suite/uebergabe';
+import { KEIN_RAUM, type RaumLage } from '../shared/teilen';
 
 export { registriereBildSchema };
 
@@ -34,6 +35,15 @@ export interface InitiativeEmbedOptions {
   readonly language?: string;
   /** Wird gerufen, wenn *hier* die Sprache umgestellt wurde. */
   readonly onLanguageChange?: (language: string) => void;
+  /**
+   * Der Raum im lokalen Netz, von der Huelle durchgereicht (geteilte
+   * Initiative). Fehlt er, gibt es nichts zu teilen.
+   */
+  readonly raum?: {
+    sende(inhalt: string, an: string | null): boolean;
+    /** Beim Laden: die Lage im Raum und was schon geteilt wurde. */
+    anfang(): { lage: RaumLage; nachrichten: readonly { von: { id: string; name: string }; inhalt: string }[] };
+  };
 }
 
 export interface InitiativeEmbed {
@@ -60,6 +70,10 @@ export interface InitiativeEmbed {
    * Ungespeichertes da, wird von aussen nichts weggeworfen.
    */
   uebernimmBegegnung(webContents: WebContents, uebergabe: Uebergabe): Promise<boolean>;
+  /** Eine Nachricht aus dem Raum (geteilte Initiative). */
+  raumNachricht(webContents: WebContents, von: { id: string; name: string }, inhalt: string): void;
+  /** Die Lage im Raum hat sich geaendert. */
+  raumZustand(webContents: WebContents, lage: RaumLage): void;
 }
 
 /**
@@ -123,7 +137,20 @@ export async function mountInitiative(
     options.onLanguageChange?.(language);
   });
 
+  ipcMain.removeHandler(kanal('raum:senden'));
+  ipcMain.handle(kanal('raum:senden'), (_event, inhalt: string, an: string | null) =>
+    typeof inhalt === 'string' ? (options.raum?.sende(inhalt, an) ?? false) : false
+  );
+  ipcMain.removeHandler(kanal('raum:anfang'));
+  ipcMain.handle(kanal('raum:anfang'), () => options.raum?.anfang() ?? { lage: KEIN_RAUM, nachrichten: [] });
+
   return {
+    raumNachricht: (webContents, von, inhalt) => {
+      if (!webContents.isDestroyed()) webContents.send(kanal('raum:nachricht'), von, inhalt);
+    },
+    raumZustand: (webContents, lage) => {
+      if (!webContents.isDestroyed()) webContents.send(kanal('raum:zustand'), lage);
+    },
     uebernimmBegegnung: async (webContents, uebergabe) => {
       if (webContents.isDestroyed()) return false;
       webContents.send(kanal('uebergabe'), uebergabe);
@@ -155,4 +182,6 @@ export async function mountInitiative(
 export function unmountInitiative(): void {
   entferneIpc();
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));
+  ipcMain.removeHandler(kanal('raum:senden'));
+  ipcMain.removeHandler(kanal('raum:anfang'));
 }

@@ -118,3 +118,29 @@ test('der Raum erscheint in der Liste, und wer geht, verschwindet aus dem Raum',
     g.d.beende();
   }
 });
+
+test('Werkzeugnachrichten gehen an alle oder an eine Person, ohne Echo an den Absender', async () => {
+  const g = dienst(47905);
+  const a = dienst(47905);
+  const b = dienst(47905);
+  try {
+    const port = await g.d.eroeffne('Runde', '', 'SL');
+    await a.d.trittBei('127.0.0.1', port, '', 'Anna');
+    await b.d.trittBei('127.0.0.1', port, '', 'Ben');
+    await bis(() => g.d.zustand().personen.length === 3);
+    const werkzeug = (x) => x.ereignisse.filter((e) => e.art === 'werkzeug');
+    g.d.sendeWerkzeug('initiative', '{"art":"stand"}', null);
+    await bis(() => werkzeug(a).length === 1 && werkzeug(b).length === 1);
+    assert.equal(werkzeug(g).length, 0);
+    assert.equal(werkzeug(a)[0].von.name, 'SL');
+    a.d.sendeWerkzeug('initiative', '{"art":"aenderung"}', 'gastgeber');
+    await bis(() => werkzeug(g).length === 1);
+    await warte(100);
+    assert.equal(werkzeug(b).length, 1);
+    assert.equal(werkzeug(g)[0].von.name, 'Anna');
+  } finally {
+    a.d.beende();
+    b.d.beende();
+    g.d.beende();
+  }
+});

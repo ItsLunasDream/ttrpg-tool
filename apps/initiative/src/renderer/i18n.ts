@@ -40,6 +40,23 @@ export const texte = {
   'dialog.umbenennen': ['Teilnehmende umbenennen', 'Rename participant'],
   'knopf.entfernen': ['Entfernen', 'Remove'],
   'knopf.speichern': ['Begegnung speichern', 'Save encounter'],
+  'raum.teilen': ['Im Raum teilen', 'Share in the room'],
+  'raum.teilenEnde': ['Teilen beenden', 'Stop sharing'],
+  'raum.teilenTitel': [
+    'Alle im Raum sehen den Kampf live mit. Von Gegnern nur Name und groben Zustand.',
+    'Everyone in the room follows the combat live. Of enemies only the name and a rough state.'
+  ],
+  'raum.gehoert': ['Gehört zu {name}', 'Belongs to {name}'],
+  'raum.loesen': ['Zuordnung lösen', 'Remove owner'],
+  'raum.geteilt': ['Geteilter Kampf von {name}', 'Shared combat by {name}'],
+  'raum.deine': ['deine Figur', 'your character'],
+  'raum.zustandNeu': ['Zustand …', 'Condition …'],
+  'raum.runden': ['Runden', 'Rounds'],
+  'raum.hpSetzen': ['TP setzen, Enter', 'Set HP, Enter'],
+  'stufe.unverletzt': ['unverletzt', 'unhurt'],
+  'stufe.angeschlagen': ['angeschlagen', 'bloodied lightly'],
+  'stufe.schwer': ['schwer verletzt', 'badly hurt'],
+  'stufe.kampfunfaehig': ['kampfunfähig', 'down'],
   // Heisst wie in den anderen Werkzeugen „Sammlung": derselbe Ort, derselbe
   // Name. „Oeffnen" sagte nicht, was aufgeht.
   'knopf.oeffnen': ['Sammlung', 'Collection'],

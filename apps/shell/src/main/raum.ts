@@ -79,6 +79,7 @@ export type Raumereignis =
   | { readonly art: 'zustand'; readonly zustand: Raumzustand }
   | { readonly art: 'chat'; readonly zeile: Chatzeile }
   | { readonly art: 'paket'; readonly von: Person; readonly an: Person | null; readonly titel: string; readonly paket: string }
+  | { readonly art: 'werkzeug'; readonly von: Person; readonly werkzeug: string; readonly inhalt: string }
   | { readonly art: 'fehler'; readonly grund: 'passwort' | 'voll' | 'version' | 'verbindung' | 'getrennt' };
 
 export function nachweis(passwort: string, nonce: string): string {
@@ -301,6 +302,7 @@ export class Raumdienst {
     // Absender ist, wer die Leitung haelt — nicht, wer im Feld steht.
     if (n.typ === 'chat') this.verteile({ ...n, von: gast.person.id, zeit: new Date().toISOString() });
     if (n.typ === 'paket') this.verteile({ ...n, von: gast.person.id, zeit: new Date().toISOString() });
+    if (n.typ === 'werkzeug') this.verteile({ ...n, von: gast.person.id, zeit: new Date().toISOString() });
   }
 
   private verteilePersonen(): void {
@@ -310,7 +312,7 @@ export class Raumdienst {
   }
 
   /** Beim Gastgeber: an alle oder an eine Person, und an den Absender zurueck. */
-  private verteile(n: Extract<Nachricht, { typ: 'chat' | 'paket' }>): void {
+  private verteile(n: Extract<Nachricht, { typ: 'chat' | 'paket' | 'werkzeug' }>): void {
     const text = kodiere(n);
     for (const g of this.gaeste) {
       if (!g.person) continue;
@@ -364,7 +366,7 @@ export class Raumdienst {
           } else if (n.typ === 'personen') {
             this.personen = [...n.personen];
             this.meldeZustand();
-          } else if (n.typ === 'chat' || n.typ === 'paket') {
+          } else if (n.typ === 'chat' || n.typ === 'paket' || n.typ === 'werkzeug') {
             this.empfange(n);
           }
         }
@@ -389,8 +391,14 @@ export class Raumdienst {
     return this.personen.find((p) => p.id === id) ?? { id, name: '?' };
   }
 
-  private empfange(n: Extract<Nachricht, { typ: 'chat' | 'paket' }>): void {
+  private empfange(n: Extract<Nachricht, { typ: 'chat' | 'paket' | 'werkzeug' }>): void {
     const von = this.person(n.von);
+    if (n.typ === 'werkzeug') {
+      // Die eigene kommt beim Gastgeber als Echo zurueck; das Werkzeug
+      // kennt seinen Stand schon.
+      if (von.id !== this.ich?.id) this.melde({ art: 'werkzeug', von, werkzeug: n.werkzeug, inhalt: n.inhalt });
+      return;
+    }
     const an = n.an === null ? null : this.person(n.an);
     if (n.typ === 'chat') {
       const zeile: Chatzeile = { von, an, text: n.text, zeit: n.zeit, eigene: von.id === this.ich?.id };
@@ -416,6 +424,16 @@ export class Raumdienst {
   sende(paket: string, titel: string, an: string | null): boolean {
     if (!this.ich) return false;
     const n = { typ: 'paket' as const, von: this.ich.id, an, titel: titel.slice(0, 500), paket, zeit: new Date().toISOString() };
+    if (this.rolle === 'gastgeber') this.verteile(n);
+    else if (this.leitung) this.leitung.write(kodiere(n));
+    else return false;
+    return true;
+  }
+
+  /** Eine Nachricht eines Werkzeugs an alle (`an` = null) oder an eine Person. */
+  sendeWerkzeug(werkzeug: string, inhalt: string, an: string | null): boolean {
+    if (!this.ich) return false;
+    const n = { typ: 'werkzeug' as const, von: this.ich.id, an, werkzeug, inhalt, zeit: new Date().toISOString() };
     if (this.rolle === 'gastgeber') this.verteile(n);
     else if (this.leitung) this.leitung.write(kodiere(n));
     else return false;

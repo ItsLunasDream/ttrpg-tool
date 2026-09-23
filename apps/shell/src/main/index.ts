@@ -58,7 +58,8 @@ import {
   registerSchemes,
   setzeSuchtaste,
   type MontageHaken,
-  type MontierteApp
+  type MontierteApp,
+  type RaumLage
 } from './apps';
 import type { Wert } from '@suite/einstellungen';
 import type { Uebergabe } from '@suite/uebergabe';
@@ -412,6 +413,24 @@ async function oeffneKarteImEditor(
   return true;
 }
 
+/**
+ * Der Raum im lokalen Netz (Austausch, Stufe 2). Modulweit, weil ihn neben
+ * den IPC-Kanaelen auch die Werkzeuge erreichen (geteilte Initiative).
+ * Angelegt wird er beim Einrichten der Kanaele.
+ */
+let raumDienst: Raumdienst | null = null;
+/**
+ * Der zuletzt geteilte Stand je Person, fuer ein Werkzeug, das erst spaeter
+ * aufgeht: der Tracker soll den geteilten Kampf sofort zeigen und nicht erst
+ * nach der naechsten Aenderung.
+ */
+const geteilteStaende = new Map<string, { von: { id: string; name: string }; inhalt: string }>();
+
+function raumLage(): RaumLage {
+  const z = raumDienst?.zustand();
+  return z ? { rolle: z.rolle, ich: z.ich, personen: z.personen } : { rolle: 'aus', ich: null, personen: [] };
+}
+
 function montageHaken(herkunft: string, sprache: Language): MontageHaken {
   return {
     language: sprache,
@@ -421,6 +440,13 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
     // wischen — einheitlich fuer alle Werkzeuge, gleich wer es ausloest.
     onEreignis: (appId) => huelle?.webContents.send('app:ereignis', appId),
     onOrt: (ort) => meldeOrt(herkunft, ort),
+    raum: {
+      sende: (werkzeug, inhalt, an) => raumDienst?.sendeWerkzeug(werkzeug, inhalt, an) ?? false,
+      anfang: (werkzeug) => ({
+        lage: raumLage(),
+        nachrichten: werkzeug === 'initiative' ? [...geteilteStaende.values()] : []
+      })
+    },
     // Die KI wird einmal in der Huelle eingerichtet und hier durchgereicht.
     // Bei jedem Aufruf frisch gelesen: wer sie umstellt, soll das im
     // naechsten Klick merken und nicht erst nach einem Neustart.
@@ -896,6 +922,30 @@ function registriereKanaele(): void {
   const raumPakete: { id: number; von: string; titel: string; paket: string; zeit: string }[] = [];
   let naechstesRaumpaket = 1;
   const raum = new Raumdienst((ereignis: Raumereignis) => {
+    if (ereignis.art === 'werkzeug') {
+      // Nicht an die Oberflaeche der Huelle: sie reicht nur weiter. Den
+      // letzten Stand der Initiative je Person merken (siehe oben).
+      if (ereignis.werkzeug === 'initiative') {
+        let art = '';
+        try {
+          art = String((JSON.parse(ereignis.inhalt) as { art?: unknown }).art ?? '');
+        } catch {
+          // Unlesbar: das Werkzeug verwirft es ohnehin.
+        }
+        if (art === 'stand') geteilteStaende.set(ereignis.von.id, { von: ereignis.von, inhalt: ereignis.inhalt });
+        if (art === 'ende') geteilteStaende.delete(ereignis.von.id);
+      }
+      offen.get(ereignis.werkzeug)?.raumNachricht?.(ereignis.von, ereignis.inhalt);
+      return;
+    }
+    if (ereignis.art === 'zustand') {
+      if (ereignis.zustand.rolle === 'aus') geteilteStaende.clear();
+      // Wer gegangen ist, hat auch nichts mehr geteilt.
+      const da = new Set(ereignis.zustand.personen.map((p) => p.id));
+      for (const id of [...geteilteStaende.keys()]) if (!da.has(id)) geteilteStaende.delete(id);
+      const lage = { rolle: ereignis.zustand.rolle, ich: ereignis.zustand.ich, personen: ereignis.zustand.personen };
+      for (const montiert of offen.values()) montiert.raumZustand?.(lage);
+    }
     if (ereignis.art === 'paket') {
       raumPakete.push({
         id: naechstesRaumpaket++,
@@ -909,6 +959,7 @@ function registriereKanaele(): void {
     }
     huelle?.webContents.send('raum:ereignis', ereignis);
   });
+  raumDienst = raum;
   app.on('will-quit', () => raum.beende());
   /** Der eigene Name, sonst ein Gastname mit einer Zahl, die selten doppelt ist. */
   const meinName = () =>

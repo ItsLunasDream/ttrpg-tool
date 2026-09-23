@@ -23,6 +23,8 @@ export const MAX_PERSONEN = 16;
 /** Eine Zeile darf so lang sein wie ein Paket plus Umschlag. */
 export const MAX_ZEILE = 80 * 1024 * 1024;
 export const MAX_CHAT = 4000;
+/** Eine Werkzeugnachricht (etwa der Stand der geteilten Initiative). */
+export const MAX_WERKZEUG = 2 * 1024 * 1024;
 
 export interface Person {
   readonly id: string;
@@ -61,6 +63,19 @@ export type Nachricht =
       readonly titel: string;
       /** Das Paket als Text (`alsPaket`). */
       readonly paket: string;
+      readonly zeit: string;
+    }
+  | {
+      /**
+       * Eine Nachricht zwischen gleichen Werkzeugen, etwa der Stand der
+       * geteilten Initiative. Die Huelle liest den Inhalt nicht, sie reicht
+       * ihn an das Werkzeug; das Werkzeug prueft ihn selbst.
+       */
+      readonly typ: 'werkzeug';
+      readonly von: string;
+      readonly an: string | null;
+      readonly werkzeug: string;
+      readonly inhalt: string;
       readonly zeit: string;
     };
 
@@ -114,6 +129,10 @@ export function leseNachricht(zeile: string): Nachricht | null {
     case 'paket':
       return istText(n.von, 64) && an !== undefined && istText(n.titel, 500) && istText(n.paket, MAX_ZEILE) && istText(n.zeit, 40)
         ? { typ: n.typ, von: n.von, an, titel: n.titel, paket: n.paket, zeit: n.zeit }
+        : null;
+    case 'werkzeug':
+      return istText(n.von, 64) && an !== undefined && istText(n.werkzeug, 40) && istText(n.inhalt, MAX_WERKZEUG) && istText(n.zeit, 40)
+        ? { typ: n.typ, von: n.von, an, werkzeug: n.werkzeug, inhalt: n.inhalt, zeit: n.zeit }
         : null;
     default:
       return null;

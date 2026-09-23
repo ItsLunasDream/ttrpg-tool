@@ -144,6 +144,17 @@ export interface MontierteApp {
    * die nichts ablegen — die tauchen in der Suche ohnehin nicht auf.
    */
   zeigeEintrag?(kennung: string): Promise<boolean>;
+  /** Eine Werkzeugnachricht aus dem Raum. Nur, wer mitmacht (Initiative). */
+  raumNachricht?(von: { id: string; name: string }, inhalt: string): void;
+  /** Die Lage im Raum hat sich geaendert. */
+  raumZustand?(lage: RaumLage): void;
+}
+
+/** Was ein Werkzeug vom Raum wissen muss. Dieselbe Form wie im Tracker. */
+export interface RaumLage {
+  readonly rolle: 'aus' | 'gastgeber' | 'gast';
+  readonly ich: { readonly id: string; readonly name: string } | null;
+  readonly personen: readonly { readonly id: string; readonly name: string }[];
 }
 
 /** Was die Huelle jeder Anwendung beim Montieren mitgibt. */
@@ -195,6 +206,19 @@ export interface MontageHaken {
    * Schnappschuss: wer sie umstellt, soll das im naechsten Klick merken.
    */
   readonly kiQuelle?: KiQuelle;
+  /**
+   * Der Raum im lokalen Netz, fuer Werkzeuge, die darueber synchronisieren
+   * (geteilte Initiative). `anfang` liefert beim Laden die Lage und die
+   * zuletzt geteilten Staende, damit ein spaet geoeffnetes Werkzeug nicht
+   * auf die naechste Aenderung warten muss.
+   */
+  readonly raum?: {
+    sende(werkzeug: string, inhalt: string, an: string | null): boolean;
+    anfang(werkzeug: string): {
+      lage: RaumLage;
+      nachrichten: readonly { von: { id: string; name: string }; inhalt: string }[];
+    };
+  };
   /**
    * Die Anwendung meldet, wo sie gerade steht — im Story Creator die
    * offene Notiz. Der Verlauf der Huelle merkt sich das, damit zurueck nicht
@@ -714,7 +738,14 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
     partition: sitzung(id),
     devServerUrl: process.env.INITIATIVE_DEV_SERVER_URL,
     language: haken.language,
-    onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    raum: haken.raum
+      ? {
+          sende: (inhalt, an) => haken.raum?.sende('initiative', inhalt, an) ?? false,
+          anfang: () =>
+            haken.raum?.anfang('initiative') ?? { lage: { rolle: 'aus', ich: null, personen: [] }, nachrichten: [] }
+        }
+      : undefined
   });
 
   // Vor dem Laden: die Kopfzeile muss stehen, bevor die erste Antwort kommt.
@@ -752,7 +783,10 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
     // Eine Begegnung aus dem Encounter Creator. Angenommen wird sie in der
     // Oberflaeche des Trackers, und erst nach seiner eigenen Rueckfrage.
     uebernimmBegegnung: (uebergabe) =>
-      eingebettet.uebernimmBegegnung(sicht.webContents as WebContents, uebergabe)
+      eingebettet.uebernimmBegegnung(sicht.webContents as WebContents, uebergabe),
+    // Die geteilte Initiative: Nachrichten und Lage aus dem Raum.
+    raumNachricht: (von, inhalt) => eingebettet.raumNachricht(sicht.webContents as WebContents, von, inhalt),
+    raumZustand: (lage) => eingebettet.raumZustand(sicht.webContents as WebContents, lage)
   };
 }
 

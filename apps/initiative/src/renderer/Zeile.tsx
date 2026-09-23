@@ -8,7 +8,7 @@
  * jederzeit vorkommt.
  */
 import { useState, type ReactNode } from 'react';
-import { Kontextmenue } from './Kontextmenue';
+import { Kontextmenue, type MenueEintrag } from './Kontextmenue';
 import { t } from './i18n';
 import { DAUERN, type Dauer, type Koerper, type Teilnehmer } from '../shared/types';
 
@@ -31,6 +31,10 @@ interface Props {
   onBild(): void;
   /** Rechtsklick auf die Zeile: umbenennen. Fragt nach dem neuen Namen. */
   onUmbenennen(): void;
+  /** Weitere Eintraege im Rechtsklickmenue (Zuordnung im Raum). */
+  readonly zusatzMenue?: readonly MenueEintrag[];
+  /** Wem die Figur im Raum gehoert, fuer die kleine Marke am Namen. */
+  readonly besitzer?: string;
 }
 
 export function Zeile(props: Props) {
@@ -98,6 +102,11 @@ export function Zeile(props: Props) {
             <span className="zeile__marke">{t('gruppe.mitglieder', { n: teilnehmer.koerper.length })}</span>
           ) : null}
           {teilnehmer.istSpieler ? <span className="zeile__marke">PC</span> : null}
+          {props.besitzer ? (
+            <span className="zeile__marke zeile__besitz" data-besitzer={props.besitzer}>
+              {props.besitzer}
+            </span>
+          ) : null}
         </button>
 
         <div className="zeile__koerper">
@@ -163,6 +172,7 @@ export function Zeile(props: Props) {
           eintraege={[
             { text: t('knopf.umbenennen'), onWahl: props.onUmbenennen },
             { text: t('knopf.duplizieren'), onWahl: props.onDuplizieren },
+            ...(props.zusatzMenue ?? []),
             { text: t('knopf.entfernen'), gefaehrlich: true, onWahl: props.onEntfernen }
           ]}
         />
