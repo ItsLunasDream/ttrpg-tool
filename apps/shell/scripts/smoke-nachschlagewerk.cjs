@@ -61,14 +61,19 @@ app.whenReady().then(async () => {
     `die Suche der Huelle kennt Glossar, Ausruestung, Zauber und magische Gegenstaende (${regeln.length})`
   );
   pruefe(
-    regeln.some((e) => e.kennung === 'gegenstand/bag-of-holding' && /Bag of Holding/.test(e.stichworte)),
-    'darunter der Nimmervolle Beutel, auch unter seinem englischen Namen'
+    regeln.some(
+      (e) =>
+        e.kennung === 'gegenstand/bag-of-holding' &&
+        /Bag of Holding/.test(`${e.name} ${e.stichworte}`) &&
+        /Nimmervoll/.test(`${e.name} ${e.stichworte}`)
+    ),
+    'darunter der Nimmervolle Beutel, unter beiden Namen zu finden'
   );
   const liegend = regeln.find((e) => e.kennung === 'zustand/prone');
   pruefe(Boolean(liegend), 'darunter „Liegend"');
   pruefe(
-    Boolean(liegend) && /Prone/.test(liegend.stichworte),
-    'und zwar auch unter dem englischen Namen'
+    Boolean(liegend) && liegend.name === 'Prone' && /Liegend/.test(liegend.stichworte),
+    'auf Englisch heisst er „Prone", der deutsche Name bleibt Suchwort'
   );
 
   // --- Werkzeug oeffnen -----------------------------------------------------

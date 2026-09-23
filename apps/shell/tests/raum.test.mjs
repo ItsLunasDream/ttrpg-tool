@@ -172,3 +172,130 @@ test('im offenen Raum umbenennen: Gast und Gastgeber, eindeutig und bei allen', 
     g.d.beende();
   }
 });
+
+/* ------------------------------------------------------------------ */
+/* Verschluesselung und Internet (Protokoll 2)                         */
+/* ------------------------------------------------------------------ */
+
+const net = require('node:net');
+const K = require('../dist/tests/entry.cjs');
+
+/** Ein Gast von Hand: liest die Herausforderung, meldet sich an, liefert den Schutz. */
+function handgast(port, passwort, host = '127.0.0.1') {
+  return new Promise((fertig, fehler) => {
+    const s = net.connect({ host, port });
+    s.setEncoding('utf8');
+    let rest = '';
+    const zeilen = [];
+    let schutz = null;
+    s.on('data', async (stueck) => {
+      rest += stueck;
+      const teile = rest.split('\n');
+      rest = teile.pop();
+      for (const z of teile) {
+        zeilen.push(z);
+        const n = z.startsWith('{') ? JSON.parse(z) : null;
+        if (n?.typ === 'herausforderung') {
+          const gastNonce = K.neueNonce();
+          const stamm = await K.stammschluessel(passwort, n.salz);
+          s.write(`${JSON.stringify({ typ: 'hallo', name: 'Hand', nachweis: K.nachweis(stamm, n.nonce, gastNonce), version: 2, gastNonce })}\n`);
+          schutz = new K.Leitungsschutz(stamm, n.nonce, gastNonce, 'gast');
+          fertig({ s, zeilen, schutz: () => schutz });
+        }
+      }
+    });
+    s.on('error', fehler);
+  });
+}
+
+test('mit Passwort ist nach der Anmeldung jede Zeile verschluesselt, eine veraenderte trennt die Leitung', async () => {
+  const g = dienst(47911);
+  try {
+    const port = await g.d.eroeffne('Geheimrunde', 'sehr geheim', 'Spielleitung');
+    assert.equal(g.d.zustand().verschluesselt, true);
+    const h = await handgast(port, 'sehr geheim');
+    await bis(() => h.zeilen.length >= 2);
+    // Die Antwort auf die Anmeldung ist schon verschluesselt …
+    const willkommen = h.zeilen[1];
+    assert.ok(willkommen.startsWith('~'), 'kein Klartext nach der Anmeldung');
+    assert.ok(!willkommen.includes('Spielleitung'));
+    assert.equal(JSON.parse(h.schutz().entpacke(willkommen)).typ, 'willkommen');
+    // … und ein Chat im Mitschnitt verraet nichts.
+    g.d.chatte('Der Drache schlaeft im Keller', null);
+    await bis(() => h.zeilen.some((z, i) => i > 1 && z.startsWith('~')));
+    assert.ok(!h.zeilen.join('\n').includes('Drache'));
+    // Eine gefaelschte Zeile vom Gast: der Gastgeber trennt.
+    const zu = new Promise((r) => h.s.on('close', r));
+    h.s.write('~AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n');
+    await zu;
+    await bis(() => g.d.zustand().personen.length === 1);
+  } finally {
+    g.d.beende();
+  }
+});
+
+test('ueber das Internet: nur mit Passwort, fester Port, IPv6, belegter Port wird gemeldet', async () => {
+  const g = dienst(47912);
+  const a = dienst(47912);
+  const zweiter = dienst(47912);
+  try {
+    await assert.rejects(g.d.eroeffne('Offen', '', 'SL', { internet: true, port: 47913 }), /passwort-noetig/);
+    const port = await g.d.eroeffne('Weit weg', 'pw', 'SL', { internet: true, port: 47913 });
+    assert.equal(port, 47913);
+    assert.equal(g.d.zustand().internet, true);
+    await assert.rejects(zweiter.d.eroeffne('Noch einer', 'pw', 'SL', { internet: true, port: 47913 }), /port-belegt/);
+    // Ueber IPv6 (Schleife), wenn der Rechner IPv6 kann; sonst ueber IPv4.
+    let host = '::1';
+    try {
+      await new Promise((ok, nein) => net.connect({ host: '::1', port }).once('connect', function () { this.destroy(); ok(); }).once('error', nein));
+    } catch {
+      host = '127.0.0.1';
+    }
+    await a.d.trittBei(host === '::1' ? '[::1]' : host, port, 'pw', 'Anna');
+    await bis(() => a.d.zustand().rolle === 'gast');
+    assert.equal(a.d.zustand().verschluesselt, true);
+    a.d.chatte('Hallo aus der Ferne', null);
+    await bis(() => g.chat().some((z) => z.text === 'Hallo aus der Ferne'));
+  } finally {
+    a.d.beende();
+    zweiter.d.beende();
+    g.d.beende();
+  }
+});
+
+test('Beitritt: wo niemand lauscht, heisst der Grund „abgewiesen"; eine alte Fassung „version"', async () => {
+  const a = dienst(47914);
+  const g = dienst(47914);
+  try {
+    // Ein Port, auf dem sicher nichts lauscht: kurz belegen, dann freigeben.
+    const frei = await new Promise((r) => {
+      const srv = net.createServer();
+      srv.listen(0, '127.0.0.1', () => {
+        const p = srv.address().port;
+        srv.close(() => r(p));
+      });
+    });
+    await a.d.trittBei('127.0.0.1', frei, '', 'Anna');
+    assert.ok(a.ereignisse.some((e) => e.art === 'fehler' && e.grund === 'abgewiesen'));
+
+    const port = await g.d.eroeffne('Runde', '', 'SL');
+    assert.equal(g.d.zustand().verschluesselt, false);
+    const antwort = await new Promise((r) => {
+      const s = net.connect({ host: '127.0.0.1', port });
+      s.setEncoding('utf8');
+      let alles = '';
+      s.on('data', (d) => {
+        alles += d;
+        if (alles.includes('herausforderung') && !alles.includes('hallo-geschickt')) {
+          alles += 'hallo-geschickt';
+          s.write(`${JSON.stringify({ typ: 'hallo', name: 'Alt', nachweis: '', version: 1 })}\n`);
+        }
+      });
+      s.on('close', () => r(alles));
+    });
+    assert.match(antwort, /"grund":"version"/);
+  } finally {
+    a.d.beende();
+    g.d.beende();
+  }
+});

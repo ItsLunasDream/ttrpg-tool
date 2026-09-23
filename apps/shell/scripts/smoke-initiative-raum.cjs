@@ -18,8 +18,7 @@ const { app, BaseWindow } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
-const net = require('node:net');
-const { createHmac } = require('node:crypto');
+const { gast } = require('./raumgast.cjs');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ini-raum-'));
 const userData = path.join(tmp, 'userData');
@@ -59,29 +58,6 @@ async function bis(bedingung, ms = 5000) {
   return true;
 }
 
-function gast(port, passwort, name) {
-  const s = net.connect({ host: '127.0.0.1', port });
-  s.setEncoding('utf8');
-  let rest = '';
-  const g = { alle: [], ich: null, schreibe: (n) => s.write(`${JSON.stringify(n)}\n`), zu: () => s.destroy() };
-  s.on('data', (stueck) => {
-    rest += stueck;
-    const teile = rest.split('\n');
-    rest = teile.pop();
-    for (const t of teile) {
-      if (!t.trim()) continue;
-      const n = JSON.parse(t);
-      g.alle.push(n);
-      if (n.typ === 'herausforderung') {
-        const nachweis = createHmac('sha256', passwort).update(n.nonce).digest('hex');
-        g.schreibe({ typ: 'hallo', name, nachweis, version: 1 });
-      }
-      if (n.typ === 'willkommen') g.ich = n.du;
-    }
-  });
-  s.on('error', () => undefined);
-  return g;
-}
 /** Der letzte Stand der Initiative, den der Gast bekommen hat. */
 const letzterStand = (g) => {
   const werkzeug = g.alle.filter((n) => n.typ === 'werkzeug' && n.werkzeug === 'initiative');

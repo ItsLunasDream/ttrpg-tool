@@ -172,14 +172,14 @@ const CSP = [
  * `datenordner` wird nicht gebraucht und steht trotzdem in der Unterschrift:
  * alle Leser haben dieselbe, und die Huelle ruft sie gleich auf.
  */
-export async function leseEintraege(datenordner: string): Promise<Eintrag[]> {
+export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<Eintrag[]> {
   // Die Huelle gibt ihren Datenordner; darin hat jedes Werkzeug seinen.
   const hausregeln = await leseHausregeln(path.join(datenordner, WERKZEUG, ORDNER_NAME));
   const eigene: Eintrag[] = hausregeln.map((regel) => ({
     werkzeug: WERKZEUG,
     kennung: `hausregel/${regel.id}`,
     name: regel.name,
-    art: 'Hausregel',
+    art: sprache === 'de' ? 'Hausregel' : 'House rule',
     stichworte: `House rule ${regel.text.slice(0, 200)}`
   }));
   // Die Notizen an Textstellen: gefunden ueber ihren Text, geoeffnet wird
@@ -203,9 +203,11 @@ export async function leseEintraege(datenordner: string): Promise<Eintrag[]> {
   return [...eigene, ...notizEintraege, ...alleRegeln().map((regel) => ({
     werkzeug: WERKZEUG,
     kennung: regel.id,
-    name: regel.name.de,
-    art: ART_NAME[regel.art].de,
-    stichworte: [regel.name.en, ART_NAME[regel.art].en, 'SRD'].join(' ')
+    // Name und Art in der Sprache der Sammlung; der andere Name bleibt als
+    // Suchwort, damit „Prone" auch auf Deutsch findet und umgekehrt.
+    name: regel.name[sprache],
+    art: ART_NAME[regel.art][sprache],
+    stichworte: [regel.name[sprache === 'de' ? 'en' : 'de'], ART_NAME[regel.art][sprache === 'de' ? 'en' : 'de'], 'SRD'].join(' ')
   }))];
 }
 

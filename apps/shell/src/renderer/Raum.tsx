@@ -6,12 +6,18 @@
  * durchlaesst). Drin: wer da ist, der Chat, Nachrichten an alle oder an
  * eine Person.
  *
+ * Ueber das Internet: der Gastgeber schaltet „Auch ueber das Internet" ein,
+ * bekommt einen festen Port und braucht ein Passwort (der Verkehr ist dann
+ * verschluesselt). Gaeste treten ueber IPv4 mit Portfreigabe, IPv6 oder
+ * einen Namen bei.
+ *
  * Der Dienst lebt im Hauptprozess; dieser Reiter zeigt nur seinen Stand.
  * Ein geschlossener Dialog verliert also nichts.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { MessageKey, MessageParams } from '../shared/i18n';
 import type { GefundenerRaum, Raumzustand } from '../main/raum';
+import { alsAdresse, leseAdresse, RAUM_INTERNETPORT } from '@suite/austausch';
 
 interface Props {
   readonly zustand: Raumzustand;
@@ -29,15 +35,25 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   const [neuerName, setNeuerName] = useState('');
   const [text, setText] = useState('');
   const [an, setAn] = useState('');
+  const [internet, setInternet] = useState(false);
+  const [internetPort, setInternetPort] = useState(String(RAUM_INTERNETPORT));
+  const [eigenerFehler, setEigenerFehler] = useState('');
+  const [oeffentlich, setOeffentlich] = useState<string | null | 'fragt' | 'fehlt'>(null);
+  const [kopiert, setKopiert] = useState('');
+  // Chatzeilen mit geteilten Eintraegen, die aufgeklappt sind (nach Index).
+  const [aufgeklappt, setAufgeklappt] = useState<Set<number>>(new Set());
   const liste = useRef<HTMLDivElement>(null);
-  // Der Kreis neben „Aktualisieren": dreht beim Klick und immer dann kurz,
-  // wenn sich die Liste von selbst aendert (ein Raum kommt oder geht).
-  const [dreht, setDreht] = useState(false);
+  // Neben „Aktualisieren": erst ein drehender Kreis, dann eine Sekunde ein
+  // Haken, dann nichts. Auch wenn sich die Liste von selbst aendert.
+  const [anzeige, setAnzeige] = useState<'ruhe' | 'dreht' | 'fertig'>('ruhe');
   const drehTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const drehe = (ms: number) => {
-    setDreht(true);
+    setAnzeige('dreht');
     if (drehTimer.current) clearTimeout(drehTimer.current);
-    drehTimer.current = setTimeout(() => setDreht(false), ms);
+    drehTimer.current = setTimeout(() => {
+      setAnzeige('fertig');
+      drehTimer.current = setTimeout(() => setAnzeige('ruhe'), 1000);
+    }, ms);
   };
   const raumSchluessel = raeume
     .map((r) => `${r.adresse}:${r.port}:${r.raum}`)
@@ -61,6 +77,27 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
     liste.current?.scrollTo({ top: liste.current.scrollHeight });
   }, [zustand.chat.length]);
 
+  const kopiere = (text: string) => {
+    void window.shell.raum.kopieren(text).then(() => {
+      setKopiert(text);
+      setTimeout(() => setKopiert((alt) => (alt === text ? '' : alt)), 1200);
+    });
+  };
+  const ziel = leseAdresse(adresse);
+  const portZahl = Number(internetPort);
+  const portGut = Number.isInteger(portZahl) && portZahl >= 1024 && portZahl <= 65535;
+  const eroeffnen = () => {
+    setEigenerFehler('');
+    void window.shell.raum
+      .eroeffnen(raumName, passwort, internet ? { internet: true, port: portZahl } : {})
+      .then((antwort) => {
+        if (!antwort.ok) {
+          const grund = antwort.grund === 'passwort-noetig' || antwort.grund === 'port-belegt' ? antwort.grund : 'eroeffnen';
+          setEigenerFehler(t(`room.error.${grund}` as MessageKey, { port: internetPort }));
+        }
+      });
+  };
+
   const speichereName = (neu: string) => {
     setName(neu);
     void window.shell.einstellungen.schreiben({ tischName: neu });
@@ -80,18 +117,19 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
             onChange={(e) => speichereName(e.target.value)}
           />
         </label>
-        <p className="einst__satz raum__warnung">{t('room.unencrypted')}</p>
+        <p className="einst__satz raum__warnung">{t('room.encryptionHint')}</p>
 
         <div className="raum__suchkopf">
           <h3 className="raum__kopf">{t('room.found')}</h3>
-          <span className={dreht ? 'raum__kreis is-an' : 'raum__kreis'} aria-hidden="true" data-raum-kreis={dreht} />
+          <span className="raum__zeichen" aria-hidden="true" data-raum-anzeige={anzeige}>
+            {anzeige === 'dreht' ? <span className="raum__kreis" /> : anzeige === 'fertig' ? <span className="raum__haken">✓</span> : null}
+          </span>
           <button
             type="button"
             className="dialog__knopf"
             data-raum-aktualisieren
             onClick={() => {
-              // Zwei Sekunden: so lange braucht ein Gastgeber, um sich wieder zu melden.
-              drehe(2000);
+              drehe(1000);
               void window.shell.raum.aktualisieren();
             }}
           >
@@ -135,16 +173,18 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
             data-adresse
             value={adresse}
             placeholder={t('room.address')}
+            title={t('room.addressHint', { port: String(RAUM_INTERNETPORT) })}
             onChange={(e) => setAdresse(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && ziel) void window.shell.raum.beitreten(ziel.host, ziel.port, beitrittPasswort);
+            }}
           />
           <button
             type="button"
             className="dialog__knopf"
-            disabled={!/^[^\s:]+:\d+$/.test(adresse.trim())}
-            onClick={() => {
-              const [host, port] = adresse.trim().split(':');
-              void window.shell.raum.beitreten(host, Number(port), beitrittPasswort);
-            }}
+            data-adresse-beitreten
+            disabled={!ziel}
+            onClick={() => ziel && void window.shell.raum.beitreten(ziel.host, ziel.port, beitrittPasswort)}
           >
             {t('room.join')}
           </button>
@@ -170,18 +210,43 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
             type="password"
             data-raum-passwort
             value={passwort}
-            placeholder={t('room.passwordOptional')}
+            placeholder={internet ? t('room.passwordRequired') : t('room.passwordOptional')}
             onChange={(e) => setPasswort(e.target.value)}
           />
           <button
             type="button"
             className="dialog__knopf"
             data-raum-eroeffnen
-            onClick={() => void window.shell.raum.eroeffnen(raumName, passwort)}
+            disabled={internet && (!passwort || !portGut)}
+            onClick={eroeffnen}
           >
             {t('room.openButton')}
           </button>
         </div>
+        <div className="raum__reihe">
+          <label className="raum__schalter">
+            <input type="checkbox" data-raum-internet checked={internet} onChange={(e) => setInternet(e.target.checked)} />
+            {t('room.internet')}
+          </label>
+          {internet && (
+            <label className="raum__schalter">
+              {t('room.port')}
+              <input
+                className="suche__feld raum__port"
+                data-raum-port
+                inputMode="numeric"
+                value={internetPort}
+                onChange={(e) => setInternetPort(e.target.value.replace(/\D/g, '').slice(0, 5))}
+              />
+            </label>
+          )}
+        </div>
+        {internet && <p className="einst__satz raum__warnung">{t('room.internetHint')}</p>}
+        {eigenerFehler && (
+          <p className="einst__satz austausch__fehler" data-raum-eroeffnen-fehler>
+            {eigenerFehler}
+          </p>
+        )}
       </div>
     );
   }
@@ -201,18 +266,29 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
       <div className="raum__reihe raum__kopfzeile">
         <strong data-raumtitel>{zustand.raum}</strong>
         <span className="austausch__art">
-          {zustand.rolle === 'gastgeber'
-            ? t('room.youHost', {
-                adresse: (zustand.adressen.length > 0 ? zustand.adressen : ['127.0.0.1'])
-                  .map((a) => `${a}:${zustand.port ?? ''}`)
-                  .join(', ')
-              })
-            : t('room.youAre', { name: zustand.ich?.name ?? '' })}
+          {zustand.rolle === 'gastgeber' ? t('room.youHost') : t('room.youAre', { name: zustand.ich?.name ?? '' })}
+        </span>
+        <span className={`raum__marke${zustand.verschluesselt ? ' is-sicher' : ''}`} data-raum-verschluesselt={zustand.verschluesselt}>
+          {zustand.verschluesselt ? t('room.encrypted') : t('room.notEncrypted')}
         </span>
         <button type="button" className="dialog__knopf" data-raum-verlassen onClick={() => void window.shell.raum.verlassen()}>
           {zustand.rolle === 'gastgeber' ? t('room.close') : t('room.leave')}
         </button>
       </div>
+      {zustand.rolle === 'gastgeber' && zustand.port !== null && (
+        <Adressen
+          zustand={zustand}
+          port={zustand.port}
+          oeffentlich={oeffentlich}
+          frageOeffentlich={() => {
+            setOeffentlich('fragt');
+            void window.shell.raum.oeffentlicheIp().then((ip) => setOeffentlich(ip ?? 'fehlt'));
+          }}
+          kopiert={kopiert}
+          kopiere={kopiere}
+          t={t}
+        />
+      )}
       {/* Der eigene Name laesst sich auch im offenen Raum aendern (Rueckmeldung). */}
       <div className="raum__reihe">
         <label className="austausch__art" htmlFor="raum-name">
@@ -254,7 +330,23 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
                 {z.an ? ` → ${z.an.name}` : ''}
               </span>{' '}
               {z.an ? <em className="raum__privat">{t('room.private')} </em> : null}
-              {z.text}
+              {z.dateien ? (
+                <Dateizeile
+                  dateien={z.dateien}
+                  offen={aufgeklappt.has(i)}
+                  schalte={() =>
+                    setAufgeklappt((alt) => {
+                      const neu = new Set(alt);
+                      if (neu.has(i)) neu.delete(i);
+                      else neu.add(i);
+                      return neu;
+                    })
+                  }
+                  t={t}
+                />
+              ) : (
+                z.text
+              )}
             </p>
           ))
         )}
@@ -285,5 +377,131 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
       </div>
       {an && <p className="einst__satz raum__warnung">{t('room.privateHint')}</p>}
     </div>
+  );
+}
+
+/**
+ * Wo die anderen den Gastgeber erreichen: im lokalen Netz, ueber IPv6 und
+ * ueber die oeffentliche IPv4 (Portfreigabe noetig). Die oeffentliche IPv4
+ * wird bei einem Internetraum gleich beim Eroeffnen erfragt, wie Foundry
+ * es auf seiner Einladungsseite tut; die App sagt dazu, wen sie fragt.
+ * „Einladung kopieren" legt alle Adressen als einen Text ab, fertig zum
+ * Einfuegen in einen Chat. Das Passwort steht bewusst nicht darin.
+ */
+function Adressen({
+  zustand,
+  port,
+  oeffentlich,
+  frageOeffentlich,
+  kopiert,
+  kopiere,
+  t
+}: {
+  readonly zustand: Raumzustand;
+  readonly port: number;
+  readonly oeffentlich: string | null | 'fragt' | 'fehlt';
+  readonly frageOeffentlich: () => void;
+  readonly kopiert: string;
+  readonly kopiere: (text: string) => void;
+  readonly t: Props['t'];
+}) {
+  const zeile = (art: string, adresse: string, daten: string) => (
+    <li key={adresse} className="raum__adresse" data-raum-adresse={daten}>
+      <span className="raum__adressart">{art}</span>
+      <code className="raum__adresstext">{adresse}</code>
+      <button type="button" className="dialog__knopf" onClick={() => kopiere(adresse)}>
+        {kopiert === adresse ? '✓' : t('room.copy')}
+      </button>
+    </li>
+  );
+  const lan = zustand.adressen.length > 0 ? zustand.adressen : ['127.0.0.1'];
+  const gefragt = useRef(false);
+  useEffect(() => {
+    if (zustand.internet && oeffentlich === null && !gefragt.current) {
+      gefragt.current = true;
+      frageOeffentlich();
+    }
+  }, [zustand.internet, oeffentlich, frageOeffentlich]);
+  const v4 = typeof oeffentlich === 'string' && oeffentlich !== 'fragt' && oeffentlich !== 'fehlt' ? oeffentlich : null;
+  const einladung = [
+    t('room.inviteTitle', { raum: zustand.raum }),
+    ...(zustand.internet && v4 ? [`${t('room.addrPublic')}: ${alsAdresse(v4, port)}`] : []),
+    ...(zustand.internet ? zustand.ipv6.map((a) => `IPv6: ${alsAdresse(a, port)}`) : []),
+    ...lan.map((a) => `${t('room.addrLan')}: ${alsAdresse(a, port)}`),
+    zustand.verschluesselt ? t('room.invitePassword', { name: zustand.ich?.name ?? '' }) : ''
+  ]
+    .filter(Boolean)
+    .join('\n');
+  return (
+    <div className="raum__adressen" data-raum-adressen>
+      <ul className="austausch__liste">
+        {lan.map((a) => zeile(t('room.addrLan'), alsAdresse(a, port), 'lan'))}
+        {zustand.internet && zustand.ipv6.map((a) => zeile('IPv6', alsAdresse(a, port), 'ipv6'))}
+        {zustand.internet && v4 && zeile(t('room.addrPublic'), alsAdresse(v4, port), 'ipv4')}
+      </ul>
+      <div className="raum__reihe">
+        <button type="button" className="dialog__knopf" data-raum-einladung onClick={() => kopiere(einladung)}>
+          {kopiert === einladung ? `✓ ${t('room.inviteCopied')}` : t('room.invite')}
+        </button>
+        {zustand.internet && oeffentlich === 'fragt' && <span className="einst__satz raum__warnung">{t('room.publicAsking')}</span>}
+      </div>
+      {zustand.internet && (
+        <>
+          {oeffentlich === 'fehlt' ? (
+            <div className="raum__reihe">
+              <button type="button" className="dialog__knopf" data-raum-oeffentlich onClick={frageOeffentlich}>
+                {t('room.retryPublic')}
+              </button>
+              <span className="einst__satz raum__warnung">{t('room.publicFailed')}</span>
+            </div>
+          ) : (
+            <p className="einst__satz raum__warnung">{t('room.publicHint')}</p>
+          )}
+          <p className="einst__satz raum__warnung" data-raum-portfreigabe>
+            {t('room.forwardHint', { port: String(port), lan: lan[0] })}
+          </p>
+          {zustand.ipv6.length === 0 && <p className="einst__satz raum__warnung">{t('room.noIpv6')}</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Wie viele Namen eine Chatzeile mit geteilten Eintraegen zeigt, bevor sie zaehlt. */
+const SICHTBARE_DATEIEN = 5;
+
+/**
+ * Eine Chatzeile fuer geteilte Eintraege: die ersten fuenf Namen, dann eine
+ * Zahl. Ein Klick klappt die ganze Liste auf.
+ */
+function Dateizeile({
+  dateien,
+  offen,
+  schalte,
+  t
+}: {
+  readonly dateien: readonly string[];
+  readonly offen: boolean;
+  readonly schalte: () => void;
+  readonly t: Props['t'];
+}) {
+  const mehr = dateien.length - SICHTBARE_DATEIEN;
+  return (
+    <>
+      <button type="button" className="raum__dateien" data-chat-dateien={dateien.length} aria-expanded={offen} title={t('room.showFiles')} onClick={schalte}>
+        📎 {dateien.length === 1 ? t('room.sharedOne') : t('room.sharedFiles', { anzahl: dateien.length })}{' '}
+        <span className="raum__dateiliste">
+          {dateien.slice(0, SICHTBARE_DATEIEN).join(', ')}
+          {mehr > 0 ? ` ${t('room.moreFiles', { anzahl: mehr })}` : ''}
+        </span>
+      </button>
+      {offen && (
+        <ul className="raum__alledateien" data-chat-alle-dateien>
+          {dateien.map((d, i) => (
+            <li key={i}>{d}</li>
+          ))}
+        </ul>
+      )}
+    </>
   );
 }

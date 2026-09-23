@@ -12,6 +12,20 @@ import type { RaumLage } from '../shared/teilen';
 
 const api = {
   /**
+   * Wo das Werkzeug steht, fuer den Verlauf der Huelle und „Zuletzt
+   * geoeffnet" im Teilen: die geladene Begegnung.
+   */
+  ort: {
+    melde: (ort: string | null) => ipcRenderer.send('huelle:ort', ort),
+    beiSprung: (hoerer: (ort: string | null) => void) => {
+      const lauscher = (_e: unknown, ort: string | null) => hoerer(ort);
+      ipcRenderer.on('huelle:ort-springe', lauscher);
+      return () => {
+        ipcRenderer.off('huelle:ort-springe', lauscher);
+      };
+    }
+  },
+  /**
    * Die Suche der Huelle hat einen Eintrag gewaehlt, der hier liegt.
    * Liefert eine Funktion zum Abmelden zurueck.
    */

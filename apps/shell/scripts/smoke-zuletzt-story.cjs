@@ -19,7 +19,18 @@ const userData = path.join(tmp, 'userData');
 fs.mkdirSync(userData, { recursive: true });
 fs.writeFileSync(
   path.join(userData, 'einstellungen.json'),
-  JSON.stringify({ language: 'en', einfuehrungGesehen: ['suite', 'backstory'] })
+  JSON.stringify({ language: 'en', einfuehrungGesehen: ['suite', 'backstory', 'monster', 'zustaende'] })
+);
+// Ein Monster und ein Zustand in ihren Sammlungen: auch sie melden, was offen ist.
+fs.mkdirSync(path.join(userData, 'monster', 'monster'), { recursive: true });
+fs.writeFileSync(
+  path.join(userData, 'monster', 'monster', 'ghul.md'),
+  '---\nid: ghul\nname: Ghul\ncr: "1"\nthema: untot\nrolle: brute\n---\n# Ghul\n\nKlauen, die laehmen.\n'
+);
+fs.mkdirSync(path.join(userData, 'zustaende', 'zustaende'), { recursive: true });
+fs.writeFileSync(
+  path.join(userData, 'zustaende', 'zustaende', 'fluch.md'),
+  '---\nid: fluch\nname: Fluch\nhaerte: ernst\nstufen: 2\nzeichen: "✦"\nfarbe: "#aa55ff"\ngeaendert: 2026-01-01\nschemaVersion: 1\n---\n# Fluch\n'
 );
 app.setPath('userData', userData);
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
@@ -76,6 +87,22 @@ app.whenReady().then(async () => {
   pruefe(await klicke('Rabenfels'), 'Rabenfels in der Liste angeklickt');
   await warte(1200);
 
+  // Ein Monster aus der Sammlung oeffnen, dann einen Zustand.
+  const oeffneAusSammlung = async (id, kachel) => {
+    await hjs(`document.querySelector('[data-schiene="${id}"]').click(); true`);
+    await warte(4500);
+    const v = sicht(id);
+    if (!v) return false;
+    const vjs = (a) => v.webContents.executeJavaScript(a);
+    await vjs("[...document.querySelectorAll('.reiter__knopf')].find(b => /Collection|Sammlung|Library/i.test(b.textContent))?.click(); true");
+    await warte(800);
+    const ok = await vjs(`(() => { const k = document.querySelector('${kachel}'); if (!k) return false; k.click(); return true; })()`);
+    await warte(800);
+    return ok;
+  };
+  pruefe(await oeffneAusSammlung('monster', '.monsterkachel'), 'ein Monster aus der Sammlung geoeffnet');
+  pruefe(await oeffneAusSammlung('zustaende', '.zustandskachel'), 'einen Zustand aus der Sammlung geoeffnet');
+
   await hjs(`document.querySelector('[data-teilen-knopf]').click(); true`);
   await warte(1000);
   await hjs(`document.querySelector('[data-richtung="datei"]').click(); true`);
@@ -84,10 +111,13 @@ app.whenReady().then(async () => {
   const zuletzt = await hjs("[...document.querySelectorAll('[data-gruppe=\"~zuletzt\"] [data-teilen]')].map(e => e.dataset.teilen)");
   pruefe(gruppen[0] === '~zuletzt', `„Zuletzt geoeffnet" steht ganz oben (${gruppen.slice(0, 3).join(', ')})`);
   pruefe(
-    zuletzt[0] === `backstory/${ids.k}/${ids.b}` && zuletzt[1] === `backstory/${ids.k}/${ids.a}`,
-    `mit beiden Notizen, die zuletzt geoeffnete zuerst (${zuletzt.join(', ')})`
+    zuletzt[0] === 'zustaende/fluch' &&
+      zuletzt[1] === 'monster/ghul' &&
+      zuletzt[2] === `backstory/${ids.k}/${ids.b}` &&
+      zuletzt[3] === `backstory/${ids.k}/${ids.a}`,
+    `Zustand, Monster und beide Notizen, das zuletzt geoeffnete zuerst (${zuletzt.join(', ')})`
   );
 
-  console.log(fehler.length === 0 ? '\nZuletzt geoeffnet (Story Creator) bestanden.' : `\n${fehler.length} Fehler.`);
+  console.log(fehler.length === 0 ? '\nZuletzt geoeffnet bestanden.' : `\n${fehler.length} Fehler.`);
   app.exit(fehler.length === 0 ? 0 : 1);
 });

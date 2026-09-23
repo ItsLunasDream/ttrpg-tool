@@ -533,7 +533,8 @@ export function App() {
             Ausdruecklich noch eine Wirkung oder einen Fluch wuerfeln, nicht
             nur ein leeres Feld anlegen (Rueckmeldung).
           */}
-          <div className="knopfreihe">
+          <div className="knopfreihe knopfreihe--neu">
+            <span className="knopfreihe__titel">{t('feld.neueWirkung')}</span>
             <button
               type="button"
               className="knopf"
@@ -547,7 +548,7 @@ export function App() {
                 })
               }
             >
-              ⚄ {t('feld.wirkungWuerfeln')}
+              ⚄ {t('feld.neuGewuerfelt')}
             </button>
             {kiDa ? (
               <button
@@ -557,7 +558,7 @@ export function App() {
                 disabled={kiLaeuft}
                 onClick={() => void feldVonKi('wirkung')}
               >
-                {kiLaeuft ? t('ki.laeuft') : t('ki.wirkung')}
+                {kiLaeuft ? t('ki.laeuft') : `✦ ${t('feld.neuKi')}`}
               </button>
             ) : null}
             <button
@@ -565,48 +566,52 @@ export function App() {
               className="knopf"
               onClick={() => setze({ wirkungen: [...offen.wirkungen, ''] })}
             >
-              + {t('feld.wirkungDazu')}
+              + {t('feld.neuLeer')}
             </button>
           </div>
 
-          <label className="feld feld--hoch fluch">
-            <span className="feld__name feld__name--mitknopf">
-              {t('feld.fluch')}
-              <button
-                type="button"
-                className="knopf knopf--klein"
-                data-fluch-wuerfeln
-                onClick={(e) => {
-                  e.preventDefault();
-                  // Ein Fluch bindet immer: mit ihm verlangt der Gegenstand Einstimmung.
-                  setze({ fluch: wuerfleFluch(spr, offen.fluch), einstimmung: offen.art !== 'trank' && offen.art !== 'schriftrolle' ? true : offen.einstimmung });
-                }}
-              >
-                ⚄ {offen.fluch.trim() ? t('feld.fluchNeu') : t('feld.fluchWuerfeln')}
-              </button>
-              {kiDa ? (
-                <button
-                  type="button"
-                  className="knopf knopf--klein"
-                  data-fluch-ki
-                  disabled={kiLaeuft}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    void feldVonKi('fluch');
-                  }}
-                >
-                  ✦
-                </button>
-              ) : null}
-            </span>
+          {/*
+            Der Fluch wie die Wirkungen: Ueberschrift, Feld, darunter die
+            Knoepfe in voller Groesse und mit Text (Rueckmeldung).
+          */}
+          <h3 className="fluch__titel">{t('feld.fluch')}</h3>
+          <div className="fluch">
             <textarea
               className="feld__flaeche"
               rows={2}
               value={offen.fluch}
               placeholder={t('feld.fluchHinweis')}
+              data-fluch
               onChange={(e) => setze({ fluch: e.target.value })}
             />
-          </label>
+          </div>
+          <div className="knopfreihe">
+            <button
+              type="button"
+              className="knopf"
+              data-fluch-wuerfeln
+              onClick={() =>
+                // Ein Fluch bindet immer: mit ihm verlangt der Gegenstand Einstimmung.
+                setze({
+                  fluch: wuerfleFluch(spr, offen.fluch),
+                  einstimmung: offen.art !== 'trank' && offen.art !== 'schriftrolle' ? true : offen.einstimmung
+                })
+              }
+            >
+              ⚄ {offen.fluch.trim() ? t('feld.fluchNeu') : t('feld.fluchWuerfeln')}
+            </button>
+            {kiDa ? (
+              <button
+                type="button"
+                className="knopf"
+                data-fluch-ki
+                disabled={kiLaeuft}
+                onClick={() => void feldVonKi('fluch')}
+              >
+                {kiLaeuft ? t('ki.laeuft') : `✦ ${t('feld.neuKi')}`}
+              </button>
+            ) : null}
+          </div>
 
           <label className="feld feld--hoch">
             <span className="feld__name">{t('feld.notiz')}</span>

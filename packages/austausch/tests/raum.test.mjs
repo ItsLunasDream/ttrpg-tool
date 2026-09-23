@@ -37,3 +37,25 @@ test('Namen im Raum sind eindeutig, ohne eigenen gibt es einen Gastnamen', () =>
   assert.equal(A.gastname(3), 'Gast 3');
   assert.equal(A.gastname(3, 'en'), 'Guest 3');
 });
+
+test('Adressen lesen: IPv4, IPv6 in Klammern, Namen, ohne Port', () => {
+  assert.deepEqual(A.leseAdresse('192.168.1.20:47812'), { host: '192.168.1.20', port: 47812 });
+  assert.deepEqual(A.leseAdresse('[2001:db8::5]:5000'), { host: '2001:db8::5', port: 5000 });
+  assert.deepEqual(A.leseAdresse('[2001:db8::5]'), { host: '2001:db8::5', port: A.RAUM_INTERNETPORT });
+  assert.deepEqual(A.leseAdresse('2001:db8::5'), { host: '2001:db8::5', port: A.RAUM_INTERNETPORT });
+  assert.deepEqual(A.leseAdresse('runde.example.org:1234'), { host: 'runde.example.org', port: 1234 });
+  assert.deepEqual(A.leseAdresse('runde.example.org'), { host: 'runde.example.org', port: A.RAUM_INTERNETPORT });
+  assert.equal(A.leseAdresse(''), null);
+  assert.equal(A.leseAdresse('1.2.3.4:99999'), null);
+  assert.equal(A.leseAdresse('a b:12'), null);
+  assert.equal(A.leseAdresse('[kein]:12'), null);
+  assert.equal(A.alsAdresse('2001:db8::5', 47812), '[2001:db8::5]:47812');
+  assert.equal(A.alsAdresse('10.0.0.2', 47812), '10.0.0.2:47812');
+});
+
+test('hallo einer alten Fassung wird noch gelesen, damit sie „falsche Fassung" hoert', () => {
+  const alt = A.leseNachricht(JSON.stringify({ typ: 'hallo', name: 'A', nachweis: '', version: 1 }));
+  assert.equal(alt?.version, 1);
+  assert.equal(alt?.gastNonce, '');
+  assert.equal(A.leseNachricht(JSON.stringify({ typ: 'herausforderung', raum: 'R', nonce: 'n' })), null);
+});

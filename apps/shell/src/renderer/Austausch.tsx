@@ -22,10 +22,12 @@ import { Dialog } from './Dialog';
 import { Raum } from './Raum';
 import { Auswahl } from './Auswahl';
 import { AppSymbol } from './icons';
+import { useVorschau } from './Vorschau';
+import { Ankunftsfenster } from './Ankunftsfenster';
 import type { GefundenerRaum, Raumzustand } from '../main/raum';
 import type { Raumpaket } from '../preload';
 
-const AUS: Raumzustand = { rolle: 'aus', raum: '', ich: null, personen: [], chat: [], port: null, adressen: [] };
+const AUS: Raumzustand = { rolle: 'aus', raum: '', ich: null, personen: [], chat: [], port: null, adressen: [], ipv6: [], verschluesselt: false, internet: false };
 
 type Modus = 'uebernehmen' | 'daneben' | 'verwerfen';
 
@@ -110,6 +112,11 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
   const [modi, setModi] = useState<Record<number, Modus>>({});
   const [fehler, setFehler] = useState('');
   const [ergebnis, setErgebnis] = useState<{ ok: boolean; name: string; grund?: string }[] | null>(null);
+  // Jede geoeffnete Sendung zaehlt hoch: die Vorschau merkt sich Texte je Sendung.
+  const [eingangNr, setEingangNr] = useState(0);
+  const [fenster, setFenster] = useState<number | null>(null);
+  const [gespeichert, setGespeichert] = useState<Set<number>>(new Set());
+  const vorschau = useVorschau();
 
   const oeffnen = async () => zeige(await window.shell.austausch.oeffnen());
 
@@ -122,6 +129,9 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
       return;
     }
     setFehler('');
+    setEingangNr((n) => n + 1);
+    setFenster(null);
+    setGespeichert(new Set());
     const z = antwort.ziele ?? {};
     const wahl = Object.fromEntries(Object.entries(z).map(([w, liste]) => [w, liste[0]?.id ?? '']));
     setZiele(z);
@@ -147,6 +157,21 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
       .filter((a) => annehmen.has(a.nummer) && a.annehmbar && !ohneZiel(a))
       .map((a) => ({ nummer: a.nummer, modus: konflikt[a.nummer] ? (modi[a.nummer] ?? 'daneben') : 'daneben' }));
     setErgebnis(await window.shell.austausch.annehmen(entscheidungen, zielWahl));
+  };
+
+  /** Eine einzelne Ankunft annehmen, aus ihrem Fenster heraus. */
+  const nimmEineAn = async (a: Ankunft) => {
+    const modus = konflikt[a.nummer] ? (modi[a.nummer] ?? 'daneben') : 'daneben';
+    const [e] = await window.shell.austausch.annehmen([{ nummer: a.nummer, modus }], zielWahl);
+    if (e?.ok) {
+      setGespeichert((alt) => new Set(alt).add(a.nummer));
+      setAnnehmen((alt) => {
+        const neu = new Set(alt);
+        neu.delete(a.nummer);
+        return neu;
+      });
+    }
+    return e ?? { ok: false, name: a.name };
   };
 
   /** Was angekommen ist (aus dem Raum oder einer Datei), mit Annehmen. */
@@ -182,7 +207,19 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
           ))}
           <ul className="auswahl__liste">
             {ankuenfte.map((a) => (
-              <li key={a.nummer} data-ankunft={a.nummer}>
+              <li
+                key={a.nummer}
+                data-ankunft={a.nummer}
+                onMouseEnter={(ev) =>
+                  vorschau.zeige(`ankunft:${eingangNr}:${a.nummer}`, () => window.shell.austausch.ankunftText(a.nummer, false), ev.currentTarget)
+                }
+                onMouseLeave={vorschau.verstecke}
+                onDoubleClick={() => {
+                  vorschau.verstecke();
+                  setFenster(a.nummer);
+                }}
+                title={t('share.openHint')}
+              >
                 <label className={annehmen.has(a.nummer) && a.annehmbar && !ohneZiel(a) ? 'auswahl__karte is-an' : 'auswahl__karte'}>
                   <input
                     type="checkbox"
@@ -198,7 +235,10 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
                     }
                   />
                   <AppSymbol id={a.werkzeug} size={18} bild={symbole[a.werkzeug]} />
-                  <span className="auswahl__name">{a.name}</span>
+                  <span className="auswahl__name">
+                    {gespeichert.has(a.nummer) ? '✓ ' : ''}
+                    {a.name}
+                  </span>
                   <span className="auswahl__art">
                     {a.art} · {werkzeugName(a.werkzeug)}
                     {a.bilder > 0 ? ` · ${t('share.images', { anzahl: a.bilder })}` : ''}
@@ -224,6 +264,26 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
               </li>
             ))}
           </ul>
+          {vorschau.karte}
+          {fenster !== null && ankuenfte[fenster] && (
+            <Ankunftsfenster
+              key={`${eingangNr}:${fenster}`}
+              ankunft={ankuenfte[fenster]}
+              werkzeugName={werkzeugName(ankuenfte[fenster].werkzeug)}
+              symbol={symbole[ankuenfte[fenster].werkzeug]}
+              ziele={ziele[ankuenfte[fenster].werkzeug]}
+              zielWahl={zielWahl[ankuenfte[fenster].werkzeug] ?? ''}
+              setZiel={(id) => setZielWahl({ ...zielWahl, [ankuenfte[fenster].werkzeug]: id })}
+              konflikt={Boolean(konflikt[fenster])}
+              modus={modi[fenster] ?? 'daneben'}
+              setModus={(m) => setModi({ ...modi, [fenster]: m })}
+              gespeichert={gespeichert.has(fenster)}
+              speichere={() => nimmEineAn(ankuenfte[fenster])}
+              onClose={() => setFenster(null)}
+              t={t}
+            />
+          )}
+          <p className="einst__satz raum__warnung">{t('share.openHint')}</p>
           <div className="austausch__fuss">
             <span />
             <button type="button" className="dialog__knopf" data-annehmen onClick={() => void nimmAn()}>
@@ -315,7 +375,11 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
                 ) : (
                   <ul className="auswahl__liste" data-raumpakete>
                     {raumPakete.map((p) => (
-                      <li key={p.id} className="auswahl__karte">
+                      <li
+                        key={p.id}
+                        className="auswahl__karte"
+                        onDoubleClick={() => void window.shell.raum.paketAnsehen(p.id).then(zeige)}
+                      >
                         <span className="auswahl__name">{p.titel}</span>
                         <span className="auswahl__art">{t('share.fromRoom', { name: p.von })}</span>
                         <button

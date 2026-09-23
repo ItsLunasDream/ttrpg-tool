@@ -255,14 +255,17 @@ const api = {
       ipcRenderer.invoke('austausch:konflikte', ziele) as Promise<boolean[]>,
     vorschau: (werkzeug: string, kennung: string) =>
       ipcRenderer.invoke('austausch:vorschau', werkzeug, kennung) as Promise<string>,
+    ankunftText: (nummer: number, voll: boolean) =>
+      ipcRenderer.invoke('austausch:ankunftText', nummer, voll) as Promise<string>,
     annehmen: (entscheidungen: { nummer: number; modus?: Modus }[], ziele: Record<string, string>) =>
       ipcRenderer.invoke('austausch:annehmen', entscheidungen, ziele) as Promise<
         { ok: boolean; kennung?: string; grund?: string; werkzeug: string; name: string }[]
       >
   },
   /**
-   * Der Raum im lokalen Netz (Stufe 2): Chat an alle oder an eine Person,
-   * Pakete ebenso. Der Verkehr ist unverschluesselt.
+   * Der Raum im lokalen Netz oder ueber das Internet (Portfreigabe, IPv6):
+   * Chat an alle oder an eine Person, Pakete ebenso. Mit Passwort
+   * verschluesselt.
    */
   raum: {
     zustand: () =>
@@ -273,8 +276,10 @@ const api = {
       }>,
     suchen: () => ipcRenderer.invoke('raum:suchen') as Promise<GefundenerRaum[]>,
     aktualisieren: () => ipcRenderer.invoke('raum:aktualisieren') as Promise<GefundenerRaum[]>,
-    eroeffnen: (name: string, passwort: string) =>
-      ipcRenderer.invoke('raum:eroeffnen', name, passwort) as Promise<{ ok: boolean; port?: number; grund?: string }>,
+    eroeffnen: (name: string, passwort: string, optionen: { internet?: boolean; port?: number } = {}) =>
+      ipcRenderer.invoke('raum:eroeffnen', name, passwort, optionen) as Promise<{ ok: boolean; port?: number; grund?: string }>,
+    kopieren: (text: string) => ipcRenderer.invoke('raum:kopieren', text) as Promise<boolean>,
+    oeffentlicheIp: () => ipcRenderer.invoke('raum:oeffentlicheIp') as Promise<string | null>,
     beitreten: (adresse: string, port: number, passwort: string) =>
       ipcRenderer.invoke('raum:beitreten', adresse, port, passwort) as Promise<Raumzustand>,
     verlassen: () => ipcRenderer.invoke('raum:verlassen') as Promise<Raumzustand>,

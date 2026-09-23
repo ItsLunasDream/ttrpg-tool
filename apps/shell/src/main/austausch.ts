@@ -33,6 +33,7 @@ import { austausch as notizen } from '../../../backstory/src/main/embed';
 import { austausch as regeln } from '../../../nachschlagewerk/src/main/embed';
 import { alleEintraege } from './suche';
 import { regelNach } from '../../../nachschlagewerk/src/shared/bestand';
+import { kopfzeilen, uebersetzeUeberschriften } from './vorschaukopf';
 
 /** Eine Kennung, die gefahrlos zum Dateinamen werden darf. */
 function sichereKennung(kennung: string): string | null {
@@ -138,8 +139,8 @@ export function machtMit(werkzeug: string): boolean {
  * die mitmachen. Ohne die Notizen am Regeltext — die sind fuer einen selbst
  * (docs/austausch.md).
  */
-export async function teilbar(datenordner: string): Promise<readonly Eintrag[]> {
-  const eintraege = (await alleEintraege(datenordner)).filter(
+export async function teilbar(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<readonly Eintrag[]> {
+  const eintraege = (await alleEintraege(datenordner, sprache)).filter(
     (e) => machtMit(e.werkzeug) && !(e.werkzeug === 'nachschlagewerk' && e.kennung.startsWith('notiz/'))
   );
   // „Zuletzt hinzugefuegt" braucht ein Datum. Wer keines mitbringt und als
@@ -162,8 +163,6 @@ export async function teilbar(datenordner: string): Promise<readonly Eintrag[]> 
   );
 }
 
-/** Kopfzeilen, die in einer Vorschau nur stoeren. */
-const OHNE_IN_VORSCHAU = /^(id|schemaVersion|geaendert|erstellt|loot|paket|paket_name|name|teilnehmer)\s*:/;
 
 /**
  * Ein kurzer Blick in einen Eintrag, fuer die Vorschau beim Darueberfahren
@@ -175,27 +174,51 @@ export async function vorschau(
   kennung: string,
   sprache: 'de' | 'en'
 ): Promise<string> {
-  let text = '';
   if (werkzeug === 'nachschlagewerk' && !kennung.startsWith('hausregel/')) {
-    text = regelNach(kennung)?.text[sprache] ?? '';
-  } else {
-    const inhalt = (await TEILNEHMER.get(werkzeug)?.gib(datenordner, kennung))?.inhalt ?? '';
-    const kopf = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(inhalt);
-    const kopfzeilen = (kopf?.[1] ?? '')
-      .split(/\r?\n/)
-      .filter((z) => z.trim() && !OHNE_IN_VORSCHAU.test(z) && !/^\s*-/.test(z))
-      .map((z) => z.replace(/^(\w+):\s*"?(.*?)"?$/, '$1: $2'))
-      .filter((z) => !/:\s*$/.test(z));
-    const rumpf = kopf ? inhalt.slice(kopf[0].length) : inhalt;
-    text = [...kopfzeilen, '', rumpf].join('\n');
+    return lesbar(regelNach(kennung)?.text[sprache] ?? '', 700);
   }
+  const inhalt = (await TEILNEHMER.get(werkzeug)?.gib(datenordner, kennung))?.inhalt ?? '';
+  return lesbar(kopfLesbar(werkzeug, inhalt, sprache), 700);
+}
+
+/**
+ * Der Text einer empfangenen Sendung, bevor sie angenommen ist: fuer die
+ * Vorschau (kurz) und das Fenster (lang). Eine Regel reist als Verweis und
+ * kommt aus dem eigenen Nachschlagewerk.
+ */
+export function sendungsText(sendung: Paket['sendungen'][number], sprache: 'de' | 'en', max: number): string {
+  if (sendung.inhalt === null) {
+    return lesbar(sendung.werkzeug === 'nachschlagewerk' ? (regelNach(sendung.kennung)?.text[sprache] ?? '') : '', max);
+  }
+  return lesbar(kopfLesbar(sendung.werkzeug, sendung.inhalt, sprache), max);
+}
+
+/**
+ * Der Kopf eines Eintrags als lesbare Zeilen in der eingestellten Sprache
+ * (vorschaukopf.ts), darunter der Rumpf.
+ */
+function kopfLesbar(werkzeug: string, inhalt: string, sprache: 'de' | 'en'): string {
+  const kopf = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(inhalt);
+  const werte: Record<string, string> = {};
+  for (const z of (kopf?.[1] ?? '').split(/\r?\n/)) {
+    const t = /^(\w+):\s*(.*?)\s*$/.exec(z);
+    if (t) werte[t[1]] = t[2].replace(/^(["'])(.*)\1$/, '$2');
+  }
+  const rumpf = kopf ? inhalt.slice(kopf[0].length) : inhalt;
+  const zeilen = kopfzeilen(werkzeug, werte, sprache).filter(Boolean);
+  return [...zeilen, ...(zeilen.length ? [''] : []), uebersetzeUeberschriften(werkzeug, rumpf, sprache)].join('\n');
+}
+
+/** Ohne Bilder, Verweisklammern und Auszeichnung; gekuerzt auf `max` Zeichen. */
+function lesbar(text: string, max: number): string {
   const klar = text
+    .replace(/^#{1,6}[ \t]+/gm, '')
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
     .replace(/\[\[([^\]|]+)(\|[^\]]+)?\]\]/g, '$1')
     .replace(/[*_`#>]+/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
-  return klar.length > 700 ? `${klar.slice(0, 700).trimEnd()} …` : klar;
+  return klar.length > max ? `${klar.slice(0, max).trimEnd()} …` : klar;
 }
 
 /** Schnuert die gewaehlten Eintraege. Was es nicht mehr gibt, faellt heraus. */
@@ -235,11 +258,13 @@ export interface Ankunft {
   readonly annehmbar: boolean;
 }
 
-export function ankuenfte(paket: Paket): Ankunft[] {
+export function ankuenfte(paket: Paket, sprache: 'de' | 'en' = 'de'): Ankunft[] {
   return paket.sendungen.map((s, nummer) => ({
     nummer,
     werkzeug: s.werkzeug,
-    name: s.name,
+    // Eine offizielle Regel reist als Verweis; ihren Namen kennt jede
+    // Sammlung in beiden Sprachen.
+    name: (s.inhalt === null && s.werkzeug === 'nachschlagewerk' ? regelNach(s.kennung)?.name[sprache] : undefined) ?? s.name,
     art: s.art,
     bilder: s.bilder.length,
     verweis: s.inhalt === null,

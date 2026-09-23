@@ -19,7 +19,7 @@
  */
 // Zuerst: der Datenordner, bevor irgendetwas ihn erfragt.
 import './datenordner';
-import { app, BaseWindow, WebContentsView, dialog, ipcMain, screen, shell, type IpcMainInvokeEvent, type WebContents } from 'electron';
+import { app, BaseWindow, WebContentsView, dialog, clipboard, ipcMain, net, screen, shell, type IpcMainInvokeEvent, type WebContents } from 'electron';
 /**
  * Startzeit messen, wenn TTRPG_TOOLS_STARTZEIT gesetzt ist.
  *
@@ -77,6 +77,7 @@ import {
   schnuere,
   schreibePaket,
   teilbar,
+  sendungsText,
   vorschau as austauschVorschau,
   zieleFuer
 } from './austausch';
@@ -872,7 +873,9 @@ function registriereKanaele(): void {
    * Bei jedem Oeffnen frisch von der Platte. Siehe suche.ts, warum kein
    * Verzeichnis gefuehrt wird.
    */
-  handle('suche:eintraege', () => alleEintraege(app.getPath('userData')));
+  handle('suche:eintraege', () =>
+    alleEintraege(app.getPath('userData'), gemerkteEinstellungen.language === 'de' ? 'de' : 'en')
+  );
 
   /*
    * Der Austausch (docs/austausch.md, Stufe 1): weitergeben als Paketdatei,
@@ -885,7 +888,9 @@ function registriereKanaele(): void {
    */
   let eingang: Paket | null = null;
 
-  handle('austausch:teilbar', () => teilbar(app.getPath('userData')));
+  handle('austausch:teilbar', () =>
+    teilbar(app.getPath('userData'), gemerkteEinstellungen.language === 'de' ? 'de' : 'en')
+  );
   handle('austausch:vorschau', (_event, werkzeug: string, kennung: string) =>
     austauschVorschau(
       app.getPath('userData'),
@@ -894,6 +899,13 @@ function registriereKanaele(): void {
       gemerkteEinstellungen?.language === 'de' ? 'de' : 'en'
     )
   );
+  // Der Text einer angekommenen Sendung, bevor sie angenommen ist: kurz fuer
+  // die Vorschau, lang fuer das Fenster.
+  handle('austausch:ankunftText', (_event, nummer: number, voll: boolean) => {
+    const sendung = eingang?.sendungen[Number(nummer)];
+    if (!sendung) return '';
+    return sendungsText(sendung, gemerkteEinstellungen?.language === 'de' ? 'de' : 'en', voll ? 60000 : 700);
+  });
   handle('austausch:zuletzt', () => [...zuletztGeoeffnet]);
 
   handle(
@@ -936,7 +948,7 @@ function registriereKanaele(): void {
     return {
       ok: true,
       abgebrochen: false,
-      ankuenfte: ankuenfte(eingang),
+      ankuenfte: ankuenfte(eingang, gemerkteEinstellungen?.language === 'de' ? 'de' : 'en'),
       ziele: await zieleFuer(app.getPath('userData'), eingang.sendungen.map((s) => s.werkzeug))
     };
   });
@@ -1007,9 +1019,11 @@ function registriereKanaele(): void {
     raum.aktualisiereSuche();
     return raum.raeume();
   });
-  handle('raum:eroeffnen', async (_event, name: string, passwort: string) => {
+  handle('raum:eroeffnen', async (_event, name: string, passwort: string, optionen?: { internet?: boolean; port?: number }) => {
     try {
-      return { ok: true, port: await raum.eroeffne(name, passwort, meinName()) };
+      const internet = optionen?.internet === true;
+      const port = Number.isInteger(optionen?.port) ? optionen!.port : undefined;
+      return { ok: true, port: await raum.eroeffne(name, passwort, meinName(), { internet, port }) };
     } catch (fehler) {
       return { ok: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };
     }
@@ -1017,6 +1031,21 @@ function registriereKanaele(): void {
   handle('raum:beitreten', async (_event, adresse: string, port: number, passwort: string) => {
     await raum.trittBei(adresse, port, passwort, meinName());
     return raum.zustand();
+  });
+  // Die oeffentliche IPv4 fuer Gaeste ueber das Internet. Nur auf Knopfdruck:
+  // dafuer wird ein fremder Dienst gefragt, der dabei die eigene IP sieht.
+  handle('raum:oeffentlicheIp', async () => {
+    try {
+      const antwort = await net.fetch('https://api.ipify.org?format=text', { signal: AbortSignal.timeout(8000) });
+      const text = (await antwort.text()).trim();
+      return antwort.ok && /^\d{1,3}(\.\d{1,3}){3}$/.test(text) ? text : null;
+    } catch {
+      return null;
+    }
+  });
+  handle('raum:kopieren', (_event, text: string) => {
+    if (typeof text === 'string' && text.length <= 200) clipboard.writeText(text);
+    return true;
   });
   handle('raum:verlassen', () => {
     raum.verlasse();
@@ -1051,7 +1080,7 @@ function registriereKanaele(): void {
     return {
       ok: true,
       abgebrochen: false,
-      ankuenfte: ankuenfte(eingang),
+      ankuenfte: ankuenfte(eingang, gemerkteEinstellungen?.language === 'de' ? 'de' : 'en'),
       ziele: await zieleFuer(app.getPath('userData'), eingang.sendungen.map((s) => s.werkzeug))
     };
   });

@@ -427,6 +427,9 @@ export function App() {
    * hier nebenbei.
    */
   useEffect(() => api.beiSuchtreffer((kennung) => void ladeBegegnung(kennung)), [ladeBegegnung]);
+  // Die geladene Begegnung ist der Ort (fuer „Zuletzt geoeffnet" im Teilen).
+  // Kein Sprung zurueck: er wuerde einen laufenden Kampf ueberschreiben.
+  useEffect(() => api.ort.melde(kampf.begegnungId ?? null), [kampf.begegnungId]);
 
   const aktive = useMemo(() => sortiert.filter(istAktiv).length, [sortiert]);
 

@@ -1574,21 +1574,31 @@ body {
   flex: 1;
 }
 
-/* Der kleine Kreis beim Aktualisieren. Unsichtbar, solange nichts passiert,
-   damit der Knopf nicht springt. */
+/* Neben „Aktualisieren": Kreis, dann Haken. Der Platz bleibt immer
+   frei, damit der Knopf nicht springt. */
+.raum__zeichen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
 .raum__kreis {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border: 2px solid var(--rand);
   border-top-color: var(--betont);
   border-radius: 50%;
-  opacity: 0;
-  transition: opacity 150ms ease;
+  animation: raum-kreis 0.8s linear infinite;
 }
 
-.raum__kreis.is-an {
-  opacity: 1;
-  animation: raum-kreis 0.8s linear infinite;
+.raum__haken {
+  color: var(--betont);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  animation: raum-haken 200ms ease-out;
 }
 
 @keyframes raum-kreis {
@@ -1597,8 +1607,15 @@ body {
   }
 }
 
+@keyframes raum-haken {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .raum__kreis.is-an {
+  .raum__kreis {
     animation-duration: 2.4s;
   }
 }
@@ -1868,4 +1885,151 @@ body {
   width: 20px;
   text-align: center;
   color: var(--betont);
+}
+
+/* ---------- Raum uebers Internet ---------- */
+
+.raum__schalter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.raum__port {
+  width: 7ch;
+  box-sizing: content-box;
+}
+
+.raum__marke {
+  font-size: 0.8em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--rand);
+  opacity: 0.8;
+}
+
+.raum__marke.is-sicher {
+  border-color: var(--betont);
+  color: var(--betont);
+  opacity: 1;
+}
+
+.raum__adressen {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.raum__adresse {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.raum__adressart {
+  min-width: 11ch;
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.raum__adresstext {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+/* ---------- Angekommener Eintrag im eigenen Fenster ---------- */
+
+.ankunft__grund {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.ankunft {
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  box-sizing: border-box;
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  background: var(--grund);
+  color: var(--text);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  outline: none;
+}
+
+.ankunft__kopf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ankunft__titel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ankunft__text {
+  flex: 1;
+  min-height: 120px;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  font-size: 13.5px;
+  user-select: text;
+}
+
+.ankunft__fuss {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ankunft__meldung {
+  flex: 1;
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+
+/* Chatzeile fuer geteilte Eintraege: aufklappbar. */
+.raum__dateien {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.raum__dateien:hover .raum__dateiliste,
+.raum__dateien:focus-visible .raum__dateiliste {
+  text-decoration: underline;
+}
+
+.raum__alledateien {
+  margin: 4px 0 2px 18px;
+  padding: 0;
+  font-size: 0.92em;
+}
+
+/* Die Kopfzeile einer Gruppe im Teilen klappt als Ganzes. */
+.auswahl__kopf {
+  cursor: pointer;
+  user-select: none;
 }

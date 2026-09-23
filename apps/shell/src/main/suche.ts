@@ -39,7 +39,7 @@ import { leseEintraege as leseTabellen } from '../../../loot/src/main/embed';
  * Gruenden: seine Notizen haengen an Kampagnen, die Kennung muss also
  * beides tragen — und sein Vault entscheidet selbst, wo er liegt.
  */
-const LESER: readonly ((datenordner: string) => Promise<readonly Eintrag[]>)[] = [
+const LESER: readonly ((datenordner: string, sprache: 'de' | 'en') => Promise<readonly Eintrag[]>)[] = [
   leseMonster,
   leseZustaende,
   leseBegegnungen,
@@ -63,8 +63,8 @@ const LESER: readonly ((datenordner: string) => Promise<readonly Eintrag[]>)[] =
  * Ein Leser, der wirft, nimmt die anderen nicht mit. Eine Suche ohne die
  * Monster ist besser als gar keine — und dass etwas fehlt, sieht man.
  */
-export async function alleEintraege(datenordner: string): Promise<readonly Eintrag[]> {
-  const ergebnisse = await Promise.allSettled(LESER.map((lese) => lese(datenordner)));
+export async function alleEintraege(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<readonly Eintrag[]> {
+  const ergebnisse = await Promise.allSettled(LESER.map((lese) => lese(datenordner, sprache)));
   const heraus: Eintrag[] = [];
   for (const ergebnis of ergebnisse) {
     if (ergebnis.status === 'fulfilled') heraus.push(...ergebnis.value);

@@ -14,8 +14,7 @@ const { app, BaseWindow } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
-const net = require('node:net');
-const { createHmac } = require('node:crypto');
+const { gast } = require('./raumgast.cjs');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'raum-smoke-'));
 const userData = path.join(tmp, 'userData');
@@ -48,33 +47,6 @@ async function bis(bedingung, ms = 4000) {
   return true;
 }
 
-/** Ein Gast aus dem Protokoll, ohne die App. */
-function gast(port, passwort, name) {
-  const s = net.connect({ host: '127.0.0.1', port });
-  s.setEncoding('utf8');
-  const nachrichten = [];
-  let rest = '';
-  s.on('data', (stueck) => {
-    rest += stueck;
-    const teile = rest.split('\n');
-    rest = teile.pop();
-    for (const t of teile) if (t.trim()) nachrichten.push(JSON.parse(t));
-    for (const n of nachrichten.splice(0)) {
-      gastobj.alle.push(n);
-      if (n.typ === 'herausforderung') {
-        const nachweis = passwort ? createHmac('sha256', passwort).update(n.nonce).digest('hex') : '';
-        s.write(`${JSON.stringify({ typ: 'hallo', name, nachweis, version: 1 })}\n`);
-      }
-      if (n.typ === 'willkommen') gastobj.ich = n.du;
-    }
-  });
-  s.on('error', () => undefined);
-  s.on('close', () => {
-    gastobj.getrennt = true;
-  });
-  const gastobj = { alle: [], ich: null, getrennt: false, schreibe: (n) => s.write(`${JSON.stringify(n)}\n`), zu: () => s.destroy() };
-  return gastobj;
-}
 
 app.whenReady().then(async () => {
   await warte(4000);
@@ -98,11 +70,13 @@ app.whenReady().then(async () => {
   await warte(500);
   // Aktualisieren: der Kreis dreht.
   await js(`document.querySelector('[data-raum-aktualisieren]').click(); true`);
+  const anzeige = () => js("document.querySelector('[data-raum-anzeige]')?.dataset.raumAnzeige");
   await warte(150);
-  pruefe(
-    (await js("document.querySelector('[data-raum-kreis]')?.dataset.raumKreis")) === 'true',
-    '„Aktualisieren" laesst den Kreis drehen'
-  );
+  pruefe((await anzeige()) === 'dreht', '„Aktualisieren" laesst den Kreis drehen');
+  await warte(1100);
+  pruefe((await anzeige()) === 'fertig', 'nach einer Sekunde steht ein Haken da');
+  await warte(1100);
+  pruefe((await anzeige()) === 'ruhe', 'und eine Sekunde spaeter nichts mehr');
   await setze('[data-tischname]', 'Spielleitung');
   await setze('[data-raumname]', 'Freitagsrunde');
   await setze('[data-raum-passwort]', 'pw');
@@ -123,6 +97,11 @@ app.whenReady().then(async () => {
   pruefe(
     await bis(async () => /Anna/.test(await js("document.querySelector('[data-personen]')?.textContent ?? ''"))),
     'und steht in der Liste der Personen'
+  );
+  pruefe(anna.verschluesselt, 'mit Passwort ist Annas Leitung verschluesselt');
+  pruefe(
+    (await js("document.querySelector('[data-raum-verschluesselt]')?.dataset.raumVerschluesselt")) === 'true',
+    'die Marke zeigt „verschluesselt"'
   );
 
   // --- Chat -------------------------------------------------------------------
@@ -176,10 +155,62 @@ app.whenReady().then(async () => {
   );
   const pakete = (await js('window.shell.raum.zustand()')).pakete;
   pruefe(pakete.length === 1 && pakete[0].von === 'Anna', 'das Paket wartet in der App');
-  const angesehen = await js(`window.shell.raum.paketAnsehen(${pakete[0].id})`);
-  pruefe(angesehen.ok && angesehen.ankuenfte[0].name === 'Ghul', 'es laesst sich ansehen');
-  const ergebnis = await js("window.shell.austausch.annehmen([{ nummer: 0, modus: 'daneben' }], {})");
-  pruefe(ergebnis[0]?.ok && fs.existsSync(path.join(monsterOrdner, 'ghul.md')), 'und annehmen: der Ghul liegt im Monster Creator');
+  // Dialog auf, Paket per Doppelklick ansehen.
+  await js(`document.querySelector('[data-teilen-knopf]').click(); true`);
+  await warte(800);
+  pruefe(
+    /Anna/.test(await js("document.querySelector('[data-chat-dateien]')?.closest('.raum__zeile')?.textContent ?? ''")) &&
+      /Ghul/.test(await js("document.querySelector('[data-chat-dateien]')?.textContent ?? ''")),
+    'im Chat steht, dass Anna den Ghul geteilt hat'
+  );
+  await js(`document.querySelector('[data-raumpaket]').closest('li').dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); true`);
+  pruefe(await bis(async () => js("Boolean(document.querySelector('[data-ankunft=\"0\"]'))")), 'Doppelklick auf das Paket zeigt seinen Inhalt');
+  // Vorschau beim Darueberfahren.
+  await js(`document.querySelector('[data-ankunft="0"]').dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); true`);
+  pruefe(
+    await bis(async () => /Ghul/.test(await js("document.querySelector('[data-vorschau^=\"ankunft:\"]')?.textContent ?? ''"))),
+    'darueberfahren zeigt eine Vorschau des angekommenen Eintrags'
+  );
+  await js(`document.querySelector('[data-ankunft="0"]').dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); true`);
+  // Doppelklick: eigenes Fenster mit dem ganzen Text, von dort speichern.
+  await js(`document.querySelector('[data-ankunft="0"]').dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); true`);
+  pruefe(
+    await bis(async () => /Ghul/.test(await js("document.querySelector('[data-ankunft-text]')?.textContent ?? ''"))),
+    'Doppelklick oeffnet ein Fenster mit dem ganzen Text'
+  );
+  if (process.env.BILD_FENSTER) {
+    await warte(600);
+    fs.writeFileSync(process.env.BILD_FENSTER, (await huelle.webContents.capturePage()).toPNG());
+  }
+  await js(`document.querySelector('[data-fenster-speichern]').click(); true`);
+  pruefe(
+    await bis(() => fs.existsSync(path.join(monsterOrdner, 'ghul.md'))),
+    'aus dem Fenster gespeichert: der Ghul liegt im Monster Creator'
+  );
+  pruefe(await bis(async () => /✓/.test(await js("document.querySelector('[data-fenster-meldung]')?.textContent ?? ''"))), 'das Fenster meldet es');
+  await js(`document.querySelector('[data-ankunftsfenster]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true`);
+  await warte(300);
+  pruefe(
+    (await js("Boolean(document.querySelector('[data-ankunftsfenster]'))")) === false && (await js("Boolean(document.querySelector('.dialog'))")),
+    'Escape schliesst nur das Fenster, der Dialog bleibt'
+  );
+
+  // Mehr als fuenf Eintraege: fuenf Namen, dann eine Zahl; ein Klick zeigt alle.
+  const viele = ['# LORE', '', '<!-- ttrpg:paket {"version":1,"erstellt":""} -->', ''];
+  for (let i = 1; i <= 7; i += 1) {
+    viele.push(`<!-- ttrpg:eintrag {"werkzeug":"monster","kennung":"m${i}","name":"Monster ${i}","art":"Monster"} -->`, '---', `id: m${i}`, `name: Monster ${i}`, '---', `# Monster ${i}`, '<!-- ttrpg:ende -->', '');
+  }
+  anna.schreibe({ typ: 'paket', von: anna.ich.id, an: 'gastgeber', titel: '7', paket: viele.join('\n'), zeit: '' });
+  pruefe(await bis(async () => js("Boolean(document.querySelector('[data-chat-dateien=\"7\"]'))")), 'eine Chatzeile fuer sieben Eintraege');
+  const zeile7 = await js("document.querySelector('[data-chat-dateien=\"7\"]').textContent");
+  pruefe(/Monster 5/.test(zeile7) && !/Monster 6/.test(zeile7) && /2/.test(zeile7), `sie nennt fuenf und zaehlt den Rest (${zeile7.trim()})`);
+  await js(`document.querySelector('[data-chat-dateien="7"]').click(); true`);
+  pruefe(
+    await bis(async () => (await js("document.querySelectorAll('[data-chat-alle-dateien] li').length")) === 7),
+    'ein Klick zeigt alle sieben'
+  );
+  await js("document.querySelector('.dialog').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
+  await warte(500);
 
   // --- Ein Paket an genau Anna ---------------------------------------------
   const ben = gast(zustand.port, 'pw', 'Ben');
@@ -187,6 +218,10 @@ app.whenReady().then(async () => {
   const gesendet = await js(`window.shell.raum.senden([{ werkzeug: 'monster', kennung: 'ork' }], ${JSON.stringify(anna.ich.id)})`);
   pruefe(gesendet.ok, 'die App schickt ein Monster in den Raum');
   pruefe(await bis(() => anna.alle.some((n) => n.typ === 'paket' && /# Ork/.test(n.paket))), 'Anna bekommt es');
+  pruefe(
+    (await js('window.shell.raum.zustand()')).zustand.chat.some((z) => z.eigene && z.dateien && z.dateien[0] === 'Ork'),
+    'und im eigenen Chat steht, was man geteilt hat'
+  );
   await warte(300);
   pruefe(!ben.alle.some((n) => n.typ === 'paket'), 'Ben nicht');
 
@@ -222,9 +257,44 @@ app.whenReady().then(async () => {
   await js('window.shell.raum.verlassen()');
   pruefe(await bis(() => anna.getrennt && ben.getrennt), 'der Raum ist zu, die Gaeste sind getrennt');
   pruefe((await js('window.shell.raum.zustand()')).zustand.rolle === 'aus', 'und die App ist wieder draussen');
+  pruefe(!anna.klartextNachAnmeldung && !ben.klartextNachAnmeldung, 'nach der Anmeldung kam nichts im Klartext');
   anna.zu();
   ben.zu();
   eve.zu();
+
+  // --- Raum ueber das Internet: fester Port, Passwort noetig ------------------
+  await js(`document.querySelector('[data-teilen-knopf]').click(); true`);
+  await warte(800);
+  await js(`document.querySelector('[data-richtung="raum"]').click(); true`);
+  await warte(500);
+  await js(`document.querySelector('[data-raum-internet]').click(); true`);
+  await warte(200);
+  await setze('[data-raum-port]', '47913');
+  await setze('[data-raum-passwort]', '');
+  await warte(200);
+  pruefe(await js("document.querySelector('[data-raum-eroeffnen]').disabled"), 'ohne Passwort laesst sich kein Internetraum eroeffnen');
+  await setze('[data-raum-passwort]', 'geheim');
+  await warte(200);
+  await js(`document.querySelector('[data-raum-eroeffnen]').click(); true`);
+  pruefe(await bis(async () => js("Boolean(document.querySelector('[data-raum=\"drin\"]'))")), 'mit Passwort ist er offen');
+  const netz = (await js('window.shell.raum.zustand()')).zustand;
+  pruefe(netz.internet && netz.port === 47913 && netz.verschluesselt, `fester Port ${netz.port}, verschluesselt`);
+  pruefe(await js("Boolean(document.querySelector('[data-raum-adresse=\"lan\"]'))"), 'die Adresse im lokalen Netz steht da');
+  pruefe(/47913/.test(await js("document.querySelector('[data-raum-portfreigabe]')?.textContent ?? ''")), 'der Hinweis zur Portfreigabe nennt den Port');
+  await js(`document.querySelector('[data-raum-einladung]').click(); true`);
+  pruefe(
+    await bis(() => /47913/.test(require('electron').clipboard.readText()) && !/geheim/.test(require('electron').clipboard.readText())),
+    'die Einladung liegt in der Zwischenablage, mit Port, ohne Passwort'
+  );
+  if (process.env.BILD_NETZ) await warte(3000);
+  if (process.env.BILD_NETZ) fs.writeFileSync(process.env.BILD_NETZ, (await huelle.webContents.capturePage()).toPNG());
+  const hatV6 = Object.values(require('node:os').networkInterfaces()).flat().some((a) => a && a.address === '::1');
+  if (hatV6) {
+    const carla = gast(47913, 'geheim', 'Carla', '::1');
+    pruefe(await bis(() => carla.ich !== null), 'ein Gast kommt ueber IPv6 (::1) herein');
+    carla.zu();
+  } else console.log('  (kein ::1 auf diesem Rechner, IPv6-Beitritt uebersprungen)');
+  await js('window.shell.raum.verlassen()');
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
   console.log(fehler.length === 0 ? '\nRaum bestanden.' : `\n${fehler.length} Fehler.`);

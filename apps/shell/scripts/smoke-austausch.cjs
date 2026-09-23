@@ -76,6 +76,8 @@ app.whenReady().then(async () => {
     `Monster, Hausregel und Notiz lassen sich teilen (${teilbar.length})`
   );
   pruefe(kennungen.includes('nachschlagewerk/regel/critical-hit'), 'offizielle Regeln auch, als Verweis');
+  const liegend = teilbar.find((e) => e.kennung === 'zustand/prone');
+  pruefe(liegend?.name === 'Prone', `bei englischer Oberflaeche heissen die Regeln englisch (${liegend?.name})`);
   pruefe(!kennungen.some((k) => k.startsWith('dice/')), 'Werkzeuge, die nicht mitmachen, fehlen');
 
   // --- Der Dialog ----------------------------------------------------------
@@ -109,6 +111,14 @@ app.whenReady().then(async () => {
   const regeln = await js("document.querySelectorAll('[data-gruppe=\"nachschlagewerk\"] [data-teilen]').length");
   pruefe(regeln > 100, `aufgeklappt zeigt das Nachschlagewerk die Regeln (${regeln})`);
   await js(`document.querySelector('[data-gruppe-klappe="nachschlagewerk"]').click(); true`);
+  // Auch ein Klick auf den Namen der Gruppe klappt sie auf und wieder zu.
+  await warte(200);
+  await js(`document.querySelector('[data-gruppe-kopf="monster"] strong').click(); true`);
+  await warte(300);
+  pruefe((await js("document.querySelector('[data-gruppe=\"monster\"]').dataset.offen")) === 'true', 'ein Klick auf den Gruppennamen klappt auf');
+  await js(`document.querySelector('[data-gruppe-kopf="monster"] strong').click(); true`);
+  await warte(300);
+  pruefe((await js("document.querySelector('[data-gruppe=\"monster\"]').dataset.offen")) === 'false', 'und wieder zu');
   // Vorschau beim Darueberfahren.
   await js(`document.querySelector('[data-gruppe="~neu"] [data-teilen="monster/ghul"]').closest('label').dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); true`);
   await warte(900);

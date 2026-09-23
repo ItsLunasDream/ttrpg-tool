@@ -605,7 +605,8 @@ export function App() {
         }
         if (dialogJetzt.current === 'teilen') return;
         // Chat, auch Wuerfe aus dem Wuerfel-Werkzeug: sie kommen als Chat an.
-        if (e.art === 'chat' && !e.zeile.eigene) setUngelesen((n) => n + 1);
+        // Ein Paket zaehlt schon ueber die Liste der Pakete, seine Chatzeile nicht noch einmal.
+        if (e.art === 'chat' && !e.zeile.eigene && !e.zeile.dateien) setUngelesen((n) => n + 1);
       }),
     []
   );

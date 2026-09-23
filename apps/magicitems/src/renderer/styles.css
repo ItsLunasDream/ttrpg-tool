@@ -479,10 +479,32 @@ textarea {
 }
 
 /* Neu wuerfeln und Entfernen neben jeder Wirkung, untereinander. */
+/* Wuerfeln, KI und Loeschen nebeneinander rechts neben dem Feld. */
 .zeilenknoepfe {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 4px;
+  flex-shrink: 0;
+}
+
+.knopfreihe--neu {
+  align-items: center;
+}
+
+.knopfreihe__titel {
+  font-size: 13px;
+  color: var(--text-leise);
+  margin-right: 2px;
+}
+
+/* Abstand zu den Knoepfen der Wirkungen darueber. */
+.fluch__titel {
+  margin-top: 28px;
+}
+
+.fluch textarea {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .knopfreihe {
