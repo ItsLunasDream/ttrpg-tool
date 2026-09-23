@@ -8,7 +8,10 @@ Schatztabellen nach Herausforderungsgrad** (gegen beide PDFs geprüft; sie
 stehen im Spielleiterhandbuch, das nicht frei lizenziert ist). Eingebaut ist
 stattdessen, was das SRD hat: die W100-Tabelle „Trinkets" / „Requisiten",
 zweisprachig, schreibgeschützt, würfelbar und per `[Trinkets]` bzw.
-`[Requisiten]` aus eigenen Tabellen erreichbar. Was beim Bauen entschieden
+`[Requisiten]` aus eigenen Tabellen erreichbar. Dazu die drei Tabellen
+„Waffen", „Rüstung" und „Abenteurerausrüstung" aus dem Kapitel Ausrüstung,
+jeder Gegenstand mit Preis, ohne Würfel (gleich wahrscheinlich), ebenfalls per
+Verweis erreichbar (`[Waffen]` / `[Weapons]`). Was beim Bauen entschieden
 wurde:
 
 - **Eingabe als Zeilen.** Eine Zeile je Eintrag, die Spanne davor ist

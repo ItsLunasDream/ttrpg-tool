@@ -127,6 +127,22 @@ test('die SRD-Tabelle ist in beiden Sprachen formal sauber und per Verweis errei
   }
 });
 
+test('Waffen, Ruestung und Ausruestung aus dem SRD, mit Preis und ohne Zwischenzeilen', () => {
+  for (const sprache of ['de', 'en']) {
+    const [, waffen, ruestung, kram] = L.srdTabellen(sprache);
+    assert.equal(waffen.eintraege.length, 38, sprache);
+    assert.equal(ruestung.eintraege.length, 13, sprache);
+    assert.equal(kram.eintraege.length, 82, sprache);
+    for (const t of [waffen, ruestung, kram]) {
+      assert.ok(L.istSrd(t.id));
+      assert.deepEqual(L.pruefe(t, []), [], t.name);
+    }
+  }
+  const [, waffen] = L.srdTabellen('de');
+  assert.equal(waffen.name, 'Waffen');
+  assert.ok(waffen.eintraege.some((e) => e.text === 'Langschwert (15 GM)'), JSON.stringify(waffen.eintraege.slice(0, 3)));
+});
+
 test('der Bestand des Magic Item Creators wird zu Tabellen, leere Seltenheiten fehlen', () => {
   const liste = [
     { name: 'Klinge des Morgenrots', seltenheit: 'rare' },
