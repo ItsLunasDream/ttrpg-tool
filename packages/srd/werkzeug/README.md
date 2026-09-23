@@ -17,6 +17,8 @@ python3 werkzeug/gegenstaende_text.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tmp
 python3 werkzeug/gegenstaende_erzeugen.py /tmp/gtext.json   # schreibt src/magische-gegenstaende.ts
 python3 werkzeug/zauber_lesen.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tmp/zauber.json
 python3 werkzeug/zauber_erzeugen.py /tmp/zauber.json   # schreibt src/zauber.ts
+python3 werkzeug/ausruestung_lesen.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tmp/ausruestung.json
+python3 werkzeug/ausruestung_erzeugen.py /tmp/ausruestung.json   # schreibt src/ausruestung.ts
 python3 werkzeug/tand_lesen.py src/tand.ts             # Trinkets / Requisiten, 1W100, beide Sprachen
 ```
 
@@ -51,3 +53,18 @@ python3 werkzeug/tand_lesen.py src/tand.ts             # Trinkets / Requisiten, 
   der Rest aus `zauber_paare.json` (25, gegen denselben Rahmen geprueft;
   eine begruendete Ausnahme: Hypnotic Pattern hat verschiedene Komponenten).
 - `zauber_erzeugen.py`: prueft und schreibt `src/zauber.ts`.
+- `ausruestung_lesen.py`: das Kapitel Ausruestung beider Sprachen (180
+  Eintraege). Wie das Glossar: eine Ueberschrift mit Text ist ein Eintrag,
+  die Angaben der Werkzeuge („Ability: …") werden Unterpunkte. Die
+  Tabellen mit Titel werden aus dem Textfluss genommen und per
+  `TABELLE_ZU` an ihren Eintrag gehaengt (im Druck stehen sie, wo Platz
+  war); die drei seitenbreiten (`BREIT`) nehmen alles in ihrem Band mit.
+  Zwischenzeilen („Simple Melee Weapons") zaehlen nicht fuer die
+  Spaltenluecken (`zwischenzeilen`, nur hier), die Tabelle „Essen, Trinken
+  und Unterkunft" steht zweimal nebeneinander und wird untereinander
+  gelesen. Infokaesten (`KASTEN`) werden eigene Eintraege. Zwei
+  Trennfehler im deutschen Druck stehen in `KORREKTUREN`, jede muss
+  greifen. Gepaart ueber Abschnitt, Preis, Tabellenform und Zahlen (64),
+  der Rest aus `ausruestung_paare.json` (116, gegen Abschnitt, Preis und
+  Tabellenform geprueft).
+- `ausruestung_erzeugen.py`: prueft und schreibt `src/ausruestung.ts`.

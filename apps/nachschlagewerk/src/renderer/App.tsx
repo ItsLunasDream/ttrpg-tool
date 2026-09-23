@@ -961,13 +961,21 @@ function Block({
           </tr>
         </thead>
         <tbody>
-          {block.reihen[s].map((reihe, i) => (
-            <tr key={i}>
-              {reihe.map((zelle, j) => (
-                <td key={j}>{zelle}</td>
-              ))}
-            </tr>
-          ))}
+          {block.reihen[s].map((reihe, i) =>
+            // Eine Zwischenzeile („Simple Melee Weapons") hat nur die erste
+            // Zelle und geht ueber die ganze Breite.
+            reihe.length > 1 && reihe.slice(1).every((zelle) => !zelle) ? (
+              <tr key={i} className="regel__zwischen">
+                <td colSpan={reihe.length}>{reihe[0]}</td>
+              </tr>
+            ) : (
+              <tr key={i}>
+                {reihe.map((zelle, j) => (
+                  <td key={j}>{zelle}</td>
+                ))}
+              </tr>
+            )
+          )}
         </tbody>
       </table>
     );

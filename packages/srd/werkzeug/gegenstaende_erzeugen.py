@@ -73,7 +73,7 @@ def pruefe(d):
 
 
 def ohne_intern(b):
-    return {k: v for k, v in b.items() if k not in ('roh', 'zeilen', 'breit', 'feine_spalten')}
+    return {k: v for k, v in b.items() if k not in ('roh', 'zeilen', 'breit', 'feine_spalten', 'zwischenzeilen')}
 
 
 KOPF = '''/**

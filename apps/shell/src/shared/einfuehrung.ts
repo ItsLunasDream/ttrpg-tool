@@ -299,8 +299,8 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
     },
     punkte: [
       {
-        de: 'Das ganze Regelglossar, alle Zauber und alle magischen Gegenstände. Gesucht wird auch im Text; Begriffe im Text zeigen beim Darüberfahren eine Vorschau.',
-        en: 'The whole rules glossary, every spell and every magic item. The search covers the text; terms in the text show a preview on hover.'
+        de: 'Das ganze Regelglossar, das Kapitel Ausrüstung, alle Zauber und alle magischen Gegenstände. Gesucht wird auch im Text; Begriffe im Text zeigen beim Darüberfahren eine Vorschau.',
+        en: 'The whole rules glossary, the equipment chapter, every spell and every magic item. The search covers the text; terms in the text show a preview on hover.'
       },
       {
         de: 'Beide Sprachen gleichzeitig: wer auf Deutsch steht und „prone" tippt, findet „Liegend".',

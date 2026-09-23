@@ -315,6 +315,11 @@ body {
   vertical-align: top;
 }
 
+.regel__zwischen td {
+  font-weight: 600;
+  padding-top: 10px;
+}
+
 .regel__listentitel {
   font-weight: 600;
   margin-bottom: 2px;

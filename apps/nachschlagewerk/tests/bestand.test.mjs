@@ -14,7 +14,9 @@ test('der Bestand traegt alle fuenfzehn Zustaende', () => {
 });
 
 test('der Bestand ist das ganze Glossar und alle magischen Gegenstaende', () => {
-  assert.equal(N.alleRegeln().filter((r) => r.art !== 'gegenstand' && r.art !== 'zauber').length, 155);
+  const eigene = ['gegenstand', 'zauber', 'ausruestung'];
+  assert.equal(N.alleRegeln().filter((r) => !eigene.includes(r.art)).length, 155);
+  assert.equal(N.alleRegeln().filter((r) => r.art === 'ausruestung').length, 180);
   assert.equal(N.alleRegeln().filter((r) => r.art === 'zauber').length, 339);
   assert.equal(N.alleRegeln().filter((r) => r.art === 'gegenstand').length, 258);
 });
@@ -26,6 +28,17 @@ test('ein Zauber traegt Gradzeile und Eigenschaften in beiden Sprachen', () => {
   assert.equal(f.bloecke[1].text.de, 'Reichweite: 45 Meter');
   assert.equal(f.bloecke[1].text.en, 'Range: 150 feet');
   assert.match(f.text.de, /8W6 Feuerschaden/);
+});
+
+test('die Ausruestung zeigt ihren Abschnitt und die Waffentabelle', () => {
+  const schwer = N.regelNach('ausruestung/heavy');
+  assert.equal(schwer.name.de, 'Schwer');
+  assert.equal(schwer.unterzeile.de, 'Eigenschaften');
+  const waffen = N.regelNach('ausruestung/weapons');
+  assert.equal(waffen.unterzeile, undefined);
+  const tabelle = waffen.bloecke.find((b) => b.typ === 'tabelle');
+  assert.deepEqual(tabelle.kopf.de, ['Name', 'Schaden', 'Eigenschaften', 'Beherrschung', 'Gewicht', 'Kosten']);
+  assert.match(waffen.text.en, /Longsword 1d8 Slashing/);
 });
 
 test('ein Gegenstand traegt seine Kopfzeile und Tabellen in beiden Sprachen', () => {

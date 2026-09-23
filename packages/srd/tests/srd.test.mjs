@@ -310,3 +310,31 @@ test('die Zauber: alle 339, gepaart, in beiden Sprachen gleich gebaut', () => {
     assert.doesNotMatch(JSON.stringify(z), /­/, z.id);
   }
 });
+
+test('die Ausruestung: 180 Eintraege, gepaart, Tabellen in beiden Sprachen gleich', () => {
+  const A = S.AUSRUESTUNG;
+  assert.equal(A.length, 180);
+  assert.equal(new Set(A.map((a) => a.id)).size, 180);
+  const tabelle = (id, s) => A.find((a) => a.id === id).bloecke[s].find((b) => b.typ === 'tabelle');
+  // Die Waffentabelle ist seitenbreit gedruckt: sechs Spalten, 38 Waffen
+  // und vier Zwischenzeilen.
+  for (const s of ['de', 'en']) {
+    const w = tabelle('weapons', s);
+    assert.equal(w.kopf.length, 6, s);
+    assert.equal(w.reihen.length, 42, s);
+    assert.equal(w.reihen.filter((r) => r.slice(1).every((c) => !c)).length, 4, s);
+  }
+  assert.deepEqual([...tabelle('weapons', 'de').reihen[1]], ['Beil', '1W6 Hieb', 'Leicht, Wurfwaffe (Reichweite 6/18)', 'Plagen', '1 kg', '5 GM']);
+  assert.equal(tabelle('adventuring-gear', 'en').reihen.length, 82);
+  // Eine Tabelle steht bei ihrem Eintrag, nicht wo der Druck Platz hatte.
+  assert.equal(tabelle('armor', 'en').titel, 'Armor');
+  assert.equal(A.find((a) => a.id === 'selling-equipment').kasten, true);
+  const schmied = A.find((a) => a.id === 'smith-s-tools-20-gp');
+  assert.deepEqual(schmied.bloecke.de.slice(0, 2).map((b) => b.text), ['Attribut: Stärke', 'Gewicht: 4 kg']);
+  for (const a of A) {
+    assert.deepEqual(a.bloecke.de.map((b) => b.typ), a.bloecke.en.map((b) => b.typ), a.id);
+    const form = (s) => a.bloecke[s].filter((b) => b.typ === 'tabelle').map((b) => `${b.kopf.length}x${b.reihen.length}`);
+    assert.deepEqual(form('de'), form('en'), a.id);
+    assert.doesNotMatch(JSON.stringify(a), /\u00ad/, a.id);
+  }
+});

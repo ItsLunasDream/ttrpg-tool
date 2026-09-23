@@ -16,6 +16,7 @@ import type { Paar } from '@suite/srd';
 import { GLOSSAR, type Glossarblock } from '@suite/srd/glossar';
 import { MAGISCHE_GEGENSTAENDE, type MagischerGegenstand } from '@suite/srd/magische-gegenstaende';
 import { ZAUBER, type Zauber } from '@suite/srd/zauber';
+import { AUSRUESTUNG, type Ausruestung } from '@suite/srd/ausruestung';
 import type { Hausregel } from './hausregeln';
 
 /**
@@ -31,6 +32,7 @@ export const ARTEN = [
   'wirkungsbereich',
   'gefahr',
   'haltung',
+  'ausruestung',
   'zauber',
   'gegenstand'
 ] as const;
@@ -44,6 +46,7 @@ export const ART_NAME: Record<Art, Paar> = {
   wirkungsbereich: { de: 'Wirkungsbereich', en: 'Area of Effect' },
   gefahr: { de: 'Gefahr', en: 'Hazard' },
   haltung: { de: 'Haltung', en: 'Attitude' },
+  ausruestung: { de: 'Ausrüstung', en: 'Equipment' },
   zauber: { de: 'Zauber', en: 'Spell' },
   gegenstand: { de: 'Magischer Gegenstand', en: 'Magic Item' }
 };
@@ -57,6 +60,7 @@ export const ART_GRUPPE: Record<Art, Paar> = {
   wirkungsbereich: { de: 'Wirkungsbereiche', en: 'Areas of Effect' },
   gefahr: { de: 'Gefahren', en: 'Hazards' },
   haltung: { de: 'Haltungen', en: 'Attitudes' },
+  ausruestung: { de: 'Ausrüstung', en: 'Equipment' },
   zauber: { de: 'Zauber', en: 'Spells' },
   gegenstand: { de: 'Magische Gegenstände', en: 'Magic Items' }
 };
@@ -180,6 +184,25 @@ function zauberAlsRegel(z: Zauber): Regel {
   };
 }
 
+/**
+ * Ein Eintrag aus dem Kapitel Ausruestung. Unter dem Namen steht der
+ * Abschnitt („Schwer" allein sagt wenig, „Schwer · Eigenschaften" genug),
+ * ausser beim Abschnittskopf selbst.
+ */
+function ausruestungAlsRegel(a: Ausruestung): Regel {
+  const bloecke = paarweise(a);
+  const eigener = a.name.en === a.abschnitt.en;
+  return {
+    id: `ausruestung/${a.id}`,
+    art: 'ausruestung',
+    name: a.name,
+    ...(eigener ? {} : { unterzeile: a.abschnitt }),
+    text: { de: flach(bloecke, 'de'), en: flach(bloecke, 'en') },
+    bloecke,
+    verweise: []
+  };
+}
+
 let bestand: readonly Regel[] | null = null;
 
 export function alleRegeln(): readonly Regel[] {
@@ -193,7 +216,12 @@ export function alleRegeln(): readonly Regel[] {
     bloecke: e.bloecke,
     verweise: e.verweise.map((v) => `${artVon.get(v) ?? 'regel'}/${v}`)
   }));
-  bestand = [...bestand, ...ZAUBER.map(zauberAlsRegel), ...MAGISCHE_GEGENSTAENDE.map(gegenstandAlsRegel)];
+  bestand = [
+    ...bestand,
+    ...AUSRUESTUNG.map(ausruestungAlsRegel),
+    ...ZAUBER.map(zauberAlsRegel),
+    ...MAGISCHE_GEGENSTAENDE.map(gegenstandAlsRegel)
+  ];
   return bestand;
 }
 

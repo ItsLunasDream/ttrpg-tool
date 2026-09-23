@@ -57,8 +57,8 @@ app.whenReady().then(async () => {
   const eintraege = await hjs('window.shell.suche.eintraege()');
   const regeln = (eintraege ?? []).filter((e) => e.werkzeug === 'nachschlagewerk');
   pruefe(
-    regeln.length === 155 + 339 + 258,
-    `die Suche der Huelle kennt Glossar, Zauber und magische Gegenstaende (${regeln.length})`
+    regeln.length === 155 + 180 + 339 + 258,
+    `die Suche der Huelle kennt Glossar, Ausruestung, Zauber und magische Gegenstaende (${regeln.length})`
   );
   pruefe(
     regeln.some((e) => e.kennung === 'gegenstand/bag-of-holding' && /Bag of Holding/.test(e.stichworte)),
@@ -94,8 +94,8 @@ app.whenReady().then(async () => {
   });
 
   pruefe(
-    (await js("document.querySelectorAll('.eintrag').length")) === 155 + 339 + 258,
-    'die Liste zeigt 155 Eintraege des Glossars, 339 Zauber und 258 Gegenstaende'
+    (await js("document.querySelectorAll('.eintrag').length")) === 155 + 180 + 339 + 258,
+    'die Liste zeigt 155 Eintraege des Glossars, 180 der Ausruestung, 339 Zauber und 258 Gegenstaende'
   );
   // Die Einfuehrung kann beim ersten Oeffnen davor liegen; sie gehoert der
   // Huelle, nicht dem Werkzeug, und stoert die Pruefungen hier nicht.
@@ -337,6 +337,24 @@ app.whenReady().then(async () => {
   if (process.env.BILD_ZAUBER) {
     const bild = await sicht.webContents.capturePage();
     fs.writeFileSync(process.env.BILD_ZAUBER, bild.toPNG());
+  }
+
+  // --- Die Waffentabelle ------------------------------------------------------
+  await hjs(`window.shell.suche.zeige('nachschlagewerk', 'ausruestung/weapons')`);
+  await warte(700);
+  pruefe(
+    (await js("document.querySelectorAll('.regel__fassung table tbody tr').length")) === 42 &&
+      (await js("document.querySelectorAll('.regel__fassung table thead th').length")) === 6,
+    'die Waffentabelle hat sechs Spalten und 42 Reihen'
+  );
+  pruefe(
+    (await js("document.querySelectorAll('.regel__fassung tr.regel__zwischen td[colspan=\"6\"]').length")) === 4,
+    'ihre vier Zwischenzeilen gehen ueber die ganze Breite'
+  );
+  await js("document.querySelector('.regel__fassung table')?.scrollIntoView()");
+  if (process.env.BILD_AUSRUESTUNG) {
+    const bild = await sicht.webContents.capturePage();
+    fs.writeFileSync(process.env.BILD_AUSRUESTUNG, bild.toPNG());
   }
 
   // --- Ein magischer Gegenstand mit Tabelle -----------------------------------

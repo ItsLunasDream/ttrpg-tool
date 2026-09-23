@@ -12,7 +12,8 @@
     "./verweise": "./src/verweisbegriffe.ts",
     "./tand": "./src/tand.ts",
     "./magische-gegenstaende": "./src/magische-gegenstaende.ts",
-    "./zauber": "./src/zauber.ts"
+    "./zauber": "./src/zauber.ts",
+    "./ausruestung": "./src/ausruestung.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

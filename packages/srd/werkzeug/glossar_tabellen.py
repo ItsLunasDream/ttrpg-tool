@@ -243,7 +243,14 @@ def baue(datei, tabelle, glaetten):
         if kopfzeilen:
             breiteste = max(kopfzeilen, key=lambda z: len(z['zellen']))
             kanten = [c['x0'] for c in breiteste['zellen']]
-            if tabelle.get('feine_spalten'):
+            if tabelle.get('zwischenzeilen'):
+                # Im Ausruestungskapitel: Zwischenzeilen („Simple Melee
+                # Weapons") laufen ueber die Spaltenluecken und zaehlen
+                # nicht; und zeigt der Kopf mehr Spalten als der Rumpf
+                # („0,5 kg 1.000 GM" steht zu eng), gilt der Kopf.
+                fein = _feine_kanten(kanten, kopfzeilen, [z for z in rumpf if len(z['zellen']) > 1])
+                kanten = kanten if len(kanten) > len(fein) else fein
+            elif tabelle.get('feine_spalten'):
                 kanten = _feine_kanten(kanten, kopfzeilen, rumpf)
             spalten = [[] for _ in kanten]
             verteile = _verteile_kopf if tabelle.get('feine_spalten') else _verteile
@@ -268,6 +275,11 @@ def baue(datei, tabelle, glaetten):
         vorige = None
         for z in rumpf:
             teile = _verteile(kanten, z)
+            if (tabelle.get('zwischenzeilen') and len(z['zellen']) == 1
+                    and abs(z['zellen'][0]['x0'] - kanten[0]) < 10):
+                # Eine Zwischenzeile steht ganz in der ersten Spalte, auch
+                # wo sie ueber die naechste Kante hinauslaeuft.
+                teile = [z['zellen'][0]['text']] + [''] * (len(kanten) - 1)
             neu = (vorige is None
                    or (mit_luecken and vorige['y'] - z['y'] > grund * 1.1)
                    or (not mit_luecken and bool(teile[0])))

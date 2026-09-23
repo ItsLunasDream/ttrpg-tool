@@ -15,10 +15,24 @@ Darüberfahren zeigt eine Vorschau, ein Klick öffnet. Anders als im Story
 Creator reicht ein einfacher Klick (Strg+Klick geht auch): hier wird nur
 gelesen, nicht geschrieben.
 
-Zauber sind gebaut (Stufe 7, ohne Ausrüstung): alle 339, beide Sprachen,
+Zauber sind gebaut (Stufe 7): alle 339, beide Sprachen,
 mit Grad, Schule und Klassen unter dem Namen und den vier Eigenschaften
 (Zeitaufwand, Reichweite, Komponenten, Wirkungsdauer) vor dem Text. 317
-automatisch gepaart, 25 von Hand. Ausrüstung steht noch aus.
+automatisch gepaart, 25 von Hand.
+
+Ausrüstung ist gebaut (Stufe 7, Rest): das ganze Kapitel, 180 Einträge in
+beiden Sprachen, von Münzen über Waffen, Eigenschaften, Meisterschaften,
+Rüstung, Werkzeug und Abenteuerausrüstung bis zu Reittieren, Lebenshaltung,
+Diensten und dem Herstellen; dazu die drei Infokästen („Ausrüstung
+verkaufen", „Improvisierte Waffen", „Zaubern in Rüstung") als eigene
+Einträge. Unter dem Namen steht der Abschnitt („Schwer · Eigenschaften").
+Alle 15 Tabellen stehen bei ihrem Eintrag, nicht wo der Druck Platz hatte,
+und haben in beiden Sprachen dieselbe Form; die Waffentabelle mit sechs
+Spalten und den Zwischenzeilen („Einfache Nahkampfwaffen") über die ganze
+Breite. 64 automatisch gepaart, 116 von Hand (die Einheiten, Pfund gegen
+Kilogramm, lassen die Zahlen selten übereinstimmen). Grenze: die
+Zwischenköpfe „Other Tools" / „Anderes Werkzeug" fallen weg; die Werkzeuge
+darunter sind vollständig da.
 
 Magische Gegenstände sind gebaut (Stufe 6): alle 258 aus dem SRD 5.2.1,
 beide Sprachen, mit der gedruckten Zeile unter dem Namen („Wundersamer
@@ -465,7 +479,7 @@ Name darf keine fremde Marke tragen.
 6. **Magische Gegenstände.** Damit steht zugleich die Eichung für
    `docs/magicitems.md`.
 7. **Zauber und Ausrüstung.** Der lange Teil, und der, den man auch erstmal
-   weglassen kann.
+   weglassen kann. Gebaut.
 
 Stufe 1 bis 3 zusammen ergeben schon ein Werkzeug, das man am Tisch aufmacht.
 Stufe 4 und 5 sind das, was man danach nicht mehr hergeben will. Das Verschicken
