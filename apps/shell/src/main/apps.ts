@@ -1138,7 +1138,8 @@ async function montiereMagicItems(id: string, haken: MontageHaken): Promise<Mont
     devServerUrl: process.env.MAGICITEMS_DEV_SERVER_URL,
     language: haken.language,
     onLanguageChange: (language) => haken.onLanguageChange(language as Language),
-    onEreignis: haken.onEreignis
+    onEreignis: haken.onEreignis,
+    kiQuelle: haken.kiQuelle
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
@@ -1167,7 +1168,8 @@ async function montiereMagicItems(id: string, haken: MontageHaken): Promise<Mont
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
-    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung),
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
   };
 }
 

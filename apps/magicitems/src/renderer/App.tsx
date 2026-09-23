@@ -12,9 +12,11 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { SELTENHEITEN, SELTENHEIT_NAME, gegenstandswert, type Seltenheit } from '@suite/srd';
 import { api } from './api';
-import { getLanguage, setLanguage, t } from './i18n';
+import { getLanguage, setLanguage, t, type TextKey } from './i18n';
 import { erzeuge, wuerfleFluch, wuerfleWirkung, type Gegenstand, type Sprache } from '../shared/erzeuge';
 import type { Eintrag } from '../shared/ablage';
+import type { Frage, RohGegenstand } from '../shared/kiAufgaben';
+import { pruefeKi } from '../shared/pruefung';
 import { alsFoundryDatei } from '../shared/foundry';
 import { ARTEN, ART_NAME, ART_ZEICHEN, VERBRAUCH, type Art } from '../shared/tabellen';
 
@@ -65,6 +67,62 @@ export function App() {
   // ueberschrieben wird nichts, die Texte gehoeren der Spielleitung.
   const [wirkungenFuer, setWirkungenFuer] = useState<Seltenheit | null>(null);
   const [fehler, setFehler] = useState('');
+  /*
+   * Die KI, wie beim Monster Creator: sie schreibt, die Pruefung zieht ihre
+   * Zahlen auf die Seltenheit, und hier steht, was gezogen wurde.
+   */
+  const [kiDa, setKiDa] = useState(false);
+  const [kiLaeuft, setKiLaeuft] = useState(false);
+  const [kiWunsch, setKiWunsch] = useState('');
+  const [kiZeilen, setKiZeilen] = useState<readonly string[]>([]);
+
+  useEffect(() => {
+    void api.ki.da().then(setKiDa);
+    return api.ki.beiWechsel(() => void api.ki.da().then(setKiDa));
+  }, []);
+
+  /** Fragt die KI; bei einem Fehler steht er unten, und es kommt `null`. */
+  const frageKi = async (frage: Frage): Promise<unknown> => {
+    if (kiLaeuft) return null;
+    setKiLaeuft(true);
+    setFehler('');
+    setMeldung('');
+    try {
+      const ergebnis = await api.ki.frage({ ...frage, wunsch: kiWunsch.trim() || undefined }, sprache());
+      if (!ergebnis.ok || !ergebnis.wert) {
+        setFehler(t((ergebnis.grund || 'error.aiOther') as TextKey));
+        return null;
+      }
+      return ergebnis.wert;
+    } finally {
+      setKiLaeuft(false);
+    }
+  };
+
+  /** Uebernimmt einen Stand der KI — immer durch die Pruefung. */
+  const mitPruefung = (g: Gegenstand) => {
+    const geprueft = pruefeKi(g, sprache());
+    setKiZeilen(geprueft.zeilen);
+    return geprueft.gegenstand;
+  };
+
+  const ganzerGegenstandVonKi = async () => {
+    const zielArt = art || erzeuge({}, sprache()).art;
+    const zielSeltenheit = seltenheit || erzeuge({ art: zielArt }, sprache()).seltenheit;
+    const wert = (await frageKi({ aufgabe: 'gegenstand', art: zielArt, seltenheit: zielSeltenheit })) as RohGegenstand | null;
+    if (!wert) return;
+    const grundlage = erzeuge({ art: zielArt, seltenheit: zielSeltenheit, fluchChance: 0 }, sprache());
+    const neu = mitPruefung({
+      ...grundlage,
+      name: wert.name || grundlage.name,
+      wirkungen: [...wert.wirkungen],
+      fluch: wert.fluch,
+      einstimmung: wert.einstimmung
+    });
+    setOffen(neu);
+    setWirkungenFuer(neu.seltenheit);
+    setIstNeu(true);
+  };
 
   const ladeListe = useCallback(async () => {
     setEintraege(await api.sammlung.liste());
@@ -109,6 +167,7 @@ export function App() {
   }, [eintraege, suche]);
 
   const wuerfle = () => {
+    setKiZeilen([]);
     const neu = erzeuge(
       { art: art || undefined, seltenheit: seltenheit || undefined, fluchChance: fluch ? 0.1 : 0 },
       spr
@@ -218,7 +277,22 @@ export function App() {
         >
           ⚄ {imGegenstand ? t('nochmal') : t('erzeuger.los')}
         </button>
+        {kiDa ? (
+          <button type="button" className="knopf" data-ki disabled={kiLaeuft} onClick={() => void ganzerGegenstandVonKi()}>
+            {kiLaeuft ? t('ki.laeuft') : t('ki.knopf')}
+          </button>
+        ) : null}
       </div>
+      {kiDa ? (
+        <input
+          className="feld__eingabe erzeuger__wunsch"
+          value={kiWunsch}
+          data-ki-wunsch
+          aria-label={t('ki.wunsch')}
+          placeholder={`${t('ki.wunsch')}: ${t('ki.wunschBeispiel')}`}
+          onChange={(e) => setKiWunsch(e.target.value)}
+        />
+      ) : null}
     </>
   );
 
@@ -234,6 +308,25 @@ export function App() {
       setOffen(neu);
       setMeldung('');
     };
+    /** Eine Wirkung (ersetzt `stelle` oder kommt dazu) oder den Fluch von der KI. */
+    const feldVonKi = async (aufgabe: 'wirkung' | 'fluch', stelle?: number) => {
+      const text = (await frageKi({ aufgabe, art: offen.art, seltenheit: offen.seltenheit, gegenstand: offen, stelle })) as
+        | string
+        | null;
+      if (!text) return;
+      const neu =
+        aufgabe === 'fluch'
+          ? { ...offen, fluch: text }
+          : {
+              ...offen,
+              wirkungen:
+                stelle === undefined
+                  ? [...offen.wirkungen.filter((w) => w.trim()), text]
+                  : offen.wirkungen.map((x, j) => (j === stelle ? text : x))
+            };
+      setOffen(mitPruefung(neu));
+    };
+
     return (
       <div className="rahmen">
         <Kopf />
@@ -246,6 +339,7 @@ export function App() {
               setOffen(null);
               setIstNeu(false);
               setMeldung('');
+              setKiZeilen([]);
             }}
           >
             ← {t('zurueck')}
@@ -380,6 +474,19 @@ export function App() {
                   >
                     ⚄
                   </button>
+                  {kiDa ? (
+                    <button
+                      type="button"
+                      className="knopf"
+                      data-wirkung-ki={i}
+                      disabled={kiLaeuft}
+                      aria-label={t('ki.feld')}
+                      title={t('ki.feld')}
+                      onClick={() => void feldVonKi('wirkung', i)}
+                    >
+                      ✦
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className="knopf"
@@ -413,6 +520,17 @@ export function App() {
             >
               ⚄ {t('feld.wirkungWuerfeln')}
             </button>
+            {kiDa ? (
+              <button
+                type="button"
+                className="knopf"
+                data-wirkung-ki-neu
+                disabled={kiLaeuft}
+                onClick={() => void feldVonKi('wirkung')}
+              >
+                {kiLaeuft ? t('ki.laeuft') : t('ki.wirkung')}
+              </button>
+            ) : null}
             <button
               type="button"
               className="knopf"
@@ -437,6 +555,20 @@ export function App() {
               >
                 ⚄ {offen.fluch.trim() ? t('feld.fluchNeu') : t('feld.fluchWuerfeln')}
               </button>
+              {kiDa ? (
+                <button
+                  type="button"
+                  className="knopf knopf--klein"
+                  data-fluch-ki
+                  disabled={kiLaeuft}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void feldVonKi('fluch');
+                  }}
+                >
+                  ✦
+                </button>
+              ) : null}
             </span>
             <textarea
               className="feld__flaeche"
@@ -457,6 +589,16 @@ export function App() {
             />
           </label>
 
+          {kiZeilen.length ? (
+            <section className="kiHinweis" data-ki-berichtigt>
+              <p>{t('ki.berichtigt')}</p>
+              <ul>
+                {kiZeilen.map((z) => (
+                  <li key={z}>{z}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
           {meldung ? <p className="meldung">{meldung}</p> : null}
           {fehler ? <p className="fehler">{fehler}</p> : null}
         </section>

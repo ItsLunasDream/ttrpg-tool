@@ -6,6 +6,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
 import type { Eintrag } from '../shared/ablage';
 import type { Gegenstand } from '../shared/erzeuge';
+import type { Frage } from '../shared/kiAufgaben';
 
 const api = {
   sammlung: {
@@ -18,6 +19,18 @@ const api = {
   },
   foundry: (vorschlag: string, inhalt: string) =>
     ipcRenderer.invoke(kanal('foundry'), vorschlag, inhalt) as Promise<{ ok: boolean; text: string }>,
+  ki: {
+    da: () => ipcRenderer.invoke(kanal('ki:da')) as Promise<boolean>,
+    frage: (frage: Frage, sprache: string) =>
+      ipcRenderer.invoke(kanal('ki:frage'), frage, sprache) as Promise<{ ok: boolean; wert: unknown; grund: string }>,
+    beiWechsel: (hoerer: () => void) => {
+      const lauscher = () => hoerer();
+      ipcRenderer.on(kanal('ki:gewechselt'), lauscher);
+      return () => {
+        ipcRenderer.off(kanal('ki:gewechselt'), lauscher);
+      };
+    }
+  },
   beiSuchtreffer: (hoerer: (kennung: string) => void) => {
     const lauscher = (_e: unknown, kennung: string) => hoerer(kennung);
     ipcRenderer.on(kanal('suche:zeigen'), lauscher);

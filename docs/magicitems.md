@@ -24,6 +24,14 @@ Schriftrollen bekommen keinen zufälligen Fluch. Im Gegenstand lassen sich
 eine weitere Wirkung oder ein Fluch ausdrücklich würfeln und jede Wirkung
 einzeln neu würfeln.
 
+**KI.** Wie beim Monster Creator: „✦ Ask the AI“ baut einen ganzen
+Gegenstand (mit optionalem Wunsch), ✦ neben einer Wirkung ersetzt sie, „✦
+Property from the AI“ fügt eine hinzu, ✦ am Fluch schreibt einen. Alles
+geht durch `pruefeKi` (`src/shared/pruefung.ts`): Bonus, Zusatzschaden und
+Rettungswurf-SG über der Grenze der Seltenheit werden gezogen und in einem
+Kasten genannt; ein zu hoher Zaubergrad und zu viele Wirkungen werden nur
+gemeldet. Der Wert kommt immer aus der SRD-Tabelle.
+
 **In den Loot Generator** kommt ein Gegenstand nur über den Knopf „Send to
 Loot Generator“ (Merkmal `loot: ja` im Kopf der Datei), nicht schon durch
 Speichern. Die Farbe wischt dabei über das Symbol des Loot Generators. Der

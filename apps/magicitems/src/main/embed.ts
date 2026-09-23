@@ -15,6 +15,10 @@ import { BrowserWindow, dialog, ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import { SELTENHEIT_NAME } from '@suite/srd';
+import { baueAnbieter, KiFehler, leseJsonAntwort } from '@suite/ki';
+import type { KiEinstellungen } from '@suite/ki/einstellungen';
+import { anweisung, systemAnweisung, uebernehmbar, type Frage } from '../shared/kiAufgaben';
+import type { Sprache } from '../shared/erzeuge';
 import { kanal } from '../shared/kanaele';
 import { alsEintrag, alsMarkdown, freieKennung, leseGegenstand, zuId, type Eintrag } from '../shared/ablage';
 import type { Gegenstand } from '../shared/erzeuge';
@@ -33,6 +37,8 @@ export interface MagicItemsEmbedOptions {
   readonly onLanguageChange?: (language: string) => void;
   /** Meldet der Huelle, dass in einem anderen Werkzeug etwas dazukam (Wisch). */
   readonly onEreignis?: (appId: string) => void;
+  /** Die KI der Huelle, bei jedem Aufruf frisch gelesen. */
+  readonly kiQuelle?: () => { einstellungen: KiEinstellungen; schluessel: string };
 }
 
 export interface MagicItemsEmbed {
@@ -43,6 +49,7 @@ export interface MagicItemsEmbed {
   flush(): Promise<void>;
   setLanguage(webContents: WebContents, language: string): Promise<void>;
   zeigeEintrag(webContents: WebContents, kennung: string): Promise<boolean>;
+  meldeKiWechsel(webContents: WebContents): void;
 }
 
 const CSP = [
@@ -188,6 +195,32 @@ export async function mountMagicItems(options: MagicItemsEmbedOptions): Promise<
     }
   });
 
+  /* ---------- KI ---------- */
+
+  const anbieter = () => {
+    if (!options.kiQuelle) return null;
+    const quelle = options.kiQuelle();
+    return baueAnbieter(quelle.einstellungen, quelle.schluessel);
+  };
+  handle('ki:da', () => anbieter() !== null);
+  handle('ki:frage', async (_e: never, frage: Frage, sprache: Sprache) => {
+    const gewaehlt = anbieter();
+    if (!gewaehlt) return { ok: false, wert: null, grund: 'fehler.kiKeinAnbieter' };
+    try {
+      const antwort = await gewaehlt.frage(
+        { system: systemAnweisung(sprache), nachrichten: [{ rolle: 'user', inhalt: anweisung(frage, sprache) }] },
+        () => {}
+      );
+      const gelesen = leseJsonAntwort(antwort);
+      const wert = gelesen === null ? null : uebernehmbar(frage.aufgabe, gelesen);
+      if (wert === null) return { ok: false, wert: null, grund: 'fehler.kiKeinJson' };
+      return { ok: true, wert, grund: '' };
+    } catch (fehler) {
+      if (fehler instanceof KiFehler) return { ok: false, wert: null, grund: fehler.schluessel };
+      return { ok: false, wert: null, grund: 'error.aiOther' };
+    }
+  });
+
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));
   ipcMain.on(kanal('sprache:gewechselt'), (_event, language: string) => {
     options.onLanguageChange?.(language);
@@ -208,12 +241,15 @@ export async function mountMagicItems(options: MagicItemsEmbedOptions): Promise<
       if (webContents.isDestroyed()) return false;
       webContents.send(kanal('suche:zeigen'), kennung);
       return true;
+    },
+    meldeKiWechsel: (webContents) => {
+      if (!webContents.isDestroyed()) webContents.send(kanal('ki:gewechselt'));
     }
   };
 }
 
 /** Meldet alles ab. Fuer Tests und einen sauberen Abbau. */
 export function unmountMagicItems(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'inDenLoot', 'loeschen', 'foundry']) ipcMain.removeHandler(kanal(name));
+  for (const name of ['liste', 'lesen', 'speichern', 'inDenLoot', 'loeschen', 'foundry', 'ki:da', 'ki:frage']) ipcMain.removeHandler(kanal(name));
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));
 }
