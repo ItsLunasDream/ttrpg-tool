@@ -8,7 +8,7 @@
  * Die Stufen sind nummeriert und stehen untereinander, nicht als Fliesstext.
  * Ein Absatz ist am Tisch eine Unterbrechung.
  */
-import type { Zustand } from '../shared/erzeuge';
+import { fristText, verlaufsZeilen, type Zustand } from '../shared/erzeuge';
 import { wirkung } from '../shared/wirkungen';
 import { text } from '../shared/tabellen';
 import { getLanguage, t } from './i18n';
@@ -21,6 +21,8 @@ interface Props {
 
 export function Blatt({ zustand, ausformuliert }: Props) {
   const sprache = getLanguage() === 'en' ? 'en' : 'de';
+  const frist = fristText(zustand, sprache);
+  const verlauf = verlaufsZeilen(zustand);
 
   const stufentext = (nummer: number, wirkungen: readonly string[]): string => {
     const eigener = ausformuliert?.[nummer];
@@ -72,12 +74,21 @@ export function Blatt({ zustand, ausformuliert }: Props) {
         <p className="blatt__zeile">
           <strong>{t('blatt.dauer')}</strong> {zustand.dauer}
         </p>
-        <p className="blatt__zeile">
-          <strong>{t('blatt.schlimmer')}</strong> {zustand.verschlimmerung}
-        </p>
-        <p className="blatt__zeile">
-          <strong>{t('blatt.besser')}</strong> {zustand.linderung}
-        </p>
+        {frist && (
+          <p className="blatt__zeile">
+            <strong>{t('blatt.frist')}</strong> {frist}
+          </p>
+        )}
+        {verlauf !== 'keine' && (
+          <>
+            <p className="blatt__zeile">
+              <strong>{t(verlauf === 'segen' ? 'blatt.staerker' : 'blatt.schlimmer')}</strong> {zustand.verschlimmerung}
+            </p>
+            <p className="blatt__zeile">
+              <strong>{t(verlauf === 'segen' ? 'blatt.schwaecher' : 'blatt.besser')}</strong> {zustand.linderung}
+            </p>
+          </>
+        )}
         {zustand.ausloeser !== '' && (
           <p className="blatt__zeile">
             <strong>{t('blatt.ausgeloest')}</strong> {zustand.ausloeser}

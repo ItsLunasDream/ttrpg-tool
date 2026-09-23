@@ -10,7 +10,7 @@
  * harmloser als auf Stufe 2, und das merkt am Tisch jeder sofort.
  */
 
-import { darfAufStufe, pruefe, type Befund, type Stufe } from './gewicht';
+import { darfAufStufe, gesamtgewicht, pruefe, type Befund, type Stufe } from './gewicht';
 import { pruefeStimmigkeit, skalenFuerStufen, type Stimmigkeitsbefund } from './stimmigkeit';
 import {
   ARTEN,
@@ -31,6 +31,7 @@ import {
 import {
   SCHWEREN,
   schwereWert,
+  wirkung,
   wirkungenFuer,
   type Richtung,
   type Schwere,
@@ -122,6 +123,34 @@ export function baueStufen(
   thema: Thema,
   rng: () => number
 ): Stufe[] {
+  /*
+   * Mehrere Zuege, der erste, der die eigene Pruefung besteht, gewinnt.
+   *
+   * Ein einzelner Zug landete zu oft daneben: „toedlich" mit zwei Stufen
+   * wog 39 bei erwarteten 60 bis 180, „ernst, gemischt" hatte flache
+   * Stufen (Testbericht). Besteht keiner, bleibt der mit dem kleinsten
+   * Abstand zur Spanne — ehrlich angezeigt von der Waage.
+   */
+  let bester: { stufen: Stufe[]; abstand: number } | null = null;
+  for (let versuch = 0; versuch < 24; versuch += 1) {
+    const stufen = zieheStufen(anzahl, haerte, wirkrichtung, thema, rng);
+    const befund = pruefe(stufen, haerte.id);
+    if (befund.urteil === 'passt') return stufen;
+    const abstand =
+      (befund.urteil === 'kaputt' ? 1000 : 0) +
+      Math.max(0, befund.haerteVon - befund.gewicht, befund.gewicht - befund.haerteBis);
+    if (!bester || abstand < bester.abstand) bester = { stufen, abstand };
+  }
+  return bester!.stufen;
+}
+
+function zieheStufen(
+  anzahl: number,
+  haerte: Haerte,
+  wirkrichtung: Wirkrichtung,
+  thema: Thema,
+  rng: () => number
+): Stufe[] {
   const richtungen = richtungenFuer(wirkrichtung);
   const vergeben = new Set<string>();
   const bisher: Wirkung[] = [];
@@ -195,6 +224,35 @@ export function baueStufen(
         nummer: letzte.nummer,
         wirkungen: [...letzte.wirkungen, gegenpol.id]
       };
+    }
+  }
+
+  /*
+   * Auffuellen, wenn wenige Stufen die Haerte nicht tragen.
+   *
+   * Die Spannen der Haerten sind auf drei bis fuenf Stufen gebaut. „Toedlich"
+   * mit zwei Stufen blieb mit einer Wirkung je Stufe weit darunter
+   * (Testbericht: 39 statt 60 bis 180). Dann bekommen die Stufen von hinten
+   * her eine zweite und dritte Wirkung — hinten, weil die spaeten Stufen
+   * ohnehin die schweren sind und der Verlauf so steigend bleibt.
+   */
+  const richtungenAuffuellen = wirkrichtung === 'gemischt' ? richtungenFuer('debuff') : richtungen;
+  for (let runde = 0; runde < 2; runde += 1) {
+    for (let i = stufen.length - 1; i >= 0; i -= 1) {
+      if (Math.abs(gesamtgewicht(stufen)) >= haerte.gewichtVon) return stufen;
+      if (stufen[i].wirkungen.length >= 3) continue;
+      const dazu = waehleWirkung(
+        schwereFuerStufe(stufen[i].nummer, stufen.length, haerte),
+        richtungenAuffuellen,
+        thema,
+        vergeben,
+        [],
+        rng,
+        haerte
+      );
+      if (!dazu || schwereWert(dazu.schwere) > schwereWert(haerte.bis as Schwere)) continue;
+      vergeben.add(dazu.id);
+      stufen[i] = { nummer: stufen[i].nummer, wirkungen: [...stufen[i].wirkungen, dazu.id] };
     }
   }
 
@@ -550,6 +608,41 @@ export function wuerfleNeu(
       return { ...zustand, zeichen: sinnbild.zeichen, farbe: sinnbild.farbe };
     }
   }
+}
+
+/**
+ * Was „Frist" bei diesem Zustand heisst.
+ *
+ * Die Wirkungen sagen „1W4 Schaden je Frist", damit dieselbe Zeile im Kampf
+ * und ueber Tage passt. Festgelegt war die Frist aber nirgends (Testbericht),
+ * und am Tisch fragte man nach. Sie folgt der Dauer: im Kampf eine Runde,
+ * sonst eine Stunde oder ein Tag. `null`, wenn keine Stufe sie braucht.
+ */
+export function fristText(zustand: Zustand, sprache: Sprache): string | null {
+  const braucht = zustand.stufen.some((stufe) =>
+    stufe.wirkungen.some((id) => {
+      const w = wirkung(id);
+      return w !== undefined && /Frist|interval/.test(`${w.text.de} ${w.text.en}`);
+    })
+  );
+  if (!braucht) return null;
+  const skala = dauerMit(zustand.dauerId)?.zeitskala ?? 'lang';
+  const de = sprache !== 'en';
+  if (skala === 'kampf') return de ? 'eine Runde, jeweils zu Beginn deines Zuges' : 'one round, at the start of each of your turns';
+  if (skala === 'kurz') return de ? 'eine Stunde' : 'one hour';
+  return de ? 'ein Tag' : 'one day';
+}
+
+/**
+ * Ob „Schlimmer" und „Besser" zu diesem Zustand gehoeren.
+ *
+ * Bei einem Segen ohne Stufen ergab „Schlimmer: jedes gebrochene
+ * Versprechen" keinen Sinn (Testbericht). Mit Stufen waechst ein Segen,
+ * dann heissen die Zeilen „Staerker" und „Schwaecher".
+ */
+export function verlaufsZeilen(zustand: Zustand): 'keine' | 'schaden' | 'segen' {
+  if (zustand.wirkrichtung !== 'buff') return 'schaden';
+  return zustand.stufen.length > 1 ? 'segen' : 'keine';
 }
 
 /** Der Befund zu einem Zustand. Bequemlichkeit fuer Oberflaeche und Tests. */

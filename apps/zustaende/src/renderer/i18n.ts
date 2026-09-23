@@ -94,6 +94,9 @@ const TEXTE = {
   'blatt.dauer': ['Dauer', 'Duration'],
   'blatt.schlimmer': ['Schlimmer', 'Worse'],
   'blatt.besser': ['Besser', 'Better'],
+  'blatt.frist': ['Frist', 'Interval'],
+  'blatt.staerker': ['Stärker', 'Grows'],
+  'blatt.schwaecher': ['Schwächer', 'Fades'],
   'blatt.ausgeloest': ['Ausgelöst', 'Triggered'],
 
   'gewicht.titel': ['Gewicht', 'Weight'],

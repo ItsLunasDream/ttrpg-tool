@@ -17,7 +17,7 @@
  * Plattformfrei: kein `node:*`, kein `electron`, keine Browser-Globals.
  */
 
-import type { Zustand } from './erzeuge';
+import { fristText, verlaufsZeilen, type Zustand } from './erzeuge';
 import { text, type Sprache } from './tabellen';
 import { wirkung } from './wirkungen';
 
@@ -161,6 +161,8 @@ export function rueckseite(
   ausformuliert?: Readonly<Record<number, string>>
 ): string {
   const de = sprache !== 'en';
+  const frist = fristText(zustand, sprache);
+  const verlauf = verlaufsZeilen(zustand);
   const stufen = zustand.stufen
     .map(
       (stufe) =>
@@ -177,8 +179,13 @@ export function rueckseite(
   </ol>
   <div class="karte__fuss">
     <p><strong>${de ? 'Dauer' : 'Duration'}</strong> ${maskiere(zustand.dauer)}</p>
-    <p><strong>${de ? 'Schlimmer' : 'Worse'}</strong> ${maskiere(zustand.verschlimmerung)}</p>
-    <p><strong>${de ? 'Besser' : 'Better'}</strong> ${maskiere(zustand.linderung)}</p>
+    ${frist ? `<p><strong>${de ? 'Frist' : 'Interval'}</strong> ${maskiere(frist)}</p>` : ''}
+    ${
+      verlauf === 'keine'
+        ? ''
+        : `<p><strong>${verlauf === 'segen' ? (de ? 'Stärker' : 'Grows') : de ? 'Schlimmer' : 'Worse'}</strong> ${maskiere(zustand.verschlimmerung)}</p>
+    <p><strong>${verlauf === 'segen' ? (de ? 'Schwächer' : 'Fades') : de ? 'Besser' : 'Better'}</strong> ${maskiere(zustand.linderung)}</p>`
+    }
     ${
       zustand.ausloeser !== ''
         ? `<p><strong>${de ? 'Ausgelöst' : 'Triggered'}</strong> ${maskiere(zustand.ausloeser)}</p>`
