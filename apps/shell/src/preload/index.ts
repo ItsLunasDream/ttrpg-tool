@@ -234,6 +234,8 @@ const api = {
    */
   austausch: {
     teilbar: () => ipcRenderer.invoke('austausch:teilbar') as Promise<Eintrag[]>,
+    /** Zuletzt geoeffnete Orte in den Werkzeugen, neueste zuerst. */
+    zuletzt: () => ipcRenderer.invoke('austausch:zuletzt') as Promise<{ werkzeug: string; ort: string }[]>,
     speichern: (auswahl: { werkzeug: string; kennung: string }[], datei?: string) =>
       ipcRenderer.invoke('austausch:speichern', auswahl, datei) as Promise<{
         ok: boolean;

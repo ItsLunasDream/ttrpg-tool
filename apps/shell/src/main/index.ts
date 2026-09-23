@@ -269,8 +269,20 @@ function verbergeAlle(): void {
  * wird die KI immer in der Huelle.
  */
 /** Die Anwendung meldet, wo sie steht. Die Oberflaeche fuehrt den Verlauf. */
+/**
+ * Was zuletzt geoeffnet war, neueste zuerst — fuer „Zuletzt geoeffnet" im
+ * Dialog Teilen. Nur Sitzungszustand, wie der Verlauf selbst.
+ */
+const zuletztGeoeffnet: { werkzeug: string; ort: string }[] = [];
+
 function meldeOrt(appId: string, ort: string | null): void {
   huelle?.webContents.send('verlauf:ort', appId, ort);
+  if (ort && ort !== 'entwurf') {
+    const alt = zuletztGeoeffnet.findIndex((z) => z.werkzeug === appId && z.ort === ort);
+    if (alt >= 0) zuletztGeoeffnet.splice(alt, 1);
+    zuletztGeoeffnet.unshift({ werkzeug: appId, ort });
+    zuletztGeoeffnet.length = Math.min(zuletztGeoeffnet.length, 30);
+  }
 }
 
 /**
@@ -869,6 +881,7 @@ function registriereKanaele(): void {
   let eingang: Paket | null = null;
 
   handle('austausch:teilbar', () => teilbar(app.getPath('userData')));
+  handle('austausch:zuletzt', () => [...zuletztGeoeffnet]);
 
   handle(
     'austausch:speichern',

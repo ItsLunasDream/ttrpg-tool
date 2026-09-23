@@ -12,6 +12,9 @@
  * - Die Liste, nach App gruppiert, mit Symbol, Anzahl und „alle waehlen" je
  *   Gruppe.
  *
+ * Ganz oben „Zuletzt geoeffnet": die letzten zehn Eintraege, die in einem
+ * Werkzeug offen waren (Rueckmeldung), als eigene Gruppe wie „Monster".
+ *
  * Die offiziellen Regeln des Nachschlagewerks (ueber 900) stehen nur bei
  * einer Suche in der Liste; sonst waeren sie eine Wand.
  */
@@ -23,17 +26,25 @@ import { AppSymbol } from './icons';
 
 interface Props {
   readonly teilbar: readonly Eintrag[] | null;
+  /** Zuletzt geoeffnete Orte, neueste zuerst (aus dem Verlauf der Huelle). */
+  readonly zuletzt?: readonly { readonly werkzeug: string; readonly ort: string }[];
   readonly gewaehlt: ReadonlySet<string>;
   readonly setGewaehlt: (neu: Set<string>) => void;
   readonly symbole: Record<string, string>;
   readonly t: (key: MessageKey, params?: MessageParams) => string;
 }
 
+/** Kennung der Gruppe „Zuletzt geoeffnet" — kein Werkzeug heisst so. */
+const ZULETZT = '~zuletzt';
+
 function istOffiziell(e: Eintrag): boolean {
   return e.werkzeug === 'nachschlagewerk' && !e.kennung.startsWith('hausregel/');
 }
 
-export function Auswahl({ teilbar, gewaehlt, setGewaehlt, symbole, t }: Props) {
+/** Wie viele „Zuletzt geoeffnet" zeigt. */
+const ZULETZT_ANZAHL = 10;
+
+export function Auswahl({ teilbar, zuletzt = [], gewaehlt, setGewaehlt, symbole, t }: Props) {
   const [suche, setSuche] = useState('');
   const [apps, setApps] = useState<ReadonlySet<string>>(new Set());
   const werkzeugName = (id: string) => t(nameKey(id));
@@ -53,13 +64,29 @@ export function Auswahl({ teilbar, gewaehlt, setGewaehlt, symbole, t }: Props) {
       : teilbar.filter((e) => imFilter(e) && !istOffiziell(e));
     const nachApp = new Map<string, Eintrag[]>();
     for (const e of liste) nachApp.set(e.werkzeug, [...(nachApp.get(e.werkzeug) ?? []), e]);
-    return [...nachApp.entries()]
+    const nachAppGruppen = [...nachApp.entries()]
       .sort((a, b) => werkzeugName(a[0]).localeCompare(werkzeugName(b[0])))
       .map(([werkzeug, eintraege]) => ({
         werkzeug,
         eintraege: suche.trim() ? eintraege : [...eintraege].sort((a, b) => a.name.localeCompare(b.name))
       }));
-  }, [teilbar, suche, apps, t]);
+    /*
+     * Zuletzt geoeffnet: der Ort eines Werkzeugs ist die Kennung des
+     * Eintrags; im Story Creator nur die Notiz, ohne Kampagne davor.
+     */
+    // Hier zaehlt nur der App-Filter (und eine Suche): was man gerade offen
+    // hatte, gehoert dazu, auch wenn es eine offizielle Regel ist.
+    const imBlick = new Set((suche.trim() ? liste : teilbar.filter(imFilter)).map(eintragsSchluessel));
+    const neu: Eintrag[] = [];
+    for (const z of zuletzt) {
+      const e = teilbar.find(
+        (x) => x.werkzeug === z.werkzeug && (x.kennung === z.ort || x.kennung.endsWith(`/${z.ort}`))
+      );
+      if (e && imBlick.has(eintragsSchluessel(e)) && !neu.includes(e)) neu.push(e);
+      if (neu.length >= ZULETZT_ANZAHL) break;
+    }
+    return neu.length ? [{ werkzeug: ZULETZT, eintraege: neu }, ...nachAppGruppen] : nachAppGruppen;
+  }, [teilbar, suche, apps, t, zuletzt]);
 
   const schalteApp = (id: string) => {
     const neu = new Set(apps);
@@ -125,8 +152,14 @@ export function Auswahl({ teilbar, gewaehlt, setGewaehlt, symbole, t }: Props) {
             return (
               <section key={werkzeug} className="auswahl__gruppe motion-erscheinen" data-gruppe={werkzeug}>
                 <header className="auswahl__kopf">
-                  <AppSymbol id={werkzeug} size={20} bild={symbole[werkzeug]} />
-                  <strong>{werkzeugName(werkzeug)}</strong>
+                  {werkzeug === ZULETZT ? (
+                    <span className="auswahl__uhr" aria-hidden="true">
+                      ⏲
+                    </span>
+                  ) : (
+                    <AppSymbol id={werkzeug} size={20} bild={symbole[werkzeug]} />
+                  )}
+                  <strong>{werkzeug === ZULETZT ? t('share.recent') : werkzeugName(werkzeug)}</strong>
                   <span className="auswahl__zahl">{eintraege.length}</span>
                   <span className="auswahl__luecke" />
                   <button
@@ -151,6 +184,7 @@ export function Auswahl({ teilbar, gewaehlt, setGewaehlt, symbole, t }: Props) {
                             checked={an}
                             onChange={() => schalte([k], !an)}
                           />
+                          {werkzeug === ZULETZT ? <AppSymbol id={e.werkzeug} size={16} bild={symbole[e.werkzeug]} /> : null}
                           <span className="auswahl__name">{e.name}</span>
                           {e.art ? <span className="auswahl__art">{e.art}</span> : null}
                         </label>

@@ -78,8 +78,10 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
   const [gewaehlt, setGewaehlt] = useState<Set<string>>(new Set());
   const [meldung, setMeldung] = useState('');
 
+  const [zuletzt, setZuletzt] = useState<readonly { werkzeug: string; ort: string }[]>([]);
   useEffect(() => {
     void window.shell.austausch.teilbar().then(setTeilbar, () => setTeilbar([]));
+    void window.shell.austausch.zuletzt().then(setZuletzt, () => setZuletzt([]));
   }, []);
 
   const auswahlListe = () =>
@@ -243,7 +245,9 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
     </>
   );
 
-  const auswahl = <Auswahl teilbar={teilbar} gewaehlt={gewaehlt} setGewaehlt={setGewaehlt} symbole={symbole} t={t} />;
+  const auswahl = (
+    <Auswahl teilbar={teilbar} zuletzt={zuletzt} gewaehlt={gewaehlt} setGewaehlt={setGewaehlt} symbole={symbole} t={t} />
+  );
 
   return (
     <Dialog titel={t('share.title')} schliessenText={t('dialog.close')} onClose={onClose}>

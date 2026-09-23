@@ -105,6 +105,19 @@ app.whenReady().then(async () => {
   await zurueck();
   pruefe(/Loot/.test(await aktiv()), 'noch einmal zurueck: erst dann das vorige Werkzeug');
 
+  // --- Teilen: „Zuletzt geoeffnet" ganz oben ---------------------------------
+  await hjs(`document.querySelector('[data-teilen-knopf]').click(); true`);
+  await warte(1000);
+  await hjs(`document.querySelector('[data-richtung="datei"]').click(); true`);
+  await warte(600);
+  const gruppen = await hjs("[...document.querySelectorAll('[data-austausch=\"geben\"] [data-gruppe]')].map(g => g.dataset.gruppe)");
+  const zuletzt = await hjs("[...document.querySelectorAll('[data-gruppe=\"~zuletzt\"] [data-teilen]')].map(e => e.dataset.teilen)");
+  pruefe(gruppen[0] === '~zuletzt', `„Zuletzt geoeffnet" steht als eigene Gruppe ganz oben (${gruppen.slice(0, 3).join(', ')})`);
+  pruefe(
+    zuletzt[0] === 'nachschlagewerk/zustand/prone' && zuletzt.includes('nachschlagewerk/zustand/blinded'),
+    `mit den zuletzt geoeffneten Eintraegen, neueste zuerst (${zuletzt.join(', ')})`
+  );
+
   console.log(fehler.length === 0 ? '\nVerlauf in den Werkzeugen bestanden.' : `\n${fehler.length} Fehler.`);
   app.exit(fehler.length === 0 ? 0 : 1);
 });

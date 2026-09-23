@@ -1744,3 +1744,9 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.auswahl__uhr {
+  width: 20px;
+  text-align: center;
+  color: var(--betont);
+}
