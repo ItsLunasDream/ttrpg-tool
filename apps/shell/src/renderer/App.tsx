@@ -603,6 +603,7 @@ export function App() {
     void window.shell.raum.zustand().then((s) => setze(s.zustand), () => undefined);
     return window.shell.raum.beiEreignis((e) => {
       if (e.art === 'zustand') setze(e.zustand);
+      else if (e.art === 'ping') setImRaum((alt) => (alt && alt.ping !== e.ping ? { ...alt, ping: e.ping } : alt));
     });
   }, []);
   useEffect(

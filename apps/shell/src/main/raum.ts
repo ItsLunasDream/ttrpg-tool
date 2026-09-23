@@ -132,6 +132,11 @@ function grundAus(fehler: unknown): Verbindungsgrund {
 export type Raumereignis =
   | { readonly art: 'raeume'; readonly raeume: readonly GefundenerRaum[] }
   | { readonly art: 'zustand'; readonly zustand: Raumzustand }
+  /**
+   * Nur die Messwerte: der Ping aendert sich alle paar Sekunden, dafuer
+   * reicht ein kleines Ereignis statt des ganzen Zustands mit Chat.
+   */
+  | { readonly art: 'ping'; readonly ping: number | null; readonly pings: Readonly<Record<string, number>> }
   | { readonly art: 'chat'; readonly zeile: Chatzeile }
   | { readonly art: 'paket'; readonly von: Person; readonly an: Person | null; readonly titel: string; readonly paket: string }
   | { readonly art: 'werkzeug'; readonly von: Person; readonly werkzeug: string; readonly inhalt: string }
@@ -215,6 +220,14 @@ export class Raumdienst {
     this.melde({ art: 'zustand', zustand: this.zustand() });
   }
 
+  private meldePing(): void {
+    this.melde({
+      art: 'ping',
+      ping: this.rolle === 'gast' ? this.ping : null,
+      pings: this.rolle === 'gastgeber' ? Object.fromEntries(this.gastPings) : {}
+    });
+  }
+
   /* ---------------------------------------------------------------- Suche */
 
   suche(): void {
@@ -234,6 +247,7 @@ export class Raumdienst {
         if (this.gefunden.delete(schluessel)) this.meldeRaeume();
         return;
       }
+      const alt = this.gefunden.get(schluessel);
       this.gefunden.set(schluessel, {
         raum: a.raum,
         gastgeber: a.gastgeber,
@@ -242,7 +256,9 @@ export class Raumdienst {
         geschuetzt: a.geschuetzt,
         gesehen: Date.now()
       });
-      this.meldeRaeume();
+      // Jeder Raum meldet sich alle zwei Sekunden; die Oberflaeche erfaehrt
+      // nur, was neu ist oder sich geaendert hat.
+      if (!alt || alt.raum !== a.raum || alt.gastgeber !== a.gastgeber || alt.geschuetzt !== a.geschuetzt) this.meldeRaeume();
     });
     s.bind(this.suchport);
     this.lauscher = s;
@@ -453,7 +469,7 @@ export class Raumdienst {
       const ms = Math.max(0, Math.round(performance.now() - offen.start));
       if (this.gastPings.get(offen.id) !== ms) {
         this.gastPings.set(offen.id, ms);
-        this.meldeZustand();
+        this.meldePing();
       }
       return;
     }
@@ -654,7 +670,7 @@ export class Raumdienst {
     const neu = Math.max(0, Math.round(performance.now() - start));
     if (neu === this.ping) return;
     this.ping = neu;
-    this.meldeZustand();
+    this.meldePing();
   }
 
   /** Eine Nachricht an den Gastgeber, verschluesselt, wenn die Leitung es ist. */
