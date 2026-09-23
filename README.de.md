@@ -591,6 +591,12 @@ erlaubt. Wird eine veränderte Fassung über ein Netzwerk angeboten, muss ihr
 Quelltext ebenfalls offenstehen. Ohne jede Gewährleistung, wie in der Lizenz
 beschrieben.
 
+**Ausnahme: die Symbole.** Die Bilder in `apps/shell/symbole/` stehen nicht
+unter der AGPL: Copyright © ItsLunasDream, alle Rechte vorbehalten (siehe
+[LIZENZ.md](apps/shell/symbole/LIZENZ.md)). Eine veränderte Fassung, die
+weitergegeben wird, ersetzt sie oder lässt sie weg; dann greifen die
+eingebauten Vektorsymbole.
+
 ### Fremde Inhalte
 
 Einzelne **Daten** im Repository stammen aus fremden Werken unter eigenen

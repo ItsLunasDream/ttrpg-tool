@@ -49,6 +49,15 @@ Die Installer (`LORE-Setup-…exe`) hängen weiter am GitHub-Release.
 
 ## Preis und Lizenz
 
+Auf der Seite unter „Release info“:
+
+- **License for code:** „GNU General Public License v3.0 (GPL)“. Die
+  AGPL-3.0 steht nicht in der Liste; die GPL ist ihr am nächsten. In die
+  Beschreibung dazu: *„Code licensed under AGPL-3.0-or-later, see LICENSE
+  in the repository.“*
+- **License for assets:** „All rights reserved“ — die Symbole in
+  `apps/shell/symbole/` (siehe dort `LIZENZ.md`).
+
 Der Quelltext steht unter der AGPL-3.0. Verkaufen ist damit erlaubt, aber
 jede Person darf den Quelltext frei weitergeben; ein Preis ist also eher
 eine Spende. Empfehlung: **„No payments“** oder **„Donate“** mit einem
@@ -110,7 +119,8 @@ automatisch erzeugt.
 > AI features are optional and off by default. They only talk to the
 > provider you set up yourself (a local Ollama or an API key).
 >
-> Free and open source (AGPL-3.0).
+> Free and open source: code under AGPL-3.0-or-later. The icons and
+> artwork are © ItsLunasDream, all rights reserved.
 
 ### Beschreibung (Deutsch, falls gewünscht als zweiter Abschnitt)
 

@@ -1,5 +1,8 @@
 # Mitgelieferte Symbole der Werkzeuge
 
+**Die Bilder hier sind nicht frei:** alle Rechte vorbehalten, siehe
+[LIZENZ.md](LIZENZ.md). Die AGPL des Repositorys gilt für sie nicht.
+
 Was hier liegt, wird mit der Sammlung ausgeliefert und gilt für alle, die sie
 installieren. Genau dafür ist dieser Ordner da: er gehört ins Repository,
 nicht in den Datenordner auf einem Rechner.
