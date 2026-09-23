@@ -77,6 +77,8 @@ export interface Raumzustand {
   readonly internet: boolean;
   /** Nur beim Gast: die zuletzt gemessene Laufzeit zum Gastgeber und zurueck, in ms. */
   readonly ping: number | null;
+  /** Nur beim Gastgeber: der Ping zu jedem Gast, nach Personen-ID. */
+  readonly pings: Readonly<Record<string, number>>;
 }
 
 /** Die Namen der Eintraege eines Pakets; laesst es sich nicht lesen, der Titel. */
@@ -170,7 +172,12 @@ export class Raumdienst {
   // Ping beim Gast: alle PING_TAKT_MS eine Messung, die offene merkt sich ihre Startzeit.
   private ping: number | null = null;
   private pingTakt: ReturnType<typeof setInterval> | null = null;
+  /** Beim Gastgeber: schickt die letzte Ankuendigung („zu") und schliesst den Rufer. */
+  private abschied: (() => void) | null = null;
   private pingOffen = new Map<number, number>();
+  // Beim Gastgeber: der Ping zu jedem Gast; offene Messungen mit Person und Startzeit.
+  private gastPings = new Map<string, number>();
+  private gastPingOffen = new Map<number, { id: string; start: number }>();
   private pingZaehler = 0;
 
   // Suche
@@ -199,7 +206,8 @@ export class Raumdienst {
       ipv6: this.server ? eigeneIpv6() : [],
       verschluesselt: this.rolle === 'gastgeber' ? this.stamm !== null : this.leitungsschutz !== null,
       internet: this.rolle === 'gastgeber' && this.internet,
-      ping: this.rolle === 'gast' ? this.ping : null
+      ping: this.rolle === 'gast' ? this.ping : null,
+      pings: this.rolle === 'gastgeber' ? Object.fromEntries(this.gastPings) : {}
     };
   }
 
@@ -222,6 +230,10 @@ export class Raumdienst {
       const a = leseAnkuendigung(daten.toString('utf8'));
       if (!a || a.version !== RAUM_VERSION) return;
       const schluessel = `${woher.address}:${a.port}`;
+      if (a.zu) {
+        if (this.gefunden.delete(schluessel)) this.meldeRaeume();
+        return;
+      }
       this.gefunden.set(schluessel, {
         raum: a.raum,
         gastgeber: a.gastgeber,
@@ -327,6 +339,7 @@ export class Raumdienst {
     this.rolle = 'gastgeber';
     const port = (server.address() as { port: number }).port;
     this.starteRuf(port);
+    this.starteGastPing();
     this.meldeZustand();
     return port;
   }
@@ -343,17 +356,26 @@ export class Raumdienst {
       }
     });
     this.rufer = rufer;
-    const rufe = () => {
-      if (!this.ich) return;
-      const text = kodiere({
+    const ankuendigung = (zu: boolean) =>
+      kodiere({
         typ: 'ttrpg-raum',
         version: RAUM_VERSION,
         raum: this.raumName,
-        gastgeber: this.ich.name,
+        gastgeber: this.ich?.name ?? '',
         port,
-        geschuetzt: this.stamm !== null
+        geschuetzt: this.stamm !== null,
+        ...(zu ? { zu: true } : {})
       });
-      rufer.send(text, this.suchport, this.optionen.rufziel ?? '255.255.255.255', () => undefined);
+    const ziel = this.optionen.rufziel ?? '255.255.255.255';
+    const rufe = () => {
+      if (!this.ich) return;
+      rufer.send(ankuendigung(false), this.suchport, ziel, () => undefined);
+    };
+    // Beim Schliessen: „zu" ankuendigen, damit der Raum sofort aus den
+    // Listen verschwindet, statt noch Sekunden darin zu stehen.
+    this.abschied = () => {
+      const text = ankuendigung(true);
+      rufer.send(text, this.suchport, ziel, () => rufer.close());
     };
     setTimeout(rufe, 100);
     this.rufTakt = setInterval(rufe, 2000);
@@ -392,6 +414,7 @@ export class Raumdienst {
     const weg = () => {
       if (!this.gaeste.delete(gast)) return;
       if (gast.person) {
+        this.gastPings.delete(gast.person.id);
         this.personen = this.personen.filter((p) => p.id !== gast.person?.id);
         this.verteilePersonen();
       }
@@ -421,6 +444,17 @@ export class Raumdienst {
       this.personen = [...this.personen, gast.person];
       this.schreibe(gast, { typ: 'willkommen', du: gast.person, personen: this.personen });
       this.verteilePersonen();
+      return;
+    }
+    if (n.typ === 'pong') {
+      const offen = this.gastPingOffen.get(n.n);
+      if (!offen || offen.id !== gast.person.id) return;
+      this.gastPingOffen.delete(n.n);
+      const ms = Math.max(0, Math.round(performance.now() - offen.start));
+      if (this.gastPings.get(offen.id) !== ms) {
+        this.gastPings.set(offen.id, ms);
+        this.meldeZustand();
+      }
       return;
     }
     if (n.typ === 'ping') {
@@ -512,6 +546,8 @@ export class Raumdienst {
           this.meldeZustand();
         } else if (n.typ === 'pong') {
           this.pongAngekommen(n.n);
+        } else if (n.typ === 'ping') {
+          this.schreibeLeitung({ typ: 'pong', n: n.n });
         } else if (n.typ === 'chat' || n.typ === 'paket' || n.typ === 'werkzeug') {
           this.empfange(n);
         }
@@ -587,10 +623,27 @@ export class Raumdienst {
     this.pingTakt = setInterval(miss, PING_TAKT_MS);
   }
 
+  /** Beim Gastgeber: dieselbe Messung zu jedem Gast, im selben Takt. */
+  private starteGastPing(): void {
+    this.stoppePing();
+    this.pingTakt = setInterval(() => {
+      const jetzt = performance.now();
+      for (const [n, offen] of this.gastPingOffen) if (jetzt - offen.start > PING_TAKT_MS * 5) this.gastPingOffen.delete(n);
+      for (const g of this.gaeste) {
+        if (!g.person) continue;
+        const n = ++this.pingZaehler;
+        this.gastPingOffen.set(n, { id: g.person.id, start: jetzt });
+        this.schreibe(g, { typ: 'ping', n });
+      }
+    }, PING_TAKT_MS);
+  }
+
   private stoppePing(): void {
     if (this.pingTakt) clearInterval(this.pingTakt);
     this.pingTakt = null;
     this.pingOffen.clear();
+    this.gastPingOffen.clear();
+    this.gastPings.clear();
     this.ping = null;
   }
 
@@ -701,7 +754,14 @@ export class Raumdienst {
   verlasse(): void {
     if (this.rufTakt) clearInterval(this.rufTakt);
     this.rufTakt = null;
-    this.rufer?.close();
+    if (this.abschied) {
+      try {
+        this.abschied();
+      } catch {
+        this.rufer?.close();
+      }
+    } else this.rufer?.close();
+    this.abschied = null;
     this.rufer = null;
     for (const g of this.gaeste) g.socket.destroy();
     this.gaeste.clear();

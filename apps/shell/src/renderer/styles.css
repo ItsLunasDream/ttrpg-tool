@@ -2066,3 +2066,8 @@ body {
   font-size: 0.85em;
   opacity: 0.8;
 }
+
+.raum__personping {
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}

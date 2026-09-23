@@ -27,7 +27,7 @@ import { Ankunftsfenster } from './Ankunftsfenster';
 import type { GefundenerRaum, Raumzustand } from '../main/raum';
 import type { Raumpaket } from '../preload';
 
-const AUS: Raumzustand = { rolle: 'aus', raum: '', ich: null, personen: [], chat: [], port: null, adressen: [], ipv6: [], verschluesselt: false, internet: false, ping: null };
+const AUS: Raumzustand = { rolle: 'aus', raum: '', ich: null, personen: [], chat: [], port: null, adressen: [], ipv6: [], verschluesselt: false, internet: false, ping: null, pings: {} };
 
 type Modus = 'uebernehmen' | 'daneben' | 'verwerfen';
 

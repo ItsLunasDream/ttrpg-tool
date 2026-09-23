@@ -106,6 +106,10 @@ app.whenReady().then(async () => {
   anna.schreibe({ typ: 'ping', n: 42 });
   pruefe(await bis(() => anna.alle.some((n) => n.typ === 'pong' && n.n === 42)), 'der Gastgeber beantwortet ein Ping sofort (fuer die Anzeige in ms)');
   pruefe(
+    await bis(async () => /\(\d+ ms\)/.test(await js("document.querySelector('[data-person=\"Anna\"]')?.textContent ?? ''")), 6000),
+    'der Gastgeber sieht Annas Ping in ms'
+  );
+  pruefe(
     (await js("document.querySelector('[data-raum-verschluesselt]')?.dataset.raumVerschluesselt")) === 'true',
     'die Marke zeigt „verschluesselt"'
   );

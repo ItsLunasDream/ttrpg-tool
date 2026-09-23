@@ -80,6 +80,8 @@ function gast(port, passwort, name, host = '127.0.0.1') {
         g.verschluesselt = Boolean(neu);
       }
       if (n.typ === 'willkommen') g.ich = n.du;
+      // Wie die App: ein Ping des Gastgebers wird sofort beantwortet.
+      if (n.typ === 'ping') g.schreibe({ typ: 'pong', n: n.n });
     }
   });
   s.on('error', () => undefined);

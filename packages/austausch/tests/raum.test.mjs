@@ -66,3 +66,10 @@ test('ping und pong tragen eine Zahl', () => {
   assert.equal(A.leseNachricht('{"typ":"ping","n":"7"}'), null);
   assert.equal(A.leseNachricht('{"typ":"ping","n":-1}'), null);
 });
+
+test('eine Ankuendigung kann sagen, dass der Raum schliesst', () => {
+  const a = { typ: 'ttrpg-raum', version: 2, raum: 'R', gastgeber: 'SL', port: 4000, geschuetzt: true };
+  assert.equal(A.leseAnkuendigung(JSON.stringify({ ...a, zu: true })).zu, true);
+  assert.equal(A.leseAnkuendigung(JSON.stringify(a)).zu, undefined);
+  assert.equal(A.leseAnkuendigung(JSON.stringify({ ...a, zu: 'ja' })), null);
+});

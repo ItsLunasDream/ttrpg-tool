@@ -45,6 +45,8 @@ export interface Ankuendigung {
   readonly gastgeber: string;
   readonly port: number;
   readonly geschuetzt: boolean;
+  /** Der Raum schliesst: aus der Liste nehmen, statt ihn auslaufen zu lassen. */
+  readonly zu?: boolean;
 }
 
 export type Nachricht =
@@ -184,7 +186,8 @@ export function leseAnkuendigung(text: string): Ankuendigung | null {
       Number.isInteger(a.port) &&
       a.port > 0 &&
       a.port < 65536 &&
-      typeof a.geschuetzt === 'boolean'
+      typeof a.geschuetzt === 'boolean' &&
+      (a.zu === undefined || typeof a.zu === 'boolean')
     ) {
       return a as unknown as Ankuendigung;
     }
