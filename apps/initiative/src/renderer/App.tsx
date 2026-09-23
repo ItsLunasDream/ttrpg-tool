@@ -36,6 +36,7 @@ import {
   istAktiv,
   leererKampf,
   mitTeilnehmer,
+  sortiereNeu,
   naechsterZug,
   neueId,
   neuerTeilnehmer,
@@ -87,6 +88,10 @@ export function App() {
    * die Trefferpunkte, aber nicht den Plan.
    */
   const [taktik, setTaktik] = useState('');
+  // Die Taktik reist mit dem laufenden Kampf auf die Platte: nach einem
+  // Neustart waren ungespeicherte Notizen sonst weg (Testbericht).
+  const taktikRef = useRef(taktik);
+  taktikRef.current = taktik;
   const [zeigeTaktik, setZeigeTaktik] = useState(false);
   /**
    * Der offene Dialog.
@@ -139,7 +144,10 @@ export function App() {
   useEffect(() => {
     void (async () => {
       const gespeichert = await api.kampf.lesen();
-      if (gespeichert) setKampf(gespeichert);
+      if (gespeichert) {
+        setKampf(gespeichert);
+        if (typeof gespeichert.taktik === 'string') setTaktik(gespeichert.taktik);
+      }
       setBegegnungen(await api.begegnungen.liste());
       setGeladen(true);
     })();
@@ -177,16 +185,27 @@ export function App() {
     verlaufRef.current = neuerVerlauf;
     setKampf(neu);
     setVerlauf(neuerVerlauf);
-    void api.kampf.schreiben(neu);
+    void api.kampf.schreiben({ ...neu, taktik: taktikRef.current });
   }, []);
 
+  /*
+   * Tippen in einem Feld ist ein Rueckgaengig-Schritt, nicht einer je Taste
+   * (Testbericht: „Goblin" waren zehn Schritte). Aenderungen mit demselben
+   * Schluessel innerhalb von 1,5 s fassen sich zusammen.
+   */
+  const letzteAenderung = useRef<{ schluessel: string; zeit: number } | null>(null);
   const setzeUndSichere = useCallback(
-    (naechster: Kampf | ((vorher: Kampf) => Kampf)) => {
+    (naechster: Kampf | ((vorher: Kampf) => Kampf), zusammenfassen?: string) => {
       const vorher = standRef.current;
       const neu = typeof naechster === 'function' ? naechster(vorher) : naechster;
+      if (neu === vorher) return;
+      const jetzt = Date.now();
+      const letzte = letzteAenderung.current;
+      const fortsetzung = Boolean(zusammenfassen) && letzte !== null && letzte.schluessel === zusammenfassen && jetzt - letzte.zeit < 1500;
+      letzteAenderung.current = zusammenfassen ? { schluessel: zusammenfassen, zeit: jetzt } : null;
       // Hier laeuft alles durch, was den Kampf aendert — deshalb steht das
       // Merken genau hier und nicht an zwanzig Aufrufstellen.
-      if (neu !== vorher) setzeStand(neu, merke(verlaufRef.current, vorher));
+      setzeStand(neu, fortsetzung ? verlaufRef.current : merke(verlaufRef.current, vorher));
     },
     [setzeStand]
   );
@@ -206,6 +225,12 @@ export function App() {
 
   const sortiert = kampf.teilnehmer;
   const dranId = kampf.laeuft && kampf.amZug >= 0 ? sortiert[kampf.amZug]?.id : null;
+  // Wer dran ist, bleibt sichtbar: bei vierzehn Teilnehmern rutschte die
+  // aktive Zeile sonst aus dem Bild (Testbericht).
+  useEffect(() => {
+    if (!dranId) return;
+    document.querySelector(`[data-zeile="${CSS.escape(dranId)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [dranId]);
 
   const weiter = useCallback(() => {
     setzeUndSichere((vorher) => naechsterZug(vorher));
@@ -291,15 +316,20 @@ export function App() {
    * ist es die Geschicklichkeit.
    */
   const wuerfle = useCallback(() => {
-    setzeUndSichere((vorher) => ({
-      ...vorher,
-      teilnehmer: vorher.teilnehmer.map((eintrag) =>
-        // Das Gelaende wuerfelt nicht: es steht fest bei 20.
-        eintrag.istSpieler || eintrag.istTerrain
-          ? eintrag
-          : { ...eintrag, initiative: rollD20().total + eintrag.feinwert }
-      )
-    }));
+    // Nach dem Wuerfeln gleich einsortieren, auch mitten im Kampf; wer dran
+    // ist, bleibt dran (Testbericht: die Zahlen aenderten sich, die
+    // Reihenfolge nicht).
+    setzeUndSichere((vorher) =>
+      sortiereNeu({
+        ...vorher,
+        teilnehmer: vorher.teilnehmer.map((eintrag) =>
+          // Das Gelaende wuerfelt nicht: es steht fest bei 20.
+          eintrag.istSpieler || eintrag.istTerrain
+            ? eintrag
+            : { ...eintrag, initiative: rollD20().total + eintrag.feinwert }
+        )
+      })
+    );
   }, [setzeUndSichere]);
 
   const beende = useCallback(() => {
@@ -717,7 +747,10 @@ export function App() {
               offen={offen === teilnehmer.id}
               nummer={nummer}
               onOeffnen={() => setOffen(offen === teilnehmer.id ? null : teilnehmer.id)}
-              onAendern={(aendere) => setzeUndSichere((vorher) => mitTeilnehmer(vorher, teilnehmer.id, aendere))}
+              onAendern={(aendere) =>
+                setzeUndSichere((vorher) => mitTeilnehmer(vorher, teilnehmer.id, aendere), `feld:${teilnehmer.id}`)
+              }
+              onSortieren={() => setzeUndSichere((vorher) => sortiereNeu(vorher))}
               onSchaden={(koerperId, betrag) =>
                 setzeUndSichere((vorher) => aendereHp(vorher, teilnehmer.id, koerperId, betrag))
               }

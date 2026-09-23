@@ -78,6 +78,7 @@ export const texte = {
   'feld.hpMax': ['TP max', 'HP max'],
   'feld.tempHp': ['Temp', 'Temp'],
   'feld.anzahl': ['Anzahl', 'Count'],
+  'feld.raus': ['Raus', 'Out'],
   'feld.spieler': ['Spielerfigur', 'Player character'],
   'feld.notiz': ['Notiz', 'Note'],
   'feld.taktik': ['Taktik und Notizen', 'Tactics and notes'],

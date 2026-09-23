@@ -411,3 +411,18 @@ export function fuegeEin(kampf: Kampf, neu: Teilnehmer): Kampf {
   const amZug = dran ? teilnehmer.findIndex((eintrag) => eintrag.id === dran.id) : kampf.amZug;
   return { ...kampf, teilnehmer, amZug };
 }
+
+/**
+ * Sortiert neu, ohne den Zug zu verlieren: wer gerade dran ist, bleibt dran,
+ * auch wenn er in der Liste woanders landet. Fuer Aenderungen der Initiative
+ * mitten im Kampf und fuer „Initiative wuerfeln" (Testbericht: beides
+ * aenderte die Zahlen, aber nicht die Reihenfolge).
+ */
+export function sortiereNeu(kampf: Kampf): Kampf {
+  const sortiert = reihenfolge(kampf.teilnehmer);
+  if (sortiert.every((t, i) => t === kampf.teilnehmer[i])) return kampf;
+  if (!kampf.laeuft || kampf.amZug < 0) return { ...kampf, teilnehmer: sortiert };
+  const dran = kampf.teilnehmer[kampf.amZug]?.id;
+  const neu = sortiert.findIndex((t) => t.id === dran);
+  return { ...kampf, teilnehmer: sortiert, amZug: neu >= 0 ? neu : kampf.amZug };
+}

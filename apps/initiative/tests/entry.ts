@@ -19,13 +19,15 @@ export {
   entferneZustand,
   entferneTeilnehmer,
   fuegeEin,
-  neueId
+  neueId,
+  sortiereNeu
 } from '../src/shared/kampf';
 export {
   schreibeBegegnung,
   leseBegegnung,
   zuId,
-  istGueltigeId
+  istGueltigeId,
+  leseSchaden
 } from '../src/shared/format';
 export { Ablage } from '../src/main/ablage';
 export {

@@ -422,3 +422,29 @@ test('das Gelaende bleibt in der Reihenfolge, wenn alle Gegner liegen', () => {
   for (let i = 0; i < 4; i++) kampf = naechsterZug(kampf);
   assert.equal(kampf.teilnehmer[kampf.amZug].name, 'Rauch');
 });
+
+// --- Testbericht ---
+
+test('neu sortieren im Kampf behaelt den, der dran ist', () => {
+  const mit = (n, ini) => ({ ...entry.neuerTeilnehmer(n), initiative: ini, koerper: [entry.neuerKoerper('', 10)] });
+  const a = mit('A', 15);
+  const b = mit('B', 10);
+  const c = mit('C', 5);
+  let kampf = entry.beginne({ ...entry.leererKampf(), teilnehmer: [a, b, c] });
+  kampf = entry.naechsterZug(kampf); // B ist dran
+  const geaendert = { ...kampf, teilnehmer: kampf.teilnehmer.map((t) => (t.name === 'C' ? { ...t, initiative: 20 } : t)) };
+  const neu = entry.sortiereNeu(geaendert);
+  assert.deepEqual(neu.teilnehmer.map((t) => t.name), ['C', 'A', 'B']);
+  assert.equal(neu.teilnehmer[neu.amZug].name, 'B');
+});
+
+test('Schadensfeld: Summen, Wuerfel, Vorzeichen heilt, Unsinn bleibt null', () => {
+  assert.equal(entry.leseSchaden('7'), 7);
+  assert.equal(entry.leseSchaden('3+4'), 7);
+  assert.equal(entry.leseSchaden('-5'), -5);
+  assert.equal(entry.leseSchaden('+5'), -5);
+  const w = entry.leseSchaden('2d6+3', () => 0.999);
+  assert.equal(w, 15);
+  assert.equal(entry.leseSchaden('abc'), null);
+  assert.equal(entry.leseSchaden(''), null);
+});

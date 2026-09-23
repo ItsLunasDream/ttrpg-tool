@@ -115,6 +115,8 @@ export interface Kampf {
    * Kennung im Raum ist jedes Mal neu, der Name am Tisch bleibt.
    */
   readonly besitz?: Readonly<Record<string, string>>;
+  /** Die Taktik-Notiz des laufenden Kampfs (nur in kampf.json). */
+  readonly taktik?: string;
 }
 
 /** Eine gespeicherte Begegnung: Markdown mit YAML-Kopf (Konvention 1). */
