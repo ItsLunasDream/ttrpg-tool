@@ -79,6 +79,16 @@ gespeichert: er lebt nur, solange der Raum offen ist (entschieden).
 - Angekommene Pakete warten im Reiter „Empfangen" und werden über
   denselben Weg angesehen und angenommen wie eine Paketdatei. Am Knopf
   „Teilen" zählt eine Zahl neue Nachrichten und Pakete mit.
+- Angekommene Einträge zeigen beim Darüberfahren eine Vorschau. Ein
+  Doppelklick öffnet sie in einem eigenen Fenster über dem Dialog, mit dem
+  ganzen Text und „In meine Sammlung speichern“. Ein Doppelklick auf ein
+  Paket öffnet es wie „Ansehen“.
+- Geteilte Einträge stehen im Chat, beim Absender und bei allen, die sie
+  bekommen: die ersten fünf Namen, dann „und N weitere“. Ein Klick klappt
+  die ganze Liste auf.
+- Beim Gastgeber: „Einladung kopieren“ legt Raumname und alle Adressen als
+  Text in die Zwischenablage, ohne Passwort. Bei einem Raum übers Internet
+  wird die öffentliche IPv4 gleich beim Eröffnen erfragt (api.ipify.org).
 - Höchstens 16 Personen, eine Zeile höchstens 80 MB.
 - Unter Windows fragt die Firewall beim ersten Eröffnen, ob die App im
   Netz erreichbar sein darf. Ohne Zustimmung findet niemand den Raum.

@@ -20,8 +20,8 @@
  * zu sein. Waehrend einer Suche sind alle Gruppen mit Treffern offen.
  * „Zuletzt geoeffnet" ist von Anfang an offen: es ist der schnelle Griff.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useMemo, useState } from 'react';
+import { useVorschau } from './Vorschau';
 import { eintragsSchluessel, finde, type Eintrag } from '@suite/eintraege';
 import type { MessageKey, MessageParams } from '../shared/i18n';
 import { nameKey } from '../shared/apps';
@@ -97,42 +97,11 @@ export function Auswahl({ teilbar, zuletzt = [], gewaehlt, setGewaehlt, symbole,
     ];
   }, [teilbar, suche, apps, t, zuletzt]);
 
-  /*
-   * Vorschau beim Darueberfahren: nach kurzem Verweilen, damit ein Wischen
-   * ueber die Liste nicht zehn Anfragen losschickt. Gelesenes bleibt im
-   * Speicher, solange der Dialog offen ist.
-   */
-  const [vorschau, setVorschau] = useState<{ schluessel: string; text: string; x: number; y: number } | null>(null);
-  const gelesen = useRef(new Map<string, string>());
-  const warte = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (warte.current) clearTimeout(warte.current);
-  }, []);
-  const zeigeVorschau = (e: Eintrag, ziel: HTMLElement) => {
-    if (warte.current) clearTimeout(warte.current);
-    const schluessel = eintragsSchluessel(e);
-    warte.current = setTimeout(() => {
-      const kasten = ziel.getBoundingClientRect();
-      const ort = { x: kasten.left, y: kasten.bottom + 6 };
-      const bekannt = gelesen.current.get(schluessel);
-      if (bekannt !== undefined) {
-        setVorschau({ schluessel, text: bekannt, ...ort });
-        return;
-      }
-      void window.shell.austausch.vorschau(e.werkzeug, e.kennung).then(
-        (text) => {
-          gelesen.current.set(schluessel, text);
-          setVorschau((alt) => (alt === null || alt.schluessel === schluessel ? { schluessel, text, ...ort } : alt));
-        },
-        () => undefined
-      );
-      setVorschau({ schluessel, text: '…', ...ort });
-    }, 350);
-  };
-  const versteckeVorschau = () => {
-    if (warte.current) clearTimeout(warte.current);
-    setVorschau(null);
-  };
+  // Vorschau beim Darueberfahren (Vorschau.tsx).
+  const vorschau = useVorschau();
+  const zeigeVorschau = (e: Eintrag, ziel: HTMLElement) =>
+    vorschau.zeige(eintragsSchluessel(e), () => window.shell.austausch.vorschau(e.werkzeug, e.kennung), ziel);
+  const versteckeVorschau = vorschau.verstecke;
 
   const schalteGruppe = (id: string) => {
     const neu = new Set(offen);
@@ -195,21 +164,7 @@ export function Auswahl({ teilbar, zuletzt = [], gewaehlt, setGewaehlt, symbole,
         onChange={(e) => setSuche(e.target.value)}
       />
 
-      {vorschau && vorschau.text
-        ? createPortal(
-        <div
-          className="auswahl__vorschau motion-erscheinen"
-          data-vorschau={vorschau.schluessel}
-          style={{
-            left: Math.min(vorschau.x, window.innerWidth - 380),
-            top: Math.min(vorschau.y, window.innerHeight - 240)
-          }}
-        >
-          {vorschau.text}
-        </div>,
-            document.body
-          )
-        : null}
+      {vorschau.karte}
 
       {gruppen.length === 0 ? (
         <p className="einst__satz">{t('share.nothing')}</p>

@@ -40,6 +40,8 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   const [eigenerFehler, setEigenerFehler] = useState('');
   const [oeffentlich, setOeffentlich] = useState<string | null | 'fragt' | 'fehlt'>(null);
   const [kopiert, setKopiert] = useState('');
+  // Chatzeilen mit geteilten Eintraegen, die aufgeklappt sind (nach Index).
+  const [aufgeklappt, setAufgeklappt] = useState<Set<number>>(new Set());
   const liste = useRef<HTMLDivElement>(null);
   // Neben „Aktualisieren": erst ein drehender Kreis, dann eine Sekunde ein
   // Haken, dann nichts. Auch wenn sich die Liste von selbst aendert.
@@ -328,7 +330,23 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
                 {z.an ? ` → ${z.an.name}` : ''}
               </span>{' '}
               {z.an ? <em className="raum__privat">{t('room.private')} </em> : null}
-              {z.text}
+              {z.dateien ? (
+                <Dateizeile
+                  dateien={z.dateien}
+                  offen={aufgeklappt.has(i)}
+                  schalte={() =>
+                    setAufgeklappt((alt) => {
+                      const neu = new Set(alt);
+                      if (neu.has(i)) neu.delete(i);
+                      else neu.add(i);
+                      return neu;
+                    })
+                  }
+                  t={t}
+                />
+              ) : (
+                z.text
+              )}
             </p>
           ))
         )}
@@ -363,8 +381,12 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
 }
 
 /**
- * Wo die anderen den Gastgeber erreichen: im lokalen Netz, ueber IPv6 und,
- * auf Knopfdruck, ueber die oeffentliche IPv4 (Portfreigabe noetig).
+ * Wo die anderen den Gastgeber erreichen: im lokalen Netz, ueber IPv6 und
+ * ueber die oeffentliche IPv4 (Portfreigabe noetig). Die oeffentliche IPv4
+ * wird bei einem Internetraum gleich beim Eroeffnen erfragt, wie Foundry
+ * es auf seiner Einladungsseite tut; die App sagt dazu, wen sie fragt.
+ * „Einladung kopieren" legt alle Adressen als einen Text ab, fertig zum
+ * Einfuegen in einen Chat. Das Passwort steht bewusst nicht darin.
  */
 function Adressen({
   zustand,
@@ -393,28 +415,47 @@ function Adressen({
     </li>
   );
   const lan = zustand.adressen.length > 0 ? zustand.adressen : ['127.0.0.1'];
+  const gefragt = useRef(false);
+  useEffect(() => {
+    if (zustand.internet && oeffentlich === null && !gefragt.current) {
+      gefragt.current = true;
+      frageOeffentlich();
+    }
+  }, [zustand.internet, oeffentlich, frageOeffentlich]);
+  const v4 = typeof oeffentlich === 'string' && oeffentlich !== 'fragt' && oeffentlich !== 'fehlt' ? oeffentlich : null;
+  const einladung = [
+    t('room.inviteTitle', { raum: zustand.raum }),
+    ...(zustand.internet && v4 ? [`${t('room.addrPublic')}: ${alsAdresse(v4, port)}`] : []),
+    ...(zustand.internet ? zustand.ipv6.map((a) => `IPv6: ${alsAdresse(a, port)}`) : []),
+    ...lan.map((a) => `${t('room.addrLan')}: ${alsAdresse(a, port)}`),
+    zustand.verschluesselt ? t('room.invitePassword', { name: zustand.ich?.name ?? '' }) : ''
+  ]
+    .filter(Boolean)
+    .join('\n');
   return (
     <div className="raum__adressen" data-raum-adressen>
       <ul className="austausch__liste">
         {lan.map((a) => zeile(t('room.addrLan'), alsAdresse(a, port), 'lan'))}
         {zustand.internet && zustand.ipv6.map((a) => zeile('IPv6', alsAdresse(a, port), 'ipv6'))}
-        {zustand.internet &&
-          typeof oeffentlich === 'string' &&
-          oeffentlich !== 'fragt' &&
-          oeffentlich !== 'fehlt' &&
-          zeile(t('room.addrPublic'), alsAdresse(oeffentlich, port), 'ipv4')}
+        {zustand.internet && v4 && zeile(t('room.addrPublic'), alsAdresse(v4, port), 'ipv4')}
       </ul>
+      <div className="raum__reihe">
+        <button type="button" className="dialog__knopf" data-raum-einladung onClick={() => kopiere(einladung)}>
+          {kopiert === einladung ? `✓ ${t('room.inviteCopied')}` : t('room.invite')}
+        </button>
+        {zustand.internet && oeffentlich === 'fragt' && <span className="einst__satz raum__warnung">{t('room.publicAsking')}</span>}
+      </div>
       {zustand.internet && (
         <>
-          {(oeffentlich === null || oeffentlich === 'fehlt' || oeffentlich === 'fragt') && (
+          {oeffentlich === 'fehlt' ? (
             <div className="raum__reihe">
-              <button type="button" className="dialog__knopf" data-raum-oeffentlich disabled={oeffentlich === 'fragt'} onClick={frageOeffentlich}>
-                {t('room.showPublic')}
+              <button type="button" className="dialog__knopf" data-raum-oeffentlich onClick={frageOeffentlich}>
+                {t('room.retryPublic')}
               </button>
-              <span className="einst__satz raum__warnung">
-                {oeffentlich === 'fehlt' ? t('room.publicFailed') : t('room.publicHint')}
-              </span>
+              <span className="einst__satz raum__warnung">{t('room.publicFailed')}</span>
             </div>
+          ) : (
+            <p className="einst__satz raum__warnung">{t('room.publicHint')}</p>
           )}
           <p className="einst__satz raum__warnung" data-raum-portfreigabe>
             {t('room.forwardHint', { port: String(port), lan: lan[0] })}
@@ -423,5 +464,44 @@ function Adressen({
         </>
       )}
     </div>
+  );
+}
+
+/** Wie viele Namen eine Chatzeile mit geteilten Eintraegen zeigt, bevor sie zaehlt. */
+const SICHTBARE_DATEIEN = 5;
+
+/**
+ * Eine Chatzeile fuer geteilte Eintraege: die ersten fuenf Namen, dann eine
+ * Zahl. Ein Klick klappt die ganze Liste auf.
+ */
+function Dateizeile({
+  dateien,
+  offen,
+  schalte,
+  t
+}: {
+  readonly dateien: readonly string[];
+  readonly offen: boolean;
+  readonly schalte: () => void;
+  readonly t: Props['t'];
+}) {
+  const mehr = dateien.length - SICHTBARE_DATEIEN;
+  return (
+    <>
+      <button type="button" className="raum__dateien" data-chat-dateien={dateien.length} aria-expanded={offen} title={t('room.showFiles')} onClick={schalte}>
+        📎 {dateien.length === 1 ? t('room.sharedOne') : t('room.sharedFiles', { anzahl: dateien.length })}{' '}
+        <span className="raum__dateiliste">
+          {dateien.slice(0, SICHTBARE_DATEIEN).join(', ')}
+          {mehr > 0 ? ` ${t('room.moreFiles', { anzahl: mehr })}` : ''}
+        </span>
+      </button>
+      {offen && (
+        <ul className="raum__alledateien" data-chat-alle-dateien>
+          {dateien.map((d, i) => (
+            <li key={i}>{d}</li>
+          ))}
+        </ul>
+      )}
+    </>
   );
 }

@@ -155,10 +155,62 @@ app.whenReady().then(async () => {
   );
   const pakete = (await js('window.shell.raum.zustand()')).pakete;
   pruefe(pakete.length === 1 && pakete[0].von === 'Anna', 'das Paket wartet in der App');
-  const angesehen = await js(`window.shell.raum.paketAnsehen(${pakete[0].id})`);
-  pruefe(angesehen.ok && angesehen.ankuenfte[0].name === 'Ghul', 'es laesst sich ansehen');
-  const ergebnis = await js("window.shell.austausch.annehmen([{ nummer: 0, modus: 'daneben' }], {})");
-  pruefe(ergebnis[0]?.ok && fs.existsSync(path.join(monsterOrdner, 'ghul.md')), 'und annehmen: der Ghul liegt im Monster Creator');
+  // Dialog auf, Paket per Doppelklick ansehen.
+  await js(`document.querySelector('[data-teilen-knopf]').click(); true`);
+  await warte(800);
+  pruefe(
+    /Anna/.test(await js("document.querySelector('[data-chat-dateien]')?.closest('.raum__zeile')?.textContent ?? ''")) &&
+      /Ghul/.test(await js("document.querySelector('[data-chat-dateien]')?.textContent ?? ''")),
+    'im Chat steht, dass Anna den Ghul geteilt hat'
+  );
+  await js(`document.querySelector('[data-raumpaket]').closest('li').dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); true`);
+  pruefe(await bis(async () => js("Boolean(document.querySelector('[data-ankunft=\"0\"]'))")), 'Doppelklick auf das Paket zeigt seinen Inhalt');
+  // Vorschau beim Darueberfahren.
+  await js(`document.querySelector('[data-ankunft="0"]').dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); true`);
+  pruefe(
+    await bis(async () => /Ghul/.test(await js("document.querySelector('[data-vorschau^=\"ankunft:\"]')?.textContent ?? ''"))),
+    'darueberfahren zeigt eine Vorschau des angekommenen Eintrags'
+  );
+  await js(`document.querySelector('[data-ankunft="0"]').dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); true`);
+  // Doppelklick: eigenes Fenster mit dem ganzen Text, von dort speichern.
+  await js(`document.querySelector('[data-ankunft="0"]').dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); true`);
+  pruefe(
+    await bis(async () => /Ghul/.test(await js("document.querySelector('[data-ankunft-text]')?.textContent ?? ''"))),
+    'Doppelklick oeffnet ein Fenster mit dem ganzen Text'
+  );
+  if (process.env.BILD_FENSTER) {
+    await warte(600);
+    fs.writeFileSync(process.env.BILD_FENSTER, (await huelle.webContents.capturePage()).toPNG());
+  }
+  await js(`document.querySelector('[data-fenster-speichern]').click(); true`);
+  pruefe(
+    await bis(() => fs.existsSync(path.join(monsterOrdner, 'ghul.md'))),
+    'aus dem Fenster gespeichert: der Ghul liegt im Monster Creator'
+  );
+  pruefe(await bis(async () => /✓/.test(await js("document.querySelector('[data-fenster-meldung]')?.textContent ?? ''"))), 'das Fenster meldet es');
+  await js(`document.querySelector('[data-ankunftsfenster]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true`);
+  await warte(300);
+  pruefe(
+    (await js("Boolean(document.querySelector('[data-ankunftsfenster]'))")) === false && (await js("Boolean(document.querySelector('.dialog'))")),
+    'Escape schliesst nur das Fenster, der Dialog bleibt'
+  );
+
+  // Mehr als fuenf Eintraege: fuenf Namen, dann eine Zahl; ein Klick zeigt alle.
+  const viele = ['# LORE', '', '<!-- ttrpg:paket {"version":1,"erstellt":""} -->', ''];
+  for (let i = 1; i <= 7; i += 1) {
+    viele.push(`<!-- ttrpg:eintrag {"werkzeug":"monster","kennung":"m${i}","name":"Monster ${i}","art":"Monster"} -->`, '---', `id: m${i}`, `name: Monster ${i}`, '---', `# Monster ${i}`, '<!-- ttrpg:ende -->', '');
+  }
+  anna.schreibe({ typ: 'paket', von: anna.ich.id, an: 'gastgeber', titel: '7', paket: viele.join('\n'), zeit: '' });
+  pruefe(await bis(async () => js("Boolean(document.querySelector('[data-chat-dateien=\"7\"]'))")), 'eine Chatzeile fuer sieben Eintraege');
+  const zeile7 = await js("document.querySelector('[data-chat-dateien=\"7\"]').textContent");
+  pruefe(/Monster 5/.test(zeile7) && !/Monster 6/.test(zeile7) && /2/.test(zeile7), `sie nennt fuenf und zaehlt den Rest (${zeile7.trim()})`);
+  await js(`document.querySelector('[data-chat-dateien="7"]').click(); true`);
+  pruefe(
+    await bis(async () => (await js("document.querySelectorAll('[data-chat-alle-dateien] li').length")) === 7),
+    'ein Klick zeigt alle sieben'
+  );
+  await js("document.querySelector('.dialog').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
+  await warte(500);
 
   // --- Ein Paket an genau Anna ---------------------------------------------
   const ben = gast(zustand.port, 'pw', 'Ben');
@@ -166,6 +218,10 @@ app.whenReady().then(async () => {
   const gesendet = await js(`window.shell.raum.senden([{ werkzeug: 'monster', kennung: 'ork' }], ${JSON.stringify(anna.ich.id)})`);
   pruefe(gesendet.ok, 'die App schickt ein Monster in den Raum');
   pruefe(await bis(() => anna.alle.some((n) => n.typ === 'paket' && /# Ork/.test(n.paket))), 'Anna bekommt es');
+  pruefe(
+    (await js('window.shell.raum.zustand()')).zustand.chat.some((z) => z.eigene && z.dateien && z.dateien[0] === 'Ork'),
+    'und im eigenen Chat steht, was man geteilt hat'
+  );
   await warte(300);
   pruefe(!ben.alle.some((n) => n.typ === 'paket'), 'Ben nicht');
 
@@ -225,7 +281,12 @@ app.whenReady().then(async () => {
   pruefe(netz.internet && netz.port === 47913 && netz.verschluesselt, `fester Port ${netz.port}, verschluesselt`);
   pruefe(await js("Boolean(document.querySelector('[data-raum-adresse=\"lan\"]'))"), 'die Adresse im lokalen Netz steht da');
   pruefe(/47913/.test(await js("document.querySelector('[data-raum-portfreigabe]')?.textContent ?? ''")), 'der Hinweis zur Portfreigabe nennt den Port');
-  if (process.env.BILD_NETZ) await warte(800);
+  await js(`document.querySelector('[data-raum-einladung]').click(); true`);
+  pruefe(
+    await bis(() => /47913/.test(require('electron').clipboard.readText()) && !/geheim/.test(require('electron').clipboard.readText())),
+    'die Einladung liegt in der Zwischenablage, mit Port, ohne Passwort'
+  );
+  if (process.env.BILD_NETZ) await warte(3000);
   if (process.env.BILD_NETZ) fs.writeFileSync(process.env.BILD_NETZ, (await huelle.webContents.capturePage()).toPNG());
   const hatV6 = Object.values(require('node:os').networkInterfaces()).flat().some((a) => a && a.address === '::1');
   if (hatV6) {

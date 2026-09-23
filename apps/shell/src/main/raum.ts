@@ -28,6 +28,7 @@ import {
   kodiere,
   leseAnkuendigung,
   leseNachricht,
+  lesePaket,
   MAX_CHAT,
   MAX_PERSONEN,
   RAUM_INTERNETPORT,
@@ -54,6 +55,8 @@ export interface Chatzeile {
   readonly text: string;
   readonly zeit: string;
   readonly eigene: boolean;
+  /** Bei einem Paket: die Namen der Eintraege darin (der Text bleibt leer). */
+  readonly dateien?: readonly string[];
 }
 
 export interface Raumzustand {
@@ -72,6 +75,17 @@ export interface Raumzustand {
   readonly verschluesselt: boolean;
   /** Nur beim Gastgeber: ob der Raum auch ueber das Internet gedacht ist (fester Port). */
   readonly internet: boolean;
+}
+
+/** Die Namen der Eintraege eines Pakets; laesst es sich nicht lesen, der Titel. */
+function namenIn(paket: string, titel: string): string[] {
+  try {
+    const namen = lesePaket(paket).sendungen.map((s) => s.name);
+    if (namen.length > 0) return namen;
+  } catch {
+    // Unten der Titel.
+  }
+  return [titel];
 }
 
 /** Die eigenen IPv4-Adressen im lokalen Netz, ohne die Schleife. */
@@ -567,8 +581,12 @@ export class Raumdienst {
       const zeile: Chatzeile = { von, an, text: n.text, zeit: n.zeit, eigene: von.id === this.ich?.id };
       this.chat = [...this.chat, zeile].slice(-500);
       this.melde({ art: 'chat', zeile });
-    } else if (von.id !== this.ich?.id) {
-      this.melde({ art: 'paket', von, an, titel: n.titel, paket: n.paket });
+    } else {
+      // Im Chat steht, wer was geschickt hat, auch beim Absender selbst.
+      const zeile: Chatzeile = { von, an, text: '', zeit: n.zeit, eigene: von.id === this.ich?.id, dateien: namenIn(n.paket, n.titel) };
+      this.chat = [...this.chat, zeile].slice(-500);
+      this.melde({ art: 'chat', zeile });
+      if (von.id !== this.ich?.id) this.melde({ art: 'paket', von, an, titel: n.titel, paket: n.paket });
     }
   }
 

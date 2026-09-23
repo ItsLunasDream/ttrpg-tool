@@ -175,27 +175,46 @@ export async function vorschau(
   kennung: string,
   sprache: 'de' | 'en'
 ): Promise<string> {
-  let text = '';
   if (werkzeug === 'nachschlagewerk' && !kennung.startsWith('hausregel/')) {
-    text = regelNach(kennung)?.text[sprache] ?? '';
-  } else {
-    const inhalt = (await TEILNEHMER.get(werkzeug)?.gib(datenordner, kennung))?.inhalt ?? '';
-    const kopf = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(inhalt);
-    const kopfzeilen = (kopf?.[1] ?? '')
-      .split(/\r?\n/)
-      .filter((z) => z.trim() && !OHNE_IN_VORSCHAU.test(z) && !/^\s*-/.test(z))
-      .map((z) => z.replace(/^(\w+):\s*"?(.*?)"?$/, '$1: $2'))
-      .filter((z) => !/:\s*$/.test(z));
-    const rumpf = kopf ? inhalt.slice(kopf[0].length) : inhalt;
-    text = [...kopfzeilen, '', rumpf].join('\n');
+    return lesbar(regelNach(kennung)?.text[sprache] ?? '', 700);
   }
+  const inhalt = (await TEILNEHMER.get(werkzeug)?.gib(datenordner, kennung))?.inhalt ?? '';
+  return lesbar(kopfLesbar(inhalt), 700);
+}
+
+/**
+ * Der Text einer empfangenen Sendung, bevor sie angenommen ist: fuer die
+ * Vorschau (kurz) und das Fenster (lang). Eine Regel reist als Verweis und
+ * kommt aus dem eigenen Nachschlagewerk.
+ */
+export function sendungsText(sendung: Paket['sendungen'][number], sprache: 'de' | 'en', max: number): string {
+  if (sendung.inhalt === null) {
+    return lesbar(sendung.werkzeug === 'nachschlagewerk' ? (regelNach(sendung.kennung)?.text[sprache] ?? '') : '', max);
+  }
+  return lesbar(kopfLesbar(sendung.inhalt), max);
+}
+
+/** Der Kopf eines Eintrags als lesbare Zeilen, darunter der Rumpf. */
+function kopfLesbar(inhalt: string): string {
+  const kopf = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(inhalt);
+  const kopfzeilen = (kopf?.[1] ?? '')
+    .split(/\r?\n/)
+    .filter((z) => z.trim() && !OHNE_IN_VORSCHAU.test(z) && !/^\s*-/.test(z))
+    .map((z) => z.replace(/^(\w+):\s*"?(.*?)"?$/, '$1: $2'))
+    .filter((z) => !/:\s*$/.test(z));
+  const rumpf = kopf ? inhalt.slice(kopf[0].length) : inhalt;
+  return [...kopfzeilen, '', rumpf].join('\n');
+}
+
+/** Ohne Bilder, Verweisklammern und Auszeichnung; gekuerzt auf `max` Zeichen. */
+function lesbar(text: string, max: number): string {
   const klar = text
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
     .replace(/\[\[([^\]|]+)(\|[^\]]+)?\]\]/g, '$1')
     .replace(/[*_`#>]+/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
-  return klar.length > 700 ? `${klar.slice(0, 700).trimEnd()} …` : klar;
+  return klar.length > max ? `${klar.slice(0, max).trimEnd()} …` : klar;
 }
 
 /** Schnuert die gewaehlten Eintraege. Was es nicht mehr gibt, faellt heraus. */

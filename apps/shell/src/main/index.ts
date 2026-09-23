@@ -77,6 +77,7 @@ import {
   schnuere,
   schreibePaket,
   teilbar,
+  sendungsText,
   vorschau as austauschVorschau,
   zieleFuer
 } from './austausch';
@@ -898,6 +899,13 @@ function registriereKanaele(): void {
       gemerkteEinstellungen?.language === 'de' ? 'de' : 'en'
     )
   );
+  // Der Text einer angekommenen Sendung, bevor sie angenommen ist: kurz fuer
+  // die Vorschau, lang fuer das Fenster.
+  handle('austausch:ankunftText', (_event, nummer: number, voll: boolean) => {
+    const sendung = eingang?.sendungen[Number(nummer)];
+    if (!sendung) return '';
+    return sendungsText(sendung, gemerkteEinstellungen?.language === 'de' ? 'de' : 'en', voll ? 60000 : 700);
+  });
   handle('austausch:zuletzt', () => [...zuletztGeoeffnet]);
 
   handle(

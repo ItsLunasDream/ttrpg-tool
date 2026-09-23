@@ -255,6 +255,8 @@ const api = {
       ipcRenderer.invoke('austausch:konflikte', ziele) as Promise<boolean[]>,
     vorschau: (werkzeug: string, kennung: string) =>
       ipcRenderer.invoke('austausch:vorschau', werkzeug, kennung) as Promise<string>,
+    ankunftText: (nummer: number, voll: boolean) =>
+      ipcRenderer.invoke('austausch:ankunftText', nummer, voll) as Promise<string>,
     annehmen: (entscheidungen: { nummer: number; modus?: Modus }[], ziele: Record<string, string>) =>
       ipcRenderer.invoke('austausch:annehmen', entscheidungen, ziele) as Promise<
         { ok: boolean; kennung?: string; grund?: string; werkzeug: string; name: string }[]
