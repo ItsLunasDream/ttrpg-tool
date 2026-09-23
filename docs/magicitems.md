@@ -14,6 +14,30 @@ Verbrauchsgegenstände die Hälfte, Schriftrollen das Doppelte ihrer
 Herstellungskosten. Die 50 GM für den Heiltrank in den Foundry-Belegen unten
 sind also genau die Hälfte von Common, kein Widerspruch.
 
+**Keine umbenannten SRD-Gegenstände.** Neben den Wirkungen nach dem Muster
+des SRD (geeicht, siehe unten) gibt es rund 50 eigene (`eigen-…` in
+`tabellen.ts`), die dessen Bausteine neu mischen: Zustände, Zauber,
+Schadensarten, Rettungswürfe, Nutzungen je Tag. Jeder gewürfelte Gegenstand
+trägt mindestens eine davon; ein Trank ist also nie nur ein Heiltrank mit
+neuem Namen. Nebenwirkungen (`zusatz`) stehen nie allein. Tränke und
+Schriftrollen bekommen keinen zufälligen Fluch. Im Gegenstand lassen sich
+eine weitere Wirkung oder ein Fluch ausdrücklich würfeln und jede Wirkung
+einzeln neu würfeln.
+
+**KI.** Wie beim Monster Creator: „✦ Ask the AI“ baut einen ganzen
+Gegenstand (mit optionalem Wunsch), ✦ neben einer Wirkung ersetzt sie, „✦
+Property from the AI“ fügt eine hinzu, ✦ am Fluch schreibt einen. Alles
+geht durch `pruefeKi` (`src/shared/pruefung.ts`): Bonus, Zusatzschaden und
+Rettungswurf-SG über der Grenze der Seltenheit werden gezogen und in einem
+Kasten genannt; ein zu hoher Zaubergrad und zu viele Wirkungen werden nur
+gemeldet. Der Wert kommt immer aus der SRD-Tabelle.
+
+**In den Loot Generator** kommt ein Gegenstand nur über den Knopf „Send to
+Loot Generator“ (Merkmal `loot: ja` im Kopf der Datei), nicht schon durch
+Speichern. Die Farbe wischt dabei über das Symbol des Loot Generators. Der
+Export heißt in der Oberfläche „Export as JSON“; das Format bleibt das von
+Foundry.
+
 Der Foundry-Export (Stufe 3) ist gebaut. Die Eichung (Stufe 4) ebenfalls:
 31 Eichpunkte aus dem SRD (`src/shared/eichpunkte.ts`, erzeugt von
 `packages/srd/werkzeug/gegenstaende_eichung.py`). Welcher SRD-Gegenstand für

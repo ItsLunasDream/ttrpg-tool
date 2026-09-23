@@ -78,6 +78,18 @@ function andere(spr: Sprache): Sprache {
   return spr === 'de' ? 'en' : 'de';
 }
 
+/**
+ * Der Name in der zweiten Sprache, oder nichts.
+ *
+ * Nur auf Deutsch steht der englische Name dabei: wer auf Englisch spielt,
+ * braucht den deutschen nicht und liest ihn als Rauschen (Rueckmeldung).
+ * Umgekehrt ist er nuetzlich, weil Runden oft mit englischen Begriffen
+ * spielen.
+ */
+function zweitName(regel: Regel, spr: Sprache): string | null {
+  return spr === 'de' ? regel.name.en : null;
+}
+
 export function App() {
   const [, neuZeichnen] = useState(0);
   const [suche, setSuche] = useState('');
@@ -201,6 +213,21 @@ export function App() {
     });
   }, []);
 
+  /*
+   * Der Verlauf der Huelle kennt auch den Ort IM Werkzeug: „Zurueck" fuehrt
+   * zum vorigen Eintrag oder zur Liste, nicht zum vorigen Werkzeug
+   * (Rueckmeldung).
+   */
+  useEffect(() => api.ort.melde(offenId), [offenId]);
+  useEffect(
+    () =>
+      api.ort.beiSprung((ziel) => {
+        setBearbeitung(null);
+        setOffenId(ziel);
+      }),
+    []
+  );
+
   /** Ein Treffer aus der Suche der Huelle (Strg+K) oeffnet den Eintrag. */
   useEffect(
     () =>
@@ -291,8 +318,8 @@ export function App() {
                       }}
                     >
                       <span className="eintrag__name">{regel.name[spr]}</span>
-                      {regel.art === 'hausregel' ? null : (
-                        <span className="eintrag__anders">{regel.name[andere(spr)]}</span>
+                      {regel.art === 'hausregel' || !zweitName(regel, spr) ? null : (
+                        <span className="eintrag__anders">{zweitName(regel, spr)}</span>
                       )}
                       {/* Die Fundstelle, wenn es nicht am Namen lag: sie ist
                           der Grund, warum der Eintrag ueberhaupt dasteht. */}
@@ -520,7 +547,7 @@ function Vorschau({
         <strong>{regel.name[spr]}</strong>
         <span className="vorschau__art">{ART_NAME[regel.art][spr]}</span>
       </div>
-      <p className="vorschau__anders">{regel.name[andere(spr)]}</p>
+      {zweitName(regel, spr) ? <p className="vorschau__anders">{zweitName(regel, spr)}</p> : null}
       {kurz.split(/\n{2,}/).map((absatz, i) => (
         <p key={i} className="vorschau__text">
           {absatz}
@@ -550,7 +577,8 @@ function Blatt({
   const spr = sprache();
   const { nach } = useContext(VerweisKontext);
   const { notizen, oeffne: oeffneNotiz } = useContext(NotizKontext);
-  const sprachen: Sprache[] = daneben ? [spr, andere(spr)] : [spr];
+  // Die zweite Fassung daneben gibt es nur auf Deutsch, aus demselben Grund.
+  const sprachen: Sprache[] = daneben && spr === 'de' ? [spr, andere(spr)] : [spr];
   const meine = notizen.filter((n) => n.regel === regel.id);
   /** Eine Auswahl im Text, aus der eine Notiz werden kann. */
   const [auswahl, setAuswahl] = useState<{ notiz: Notiz; rect: DOMRect } | null>(null);
@@ -606,7 +634,7 @@ function Blatt({
         <div>
           <span className="regel__art">{ART_NAME[regel.art][spr]}</span>
           <h2>{regel.name[spr]}</h2>
-          <p className="regel__anders">{regel.name[andere(spr)]}</p>
+          {zweitName(regel, spr) ? <p className="regel__anders">{zweitName(regel, spr)}</p> : null}
           {regel.unterzeile ? (
             <p className="regel__unterzeile" data-unterzeile>
               {regel.unterzeile[spr]}
@@ -614,9 +642,11 @@ function Blatt({
           ) : null}
         </div>
         <div className="regel__knoepfe">
-          <button type="button" className="knopf" data-daneben onClick={onDaneben}>
-            {daneben ? t('daneben.aus') : t('daneben')}
-          </button>
+          {spr === 'de' ? (
+            <button type="button" className="knopf" data-daneben onClick={onDaneben}>
+              {daneben ? t('daneben.aus') : t('daneben')}
+            </button>
+          ) : null}
           <button type="button" className="knopf" data-hausregel-dazu onClick={hausregelDazu}>
             + {t('haus.dazu')}
           </button>
@@ -639,10 +669,10 @@ function Blatt({
         </p>
       ) : null}
 
-      <div className={daneben ? 'regel__fassungen regel__fassungen--zwei' : 'regel__fassungen'}>
+      <div className={sprachen.length > 1 ? 'regel__fassungen regel__fassungen--zwei' : 'regel__fassungen'}>
         {sprachen.map((s) => (
           <section key={s} className="regel__fassung" lang={s} data-sprache={s} onMouseUp={nimmAuswahl}>
-            {daneben ? <h3>{s === 'de' ? 'Deutsch' : 'English'}</h3> : null}
+            {sprachen.length > 1 ? <h3>{s === 'de' ? 'Deutsch' : 'English'}</h3> : null}
             {(() => {
               // Je Sprachfassung ein eigenes Gedaechtnis: „nur das erste
               // Vorkommen" gilt ueber alle Bloecke dieses Eintrags.

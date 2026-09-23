@@ -116,6 +116,52 @@ app.whenReady().then(async () => {
   pruefe(dateien().length === 1, `gespeichert liegt der Gegenstand auf der Platte (${dateien().join(', ')})`);
   const inhalt = dateien().length ? fs.readFileSync(path.join(ordner, dateien()[0]), 'utf8') : '';
   pruefe(/^art: waffe$/m.test(inhalt) && /^seltenheit: veryRare$/m.test(inhalt), 'mit Art und Seltenheit im Kopf');
+  pruefe(!/^loot:/m.test(inhalt), 'Speichern allein schickt nichts in den Loot Generator');
+
+  // --- Rueckmeldungen zum offenen Gegenstand --------------------------------
+  pruefe(
+    await js("Boolean(document.querySelector('[data-nochmal]')) && Boolean(document.querySelector('select[data-erzeuger=\"seltenheit\"]'))"),
+    'nach dem Speichern bleiben Neu-Wuerfeln und die Wahl der Seltenheit da'
+  );
+  pruefe(
+    /Export as JSON|Als JSON exportieren/.test(await js("document.querySelector('[data-foundry]')?.textContent ?? ''")),
+    'der Export heisst „Export as JSON"'
+  );
+  pruefe(
+    await js(`[...document.querySelectorAll('textarea[data-wirkung]')].every(e => e.scrollHeight <= e.clientHeight + 2)`),
+    'die Wirkungsfelder sind so hoch wie ihr Text'
+  );
+
+  // --- Wirkungen und Fluch gezielt wuerfeln ----------------------------------
+  const zahlWirkungen = () => js("document.querySelectorAll('textarea[data-wirkung]').length");
+  const vorWuerfeln = await zahlWirkungen();
+  await js(`document.querySelector('[data-wirkung-wuerfeln]').click(); true`);
+  await warte(200);
+  pruefe((await zahlWirkungen()) === vorWuerfeln + 1, '„Wirkung wuerfeln" fuegt eine gewuerfelte Wirkung an');
+  const ersteVorher = await js("document.querySelector('textarea[data-wirkung]').value");
+  await js(`document.querySelector('[data-wirkung-neu="0"]').click(); true`);
+  await warte(200);
+  pruefe(
+    (await js("document.querySelector('textarea[data-wirkung]').value")) !== ersteVorher,
+    'eine einzelne Wirkung laesst sich neu wuerfeln'
+  );
+  await js(`document.querySelector('[data-fluch-wuerfeln]').click(); true`);
+  await warte(200);
+  pruefe(
+    /^(Curse|Fluch)/.test(await js("document.querySelector('.fluch textarea').value")),
+    'ein Fluch laesst sich ausdruecklich wuerfeln'
+  );
+
+  // --- An den Loot Generator -------------------------------------------------
+  await js(`document.querySelector('[data-loot]').click(); true`);
+  await warte(700);
+  const nachher = dateien().length ? fs.readFileSync(path.join(ordner, dateien()[0]), 'utf8') : '';
+  pruefe(/^loot: ja$/m.test(nachher), 'der Knopf schickt den Gegenstand in den Loot Generator');
+  pruefe(
+    await hjs("Boolean(document.querySelector('.schiene__eintrag--gemeldet'))"),
+    'und die Farbe wischt ueber ein Symbol in der Schiene'
+  );
+  pruefe(await js("document.querySelector('[data-loot]')?.disabled === true"), 'danach zeigt der Knopf, dass er drin ist');
 
   // --- Die Sammlung und die Suche -------------------------------------------
   await js(`[...document.querySelectorAll('button')].find(b => /Zurück zur Liste|Back to the list/.test(b.textContent)).click(); true`);

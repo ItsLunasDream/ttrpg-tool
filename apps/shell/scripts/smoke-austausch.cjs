@@ -81,8 +81,28 @@ app.whenReady().then(async () => {
   // --- Der Dialog ----------------------------------------------------------
   await js(`document.querySelector('[data-teilen-knopf]').click(); true`);
   await warte(1200);
+  // Der Raum ist die Hauptsache und steht vorne; die Datei ist der zweite Reiter.
+  pruefe(
+    await js("document.querySelector('[data-richtung=\"raum\"]')?.getAttribute('aria-pressed') === 'true'"),
+    'der Dialog oeffnet beim Raum'
+  );
+  await js(`document.querySelector('[data-richtung="datei"]').click(); true`);
+  await warte(500);
   const zeilen = await js("document.querySelectorAll('[data-austausch=\"geben\"] [data-teilen]').length");
   pruefe(zeilen === 3, `der Dialog zeigt ohne Suchwort die drei eigenen Eintraege (${zeilen})`);
+  pruefe(
+    (await js("[...document.querySelectorAll('[data-gruppe]')].map(g => g.dataset.gruppe).join(',')")).split(',').length === 3,
+    'nach Apps gruppiert'
+  );
+  // Filter-Chips: nur Monster zeigen, dann wieder alle.
+  await js(`document.querySelector('[data-chip="monster"]').click(); true`);
+  await warte(200);
+  pruefe(
+    (await js("document.querySelectorAll('[data-austausch=\"geben\"] [data-teilen]').length")) === 1,
+    'ein Filter-Chip zeigt nur die Eintraege seiner App'
+  );
+  await js(`document.querySelector('[data-chip="alle"]').click(); true`);
+  await warte(200);
   await js(`document.querySelector('[data-teilen="monster/ghul"]').click(); true`);
   await warte(200);
   pruefe(

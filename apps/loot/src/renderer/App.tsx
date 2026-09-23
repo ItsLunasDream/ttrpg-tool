@@ -20,6 +20,11 @@ import {
   alsZeilen,
   naechsterName,
   pruefe,
+  nummeriere,
+  sperrt,
+  offenerVerweis,
+  setzeVerweis,
+  verweisVorschlaege,
   type Befund,
   type Gespeichert,
   type Kachel,
@@ -112,6 +117,10 @@ export function App() {
   const [fehler, setFehler] = useState('');
   // Die eingebauten Tabellen fuer `oeffne`, ohne es bei jedem Sprachwechsel neu zu bauen.
   const festRef = useRef<readonly Gespeichert[]>([]);
+  // Angefangener Verweis im Eintragsfeld: "[" schlaegt die Tabellen vor.
+  const [verweis, setVerweis] = useState<{ von: number; cursor: number; suche: string } | null>(null);
+  const [markiert, setMarkiert] = useState(0);
+  const zeilenRef = useRef<HTMLTextAreaElement>(null);
 
   const ladeListe = useCallback(async () => {
     const [k, a, g] = await Promise.all([api.sammlung.liste(), api.sammlung.alle(), api.gegenstaende()]);
@@ -168,6 +177,28 @@ export function App() {
     setMeldung('');
     setFehler('');
   }, []);
+
+  /*
+   * Der Verlauf der Huelle kennt auch den Ort IM Werkzeug: „Zurueck" aus
+   * einem geoeffneten Eintrag fuehrt zur Liste, nicht zum vorigen Werkzeug
+   * (Rueckmeldung). `null` ist die Liste, ein ungespeicherter Entwurf heisst
+   * „entwurf" und laesst sich nicht wieder herstellen.
+   */
+  const ort = offen ? offen.id || 'entwurf' : null;
+  useEffect(() => api.ort.melde(ort), [ort]);
+  useEffect(
+    () =>
+      api.ort.beiSprung((ziel) => {
+        if (ziel === null) {
+          setOffen(null);
+          setMeldung('');
+          setFehler('');
+          return;
+        }
+        if (ziel !== 'entwurf') void oeffne(ziel);
+      }),
+    [oeffne]
+  );
   festRef.current = srd;
 
   useEffect(() => api.beiSuchtreffer((kennung) => void oeffne(kennung)), [oeffne]);
@@ -193,6 +224,37 @@ export function App() {
     return [...ohne, aktuell];
   }, [alle, aktuell]);
   const befunde = useMemo(() => (aktuell ? pruefe(aktuell, alle) : []), [aktuell, alle]);
+  // Was das Wuerfeln sperrt. Nur bei eigenen Tabellen: die eingebauten und
+  // die aus dem Magic Item Creator kann hier niemand berichtigen.
+  const sperre = befunde.filter(sperrt);
+  const vorschlaege = useMemo(
+    () =>
+      verweis
+        ? verweisVorschlaege(
+            alle.filter((a) => !aktuell || a.id !== aktuell.id || !a.id).map((a) => a.name),
+            verweis.suche
+          )
+        : [],
+    [verweis, alle, aktuell]
+  );
+  const pruefeVerweis = (feld: HTMLTextAreaElement) => {
+    const gefunden = feld.selectionStart === feld.selectionEnd ? offenerVerweis(feld.value, feld.selectionStart) : null;
+    setVerweis(gefunden ? { ...gefunden, cursor: feld.selectionStart } : null);
+    setMarkiert(0);
+  };
+  const nimmVerweis = (name: string) => {
+    if (!offen || !verweis) return;
+    const neu = setzeVerweis(offen.zeilen, verweis.von, verweis.cursor, name);
+    setOffen({ ...offen, zeilen: neu.text });
+    setVeraendert(true);
+    setVerweis(null);
+    requestAnimationFrame(() => {
+      const feld = zeilenRef.current;
+      if (!feld) return;
+      feld.focus();
+      feld.setSelectionRange(neu.cursor, neu.cursor);
+    });
+  };
 
   // --- Eine Tabelle ---------------------------------------------------------
   if (offen && aktuell) {
@@ -329,7 +391,8 @@ export function App() {
               type="button"
               className="knopf knopf--haupt"
               data-wuerfeln
-              disabled={aktuell.eintraege.length === 0}
+              disabled={aktuell.eintraege.length === 0 || (!nurLesen && sperre.length > 0)}
+              title={!nurLesen && sperre.length > 0 ? befundText(sperre[0]) : undefined}
               onClick={() => {
                 setErgebnisse(wuerfleReihe(aktuell, bestand, anzahl, Math.random));
                 setMeldung('');
@@ -339,6 +402,11 @@ export function App() {
             </button>
           </div>
           {aktuell.eintraege.length === 0 ? <p className="hinweis">{t('wurf.leer')}</p> : null}
+          {!nurLesen && sperre.length > 0 ? (
+            <p className="fehler" data-gesperrt>
+              {t('wurf.gesperrt')} {sperre.map(befundText).join(' ')}
+            </p>
+          ) : null}
           {nurLesen ? (
             <p className="hinweis hinweis--klein srd-hinweis" data-srd-hinweis>
               {istSrd(offen.id) ? `${t('srd.hinweis')} ${NAMENSNENNUNG[spr]}` : t('mi.hinweis')}
@@ -406,9 +474,59 @@ export function App() {
               spellCheck={false}
               value={offen.zeilen}
               data-feld="zeilen"
-              onChange={(e) => setze({ zeilen: e.target.value })}
+              ref={zeilenRef}
+              aria-autocomplete="list"
+              onChange={(e) => {
+                setze({ zeilen: e.target.value });
+                pruefeVerweis(e.target);
+              }}
+              onSelect={(e) => pruefeVerweis(e.currentTarget)}
+              onKeyDown={(e) => {
+                if (!verweis || vorschlaege.length === 0) return;
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  const schritt = e.key === 'ArrowDown' ? 1 : -1;
+                  setMarkiert((m) => (m + schritt + vorschlaege.length) % vorschlaege.length);
+                } else if (e.key === 'Enter' || e.key === 'Tab') {
+                  e.preventDefault();
+                  nimmVerweis(vorschlaege[Math.min(markiert, vorschlaege.length - 1)]);
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setVerweis(null);
+                }
+              }}
+              // Beim Verlassen bekommen Zeilen ohne Nummer die naechste freie
+              // (und ein fehlender Wuerfel den passenden). Die Nummern bleiben
+              // im Text und lassen sich dort aendern.
+              onBlur={() => {
+                setVerweis(null);
+                const neu = nummeriere(offen.zeilen, offen.wuerfel);
+                if (neu.zeilen !== offen.zeilen || neu.wuerfel !== offen.wuerfel) setze(neu);
+              }}
             />
           </label>
+          {verweis && vorschlaege.length > 0 ? (
+            <ul className="vorschlaege" role="listbox" aria-label={t('feld.verweisVorschlaege')} data-vorschlaege>
+              {vorschlaege.map((name, i) => (
+                <li
+                  key={name}
+                  role="option"
+                  aria-selected={i === markiert}
+                  className={i === markiert ? 'vorschlaege__eintrag is-an' : 'vorschlaege__eintrag'}
+                  data-vorschlag={name}
+                  // mousedown statt click: sonst verliert das Feld vorher den
+                  // Fokus, und onBlur schliesst die Liste.
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    nimmVerweis(name);
+                  }}
+                  onMouseEnter={() => setMarkiert(i)}
+                >
+                  [{name}]
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <p className="hinweis hinweis--klein">{t('feld.eintraegeHinweis')}</p>
           {befunde.length > 0 ? (
             <ul className="befunde" data-befunde>

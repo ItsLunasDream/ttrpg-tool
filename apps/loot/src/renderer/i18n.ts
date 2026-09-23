@@ -55,9 +55,10 @@ const TEXTE = {
   ],
   'feld.eintraege': ['Einträge', 'Entries'],
   'feld.eintraegeHinweis': [
-    'Eine Zeile je Eintrag. Spanne davor, wenn die Tabelle einen Würfel hat: „1-3: 2d6 × 10 Kupfer". Andere Tabelle in eckigen Klammern: „[Taschenkram]". Würfel im Text werden ausgerechnet.',
-    'One line per entry. Put a range in front if the table has a die: “1-3: 2d6 × 10 copper”. Another table in square brackets: “[Pocket Junk]”. Dice in the text are rolled.'
+    'Eine Zeile je Eintrag. Die Nummern kommen von selbst, sobald du das Feld verlässt; ändern kannst du sie vorne in der Zeile, auch als Spanne: „1-3: 2d6 × 10 Kupfer". Andere Tabelle in eckigen Klammern: „[Taschenkram]"; nach „[" kommen Vorschläge. Würfel im Text werden ausgerechnet.',
+    'One line per entry. Numbers are added when you leave the field; change them at the start of the line, also as a range: “1-3: 2d6 × 10 copper”. Another table in square brackets: “[Pocket Junk]”; typing “[” suggests tables. Dice in the text are rolled.'
   ],
+  'feld.verweisVorschlaege': ['Passende Tabellen', 'Matching tables'],
   'feld.notiz': ['Notiz', 'Note'],
   'kachel.eintraege': ['{anzahl} Einträge', '{anzahl} entries'],
   'kachel.ohneZuruecklegen': ['ohne Zurücklegen', 'without replacement'],
@@ -71,9 +72,10 @@ const TEXTE = {
     'Die Tabelle hat einen Würfel, die Einträge aber keine Spannen: alle Einträge sind gleich wahrscheinlich.',
     'The table has a die but the entries have no ranges: all entries are equally likely.'
   ],
-  'befund.luecke': ['Lücke {von}–{bis}: dort nimmt der Wurf den Eintrag darunter.', 'Gap {von}–{bis}: rolls there take the entry below.'],
-  'befund.luecke1': ['Lücke bei {von}: dort nimmt der Wurf den Eintrag darunter.', 'Gap at {von}: rolls there take the entry below.'],
-  'befund.doppelt': ['Die {zahl} steht in zwei Spannen; der erste Eintrag gewinnt.', '{zahl} is in two ranges; the first entry wins.'],
+  'befund.luecke': ['Lücke {von}–{bis}: keine Zeile hat diese Nummern.', 'Gap {von}–{bis}: no line has these numbers.'],
+  'befund.luecke1': ['Lücke bei {von}: keine Zeile hat diese Nummer.', 'Gap at {von}: no line has this number.'],
+  'befund.doppelt': ['Die {zahl} ist zweimal vergeben.', '{zahl} is used twice.'],
+  'wurf.gesperrt': ['Würfeln geht erst, wenn die Nummern passen:', 'Rolling is blocked until the numbers fit:'],
   'befund.ausserhalb': ['Die {zahl} kann der Würfel nicht zeigen.', 'The die cannot show {zahl}.'],
   'befund.verweis-fehlt': ['„[{name}]" zeigt auf keine Tabelle.', '“[{name}]” points to no table.'],
   'befund.verweis-selbst': [

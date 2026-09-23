@@ -57,6 +57,7 @@ import { berechneAppFlaeche } from '../shared/apps';
 import {
   meldeStoryCreatorAenderung,
   mountApp,
+  setzeSammlungssprache,
   registerSchemes,
   setzeSuchtaste,
   type MontageHaken,
@@ -269,8 +270,20 @@ function verbergeAlle(): void {
  * wird die KI immer in der Huelle.
  */
 /** Die Anwendung meldet, wo sie steht. Die Oberflaeche fuehrt den Verlauf. */
+/**
+ * Was zuletzt geoeffnet war, neueste zuerst — fuer „Zuletzt geoeffnet" im
+ * Dialog Teilen. Nur Sitzungszustand, wie der Verlauf selbst.
+ */
+const zuletztGeoeffnet: { werkzeug: string; ort: string }[] = [];
+
 function meldeOrt(appId: string, ort: string | null): void {
   huelle?.webContents.send('verlauf:ort', appId, ort);
+  if (ort && ort !== 'entwurf') {
+    const alt = zuletztGeoeffnet.findIndex((z) => z.werkzeug === appId && z.ort === ort);
+    if (alt >= 0) zuletztGeoeffnet.splice(alt, 1);
+    zuletztGeoeffnet.unshift({ werkzeug: appId, ort });
+    zuletztGeoeffnet.length = Math.min(zuletztGeoeffnet.length, 30);
+  }
 }
 
 /**
@@ -480,6 +493,7 @@ async function aktualisiereSammlungssprache(language: Language, herkunft: string
   if (aktuell.language === language) return;
   gemerkteEinstellungen = { ...aktuell, language };
   await writeSettings(einstellungsDatei, gemerkteEinstellungen);
+  setzeSammlungssprache(language);
 
   // Die Oberflaeche der Huelle selbst (Titelleiste, Startmenue, Schiene, die
   // Einstellungen, falls sie gerade offen sind) muss ebenfalls nachziehen.
@@ -799,6 +813,7 @@ function registriereKanaele(): void {
     // der Huelle; es gibt keine "Ursprungs"-Anwendung, die schon Bescheid
     // weiss, deshalb bekommen alle offenen Anwendungen die Meldung.
     if (aktualisiert.language !== vorher.language) {
+      setzeSammlungssprache(aktualisiert.language);
       for (const montiert of offen.values()) void montiert.setLanguage?.(aktualisiert.language);
     }
     // Das Thema gilt fuer das ganze Fenster. Die Huelle faerbt sich selbst
@@ -869,6 +884,7 @@ function registriereKanaele(): void {
   let eingang: Paket | null = null;
 
   handle('austausch:teilbar', () => teilbar(app.getPath('userData')));
+  handle('austausch:zuletzt', () => [...zuletztGeoeffnet]);
 
   handle(
     'austausch:speichern',
@@ -993,6 +1009,15 @@ function registriereKanaele(): void {
     return raum.zustand();
   });
   handle('raum:chat', (_event, text: string, an: string | null) => raum.chatte(text, an));
+  // Im offenen Raum umbenennen: gilt sofort im Raum und bleibt als eigener
+  // Name in den Einstellungen, wie beim Eroeffnen.
+  handle('raum:umbenennen', async (_event, name: string) => {
+    if (!raum.umbenennen(name)) return false;
+    const vorher = await readSettings(einstellungsDatei);
+    await writeSettings(einstellungsDatei, { ...vorher, tischName: name.trim().slice(0, 64) });
+    gemerkteEinstellungen = await readSettings(einstellungsDatei);
+    return true;
+  });
   handle('raum:senden', async (_event, auswahl: { werkzeug: string; kennung: string }[], an: string | null) => {
     const paket = await schnuere(app.getPath('userData'), auswahl);
     if (paket.sendungen.length === 0) return { ok: false, anzahl: 0 };
@@ -1152,9 +1177,27 @@ function registriereKanaele(): void {
    */
   handle('verlauf:springe', async (_event, id: string, ort: string | null): Promise<boolean> => {
     const montiert = offen.get(id);
-    if (!montiert?.springeZuOrt) return false;
-    montiert.springeZuOrt(ort);
+    if (!montiert) return false;
+    // Der Story Creator hat einen eigenen Weg; alle anderen den gemeinsamen.
+    if (montiert.springeZuOrt) montiert.springeZuOrt(ort);
+    else if (!montiert.sicht.webContents.isDestroyed()) montiert.sicht.webContents.send('huelle:ort-springe', ort);
     return true;
+  });
+
+  /*
+   * Der gemeinsame Weg fuer den Verlauf INNERHALB eines Werkzeugs: es meldet,
+   * wo es steht (eine offene Tabelle, ein Gegenstand, ein Eintrag), und die
+   * Huelle nimmt das in ihren Verlauf auf. „Zurueck" aus einer offenen
+   * Tabelle fuehrt so zur Liste und nicht zum vorigen Werkzeug
+   * (Rueckmeldung). Zugeordnet wird ueber den Absender, nicht ueber eine
+   * Angabe im Inhalt.
+   */
+  ipcMain.on('huelle:ort', (ereignis, ort: unknown) => {
+    for (const [id, montiert] of offen) {
+      if (montiert.sicht.webContents !== ereignis.sender) continue;
+      meldeOrt(id, typeof ort === 'string' && ort ? ort.slice(0, 200) : null);
+      return;
+    }
   });
 
   handle('app:zeigen', async (_event, id: string, fruehestensMs = 0): Promise<ZeigenErgebnis> => {

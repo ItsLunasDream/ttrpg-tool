@@ -58,7 +58,9 @@ test('eine Waffe traegt ihren Bonus passend zur Seltenheit', () => {
 test('ohne Fluchchance nie verflucht, mit voller Chance immer', () => {
   const z = zufall(9);
   assert.equal(M.erzeuge({ fluchChance: 0 }, 'de', z).fluch, '');
-  assert.ok(M.erzeuge({ fluchChance: 1 }, 'en', z).fluch.startsWith('Curse'));
+  assert.ok(M.erzeuge({ art: 'ring', fluchChance: 1 }, 'en', z).fluch.startsWith('Curse'));
+  // Traenke und Schriftrollen bekommen nie einen zufaelligen Fluch.
+  assert.equal(M.erzeuge({ art: 'trank', fluchChance: 1 }, 'en', z).fluch, '');
 });
 
 test('ein Gegenstand kommt aus der Datei zurueck, wie er hineinging', () => {
@@ -72,9 +74,14 @@ test('ein Gegenstand kommt aus der Datei zurueck, wie er hineinging', () => {
     fluch: 'Fluch: nie wieder los.',
     wert: 4000,
     notiz: 'Liegt im Grab des Königs.\n\nZweiter Absatz.',
-    geaendert: '2026-09-22T00:00:00.000Z'
+    geaendert: '2026-09-22T00:00:00.000Z',
+    imLoot: false
   };
   assert.deepEqual(M.leseGegenstand(M.alsMarkdown(g), 'klinge'), g);
+  // Das Merkmal „im Loot Generator" geht mit durch die Datei.
+  const imLoot = { ...g, imLoot: true };
+  assert.deepEqual(M.leseGegenstand(M.alsMarkdown(imLoot), 'klinge'), imLoot);
+  assert.doesNotMatch(M.alsMarkdown(g), /^loot:/m);
 });
 
 test('Kennungen: lesbar und frei', () => {
@@ -92,4 +99,57 @@ test('der Foundry-Export traegt Seltenheit, Einstimmung und Preis in den Feldern
   assert.equal(item.system.price.value, 2000);
   assert.equal(item.system.uses.autoDestroy, true);
   assert.ok(item.system.description.value.includes('<li>'));
+});
+
+test('kein Gegenstand ist ein SRD-Gegenstand mit neuem Namen', () => {
+  // Rueckmeldung: „Es wurde vorher ein Healing Potion mit anderem Namen
+  // gemacht." Jeder Gegenstand traegt mindestens eine eigene Wirkung.
+  const z = zufall(11);
+  const eigen = (text, sprache) =>
+    M.WIRKUNGEN.filter((w) => !M.istSrdGleich(w)).some((w) => {
+      // Der feste Anfang einer Wirkung, vor dem ersten Platzhalter.
+      const anfang = w.text[sprache].split('{')[0].slice(0, 25);
+      return anfang.length > 8 && text.startsWith(anfang);
+    });
+  for (const art of M.ARTEN) {
+    for (const seltenheit of ['common', 'uncommon', 'rare', 'veryRare', 'legendary']) {
+      for (let i = 0; i < 15; i += 1) {
+        const g = M.erzeuge({ art, seltenheit, fluchChance: 0 }, 'en', z);
+        assert.ok(
+          g.wirkungen.some((w) => eigen(w, 'en')),
+          `${art}/${seltenheit}: nur SRD-Wirkungen: ${g.wirkungen.join(' | ')}`
+        );
+      }
+    }
+  }
+});
+
+test('der Vorrat ist deutlich groesser als die geeichten Wirkungen', () => {
+  const eigene = M.WIRKUNGEN.filter((w) => !M.istSrdGleich(w));
+  assert.ok(eigene.length >= 40, String(eigene.length));
+  for (const art of M.ARTEN) assert.ok(eigene.some((w) => w.arten.includes(art)), art);
+});
+
+test('eine einzelne Wirkung und ein Fluch lassen sich nachwuerfeln', () => {
+  const z = zufall(5);
+  const vorher = M.wuerfleWirkung('ring', 'rare', 'de', [], z);
+  assert.ok(vorher.length > 20 && !/\{[a-z]+\}/.test(vorher));
+  for (let i = 0; i < 20; i += 1) assert.notEqual(M.wuerfleWirkung('ring', 'rare', 'de', [vorher], z), vorher);
+  const fluch = M.wuerfleFluch('en', '', z);
+  assert.ok(fluch.startsWith('Curse') && !/\{[a-z]+\}/.test(fluch));
+  for (let i = 0; i < 20; i += 1) assert.notEqual(M.wuerfleFluch('en', fluch, z), fluch);
+});
+
+test('eine Nebenwirkung steht nie allein', () => {
+  const z = zufall(23);
+  const zusatz = M.WIRKUNGEN.filter((w) => w.zusatz).map((w) => w.text.en.slice(0, 20));
+  for (const art of ['trank', 'schriftrolle']) {
+    for (const seltenheit of ['common', 'uncommon', 'rare', 'veryRare', 'legendary']) {
+      for (let i = 0; i < 20; i += 1) {
+        const g = M.erzeuge({ art, seltenheit }, 'en', z);
+        const echte = g.wirkungen.filter((w) => !zusatz.some((a) => w.startsWith(a)));
+        assert.ok(echte.length >= 1, `${art}/${seltenheit}: ${g.wirkungen.join(' | ')}`);
+      }
+    }
+  }
 });

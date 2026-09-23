@@ -5,6 +5,11 @@ Der Quelltext von LORE steht unter der AGPL-3.0-or-later (siehe
 unter anderen Lizenzen stehen. Diese Lizenzen verlangen eine Namensnennung,
 und die steht hier.
 
+**Ausnahme: die Symbole.** Die Bilder in `apps/shell/symbole/` stehen nicht
+unter der AGPL, sondern: Copyright © ItsLunasDream, alle Rechte vorbehalten
+(siehe [apps/shell/symbole/LIZENZ.md](apps/shell/symbole/LIZENZ.md)). Wer
+LORE verändert weitergibt, ersetzt sie oder lässt sie weg.
+
 Diese Datei ist nicht schmückendes Beiwerk: sie wegzulassen wäre ein
 Lizenzbruch. Wer LORE weitergibt — als Quelltext, als Installer oder
 als veränderte Fassung —, gibt sie mit.

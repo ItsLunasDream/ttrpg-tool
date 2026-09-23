@@ -121,6 +121,27 @@ export function App() {
   );
 
   /*
+   * Der Verlauf der Huelle kennt auch den Ort IM Werkzeug: „Zurueck" aus
+   * einem geoeffneten Eintrag fuehrt zur Liste, nicht zum vorigen Werkzeug
+   * (Rueckmeldung). `null` ist die Liste, ein ungespeicherter Entwurf heisst
+   * „entwurf" und laesst sich nicht wieder herstellen.
+   */
+  const ort = offen ? offen.id || 'entwurf' : null;
+  useEffect(() => api.ort.melde(ort), [ort]);
+  useEffect(
+    () =>
+      api.ort.beiSprung((ziel) => {
+        if (ziel === null) {
+          setOffen(null);
+          return;
+        }
+        if (ziel === 'entwurf') return;
+        void api.sammlung.lesen(ziel).then((geladen) => geladen && setOffen(geladen));
+      }),
+    []
+  );
+
+  /*
    * Alle Monster, die eine Begegnung kennen kann: die offiziellen und die
    * eigenen. Nachgeschlagen wird jeder Gegner hier, gleich woher er kommt.
    */

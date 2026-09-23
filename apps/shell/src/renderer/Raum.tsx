@@ -26,6 +26,7 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   const [passwort, setPasswort] = useState('');
   const [beitrittPasswort, setBeitrittPasswort] = useState('');
   const [adresse, setAdresse] = useState('');
+  const [neuerName, setNeuerName] = useState('');
   const [text, setText] = useState('');
   const [an, setAn] = useState('');
   const liste = useRef<HTMLDivElement>(null);
@@ -150,6 +151,10 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   }
 
   const andere = zustand.personen.filter((p) => p.id !== zustand.ich?.id);
+  const umbenennen = () => {
+    if (!neuerName.trim() || neuerName.trim() === zustand.ich?.name) return;
+    void window.shell.raum.umbenennen(neuerName).then((ok) => ok && setNeuerName(''));
+  };
   const senden = () => {
     if (!text.trim()) return;
     void window.shell.raum.chat(text, an || null).then((ok) => ok && setText(''));
@@ -170,6 +175,33 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
         </span>
         <button type="button" className="dialog__knopf" data-raum-verlassen onClick={() => void window.shell.raum.verlassen()}>
           {zustand.rolle === 'gastgeber' ? t('room.close') : t('room.leave')}
+        </button>
+      </div>
+      {/* Der eigene Name laesst sich auch im offenen Raum aendern (Rueckmeldung). */}
+      <div className="raum__reihe">
+        <label className="austausch__art" htmlFor="raum-name">
+          {t('room.yourName')}
+        </label>
+        <input
+          id="raum-name"
+          className="suche__feld raum__eingabe"
+          data-raum-umbenennen
+          value={neuerName}
+          maxLength={64}
+          placeholder={zustand.ich?.name ?? ''}
+          onChange={(e) => setNeuerName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') umbenennen();
+          }}
+        />
+        <button
+          type="button"
+          className="dialog__knopf"
+          data-raum-umbenennen-knopf
+          disabled={!neuerName.trim()}
+          onClick={umbenennen}
+        >
+          {t('room.rename')}
         </button>
       </div>
       <p className="austausch__art" data-personen>

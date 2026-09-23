@@ -1605,3 +1605,148 @@ body {
   background: var(--betont, #6b8cff);
   color: var(--grund, #111);
 }
+
+/* Die Teilen-App traegt ihr Symbol in der Titelleiste. */
+.titelleiste__knopf--symbol {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* --- Teilen: Kopf, Abschnitte und die Auswahl ---------------------------- */
+.austausch__marke {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.austausch__abschnitt {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rand);
+}
+
+.austausch__titel {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.auswahl__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.auswahl__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--rand);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--motion-state, 150ms) ease, border-color var(--motion-state, 150ms) ease;
+}
+
+.auswahl__chip:hover {
+  border-color: var(--betont);
+}
+
+.auswahl__chip.is-an {
+  background: color-mix(in srgb, var(--betont) 22%, transparent);
+  border-color: var(--betont);
+}
+
+.auswahl__zahl {
+  font-size: 11px;
+  color: var(--text-leise);
+  font-variant-numeric: tabular-nums;
+}
+
+.auswahl__gruppen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 44vh;
+  overflow: auto;
+  margin-top: 10px;
+  padding-right: 4px;
+}
+
+.auswahl__kopf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.auswahl__luecke {
+  flex: 1;
+}
+
+.auswahl__alle {
+  border: 0;
+  background: none;
+  color: var(--betont);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.auswahl__liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px;
+}
+
+.auswahl__karte {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background var(--motion-state, 150ms) ease, border-color var(--motion-state, 150ms) ease;
+}
+
+.auswahl__karte:hover {
+  border-color: color-mix(in srgb, var(--betont) 60%, var(--rand));
+}
+
+.auswahl__karte.is-an {
+  background: color-mix(in srgb, var(--betont) 14%, transparent);
+  border-color: var(--betont);
+}
+
+.auswahl__name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auswahl__art {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-leise);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.auswahl__uhr {
+  width: 20px;
+  text-align: center;
+  color: var(--betont);
+}

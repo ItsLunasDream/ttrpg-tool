@@ -651,6 +651,11 @@ Free software: you may use it, change it and pass it on. If a modified
 version is offered over a network, its source has to be available too.
 Without any warranty, as described in the license.
 
+**Exception: the icons.** The images in `apps/shell/symbole/` are not under
+the AGPL: Copyright © ItsLunasDream, all rights reserved (see
+[LIZENZ.md](apps/shell/symbole/LIZENZ.md)). A modified version passed on
+replaces them or leaves them out; the built-in vector icons take over.
+
 ### Third-party content
 
 Some **data** in this repository comes from other works under their own

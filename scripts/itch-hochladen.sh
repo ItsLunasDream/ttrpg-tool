@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Laedt ein ungepacktes Paket der Sammlung auf itch.io hoch (docs/itchio.md).
+# Laedt ein ungepacktes Paket der Sammlung auf itch.io hoch. Laeuft im
+# Workflow (Release oder von Hand mit „itch") und genauso lokal.
 #
 #   scripts/itch-hochladen.sh <kanal> <ordner>
 #
@@ -10,6 +11,12 @@
 # ITCH_PROJEKT ("benutzer/projekt", als Variable). Die Fassung kommt aus
 # apps/shell/package.json, damit itch.io dieselbe Nummer zeigt wie der
 # Ueber-Dialog.
+#
+# Lokal (unter Windows in der Git Bash), aus der Wurzel des Repositorys:
+#   npm run dist:suite:win
+#   BUTLER_API_KEY=... ITCH_PROJEKT=name/lore \
+#     bash scripts/itch-hochladen.sh windows apps/shell/release/win-unpacked
+# Braucht dort curl, unzip (oder 7z) und node.
 set -euo pipefail
 
 kanal="$1"

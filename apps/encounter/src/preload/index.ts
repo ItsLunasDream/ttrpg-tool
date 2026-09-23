@@ -12,6 +12,21 @@ import type { Gruppe } from '../shared/schwierigkeit';
 
 const api = {
   /**
+   * Der Ort im Werkzeug fuer den Verlauf der Huelle (eine offene Tabelle,
+   * ein Gegenstand, ein Eintrag; `null` fuer die Liste). Gemeinsamer Kanal
+   * aller Werkzeuge, siehe `huelle:ort` in der Huelle.
+   */
+  ort: {
+    melde: (ort: string | null) => ipcRenderer.send('huelle:ort', ort),
+    beiSprung: (hoerer: (ort: string | null) => void) => {
+      const lauscher = (_e: unknown, ort: string | null) => hoerer(ort);
+      ipcRenderer.on('huelle:ort-springe', lauscher);
+      return () => {
+        ipcRenderer.off('huelle:ort-springe', lauscher);
+      };
+    }
+  },
+  /**
    * Die Suche der Huelle hat einen Eintrag gewaehlt, der hier liegt.
    * Liefert eine Funktion zum Abmelden zurueck.
    */

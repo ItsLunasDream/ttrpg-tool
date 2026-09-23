@@ -234,6 +234,8 @@ const api = {
    */
   austausch: {
     teilbar: () => ipcRenderer.invoke('austausch:teilbar') as Promise<Eintrag[]>,
+    /** Zuletzt geoeffnete Orte in den Werkzeugen, neueste zuerst. */
+    zuletzt: () => ipcRenderer.invoke('austausch:zuletzt') as Promise<{ werkzeug: string; ort: string }[]>,
     speichern: (auswahl: { werkzeug: string; kennung: string }[], datei?: string) =>
       ipcRenderer.invoke('austausch:speichern', auswahl, datei) as Promise<{
         ok: boolean;
@@ -274,6 +276,7 @@ const api = {
       ipcRenderer.invoke('raum:beitreten', adresse, port, passwort) as Promise<Raumzustand>,
     verlassen: () => ipcRenderer.invoke('raum:verlassen') as Promise<Raumzustand>,
     chat: (text: string, an: string | null) => ipcRenderer.invoke('raum:chat', text, an) as Promise<boolean>,
+    umbenennen: (name: string) => ipcRenderer.invoke('raum:umbenennen', name) as Promise<boolean>,
     senden: (auswahl: { werkzeug: string; kennung: string }[], an: string | null) =>
       ipcRenderer.invoke('raum:senden', auswahl, an) as Promise<{ ok: boolean; anzahl: number }>,
     paketAnsehen: (id: number) =>

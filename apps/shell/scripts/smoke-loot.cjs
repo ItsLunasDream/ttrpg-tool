@@ -18,12 +18,13 @@ const userData = path.join(tmp, 'userData');
 fs.mkdirSync(userData, { recursive: true });
 
 // Ein Gegenstand im Bestand des Magic Item Creators, bevor irgendetwas
-// startet: der Loot Generator soll ihn als Tabelle anbieten.
+// startet, und zwar einer, der in den Loot Generator geschickt wurde
+// (`loot: ja`): nur solche bietet der Loot Generator als Tabelle an.
 const miOrdner = path.join(userData, 'magicitems', 'gegenstaende');
 fs.mkdirSync(miOrdner, { recursive: true });
 fs.writeFileSync(
   path.join(miOrdner, 'rauchtest-klinge.md'),
-  '---\nname: Rauchtest-Klinge\nart: waffe\nseltenheit: rare\neinstimmung: nein\nwert: 4000\ngeaendert: 2026-01-01\n---\n## Wirkungen\n\n- Glaenzt.\n'
+  '---\nname: Rauchtest-Klinge\nart: waffe\nseltenheit: rare\neinstimmung: nein\nwert: 4000\nloot: ja\ngeaendert: 2026-01-01\n---\n## Wirkungen\n\n- Glaenzt.\n'
 );
 
 app.setPath('userData', userData);
@@ -148,6 +149,35 @@ app.whenReady().then(async () => {
   await warte(200);
   pruefe((await js("document.querySelector('[data-befunde]') === null")), 'ohne Luecke keine Befunde');
 
+  // Luecke oder doppelte Nummer: Wuerfeln gesperrt, mit Begruendung.
+  await tippe('zeilen', `1-2: a\n2: b\n4: c`);
+  await warte(200);
+  pruefe(
+    (await js("document.querySelector('[data-wuerfeln]').disabled")) === true &&
+      /3/.test(await js("document.querySelector('[data-gesperrt]')?.textContent ?? ''")),
+    'bei Luecke und doppelter Nummer ist Wuerfeln gesperrt, mit Begruendung'
+  );
+
+  // Ohne Nummern: beim Verlassen des Felds nummeriert, Wuerfel passend.
+  await tippe('wuerfel', '');
+  await tippe('zeilen', 'a\nb\nc');
+  await js(`document.querySelector('[data-feld="zeilen"]').dispatchEvent(new FocusEvent('focusout', { bubbles: true })); true`);
+  await warte(200);
+  const nummeriert = await js(`document.querySelector('[data-feld="zeilen"]').value`);
+  const wurf = await js(`document.querySelector('[data-feld="wuerfel"]').value`);
+  pruefe(nummeriert === '1: a\n2: b\n3: c' && wurf === '1d3', `Eintraege nummeriert (${JSON.stringify(nummeriert)}, ${wurf})`);
+
+  // "[" schlaegt Tabellen vor; Enter setzt den Verweis ein.
+  await tippe('zeilen', `1: a\n2: [${kram.slice(0, 4)}`);
+  await warte(200);
+  const vorschlaege = await js("[...document.querySelectorAll('[data-vorschlag]')].map(e => e.getAttribute('data-vorschlag'))");
+  pruefe(vorschlaege.includes(kram), `"[" schlaegt ${kram} vor (${vorschlaege.join(', ')})`);
+  await js(`document.querySelector('[data-feld="zeilen"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); true`);
+  await warte(200);
+  const mitVerweis = await js(`document.querySelector('[data-feld="zeilen"]').value`);
+  pruefe(mitVerweis === `1: a\n2: [${kram}]`, `Enter setzt den Verweis ein (${JSON.stringify(mitVerweis)})`);
+  pruefe(await js("document.querySelector('[data-vorschlaege]') === null"), 'danach ist die Liste zu');
+
   await tippe('wuerfel', '');
   await tippe('zeilen', `[${kram}]`);
   await js(`(() => {
@@ -173,6 +203,7 @@ app.whenReady().then(async () => {
   await warte(500);
   const story = await js("document.querySelector('.fehler, .meldung')?.textContent ?? ''");
   pruefe(/Story Creator/.test(story), `der Story-Knopf meldet ehrlich (${story.slice(0, 70)})`);
+  pruefe(!/Öffne|weiß/.test(story), 'und in der Sprache der Oberflaeche, nicht auf Deutsch');
 
   await js(`document.querySelector('[data-speichern]').click(); true`);
   await warte(700);

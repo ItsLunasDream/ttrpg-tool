@@ -417,6 +417,14 @@ export function App() {
    * auch den Reiter. Wer von aussen kommt, soll dasselbe sehen wie jemand,
    * der von innen klickt.
    */
+  /*
+   * Der Verlauf der Huelle kennt auch den Ort IM Werkzeug: „Zurueck" fuehrt
+   * zum vorigen Reiter (Bauen, Paket, Sammlung), nicht zum vorigen Werkzeug
+   * (Rueckmeldung).
+   */
+  useEffect(() => api.ort.melde(reiter === 'bauen' ? null : reiter), [reiter]);
+  useEffect(() => api.ort.beiSprung((ziel) => setReiter(ziel === 'paket' || ziel === 'sammlung' ? ziel : 'bauen')), []);
+
   useEffect(() => api.beiSuchtreffer((kennung) => void oeffnen(kennung)));
 
   const loeschen = async (eintrag: Eintrag) => {

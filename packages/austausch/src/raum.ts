@@ -47,6 +47,8 @@ export type Nachricht =
   | { readonly typ: 'willkommen'; readonly du: Person; readonly personen: readonly Person[] }
   | { readonly typ: 'abgelehnt'; readonly grund: 'passwort' | 'voll' | 'version' }
   | { readonly typ: 'personen'; readonly personen: readonly Person[] }
+  /** Ein Gast nennt sich um; der Gastgeber macht den Namen eindeutig und verteilt die Liste. */
+  | { readonly typ: 'name'; readonly name: string }
   | {
       readonly typ: 'chat';
       readonly von: string;
@@ -122,6 +124,8 @@ export function leseNachricht(zeile: string): Nachricht | null {
       return n.grund === 'passwort' || n.grund === 'voll' || n.grund === 'version' ? { typ: n.typ, grund: n.grund } : null;
     case 'personen':
       return Array.isArray(n.personen) && n.personen.every(istPerson) ? { typ: n.typ, personen: n.personen } : null;
+    case 'name':
+      return istText(n.name, 64) && n.name.trim() ? { typ: n.typ, name: n.name } : null;
     case 'chat':
       return istText(n.von, 64) && an !== undefined && istText(n.text, MAX_CHAT) && istText(n.zeit, 40)
         ? { typ: n.typ, von: n.von, an, text: n.text, zeit: n.zeit }

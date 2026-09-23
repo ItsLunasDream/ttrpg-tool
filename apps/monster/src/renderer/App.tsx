@@ -238,6 +238,14 @@ export function App() {
    */
   // Die Liste frisch: ein Treffer kann auch ein Monster sein, das gerade
   // erst angekommen ist (Austausch, docs/austausch.md).
+  /*
+   * Der Verlauf der Huelle kennt auch den Ort IM Werkzeug: „Zurueck" fuehrt
+   * zum vorigen Reiter (Bauen, Sammlung, Pruefen), nicht zum vorigen Werkzeug
+   * (Rueckmeldung).
+   */
+  useEffect(() => api.ort.melde(reiter === 'bauen' ? null : reiter), [reiter]);
+  useEffect(() => api.ort.beiSprung((ziel) => setReiter(ziel === 'sammlung' || ziel === 'pruefen' ? ziel : 'bauen')), []);
+
   useEffect(() => api.beiSuchtreffer((kennung) => void ladeSammlung().then(() => oeffnen(kennung))));
 
   const loeschen = async (eintrag: Eintrag) => {

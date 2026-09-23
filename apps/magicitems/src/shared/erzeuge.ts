@@ -11,10 +11,12 @@
  * Glueck abhaengen.
  */
 import { SELTENHEITEN, gegenstandswert, type Seltenheit } from '@suite/srd';
+import { EICHPUNKTE } from './eichpunkte';
 import {
   ARTEN,
   ATTRIBUTE,
   BEINAME,
+  FERTIGKEITEN,
   FLUECHE,
   GRUNDWORT,
   KREATURENTYPEN,
@@ -45,6 +47,12 @@ export interface Gegenstand {
   readonly wert: number;
   readonly notiz: string;
   readonly geaendert: string;
+  /**
+   * Steht im Loot Generator. Nur auf ausdruecklichen Wunsch („Send to Loot
+   * Generator"), nicht schon durch Speichern: nicht jeder gebaute
+   * Gegenstand soll als Beute auftauchen.
+   */
+  readonly imLoot?: boolean;
 }
 
 function eins<T>(liste: readonly T[], zufall: Zufall): T {
@@ -92,8 +100,13 @@ export function fuelle(wirkung: Wirkung, stufe: number, sprache: Sprache, zufall
     typ: eins(KREATURENTYPEN, zufall)[sprache],
     zustand: eins(ZUSTAENDE, zufall)[sprache],
     attribut: eins(ATTRIBUTE, zufall)[sprache],
+    fertigkeit: eins(FERTIGKEITEN, zufall)[sprache],
     heilung: (de ? HEILUNG : HEILUNG_EN)[stufe],
     ladungen: String(3 + stufe * 2),
+    // Nutzungen am Tag und temporaere TP fuer die eigenen Wirkungen: bewusst
+    // knapper als Ladungen und Heilung, weil sie jeden Tag wiederkommen.
+    mal: String(Math.max(1, stufe)),
+    tp: String(5 * Math.max(1, stufe)),
     wurf: String(STAB_SG[stufe])
   };
   if (wirkung.text.de.includes('{zauber}')) {
@@ -110,6 +123,70 @@ export function fuelle(wirkung: Wirkung, stufe: number, sprache: Sprache, zufall
   let text = wirkung.text[sprache];
   for (const [name, wert] of Object.entries(werte)) text = text.split(`{${name}}`).join(wert);
   return { text, grad };
+}
+
+/**
+ * Wirkungen nach dem Muster eines Gegenstands aus dem SRD: alle, die nicht
+ * `eigen-` heissen (die meisten sind daran geeicht, siehe eichpunkte.ts;
+ * die uebrigen sind SRD-Gegenstaende nachgebaut, etwa „Zauberstab mit
+ * Ladungen" oder die Schriftrolle). Besteht ein Gegenstand NUR aus solchen,
+ * ist er ein SRD-Gegenstand mit neuem Namen — ein Heiltrank, der
+ * „Elixier des Nebels" heisst (Rueckmeldung). Der Erzeuger mischt dann eine
+ * eigene Wirkung hinein.
+ */
+export function istSrdGleich(wirkung: Wirkung): boolean {
+  return !wirkung.id.startsWith('eigen-');
+}
+
+/** Ob die Eichpunkte eine Wirkung kennen — fuer die Tests der Eichung. */
+export function istGeeicht(wirkung: Wirkung): boolean {
+  return EICHPUNKTE.some((p) => p.wirkung === wirkung.id);
+}
+
+/** Was fuer diese Art und Seltenheit in Frage kommt. */
+function vorratFuer(art: Art, stufe: number): Wirkung[] {
+  const moeglich = WIRKUNGEN.filter((w) => w.arten.includes(art) && w.ab <= stufe && w.bis >= stufe);
+  // Faellt fuer diese Seltenheit nichts, nimm, was der Art am naechsten liegt.
+  return moeglich.length
+    ? moeglich
+    : WIRKUNGEN.filter((w) => w.arten.includes(art))
+        .sort((a, b) => Math.abs(a.ab - stufe) - Math.abs(b.ab - stufe))
+        .slice(0, 1);
+}
+
+/**
+ * Eine einzelne Wirkung wuerfeln — fuer „Wirkung wuerfeln" und das
+ * Nachwuerfeln einer Zeile. `vorhanden` sind die Texte, die schon dastehen:
+ * dieselbe Wirkung zweimal waere keine neue.
+ */
+export function wuerfleWirkung(
+  art: Art,
+  seltenheit: Seltenheit,
+  sprache: Sprache,
+  vorhanden: readonly string[] = [],
+  zufall: Zufall = Math.random
+): string {
+  const stufe = STUFE[seltenheit];
+  const vorrat = vorratFuer(art, stufe);
+  let text = '';
+  for (let versuch = 0; versuch < 30; versuch += 1) {
+    text = fuelle(eins(vorrat, zufall), stufe, sprache, zufall).text;
+    if (!vorhanden.includes(text)) break;
+  }
+  return text;
+}
+
+/** Ein Fluch mit gefuellten Platzhaltern; `ausser` wird gemieden. */
+export function wuerfleFluch(sprache: Sprache, ausser = '', zufall: Zufall = Math.random): string {
+  let text = '';
+  for (let versuch = 0; versuch < 20; versuch += 1) {
+    text = eins(FLUECHE, zufall)[sprache]
+      .split('{art}').join(eins(SCHADENSARTEN, zufall)[sprache])
+      .split('{typ}').join(eins(KREATURENTYPEN, zufall)[sprache])
+      .split('{zustand}').join(eins(ZUSTAENDE, zufall)[sprache]);
+    if (text !== ausser) break;
+  }
+  return text;
 }
 
 /** Wie viele Wirkungen ein Gegenstand dieser Seltenheit traegt. */
@@ -130,23 +207,45 @@ export function erzeuge(wunsch: Wunsch, sprache: Sprache, zufall: Zufall = Math.
   const seltenheit = wunsch.seltenheit ?? eins(SELTENHEITEN, zufall);
   const stufe = STUFE[seltenheit];
 
-  const moeglich = WIRKUNGEN.filter((w) => w.arten.includes(art) && w.ab <= stufe && w.bis >= stufe);
-  // Faellt fuer diese Seltenheit nichts, nimm, was der Art am naechsten liegt.
-  const vorrat = moeglich.length
-    ? moeglich
-    : WIRKUNGEN.filter((w) => w.arten.includes(art)).sort(
-        (a, b) => Math.abs(a.ab - stufe) - Math.abs(b.ab - stufe)
-      ).slice(0, 1);
+  const vorrat = vorratFuer(art, stufe);
+  // Schriftrollen tragen immer ihren Zauber zuerst: an ihm haengt der Wert.
+  const grundlage = art === 'schriftrolle' ? vorrat.filter((w) => w.id === 'schriftrolle-zauber') : [];
 
-  const gewaehlt: Wirkung[] = [];
+  const gewaehlt: Wirkung[] = [...grundlage];
   const ziel = Math.min(anzahlWirkungen(art, stufe), vorrat.length);
-  for (let versuch = 0; gewaehlt.length < ziel && versuch < 50; versuch += 1) {
-    const w = eins(vorrat, zufall);
+  // Nebenwirkungen nie als Hauptwirkung: sie kommen nur unten als Beigabe.
+  // Gibt es fuer diese Stufe keine echte Wirkung, nimm die naechstliegende.
+  const echt = vorrat.filter((w) => !w.zusatz);
+  const haupt = echt.length
+    ? echt
+    : WIRKUNGEN.filter((w) => w.arten.includes(art) && !w.zusatz)
+        .sort((a, b) => Math.abs(a.bis - stufe) - Math.abs(b.bis - stufe))
+        .slice(0, 1);
+  for (let versuch = 0; gewaehlt.length < ziel && versuch < 50 && haupt.length; versuch += 1) {
+    const w = eins(haupt, zufall);
     if (!gewaehlt.includes(w)) gewaehlt.push(w);
+  }
+
+  /*
+   * Nie ein SRD-Gegenstand mit neuem Namen: stehen nur geeichte Wirkungen
+   * da, kommt eine eigene dazu. Bei einem Gegenstand mit mehreren
+   * Wirkungen ersetzt sie die letzte (die Zahl der Wirkungen folgt der
+   * Seltenheit), bei einem mit nur einer (Trank, Schriftrolle, gewoehnlich)
+   * kommt sie hinzu.
+   */
+  const eigene = vorrat.filter((w) => !istSrdGleich(w) && !gewaehlt.includes(w));
+  if (gewaehlt.every(istSrdGleich) && eigene.length) {
+    const dazu = eins(eigene, zufall);
+    // Eine Nebenwirkung ersetzt nie die einzige echte Wirkung.
+    if (gewaehlt.length >= 2 && !dazu.zusatz) gewaehlt[gewaehlt.length - 1] = dazu;
+    else gewaehlt.push(dazu);
   }
   const gefuellt = gewaehlt.map((w) => fuelle(w, stufe, sprache, zufall));
 
-  const fluch = zufall() < (wunsch.fluchChance ?? 0.1) ? eins(FLUECHE, zufall)[sprache] : '';
+  // Traenke und Schriftrollen bekommen keinen zufaelligen Fluch: die Flueche
+  // sprechen von Einstimmung und vom Tragen, und beides kennt ein Trank nicht.
+  const verbrauchbar = art === 'trank' || art === 'schriftrolle';
+  const fluch = !verbrauchbar && zufall() < (wunsch.fluchChance ?? 0.1) ? wuerfleFluch(sprache, '', zufall) : '';
   const grund = eins(GRUNDWORT[art], zufall)[sprache];
   const beiname = eins(BEINAME, zufall)[sprache];
   const scrollGrad = art === 'schriftrolle' ? gefuellt[0]?.grad : undefined;

@@ -110,7 +110,23 @@ app.whenReady().then(async () => {
     'mit seinen Unterpunkten, hervorgehoben'
   );
 
-  // --- Beide Sprachen nebeneinander ----------------------------------------
+  // --- Auf Englisch kein deutscher Text ------------------------------------
+  //
+  // Rueckmeldung: „Wenn die Sprache auf Englisch ist, soll kein deutscher
+  // Text dabei stehen. Bei Deutsch schon englischer."
+  pruefe(
+    (await js("document.querySelectorAll('.regel__anders, .eintrag__anders').length")) === 0 &&
+      !(await js("Boolean(document.querySelector('button[data-daneben]'))")),
+    'auf Englisch stehen keine deutschen Namen dabei und es gibt kein Nebeneinander'
+  );
+  await hjs(`window.shell.einstellungen.schreiben({ language: 'de' }).then(() => true)`);
+  await warte(800);
+  pruefe(
+    /Blinded/.test(await js("document.querySelector('.regel__anders')?.textContent ?? ''")),
+    'auf Deutsch steht der englische Name dabei'
+  );
+
+  // --- Beide Sprachen nebeneinander (auf Deutsch) --------------------------
   await js(`document.querySelector('button[data-daneben]').click(); true`);
   await warte(300);
   pruefe(
@@ -125,6 +141,8 @@ app.whenReady().then(async () => {
 
   // --- Tabellen und Verweise -----------------------------------------------
   await js(`document.querySelector('button[data-daneben]').click(); true`);
+  await hjs(`window.shell.einstellungen.schreiben({ language: 'en' }).then(() => true)`);
+  await warte(800);
   await js(`document.querySelector('.eintrag[data-regel="regel/breaking-objects"]').click(); true`);
   await warte(400);
   pruefe(

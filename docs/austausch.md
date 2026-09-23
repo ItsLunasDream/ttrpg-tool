@@ -70,6 +70,18 @@ gespeichert: er lebt nur, solange der Raum offen ist (entschieden).
   wird abgewiesen. Geprüft in `apps/initiative/tests/teilen.test.mjs` und
   im Rauchtest `smoke-initiative-raum.cjs`.
 
+**Aufbau des Dialogs (nach Rückmeldung):** Der **Raum** ist der erste Reiter
+und die Hauptsache. Darin stehen Chat, „Einträge in den Raum schicken“ und
+„Angekommen“; der eigene Name lässt sich auch im offenen Raum ändern.
+„**Als Datei**“ fasst Weitergeben und Empfangen zusammen, als Weg ohne
+Netz. Das ist tatsächlich eine Art ausgewählte Sicherung, mit zwei
+Unterschieden zur Sicherung der ganzen Sammlung: es geht nur, was man
+auswählt, und es wird beim Empfänger eingefügt (mit Rückfrage bei
+Doppelten), statt dessen Sammlung zu ersetzen. Die Auswahl ist nach Apps
+gruppiert, mit Filter-Chips je App (mehrere gleichzeitig, mit Anzahl), der
+Suche darunter und „Alle wählen“ je Gruppe. Die Teilen-App hat ein eigenes
+Symbol (`austausch`, ersetzbar durch `austausch.png` im Symbolordner).
+
 **Wie Stufe 1 gebaut ist:**
 
 - Eine Sendung ist das Markdown, das das Werkzeug ohnehin ablegt, dazu

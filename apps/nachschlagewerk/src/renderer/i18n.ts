@@ -11,7 +11,7 @@ const TEXTE = {
   titel: ['Nachschlagewerk', 'Reference'],
   untertitel: [
     'Regelglossar, Ausrüstung, Zauber und magische Gegenstände des SRD 5.2.1, offline, auf Deutsch und Englisch.',
-    'The rules glossary, equipment, spells and magic items of the SRD 5.2.1, offline, in German and English.'
+    'The rules glossary, equipment, spells and magic items of the SRD 5.2.1, offline.'
   ],
   suche: ['Suchen', 'Search'],
   'suche.platzhalter': ['Begriff oder Stelle im Text …', 'A term or a phrase in the text …'],
@@ -20,7 +20,7 @@ const TEXTE = {
   'leer.titel': ['Wähle links einen Eintrag.', 'Pick an entry on the left.'],
   'leer.satz': [
     'Oder such nach einem Begriff: „liegend", „prone" oder eine Stelle im Text wie „critical hit".',
-    'Or search for a term: “prone”, “liegend”, or a phrase from the text such as “critical hit”.'
+    'Or search for a term such as “prone”, or a phrase from the text such as “critical hit”.'
   ],
   daneben: ['Andere Sprache daneben', 'Other language alongside'],
   'daneben.aus': ['Nur eine Sprache', 'One language only'],

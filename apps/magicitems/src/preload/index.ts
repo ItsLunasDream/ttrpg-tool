@@ -6,17 +6,46 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
 import type { Eintrag } from '../shared/ablage';
 import type { Gegenstand } from '../shared/erzeuge';
+import type { Frage } from '../shared/kiAufgaben';
 
 const api = {
+  /**
+   * Der Ort im Werkzeug fuer den Verlauf der Huelle (eine offene Tabelle,
+   * ein Gegenstand, ein Eintrag; `null` fuer die Liste). Gemeinsamer Kanal
+   * aller Werkzeuge, siehe `huelle:ort` in der Huelle.
+   */
+  ort: {
+    melde: (ort: string | null) => ipcRenderer.send('huelle:ort', ort),
+    beiSprung: (hoerer: (ort: string | null) => void) => {
+      const lauscher = (_e: unknown, ort: string | null) => hoerer(ort);
+      ipcRenderer.on('huelle:ort-springe', lauscher);
+      return () => {
+        ipcRenderer.off('huelle:ort-springe', lauscher);
+      };
+    }
+  },
   sammlung: {
     liste: () => ipcRenderer.invoke(kanal('liste')) as Promise<Eintrag[]>,
     lesen: (id: string) => ipcRenderer.invoke(kanal('lesen'), id) as Promise<Gegenstand | null>,
     speichern: (g: Gegenstand, neu: boolean) =>
       ipcRenderer.invoke(kanal('speichern'), g, neu) as Promise<{ ok: boolean; id: string; text: string }>,
-    loeschen: (id: string) => ipcRenderer.invoke(kanal('loeschen'), id) as Promise<boolean>
+    loeschen: (id: string) => ipcRenderer.invoke(kanal('loeschen'), id) as Promise<boolean>,
+    inDenLoot: (id: string) => ipcRenderer.invoke(kanal('inDenLoot'), id) as Promise<boolean>
   },
   foundry: (vorschlag: string, inhalt: string) =>
     ipcRenderer.invoke(kanal('foundry'), vorschlag, inhalt) as Promise<{ ok: boolean; text: string }>,
+  ki: {
+    da: () => ipcRenderer.invoke(kanal('ki:da')) as Promise<boolean>,
+    frage: (frage: Frage, sprache: string) =>
+      ipcRenderer.invoke(kanal('ki:frage'), frage, sprache) as Promise<{ ok: boolean; wert: unknown; grund: string }>,
+    beiWechsel: (hoerer: () => void) => {
+      const lauscher = () => hoerer();
+      ipcRenderer.on(kanal('ki:gewechselt'), lauscher);
+      return () => {
+        ipcRenderer.off(kanal('ki:gewechselt'), lauscher);
+      };
+    }
+  },
   beiSuchtreffer: (hoerer: (kennung: string) => void) => {
     const lauscher = (_e: unknown, kennung: string) => hoerer(kennung);
     ipcRenderer.on(kanal('suche:zeigen'), lauscher);

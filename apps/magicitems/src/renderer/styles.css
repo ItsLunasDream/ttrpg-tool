@@ -157,8 +157,12 @@ body {
 }
 
 .feld__flaeche {
-  resize: vertical;
   line-height: 1.5;
+  /* So hoch wie der Text, ohne Ziehen von Hand (Rueckmeldung). */
+  field-sizing: content;
+  min-height: 2.6em;
+  resize: none;
+  overflow: hidden;
 }
 
 .anzahl {
@@ -472,4 +476,48 @@ textarea {
   .gegenstandskachel:hover {
     transform: none;
   }
+}
+
+/* Neu wuerfeln und Entfernen neben jeder Wirkung, untereinander. */
+.zeilenknoepfe {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.knopfreihe {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.feld__name--mitknopf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.knopf--klein {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.erzeuger__wunsch {
+  width: 100%;
+  margin: -4px 0 12px;
+}
+
+/* Was die Pruefung an einem Vorschlag der KI gezogen hat. */
+.kiHinweis {
+  border: 1px solid var(--rand);
+  border-left: 3px solid var(--betont, #7aa2f7);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.kiHinweis ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
 }

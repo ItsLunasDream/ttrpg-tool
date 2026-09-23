@@ -31,6 +31,14 @@ wurde:
   Tabelle.
 - **Formprüfung beim Tippen:** Lücken, doppelte Zahlen, Zahlen außerhalb
   des Würfels, unlesbarer Würfel, Verweise ins Leere und auf sich selbst.
+- **Nummern von selbst:** Zeilen ohne Nummer bekommen beim Verlassen des
+  Felds die nächste freie, ein leerer Würfel den passenden (`1dN`). Die
+  Nummern stehen im Text und lassen sich dort ändern.
+- **Würfeln gesperrt bei kaputter Form:** Lücken, doppelte Zahlen, Zahlen
+  außerhalb des Würfels und ein unlesbarer Würfel sperren den Knopf, mit
+  Begründung darunter. Verweise ins Leere sperren nicht.
+- **Vorschläge nach „[":** passende Tabellen erscheinen unter dem Feld,
+  Pfeiltasten und Enter/Tab wählen, Escape schließt.
 - **Herkunft:** jedes Ergebnis hat ein aufklappbares „Woher" mit dem Baum
   der Würfe.
 
@@ -138,7 +146,8 @@ Sie überschneiden sich an genau einer Stelle, und die ist auflösbar:
 - Der **Magic Item Creator** *erzeugt* einen Gegenstand und legt ihn ab.
 - Der **Loot Generator** *zieht* etwas — und wenn das etwas Magisches ist,
   soll er auf die abgelegten Gegenstände zeigen können, nicht einen eigenen
-  erfinden.
+  erfinden. Gemeint sind nur die, die dort ausdrücklich „an den Loot
+  Generator“ geschickt wurden (`loot: ja`), nicht jeder gespeicherte.
 
 Also: ein Eintrag kann nicht nur auf eine andere Tabelle zeigen, sondern auch
 auf einen Bestand eines anderen Werkzeugs („irgendein magischer Gegenstand

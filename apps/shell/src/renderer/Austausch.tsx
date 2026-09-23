@@ -1,24 +1,27 @@
 /**
- * Der Dialog „Teilen" (docs/austausch.md, Stufe 1).
+ * Der Dialog „Teilen" (docs/austausch.md).
  *
- * Zwei Richtungen in einem Dialog:
+ * Der **Raum** ist die Hauptsache und steht vorne: Chat, Eintraege an alle
+ * oder an eine Person, Angekommenes annehmen. Die **Datei** ist der Weg
+ * ohne Netz — Weitergeben und Empfangen in einem Reiter (Rueckmeldung: das
+ * sind Alternativen zum Raum, keine eigenen Hauptfunktionen):
  *
- * - **Weitergeben**: Eintraege auswaehlen und als Paketdatei speichern. Die
- *   Datei geht dann per Stick, Mail oder Chat an den Tisch; in Stufe 2
- *   ersetzt der Raum im lokalen Netz genau diesen Schritt.
- * - **Empfangen**: ein Paket oeffnen, sehen, was darin ist, und annehmen.
- *   Gibt es einen Eintrag schon, wird gefragt; daneben legen ist die
- *   Vorgabe, nichts wird stillschweigend ueberschrieben.
+ * - Als Datei speichern: Eintraege auswaehlen, als Paket ablegen, per
+ *   Stick oder Mail weitergeben.
+ * - Datei oeffnen: sehen, was darin ist, und annehmen. Gibt es einen
+ *   Eintrag schon, wird gefragt; daneben legen ist die Vorgabe.
  *
  * Die Oberflaeche sieht nie den Inhalt eines Pakets, nur Namen und Arten.
  * Das Paket selbst bleibt im Hauptprozess, bis angenommen ist.
  */
-import { useEffect, useMemo, useState } from 'react';
-import { eintragsSchluessel, finde, type Eintrag } from '@suite/eintraege';
+import { useEffect, useState } from 'react';
+import { eintragsSchluessel, type Eintrag } from '@suite/eintraege';
 import type { MessageKey, MessageParams } from '../shared/i18n';
 import { nameKey } from '../shared/apps';
 import { Dialog } from './Dialog';
 import { Raum } from './Raum';
+import { Auswahl } from './Auswahl';
+import { AppSymbol } from './icons';
 import type { GefundenerRaum, Raumzustand } from '../main/raum';
 import type { Raumpaket } from '../preload';
 
@@ -39,15 +42,11 @@ interface Ankunft {
 interface Props {
   readonly onClose: () => void;
   readonly t: (key: MessageKey, params?: MessageParams) => string;
+  readonly symbole?: Record<string, string>;
 }
 
-/** Ohne Suchwort stehen die offiziellen Regeln nicht in der Liste: es sind ueber 900. */
-function istOffiziell(e: Eintrag): boolean {
-  return e.werkzeug === 'nachschlagewerk' && !e.kennung.startsWith('hausregel/');
-}
-
-export function Austausch({ onClose, t }: Props) {
-  const [richtung, setRichtung] = useState<'geben' | 'nehmen' | 'raum'>('geben');
+export function Austausch({ onClose, t, symbole = {} }: Props) {
+  const [richtung, setRichtung] = useState<'raum' | 'datei'>('raum');
   const werkzeugName = (id: string) => t(nameKey(id));
 
   /* ---------- Der Raum (Stufe 2) ---------- */
@@ -76,31 +75,14 @@ export function Austausch({ onClose, t }: Props) {
 
   /* ---------- Weitergeben ---------- */
   const [teilbar, setTeilbar] = useState<Eintrag[] | null>(null);
-  const [filter, setFilter] = useState('');
   const [gewaehlt, setGewaehlt] = useState<Set<string>>(new Set());
   const [meldung, setMeldung] = useState('');
 
+  const [zuletzt, setZuletzt] = useState<readonly { werkzeug: string; ort: string }[]>([]);
   useEffect(() => {
     void window.shell.austausch.teilbar().then(setTeilbar, () => setTeilbar([]));
+    void window.shell.austausch.zuletzt().then(setZuletzt, () => setZuletzt([]));
   }, []);
-
-  const sichtbar = useMemo(() => {
-    if (!teilbar) return [];
-    if (filter.trim()) return [...finde(teilbar, filter, 200)];
-    return teilbar
-      .filter((e) => !istOffiziell(e))
-      .sort((a, b) => a.werkzeug.localeCompare(b.werkzeug) || a.name.localeCompare(b.name, 'de'));
-  }, [teilbar, filter]);
-
-  const umschalten = (e: Eintrag) => {
-    const k = eintragsSchluessel(e);
-    setGewaehlt((alt) => {
-      const neu = new Set(alt);
-      if (neu.has(k)) neu.delete(k);
-      else neu.add(k);
-      return neu;
-    });
-  };
 
   const auswahlListe = () =>
     (teilbar ?? [])
@@ -167,213 +149,224 @@ export function Austausch({ onClose, t }: Props) {
     setErgebnis(await window.shell.austausch.annehmen(entscheidungen, zielWahl));
   };
 
+  /** Was angekommen ist (aus dem Raum oder einer Datei), mit Annehmen. */
+  const ankunftsTeil = (
+    <>
+      {fehler && (
+        <p className="einst__satz austausch__fehler" data-fehler>
+          {fehler}
+        </p>
+      )}
+      {ankuenfte && (
+        <>
+          {Object.entries(ziele).map(([werkzeug, liste]) => (
+            <label key={werkzeug} className="feld austausch__ziel">
+              <span className="feld__name">{t('share.target', { werkzeug: werkzeugName(werkzeug) })}</span>
+              {liste.length === 0 ? (
+                <span>{t('share.noTarget')}</span>
+              ) : (
+                <select
+                  className="feld__wahl"
+                  data-ziel={werkzeug}
+                  value={zielWahl[werkzeug] ?? ''}
+                  onChange={(e) => setZielWahl({ ...zielWahl, [werkzeug]: e.target.value })}
+                >
+                  {liste.map((z) => (
+                    <option key={z.id} value={z.id}>
+                      {z.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </label>
+          ))}
+          <ul className="auswahl__liste">
+            {ankuenfte.map((a) => (
+              <li key={a.nummer} data-ankunft={a.nummer}>
+                <label className={annehmen.has(a.nummer) && a.annehmbar && !ohneZiel(a) ? 'auswahl__karte is-an' : 'auswahl__karte'}>
+                  <input
+                    type="checkbox"
+                    disabled={!a.annehmbar || ohneZiel(a)}
+                    checked={annehmen.has(a.nummer) && a.annehmbar && !ohneZiel(a)}
+                    onChange={() =>
+                      setAnnehmen((alt) => {
+                        const neu = new Set(alt);
+                        if (neu.has(a.nummer)) neu.delete(a.nummer);
+                        else neu.add(a.nummer);
+                        return neu;
+                      })
+                    }
+                  />
+                  <AppSymbol id={a.werkzeug} size={18} bild={symbole[a.werkzeug]} />
+                  <span className="auswahl__name">{a.name}</span>
+                  <span className="auswahl__art">
+                    {a.art} · {werkzeugName(a.werkzeug)}
+                    {a.bilder > 0 ? ` · ${t('share.images', { anzahl: a.bilder })}` : ''}
+                    {a.verweis ? ` · ${t('share.reference')}` : ''}
+                    {!a.annehmbar ? ` · ${t('share.unknownTool')}` : ''}
+                  </span>
+                </label>
+                {konflikt[a.nummer] && (
+                  <label className="austausch__konflikt">
+                    <span>{t('share.exists')}</span>
+                    <select
+                      className="feld__wahl"
+                      data-modus={a.nummer}
+                      value={modi[a.nummer] ?? 'daneben'}
+                      onChange={(e) => setModi({ ...modi, [a.nummer]: e.target.value as Modus })}
+                    >
+                      <option value="daneben">{t('share.modeBeside')}</option>
+                      <option value="uebernehmen">{t('share.modeReplace')}</option>
+                      <option value="verwerfen">{t('share.modeDiscard')}</option>
+                    </select>
+                  </label>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="austausch__fuss">
+            <span />
+            <button type="button" className="dialog__knopf" data-annehmen onClick={() => void nimmAn()}>
+              {t('share.accept')}
+            </button>
+          </div>
+        </>
+      )}
+      {ergebnis && (
+        <ul className="austausch__ergebnis" data-ergebnis>
+          {ergebnis.map((e, i) => (
+            <li key={i} className={e.ok ? 'is-ok' : 'is-fehler'}>
+              {e.ok ? '✓' : '✗'} {e.name}
+              {!e.ok && e.grund ? ` (${e.grund})` : ''}
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+
+  const auswahl = (
+    <Auswahl teilbar={teilbar} zuletzt={zuletzt} gewaehlt={gewaehlt} setGewaehlt={setGewaehlt} symbole={symbole} t={t} />
+  );
+
   return (
     <Dialog titel={t('share.title')} schliessenText={t('dialog.close')} onClose={onClose}>
-      <div className="segment" role="group" aria-label={t('share.title')}>
-        {(['geben', 'nehmen', 'raum'] as const).map((r) => (
-          <button
-            key={r}
-            type="button"
-            data-richtung={r}
-            className={r === richtung ? 'segment__knopf is-an' : 'segment__knopf'}
-            aria-pressed={r === richtung}
-            onClick={() => setRichtung(r)}
-          >
-            {t(r === 'geben' ? 'share.give' : r === 'nehmen' ? 'share.take' : 'share.room')}
-            {r === 'nehmen' && raumPakete.length > 0 ? ` (${raumPakete.length})` : ''}
-          </button>
-        ))}
+      <div className="austausch__marke">
+        <AppSymbol id="austausch" size={28} bild={symbole.austausch} />
+        <div className="segment" role="group" aria-label={t('share.title')}>
+          {(['raum', 'datei'] as const).map((r) => (
+            <button
+              key={r}
+              type="button"
+              data-richtung={r}
+              className={r === richtung ? 'segment__knopf is-an' : 'segment__knopf'}
+              aria-pressed={r === richtung}
+              onClick={() => setRichtung(r)}
+            >
+              {t(r === 'raum' ? 'share.room' : 'share.tabFile')}
+              {r === 'raum' && raumPakete.length > 0 ? ` (${raumPakete.length})` : ''}
+            </button>
+          ))}
+        </div>
       </div>
 
       {richtung === 'raum' ? (
-        <Raum key="raum" zustand={raum} raeume={raeume} fehler={raumFehler} t={t} />
-      ) : richtung === 'geben' ? (
-        <div key="geben" className="austausch motion-erscheinen" data-austausch="geben">
-          <p className="einst__satz">{t('share.giveHint')}</p>
-          <input
-            className="suche__feld austausch__filter"
-            value={filter}
-            placeholder={t('share.filter')}
-            onChange={(e) => setFilter(e.target.value)}
-          />
-          {teilbar === null ? (
-            <p className="einst__satz">{t('search.loading')}</p>
-          ) : sichtbar.length === 0 ? (
-            <p className="einst__satz">{t('share.nothing')}</p>
-          ) : (
-            <ul className="austausch__liste">
-              {sichtbar.map((e) => (
-                <li key={eintragsSchluessel(e)}>
-                  <label className="austausch__zeile">
-                    <input
-                      type="checkbox"
-                      data-teilen={eintragsSchluessel(e)}
-                      checked={gewaehlt.has(eintragsSchluessel(e))}
-                      onChange={() => umschalten(e)}
-                    />
-                    <span className="austausch__name">{e.name}</span>
-                    <span className="austausch__art">
-                      {e.art} · {werkzeugName(e.werkzeug)}
-                    </span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="austausch__fuss">
-            <span>{t('share.selected', { anzahl: gewaehlt.size })}</span>
-            <button
-              type="button"
-              className="dialog__knopf"
-              data-paket-speichern
-              disabled={gewaehlt.size === 0}
-              onClick={() => void speichern()}
-            >
-              {t('share.save')}
-            </button>
-          </div>
+        <div key="raum" className="motion-erscheinen">
+          <Raum zustand={raum} raeume={raeume} fehler={raumFehler} t={t} />
           {raum.rolle !== 'aus' && (
-            <div className="austausch__fuss">
-              <select className="feld__wahl" data-raum-an value={raumAn} onChange={(e) => setRaumAn(e.target.value)}>
-                <option value="">{t('room.toAll')}</option>
-                {raum.personen
-                  .filter((p) => p.id !== raum.ich?.id)
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {t('room.toOne', { name: p.name })}
-                    </option>
-                  ))}
-              </select>
-              <button
-                type="button"
-                className="dialog__knopf"
-                data-in-den-raum
-                disabled={gewaehlt.size === 0}
-                onClick={() => void inDenRaum()}
-              >
-                {t('share.sendToRoom')}
-              </button>
-            </div>
-          )}
-          {meldung && (
-            <p className="einst__satz" data-meldung>
-              {meldung}
-            </p>
-          )}
-        </div>
-      ) : (
-        <div key="nehmen" className="austausch motion-erscheinen" data-austausch="nehmen">
-          <p className="einst__satz">{t('share.takeHint')}</p>
-          <button type="button" className="dialog__knopf" data-paket-oeffnen onClick={() => void oeffnen()}>
-            {t('share.open')}
-          </button>
-          {raumPakete.length > 0 && (
-            <ul className="austausch__liste" data-raumpakete>
-              {raumPakete.map((p) => (
-                <li key={p.id} className="austausch__zeile">
-                  <span className="austausch__name">{p.titel}</span>
-                  <span className="austausch__art">{t('share.fromRoom', { name: p.von })}</span>
+            <>
+              <section className="austausch austausch__abschnitt" data-austausch="raum-senden">
+                <h3 className="austausch__titel">{t('share.sectionSend')}</h3>
+                {auswahl}
+                <div className="austausch__fuss">
+                  <span>{t('share.selected', { anzahl: gewaehlt.size })}</span>
+                  <select className="feld__wahl" data-raum-an value={raumAn} onChange={(e) => setRaumAn(e.target.value)}>
+                    <option value="">{t('room.toAll')}</option>
+                    {raum.personen
+                      .filter((p) => p.id !== raum.ich?.id)
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {t('room.toOne', { name: p.name })}
+                        </option>
+                      ))}
+                  </select>
                   <button
                     type="button"
                     className="dialog__knopf"
-                    data-raumpaket={p.id}
-                    onClick={() => void window.shell.raum.paketAnsehen(p.id).then(zeige)}
+                    data-in-den-raum
+                    disabled={gewaehlt.size === 0}
+                    onClick={() => void inDenRaum()}
                   >
-                    {t('share.look')}
+                    {t('share.sendToRoom')}
                   </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {fehler && (
-            <p className="einst__satz austausch__fehler" data-fehler>
-              {fehler}
-            </p>
-          )}
-          {ankuenfte && (
-            <>
-              {Object.entries(ziele).map(([werkzeug, liste]) => (
-                <label key={werkzeug} className="feld austausch__ziel">
-                  <span className="feld__name">{t('share.target', { werkzeug: werkzeugName(werkzeug) })}</span>
-                  {liste.length === 0 ? (
-                    <span>{t('share.noTarget')}</span>
-                  ) : (
-                    <select
-                      className="feld__wahl"
-                      data-ziel={werkzeug}
-                      value={zielWahl[werkzeug] ?? ''}
-                      onChange={(e) => setZielWahl({ ...zielWahl, [werkzeug]: e.target.value })}
-                    >
-                      {liste.map((z) => (
-                        <option key={z.id} value={z.id}>
-                          {z.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </label>
-              ))}
-              <ul className="austausch__liste">
-                {ankuenfte.map((a) => (
-                  <li key={a.nummer} data-ankunft={a.nummer}>
-                    <label className="austausch__zeile">
-                      <input
-                        type="checkbox"
-                        disabled={!a.annehmbar || ohneZiel(a)}
-                        checked={annehmen.has(a.nummer) && a.annehmbar && !ohneZiel(a)}
-                        onChange={() =>
-                          setAnnehmen((alt) => {
-                            const neu = new Set(alt);
-                            if (neu.has(a.nummer)) neu.delete(a.nummer);
-                            else neu.add(a.nummer);
-                            return neu;
-                          })
-                        }
-                      />
-                      <span className="austausch__name">{a.name}</span>
-                      <span className="austausch__art">
-                        {a.art} · {werkzeugName(a.werkzeug)}
-                        {a.bilder > 0 ? ` · ${t('share.images', { anzahl: a.bilder })}` : ''}
-                        {a.verweis ? ` · ${t('share.reference')}` : ''}
-                        {!a.annehmbar ? ` · ${t('share.unknownTool')}` : ''}
-                      </span>
-                    </label>
-                    {konflikt[a.nummer] && (
-                      <label className="austausch__konflikt">
-                        <span>{t('share.exists')}</span>
-                        <select
-                          className="feld__wahl"
-                          data-modus={a.nummer}
-                          value={modi[a.nummer] ?? 'daneben'}
-                          onChange={(e) => setModi({ ...modi, [a.nummer]: e.target.value as Modus })}
+                </div>
+                {meldung && (
+                  <p className="einst__satz" data-meldung>
+                    {meldung}
+                  </p>
+                )}
+              </section>
+              <section className="austausch austausch__abschnitt" data-austausch="raum-angekommen">
+                <h3 className="austausch__titel">
+                  {t('share.sectionArrived')} {raumPakete.length > 0 ? `(${raumPakete.length})` : ''}
+                </h3>
+                {raumPakete.length === 0 ? (
+                  <p className="einst__satz">{t('share.nothingArrived')}</p>
+                ) : (
+                  <ul className="auswahl__liste" data-raumpakete>
+                    {raumPakete.map((p) => (
+                      <li key={p.id} className="auswahl__karte">
+                        <span className="auswahl__name">{p.titel}</span>
+                        <span className="auswahl__art">{t('share.fromRoom', { name: p.von })}</span>
+                        <button
+                          type="button"
+                          className="dialog__knopf"
+                          data-raumpaket={p.id}
+                          onClick={() => void window.shell.raum.paketAnsehen(p.id).then(zeige)}
                         >
-                          <option value="daneben">{t('share.modeBeside')}</option>
-                          <option value="uebernehmen">{t('share.modeReplace')}</option>
-                          <option value="verwerfen">{t('share.modeDiscard')}</option>
-                        </select>
-                      </label>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              <div className="austausch__fuss">
-                <span />
-                <button type="button" className="dialog__knopf" data-annehmen onClick={() => void nimmAn()}>
-                  {t('share.accept')}
-                </button>
-              </div>
+                          {t('share.look')}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {ankunftsTeil}
+              </section>
             </>
           )}
-          {ergebnis && (
-            <ul className="austausch__ergebnis" data-ergebnis>
-              {ergebnis.map((e, i) => (
-                <li key={i} className={e.ok ? 'is-ok' : 'is-fehler'}>
-                  {e.ok ? '✓' : '✗'} {e.name}
-                  {!e.ok && e.grund ? ` (${e.grund})` : ''}
-                </li>
-              ))}
-            </ul>
-          )}
+        </div>
+      ) : (
+        <div key="datei" className="motion-erscheinen">
+          <p className="einst__satz">{t('share.fileHint')}</p>
+          <section className="austausch austausch__abschnitt" data-austausch="geben">
+            <h3 className="austausch__titel">{t('share.sectionSave')}</h3>
+            {auswahl}
+            <div className="austausch__fuss">
+              <span>{t('share.selected', { anzahl: gewaehlt.size })}</span>
+              <button
+                type="button"
+                className="dialog__knopf"
+                data-paket-speichern
+                disabled={gewaehlt.size === 0}
+                onClick={() => void speichern()}
+              >
+                {t('share.save')}
+              </button>
+            </div>
+            {meldung && (
+              <p className="einst__satz" data-meldung>
+                {meldung}
+              </p>
+            )}
+          </section>
+          <section className="austausch austausch__abschnitt" data-austausch="nehmen">
+            <h3 className="austausch__titel">{t('share.sectionOpen')}</h3>
+            <p className="einst__satz">{t('share.takeHint')}</p>
+            <button type="button" className="dialog__knopf" data-paket-oeffnen onClick={() => void oeffnen()}>
+              {t('share.open')}
+            </button>
+            {ankunftsTeil}
+          </section>
         </div>
       )}
     </Dialog>

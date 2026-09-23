@@ -445,6 +445,29 @@ body {
   font-size: 13px;
 }
 
+.vorschlaege {
+  margin: -6px 0 10px;
+  padding: 4px;
+  list-style: none;
+  max-width: 420px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 13px;
+}
+
+.vorschlaege__eintrag {
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.vorschlaege__eintrag.is-an {
+  background: var(--betont-leise);
+  color: var(--text);
+}
+
 .befunde {
   margin: 0 0 14px;
   padding-left: 18px;
