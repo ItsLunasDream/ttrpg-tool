@@ -77,8 +77,15 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
     liste.current?.scrollTo({ top: liste.current.scrollHeight });
   }, [zustand.chat.length]);
 
+  // Wer gegangen ist, bekommt keine Direktnachricht mehr: sonst ginge die
+  // naechste privat an „?" (Testbericht).
+  useEffect(() => {
+    if (an && !zustand.personen.some((p) => p.id === an)) setAn('');
+  }, [an, zustand.personen]);
+
   const kopiere = (text: string) => {
-    void window.shell.raum.kopieren(text).then(() => {
+    void window.shell.raum.kopieren(text).then((ok) => {
+      if (!ok) return;
       setKopiert(text);
       setTimeout(() => setKopiert((alt) => (alt === text ? '' : alt)), 1200);
     });

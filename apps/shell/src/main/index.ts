@@ -1044,7 +1044,9 @@ function registriereKanaele(): void {
     }
   });
   handle('raum:kopieren', (_event, text: string) => {
-    if (typeof text === 'string' && text.length <= 200) clipboard.writeText(text);
+    // Eine Einladung mit mehreren Adressen hat leicht ueber 200 Zeichen.
+    if (typeof text !== 'string' || text.length > 4000) return false;
+    clipboard.writeText(text);
     return true;
   });
   handle('raum:verlassen', () => {

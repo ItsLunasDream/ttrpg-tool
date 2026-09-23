@@ -532,6 +532,7 @@ export class Raumdienst {
       this.leitung = socket;
       const leser = new Zeilenleser();
       let erledigt = false;
+      let abgelehnt = false;
       const ende = () => {
         if (!erledigt) {
           erledigt = true;
@@ -552,6 +553,8 @@ export class Raumdienst {
           this.startePing();
           ende();
         } else if (n.typ === 'abgelehnt') {
+          // Die Absage ist der Grund; das Schliessen danach meldet nichts mehr.
+          abgelehnt = true;
           this.melde({ art: 'fehler', grund: n.grund });
           ende();
         } else if (n.typ === 'personen') {
@@ -598,7 +601,7 @@ export class Raumdienst {
         this.leitung = null;
         this.leitungsschutz = null;
         this.setzeZurueck();
-        this.melde({ art: 'fehler', grund: warDrin ? 'getrennt' : grund });
+        if (!abgelehnt) this.melde({ art: 'fehler', grund: warDrin ? 'getrennt' : grund });
         this.meldeZustand();
         ende();
       };

@@ -65,6 +65,10 @@ test('ein falsches Passwort kommt nicht herein, und das Passwort reist nicht', a
     const port = await g.d.eroeffne('Runde', 'richtig', 'SL');
     await a.d.trittBei('127.0.0.1', port, 'falsch', 'Eve');
     assert.ok(a.ereignisse.some((e) => e.art === 'fehler' && e.grund === 'passwort'));
+    // Das Schliessen danach ueberschreibt den Grund nicht (Testbericht).
+    await warte(200);
+    const fehler = a.ereignisse.filter((e) => e.art === 'fehler');
+    assert.equal(fehler[fehler.length - 1].grund, 'passwort');
     assert.equal(a.d.zustand().rolle, 'aus');
     await warte(100);
     assert.equal(g.d.zustand().personen.length, 1);

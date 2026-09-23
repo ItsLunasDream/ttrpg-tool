@@ -114,6 +114,8 @@ export function Suche({ eintraege, laedt, onWahl, onClose, t }: Props) {
                         <button
                           type="button"
                           className={nummer === aktiv ? 'suche__treffer is-active' : 'suche__treffer'}
+                          // Der aktive Treffer bleibt sichtbar, wenn die Pfeiltasten weiterlaufen.
+                          ref={nummer === aktiv ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
                           onMouseEnter={() => setAktiv(nummer)}
                           onClick={() => waehle(eintrag)}
                         >

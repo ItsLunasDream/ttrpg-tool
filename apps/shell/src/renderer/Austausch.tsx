@@ -45,9 +45,11 @@ interface Props {
   readonly onClose: () => void;
   readonly t: (key: MessageKey, params?: MessageParams) => string;
   readonly symbole?: Record<string, string>;
+  /** Ein Raumfehler, der bei geschlossenem Dialog kam (Schluessel wie `getrennt`). */
+  readonly anfangsFehler?: string | null;
 }
 
-export function Austausch({ onClose, t, symbole = {} }: Props) {
+export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Props) {
   const [richtung, setRichtung] = useState<'raum' | 'datei'>('raum');
   const werkzeugName = (id: string) => t(nameKey(id));
 
@@ -55,8 +57,12 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
   const [raum, setRaum] = useState<Raumzustand>(AUS);
   const [raeume, setRaeume] = useState<readonly GefundenerRaum[]>([]);
   const [raumPakete, setRaumPakete] = useState<readonly Raumpaket[]>([]);
-  const [raumFehler, setRaumFehler] = useState('');
+  const [raumFehler, setRaumFehler] = useState(() => (anfangsFehler ? t(`room.error.${anfangsFehler}` as MessageKey) : ''));
   const [raumAn, setRaumAn] = useState('');
+  // Das Ziel „nur an …" faellt weg, wenn die Person gegangen ist.
+  useEffect(() => {
+    if (raumAn && !raum.personen.some((p) => p.id === raumAn)) setRaumAn('');
+  }, [raumAn, raum.personen]);
 
   useEffect(() => {
     void window.shell.raum.zustand().then((s) => {
@@ -95,14 +101,23 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
 
   const inDenRaum = async () => {
     const antwort = await window.shell.raum.senden(auswahlListe(), raumAn || null);
-    setMeldung(antwort.ok ? t('share.sentToRoom', { anzahl: antwort.anzahl }) : t('share.saveFailed'));
+    setMeldung(
+      !antwort.ok ? t('share.sendFailed') : antwort.anzahl === 1 ? t('share.sentToRoomOne') : t('share.sentToRoom', { anzahl: antwort.anzahl })
+    );
   };
 
   const speichern = async () => {
     const auswahl = auswahlListe();
-    const antwort = await window.shell.austausch.speichern(auswahl);
-    if (antwort.abgebrochen) return;
-    setMeldung(antwort.ok ? t('share.saved', { anzahl: antwort.anzahl }) : t('share.saveFailed'));
+    try {
+      const antwort = await window.shell.austausch.speichern(auswahl);
+      if (antwort.abgebrochen) return;
+      setMeldung(
+        !antwort.ok ? t('share.saveFailed') : antwort.anzahl === 1 ? t('share.savedOne') : t('share.saved', { anzahl: antwort.anzahl })
+      );
+    } catch {
+      // Etwa ein Ordner ohne Schreibrecht: sagen, statt die alte Meldung stehen zu lassen.
+      setMeldung(t('share.saveFailed'));
+    }
   };
 
   /* ---------- Empfangen ---------- */
