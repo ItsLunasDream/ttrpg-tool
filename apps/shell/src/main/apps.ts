@@ -402,7 +402,28 @@ async function lade(
  * kann. Die Oberflaeche zeigt dann ihre Platzhalterflaeche — besser als ein
  * Fehler fuer etwas, das erklaertermassen noch nicht fertig ist.
  */
+/**
+ * Die Sprache der Sammlung fuer Meldungen, die die Huelle selbst schreibt
+ * (etwa „erst den Story Creator oeffnen"). `haken.language` ist nur die
+ * Sprache beim Montieren; umgestellt wird ueber `setzeSammlungssprache`.
+ */
+let sammlungssprache: Language = 'en';
+export function setzeSammlungssprache(language: Language): void {
+  sammlungssprache = language;
+}
+function zweisprachig(de: string, en: string): string {
+  return sammlungssprache === 'de' ? de : en;
+}
+const OHNE_STORY = () =>
+  zweisprachig(
+    'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.',
+    'Open the Story Creator once, then the collection knows where to put it.'
+  );
+const OHNE_KAMPAGNE = () =>
+  zweisprachig('Es gibt noch keine Kampagne, in die das passt.', 'There is no campaign yet to put this in.');
+
 export async function mountApp(id: string, haken: MontageHaken): Promise<MontierteApp | null> {
+  sammlungssprache = haken.language;
   if (id === 'backstory') return montiereBackstory(id, haken);
   if (id === 'mapmaker') return montiereMapmaker(id, haken);
   if (id === 'initiative') return montiereInitiative(id, haken);
@@ -495,11 +516,11 @@ async function legeNotizAn(
   haken: MontageHaken
 ): Promise<{ ok: boolean; text: string }> {
   if (!backstoryEmbed) {
-    return { ok: false, text: 'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.' };
+    return { ok: false, text: OHNE_STORY() };
   }
   const kampagnen = await backstoryEmbed.vault.listCampaigns();
   if (kampagnen.length === 0) {
-    return { ok: false, text: 'Es gibt noch keine Kampagne, in die das passt.' };
+    return { ok: false, text: OHNE_KAMPAGNE() };
   }
   const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
   const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
@@ -540,12 +561,18 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
       if (!backstoryEmbed) {
         return {
           ok: false,
-          text: 'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.'
+          text: OHNE_STORY()
         };
       }
       const kampagnen = await backstoryEmbed.vault.listCampaigns();
       if (kampagnen.length === 0) {
-        return { ok: false, text: 'Es gibt noch keine Kampagne, in die die Figur passt.' };
+        return {
+          ok: false,
+          text: zweisprachig(
+            'Es gibt noch keine Kampagne, in die die Figur passt.',
+            'There is no campaign yet for this character.'
+          )
+        };
       }
       // Die Kampagne, an der gerade gearbeitet wird. Der Story Creator
       // merkt sie sich in seinen Einstellungen; abgefragt wird der aktuelle
@@ -659,16 +686,20 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
       if (!backstoryEmbed) {
         return {
           ok: false,
-          text: 'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.',
+          text: OHNE_STORY(),
           angelegt: 0
         };
       }
       if (notizen.length === 0) {
-        return { ok: false, text: 'Es gibt nichts zu übernehmen.', angelegt: 0 };
+        return {
+          ok: false,
+          text: zweisprachig('Es gibt nichts zu übernehmen.', 'There is nothing to take over.'),
+          angelegt: 0
+        };
       }
       const kampagnen = await backstoryEmbed.vault.listCampaigns();
       if (kampagnen.length === 0) {
-        return { ok: false, text: 'Es gibt noch keine Kampagne, in die das passt.', angelegt: 0 };
+        return { ok: false, text: OHNE_KAMPAGNE(), angelegt: 0 };
       }
       const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
       const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];

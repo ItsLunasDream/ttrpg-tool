@@ -57,6 +57,7 @@ import { berechneAppFlaeche } from '../shared/apps';
 import {
   meldeStoryCreatorAenderung,
   mountApp,
+  setzeSammlungssprache,
   registerSchemes,
   setzeSuchtaste,
   type MontageHaken,
@@ -492,6 +493,7 @@ async function aktualisiereSammlungssprache(language: Language, herkunft: string
   if (aktuell.language === language) return;
   gemerkteEinstellungen = { ...aktuell, language };
   await writeSettings(einstellungsDatei, gemerkteEinstellungen);
+  setzeSammlungssprache(language);
 
   // Die Oberflaeche der Huelle selbst (Titelleiste, Startmenue, Schiene, die
   // Einstellungen, falls sie gerade offen sind) muss ebenfalls nachziehen.
@@ -811,6 +813,7 @@ function registriereKanaele(): void {
     // der Huelle; es gibt keine "Ursprungs"-Anwendung, die schon Bescheid
     // weiss, deshalb bekommen alle offenen Anwendungen die Meldung.
     if (aktualisiert.language !== vorher.language) {
+      setzeSammlungssprache(aktualisiert.language);
       for (const montiert of offen.values()) void montiert.setLanguage?.(aktualisiert.language);
     }
     // Das Thema gilt fuer das ganze Fenster. Die Huelle faerbt sich selbst

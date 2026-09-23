@@ -203,6 +203,7 @@ app.whenReady().then(async () => {
   await warte(500);
   const story = await js("document.querySelector('.fehler, .meldung')?.textContent ?? ''");
   pruefe(/Story Creator/.test(story), `der Story-Knopf meldet ehrlich (${story.slice(0, 70)})`);
+  pruefe(!/Öffne|weiß/.test(story), 'und in der Sprache der Oberflaeche, nicht auf Deutsch');
 
   await js(`document.querySelector('[data-speichern]').click(); true`);
   await warte(700);
