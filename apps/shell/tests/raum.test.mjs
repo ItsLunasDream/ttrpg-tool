@@ -299,3 +299,22 @@ test('Beitritt: wo niemand lauscht, heisst der Grund „abgewiesen"; eine alte F
     g.d.beende();
   }
 });
+
+test('der Gast misst den Ping zum Gastgeber, verschluesselt und im Klartext', async () => {
+  for (const passwort of ['geheim', '']) {
+    const g = dienst(47931);
+    const a = dienst(47931);
+    try {
+      const port = await g.d.eroeffne('Runde', passwort, 'SL');
+      await a.d.trittBei('127.0.0.1', port, passwort, 'Anna');
+      assert.equal(g.d.zustand().ping, null, 'der Gastgeber hat keinen Ping zu sich selbst');
+      await bis(() => typeof a.d.zustand().ping === 'number');
+      assert.ok(a.d.zustand().ping >= 0 && a.d.zustand().ping < 1000, `Ping ${a.d.zustand().ping} ms`);
+      a.d.verlasse();
+      assert.equal(a.d.zustand().ping, null, 'nach dem Verlassen ist der Ping weg');
+    } finally {
+      a.d.beende();
+      g.d.beende();
+    }
+  }
+});

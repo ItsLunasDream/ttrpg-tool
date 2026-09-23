@@ -59,3 +59,10 @@ test('hallo einer alten Fassung wird noch gelesen, damit sie „falsche Fassung"
   assert.equal(alt?.gastNonce, '');
   assert.equal(A.leseNachricht(JSON.stringify({ typ: 'herausforderung', raum: 'R', nonce: 'n' })), null);
 });
+
+test('ping und pong tragen eine Zahl', () => {
+  assert.deepEqual(A.leseNachricht('{"typ":"ping","n":7}'), { typ: 'ping', n: 7 });
+  assert.deepEqual(A.leseNachricht('{"typ":"pong","n":7}'), { typ: 'pong', n: 7 });
+  assert.equal(A.leseNachricht('{"typ":"ping","n":"7"}'), null);
+  assert.equal(A.leseNachricht('{"typ":"ping","n":-1}'), null);
+});

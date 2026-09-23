@@ -268,6 +268,11 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
         <span className="austausch__art">
           {zustand.rolle === 'gastgeber' ? t('room.youHost') : t('room.youAre', { name: zustand.ich?.name ?? '' })}
         </span>
+        {zustand.rolle === 'gast' && (
+          <span className="raum__marke" data-raum-ping title={t('room.pingHint')}>
+            {zustand.ping === null ? t('room.pingWaiting') : t('room.ping', { ms: zustand.ping })}
+          </span>
+        )}
         <span className={`raum__marke${zustand.verschluesselt ? ' is-sicher' : ''}`} data-raum-verschluesselt={zustand.verschluesselt}>
           {zustand.verschluesselt ? t('room.encrypted') : t('room.notEncrypted')}
         </span>

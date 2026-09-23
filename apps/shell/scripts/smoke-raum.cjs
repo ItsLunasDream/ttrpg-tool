@@ -103,6 +103,8 @@ app.whenReady().then(async () => {
     'und steht in der Liste der Personen'
   );
   pruefe(anna.verschluesselt, 'mit Passwort ist Annas Leitung verschluesselt');
+  anna.schreibe({ typ: 'ping', n: 42 });
+  pruefe(await bis(() => anna.alle.some((n) => n.typ === 'pong' && n.n === 42)), 'der Gastgeber beantwortet ein Ping sofort (fuer die Anzeige in ms)');
   pruefe(
     (await js("document.querySelector('[data-raum-verschluesselt]')?.dataset.raumVerschluesselt")) === 'true',
     'die Marke zeigt „verschluesselt"'

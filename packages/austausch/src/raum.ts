@@ -63,6 +63,13 @@ export type Nachricht =
   | { readonly typ: 'personen'; readonly personen: readonly Person[] }
   /** Ein Gast nennt sich um; der Gastgeber macht den Namen eindeutig und verteilt die Liste. */
   | { readonly typ: 'name'; readonly name: string }
+  /**
+   * Laufzeitmessung: der Gast schickt `ping` mit einer Zahl, der Gastgeber
+   * antwortet sofort mit `pong` und derselben Zahl. Die Zeit dazwischen ist
+   * der Ping in Millisekunden.
+   */
+  | { readonly typ: 'ping'; readonly n: number }
+  | { readonly typ: 'pong'; readonly n: number }
   | {
       readonly typ: 'chat';
       readonly von: string;
@@ -145,6 +152,9 @@ export function leseNachricht(zeile: string): Nachricht | null {
       return Array.isArray(n.personen) && n.personen.every(istPerson) ? { typ: n.typ, personen: n.personen } : null;
     case 'name':
       return istText(n.name, 64) && n.name.trim() ? { typ: n.typ, name: n.name } : null;
+    case 'ping':
+    case 'pong':
+      return Number.isSafeInteger(n.n) && (n.n as number) >= 0 ? { typ: n.typ, n: n.n as number } : null;
     case 'chat':
       return istText(n.von, 64) && an !== undefined && istText(n.text, MAX_CHAT) && istText(n.zeit, 40)
         ? { typ: n.typ, von: n.von, an, text: n.text, zeit: n.zeit }

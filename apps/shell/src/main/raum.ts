@@ -75,6 +75,8 @@ export interface Raumzustand {
   readonly verschluesselt: boolean;
   /** Nur beim Gastgeber: ob der Raum auch ueber das Internet gedacht ist (fester Port). */
   readonly internet: boolean;
+  /** Nur beim Gast: die zuletzt gemessene Laufzeit zum Gastgeber und zurueck, in ms. */
+  readonly ping: number | null;
 }
 
 /** Die Namen der Eintraege eines Pakets; laesst es sich nicht lesen, der Titel. */
@@ -143,6 +145,8 @@ interface Gastverbindung {
 
 /** Wie lange ein Beitritt auf Antwort wartet, bevor er aufgibt. */
 const BEITRITT_FRIST_MS = 10_000;
+/** Wie oft ein Gast die Laufzeit zum Gastgeber misst. */
+const PING_TAKT_MS = 3_000;
 
 export class Raumdienst {
   private rolle: Raumzustand['rolle'] = 'aus';
@@ -163,6 +167,11 @@ export class Raumdienst {
   // Gast
   private leitung: Socket | null = null;
   private leitungsschutz: Leitungsschutz | null = null;
+  // Ping beim Gast: alle PING_TAKT_MS eine Messung, die offene merkt sich ihre Startzeit.
+  private ping: number | null = null;
+  private pingTakt: ReturnType<typeof setInterval> | null = null;
+  private pingOffen = new Map<number, number>();
+  private pingZaehler = 0;
 
   // Suche
   private lauscher: UdpSocket | null = null;
@@ -189,7 +198,8 @@ export class Raumdienst {
       adressen: this.server ? eigeneAdressen() : [],
       ipv6: this.server ? eigeneIpv6() : [],
       verschluesselt: this.rolle === 'gastgeber' ? this.stamm !== null : this.leitungsschutz !== null,
-      internet: this.rolle === 'gastgeber' && this.internet
+      internet: this.rolle === 'gastgeber' && this.internet,
+      ping: this.rolle === 'gast' ? this.ping : null
     };
   }
 
@@ -413,6 +423,11 @@ export class Raumdienst {
       this.verteilePersonen();
       return;
     }
+    if (n.typ === 'ping') {
+      // Sofort zurueck, damit die Messung nur die Leitung misst.
+      this.schreibe(gast, { typ: 'pong', n: n.n });
+      return;
+    }
     if (n.typ === 'name') {
       const alt = gast.person;
       const neu = {
@@ -484,6 +499,7 @@ export class Raumdienst {
           this.personen = [...n.personen];
           this.chat = [];
           this.meldeZustand();
+          this.startePing();
           ende();
         } else if (n.typ === 'abgelehnt') {
           this.melde({ art: 'fehler', grund: n.grund });
@@ -494,6 +510,8 @@ export class Raumdienst {
           const selbst = this.personen.find((p) => p.id === this.ich?.id);
           if (selbst) this.ich = selbst;
           this.meldeZustand();
+        } else if (n.typ === 'pong') {
+          this.pongAngekommen(n.n);
         } else if (n.typ === 'chat' || n.typ === 'paket' || n.typ === 'werkzeug') {
           this.empfange(n);
         }
@@ -553,6 +571,37 @@ export class Raumdienst {
     if (this.leitung !== socket) return;
     socket.write(kodiere({ typ: 'hallo', name, nachweis: nachweisText, version: RAUM_VERSION, gastNonce }));
     this.leitungsschutz = schutz;
+  }
+
+  /** Beim Gast: regelmaessig die Laufzeit zum Gastgeber messen. */
+  private startePing(): void {
+    this.stoppePing();
+    const miss = () => {
+      const n = ++this.pingZaehler;
+      this.pingOffen.set(n, performance.now());
+      // Alte, nie beantwortete Messungen nicht ewig mitschleppen.
+      for (const alt of this.pingOffen.keys()) if (alt < n - 5) this.pingOffen.delete(alt);
+      this.schreibeLeitung({ typ: 'ping', n });
+    };
+    miss();
+    this.pingTakt = setInterval(miss, PING_TAKT_MS);
+  }
+
+  private stoppePing(): void {
+    if (this.pingTakt) clearInterval(this.pingTakt);
+    this.pingTakt = null;
+    this.pingOffen.clear();
+    this.ping = null;
+  }
+
+  private pongAngekommen(n: number): void {
+    const start = this.pingOffen.get(n);
+    if (start === undefined) return;
+    this.pingOffen.delete(n);
+    const neu = Math.max(0, Math.round(performance.now() - start));
+    if (neu === this.ping) return;
+    this.ping = neu;
+    this.meldeZustand();
   }
 
   /** Eine Nachricht an den Gastgeber, verschluesselt, wenn die Leitung es ist. */
@@ -641,6 +690,7 @@ export class Raumdienst {
   }
 
   private setzeZurueck(): void {
+    this.stoppePing();
     this.rolle = 'aus';
     this.ich = null;
     this.personen = [];
