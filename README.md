@@ -156,6 +156,13 @@ for the title bar and the rail.
   a tool needs no code for it: its styles.css derives its own variable names
   from the roles and keeps a fallback for each. The themes are tested for
   contrast, not just for looking nice.
+- Sharing (stage 1 of `docs/austausch.md`): the shell's “Share” dialog
+  packs entries from the Story Creator (notes with their images), the
+  Monster Creator and the Reference (house rules; official rules as a
+  reference) into one readable Markdown file, and reads such a file back.
+  An entry that already exists is kept side by side unless you choose to
+  replace it. The tools take entries even while closed. The local-network
+  room is the next stage.
 - The interface size (80 to 200 percent) works the same way: one setting,
   applied by the shell to every view; the tools move along with the title bar
   and the rail instead of slipping underneath them.

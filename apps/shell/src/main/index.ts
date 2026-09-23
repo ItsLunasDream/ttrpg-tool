@@ -53,6 +53,7 @@ import { join } from 'node:path';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { berechneAppFlaeche } from '../shared/apps';
 import {
+  meldeStoryCreatorAenderung,
   mountApp,
   registerSchemes,
   setzeSuchtaste,
@@ -64,6 +65,17 @@ import type { Uebergabe } from '@suite/uebergabe';
 import { beobachteFarbe, gewaehlteGroesse, setzeGroesse, setzeThema as setzeFarbthema } from './farbe';
 import { schreibeSicherung } from './sicherung';
 import { alleEintraege } from './suche';
+import {
+  ankuenfte,
+  konflikte,
+  lesePaketDatei,
+  nimmAn as nimmAustauschAn,
+  schnuere,
+  schreibePaket,
+  teilbar,
+  zieleFuer
+} from './austausch';
+import { PAKET_ENDUNG, type Modus, type Paket } from '@suite/austausch';
 import { sicherungsname } from '../shared/sicherung';
 import { brichFahrtAb, fahreEin } from './fahrt';
 import {
@@ -815,6 +827,89 @@ function registriereKanaele(): void {
    * Verzeichnis gefuehrt wird.
    */
   handle('suche:eintraege', () => alleEintraege(app.getPath('userData')));
+
+  /*
+   * Der Austausch (docs/austausch.md, Stufe 1): weitergeben als Paketdatei,
+   * einlesen aus einer. Das eingelesene Paket bleibt hier im Hauptprozess,
+   * bis angenommen ist; die Oberflaeche bekommt nur, was sie zum Entscheiden
+   * braucht, nicht die Bilder.
+   *
+   * Der optionale Dateipfad ist fuer den Rauchtest: ein Dateidialog laesst
+   * sich dort nicht bedienen.
+   */
+  let eingang: Paket | null = null;
+
+  handle('austausch:teilbar', () => teilbar(app.getPath('userData')));
+
+  handle(
+    'austausch:speichern',
+    async (_event, auswahl: { werkzeug: string; kennung: string }[], datei?: string) => {
+      let ziel = datei;
+      if (!ziel) {
+        if (!fenster) return { ok: false, abgebrochen: true, anzahl: 0 };
+        const heute = new Date().toISOString().slice(0, 10);
+        const antwort = await dialog.showSaveDialog(fenster as never, {
+          defaultPath: `paket-${heute}${PAKET_ENDUNG}`,
+          filters: [{ name: 'TTRPG-Tools', extensions: ['md'] }]
+        });
+        if (antwort.canceled || !antwort.filePath) return { ok: false, abgebrochen: true, anzahl: 0 };
+        ziel = antwort.filePath;
+      }
+      const paket = await schnuere(app.getPath('userData'), auswahl);
+      await schreibePaket(ziel, paket);
+      return { ok: true, abgebrochen: false, anzahl: paket.sendungen.length, datei: ziel };
+    }
+  );
+
+  handle('austausch:oeffnen', async (_event, datei?: string) => {
+    let quelle = datei;
+    if (!quelle) {
+      if (!fenster) return { ok: false, abgebrochen: true };
+      const antwort = await dialog.showOpenDialog(fenster as never, {
+        properties: ['openFile'],
+        filters: [{ name: 'TTRPG-Tools', extensions: ['md'] }]
+      });
+      if (antwort.canceled || !antwort.filePaths[0]) return { ok: false, abgebrochen: true };
+      quelle = antwort.filePaths[0];
+    }
+    try {
+      eingang = await lesePaketDatei(quelle);
+    } catch (fehler) {
+      eingang = null;
+      return { ok: false, abgebrochen: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };
+    }
+    return {
+      ok: true,
+      abgebrochen: false,
+      ankuenfte: ankuenfte(eingang),
+      ziele: await zieleFuer(app.getPath('userData'), eingang.sendungen.map((s) => s.werkzeug))
+    };
+  });
+
+  handle('austausch:konflikte', async (_event, ziele: Record<string, string>) =>
+    eingang ? konflikte(app.getPath('userData'), eingang, ziele) : []
+  );
+
+  handle(
+    'austausch:annehmen',
+    async (_event, entscheidungen: { nummer: number; modus?: Modus }[], ziele: Record<string, string>) => {
+      if (!eingang) return [];
+      const ergebnisse = await nimmAustauschAn(app.getPath('userData'), eingang, entscheidungen, ziele);
+      // Offene Werkzeuge erfahren davon; ein geschlossenes liest beim
+      // naechsten Oeffnen ohnehin frisch.
+      const angekommen = ergebnisse.filter((e) => e.ok && e.kennung);
+      for (const werkzeug of new Set(angekommen.map((e) => e.werkzeug))) {
+        huelle?.webContents.send('app:ereignis', werkzeug);
+        if (werkzeug === 'backstory') {
+          meldeStoryCreatorAenderung();
+          continue;
+        }
+        const letzte = angekommen.filter((e) => e.werkzeug === werkzeug).at(-1);
+        if (letzte?.kennung) void offen.get(werkzeug)?.zeigeEintrag?.(letzte.kennung);
+      }
+      return ergebnisse;
+    }
+  );
 
   /**
    * Zeigt einen Treffer in seinem Werkzeug.

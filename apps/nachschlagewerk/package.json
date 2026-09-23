@@ -27,6 +27,7 @@
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@suite/eintraege": "*",
+    "@suite/austausch": "*",
     "@suite/i18n": "*",
     "@suite/srd": "*"
   }

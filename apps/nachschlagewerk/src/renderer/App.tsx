@@ -210,6 +210,8 @@ export function App() {
         // der leere Hinweis.
         setBearbeitung(null);
         setSuche('');
+        // Eine Hausregel kann gerade erst angekommen sein (Austausch).
+        if (kennung.startsWith('hausregel/')) void ladeHausregeln();
         if (!kennung.startsWith('notiz/')) {
           setOffenId(kennung);
           return;

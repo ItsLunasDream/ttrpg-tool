@@ -6,6 +6,8 @@
  * auch die der eingebetteten Anwendungen.
  */
 import { contextBridge, ipcRenderer } from 'electron';
+import type { Ankunft } from '../main/austausch';
+import type { Modus } from '@suite/austausch';
 import type { ShellSettings } from '../main/settings';
 import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
 import type { Eintrag } from '@suite/eintraege';
@@ -211,6 +213,35 @@ const api = {
         ipcRenderer.off('suche:oeffnen', hoerer);
       };
     }
+  },
+  /**
+   * Der Austausch (docs/austausch.md, Stufe 1): Eintraege als Paketdatei
+   * weitergeben und aus einer einlesen. Der Dateipfad ist optional und nur
+   * fuer den Rauchtest; sonst fragt ein Dateidialog.
+   */
+  austausch: {
+    teilbar: () => ipcRenderer.invoke('austausch:teilbar') as Promise<Eintrag[]>,
+    speichern: (auswahl: { werkzeug: string; kennung: string }[], datei?: string) =>
+      ipcRenderer.invoke('austausch:speichern', auswahl, datei) as Promise<{
+        ok: boolean;
+        abgebrochen: boolean;
+        anzahl: number;
+        datei?: string;
+      }>,
+    oeffnen: (datei?: string) =>
+      ipcRenderer.invoke('austausch:oeffnen', datei) as Promise<{
+        ok: boolean;
+        abgebrochen: boolean;
+        grund?: string;
+        ankuenfte?: Ankunft[];
+        ziele?: Record<string, { id: string; name: string }[]>;
+      }>,
+    konflikte: (ziele: Record<string, string>) =>
+      ipcRenderer.invoke('austausch:konflikte', ziele) as Promise<boolean[]>,
+    annehmen: (entscheidungen: { nummer: number; modus?: Modus }[], ziele: Record<string, string>) =>
+      ipcRenderer.invoke('austausch:annehmen', entscheidungen, ziele) as Promise<
+        { ok: boolean; kennung?: string; grund?: string; werkzeug: string; name: string }[]
+      >
   },
   /** Eine Sicherung der ganzen Sammlung — alle Werkzeuge, nicht nur eines. */
   sicherung: {

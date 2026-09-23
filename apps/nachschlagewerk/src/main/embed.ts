@@ -15,7 +15,8 @@ import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { Eintrag } from '@suite/eintraege';
-import { ART_NAME, alleRegeln } from '../shared/bestand';
+import type { Teilnehmer } from '@suite/austausch';
+import { ART_NAME, alleRegeln, regelNach } from '../shared/bestand';
 import { kanal } from '../shared/kanaele';
 import {
   alsMarkdown,
@@ -56,6 +57,66 @@ async function leseHausregeln(ordner: string): Promise<Hausregel[]> {
 
 /** Der Name, unter dem das Werkzeug in der Huelle und in der Suche steht. */
 export const WERKZEUG = 'nachschlagewerk';
+
+/**
+ * Das Nachschlagewerk im Austausch (docs/austausch.md, „Regeln sind auch
+ * Eintraege"):
+ *
+ * - Eine **Hausregel** reist ganz, als ihre Markdown-Datei. Daneben gelegt
+ *   bekommt sie eine freie Kennung; ihr Name bleibt.
+ * - Eine **offizielle Regel** reist nicht, sie wird genannt: jede Sammlung
+ *   hat denselben Bestand. Angenommen wird dabei nichts geschrieben; die
+ *   Huelle kann die Stelle oeffnen.
+ * - Die **Notizen am Text** reisen gar nicht. Sie sind fuer einen selbst.
+ */
+export const austausch: Teilnehmer = {
+  werkzeug: WERKZEUG,
+  async gib(datenordner, kennung) {
+    if (kennung.startsWith('hausregel/')) {
+      const id = zuId(kennung.slice('hausregel/'.length));
+      try {
+        const inhalt = await readFile(path.join(datenordner, WERKZEUG, ORDNER_NAME, `${id}.md`), 'utf8');
+        const regel = leseHausregel(inhalt, id);
+        return { werkzeug: WERKZEUG, kennung: `hausregel/${id}`, name: regel.name, art: 'Hausregel', inhalt, bilder: [] };
+      } catch {
+        return null;
+      }
+    }
+    const regel = regelNach(kennung);
+    if (!regel) return null;
+    return {
+      werkzeug: WERKZEUG,
+      kennung,
+      name: regel.name.en,
+      art: ART_NAME[regel.art].en,
+      inhalt: null,
+      bilder: []
+    };
+  },
+  async gibtEs(datenordner, sendung) {
+    // Ein Verweis auf den offiziellen Bestand gibt es immer — er wird aber
+    // auch nie geschrieben, also gibt es nichts zu fragen.
+    if (!sendung.kennung.startsWith('hausregel/')) return false;
+    const id = zuId(sendung.kennung.slice('hausregel/'.length));
+    return (await leseHausregeln(path.join(datenordner, WERKZEUG, ORDNER_NAME))).some((r) => r.id === id);
+  },
+  async nimmAn(datenordner, sendung, modus) {
+    if (modus === 'verwerfen') return { ok: true };
+    if (!sendung.kennung.startsWith('hausregel/')) {
+      return regelNach(sendung.kennung)
+        ? { ok: true, kennung: sendung.kennung }
+        : { ok: false, grund: 'unbekannte Regel' };
+    }
+    if (sendung.inhalt === null) return { ok: false, grund: 'kein Inhalt' };
+    const ordner = path.join(datenordner, WERKZEUG, ORDNER_NAME);
+    await mkdir(ordner, { recursive: true });
+    const wunsch = zuId(sendung.kennung.slice('hausregel/'.length));
+    const vorhanden = (await leseHausregeln(ordner)).map((r) => r.id);
+    const id = modus === 'daneben' ? freieKennung(wunsch, vorhanden) : wunsch;
+    await writeFile(path.join(ordner, `${id}.md`), sendung.inhalt, 'utf8');
+    return { ok: true, kennung: `hausregel/${id}` };
+  }
+};
 
 export interface NachschlagewerkEmbedOptions {
   readonly distDir: string;

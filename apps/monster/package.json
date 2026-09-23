@@ -30,6 +30,7 @@
     "@suite/ki": "*",
     "@suite/umgebungen": "*",
     "@suite/foundry": "*",
-    "@suite/eintraege": "*"
+    "@suite/eintraege": "*",
+    "@suite/austausch": "*"
   }
 }

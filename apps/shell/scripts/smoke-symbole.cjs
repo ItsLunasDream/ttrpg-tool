@@ -169,7 +169,7 @@ app.whenReady().then(async () => {
    */
   fs.writeFileSync(path.join(ordner, 'initiative.png'), MAGENTA_PNG);
   // Einstellungen auf, „Symbole neu laden" druecken, Dialog wieder zu.
-  await js("[...document.querySelectorAll('.titelleiste__knopf')][0].click()");
+  await js("document.querySelector('[data-einstellungen-knopf]').click()");
   await warte(700);
   const gedrueckt = await js(`
     (() => {

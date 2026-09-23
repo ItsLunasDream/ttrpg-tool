@@ -492,6 +492,17 @@ async function legeNotizAn(
   return { ok: true, text: `${titel} → ${kampagne.name}` };
 }
 
+/**
+ * Sagt einem offenen Story Creator, dass auf der Platte etwas dazugekommen
+ * ist (Austausch). Ist er zu, gibt es niemandem etwas zu sagen: beim
+ * naechsten Oeffnen liest er ohnehin frisch.
+ */
+export function meldeStoryCreatorAenderung(): void {
+  if (backstoryEmbed && backstorySicht && !backstorySicht.webContents.isDestroyed()) {
+    backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
+  }
+}
+
 async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountNpc({
     distDir: appDistDir(id, 'main'),

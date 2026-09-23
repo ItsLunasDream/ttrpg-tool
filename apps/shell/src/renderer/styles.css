@@ -1445,3 +1445,80 @@ body {
     margin: 0 10px 4px;
   }
 }
+
+/* ---------- Teilen (Austausch, docs/austausch.md) ---------- */
+
+.austausch {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  min-width: 0;
+}
+
+.austausch__filter {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.austausch__zeile {
+  flex-wrap: wrap;
+}
+
+.austausch__liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 46vh;
+  overflow: auto;
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+}
+
+.austausch__liste li + li {
+  border-top: 1px solid var(--rand);
+}
+
+.austausch__zeile {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.austausch__name {
+  font-weight: 600;
+}
+
+.austausch__art {
+  color: var(--text-leise, var(--text));
+  opacity: 0.75;
+  font-size: 0.9em;
+}
+
+.austausch__konflikt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 8px 36px;
+  font-size: 0.9em;
+}
+
+.austausch__fuss {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.austausch__fehler,
+.austausch__ergebnis .is-fehler {
+  color: var(--warnung, #d9534f);
+}
+
+.austausch__ergebnis {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

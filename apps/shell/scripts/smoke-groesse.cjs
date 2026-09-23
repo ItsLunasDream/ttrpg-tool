@@ -71,7 +71,7 @@ app.whenReady().then(async () => {
   const vorher = wuerfel.getBounds();
   pruefe(vorher.x === 56 && vorher.y === 40, `bei 100 % liegt es unter Titelleiste und neben Schiene (${vorher.x}/${vorher.y})`);
 
-  await js(`[...document.querySelectorAll('.titelleiste__knopf')].find(b => /Settings|Einstellungen/.test(b.textContent)).click(); true`);
+  await js(`document.querySelector('[data-einstellungen-knopf]').click(); true`);
   await warte(800);
   const stufen = await js("[...document.querySelectorAll('[data-groesse]')].map(b => b.dataset.groesse).join(',')");
   pruefe(stufen === '80,90,100,110,125,150,175,200', `der Dialog bietet die Stufen an (${stufen})`);

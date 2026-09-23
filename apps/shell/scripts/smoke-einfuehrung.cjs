@@ -134,7 +134,7 @@ app.whenReady().then(async () => {
   );
 
   console.log('\nZuruecksetzen in den Einstellungen:');
-  await js("document.querySelector('.titelleiste__knopf').click()");
+  await js("document.querySelector('[data-einstellungen-knopf]').click()");
   await warte(400);
   // Der Knopf liegt seit dem Umbau unter „Daten & Sicherung" und nicht mehr
   // in einer langen Liste.

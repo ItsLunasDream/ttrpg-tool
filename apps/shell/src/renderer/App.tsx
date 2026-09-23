@@ -48,6 +48,7 @@ import { VORGABE_THEMA } from '@suite/farben';
 import { WERKZEUG_APP, type Eintrag } from '@suite/eintraege';
 import { Einstellungen, type KiZustandAnsicht } from './Einstellungen';
 import { Suche } from './Suche';
+import { Austausch } from './Austausch';
 import { Ueber } from './Ueber';
 import { Einfuehrung } from './Einfuehrung';
 import { WILLKOMMEN, einfuehrungFuer, stehtAus } from '../shared/einfuehrung';
@@ -186,7 +187,7 @@ export function App() {
     phase: 'waechst' | 'wartet';
   } | null>(null);
   /** Welcher Dialog offen ist, oder `null`. Es ist immer hoechstens einer. */
-  const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | null>(null);
+  const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | null>(null);
   /**
    * Ob zurueck und vorwaerts gerade moeglich sind.
    *
@@ -218,7 +219,7 @@ export function App() {
    * liegt unter den Anwendungen. Ohne diese Meldung waere ein geoeffneter
    * Dialog hinter der laufenden Anwendung nicht zu sehen.
    */
-  const zeigeDialog = useCallback((welcher: 'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | null) => {
+  const zeigeDialog = useCallback((welcher: 'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | null) => {
     setDialog(welcher);
     void window.shell.app.dialog(welcher !== null);
   }, []);
@@ -230,7 +231,7 @@ export function App() {
    * Hauptprozesses heraus aufgerufen wird und dort der Zustand von vorhin
    * stuende.
    */
-  const dialogRef = useRef<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | null>(null);
+  const dialogRef = useRef<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | null>(null);
   dialogRef.current = dialog;
 
   /**
@@ -701,14 +702,18 @@ export function App() {
         <span className="titelleiste__name">TTRPG-Tools</span>
         {eintrag && <span className="titelleiste__pfad">› {t(nameKey(eintrag.id))}</span>}
         <span className="titelleiste__fueller" />
+        <button type="button" className="titelleiste__knopf" data-teilen-knopf onClick={() => zeigeDialog('teilen')}>
+          {t('title.share')}
+        </button>
         <button
           type="button"
           className="titelleiste__knopf"
+          data-einstellungen-knopf
           onClick={() => zeigeDialog('einstellungen')}
         >
           {t('title.settings')}
         </button>
-        <button type="button" className="titelleiste__knopf" onClick={() => zeigeDialog('ueber')}>
+        <button type="button" className="titelleiste__knopf" data-ueber-knopf onClick={() => zeigeDialog('ueber')}>
           {t('title.about')}
         </button>
         <div className="fensterknoepfe">
@@ -838,6 +843,8 @@ export function App() {
           t={t}
         />
       )}
+      {dialog === 'teilen' && <Austausch onClose={() => zeigeDialog(null)} t={t} />}
+
       {dialog === 'suche' && (
         <Suche
           eintraege={[...appEintraege, ...eintraege]}

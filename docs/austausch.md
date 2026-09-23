@@ -4,7 +4,47 @@ Ein Werkzeug, mit dem eine Gruppe, die in Person spielt und die Sammlung
 auf mehreren Rechnern hat, Sachen hin- und herschickt: Notizen, Monster,
 Zustände, Nachrichten.
 
-**Stand:** Konzept. Nichts davon ist gebaut.
+**Stand:** Stufe 1 ist gebaut: die gemeinsame Schnittstelle
+(`packages/austausch`) in drei Werkzeugen (Story Creator, Monster Creator,
+Nachschlagewerk) und der Dialog „Teilen" in der Hülle. Weitergegeben wird
+vorerst als Paketdatei, eingelesen aus einer. Der Raum im lokalen Netz
+(Stufe 2) steht noch aus.
+
+**Entschieden (Nutzerin, 23.09.):**
+
+- Die Schnittstelle hat dieselbe Form wie die Einstellungen: ein optionaler
+  Haken je Werkzeug, die Hülle vermittelt.
+- Angenommen wird auch, wenn das Zielwerkzeug zu ist: die Werkzeuge
+  schreiben direkt in ihre Ablage, beim nächsten Öffnen ist der Eintrag da.
+- Räume findet man über eine **Liste im Netz** (Stufe 2).
+- **Bilder reisen mit**, als Base64 im Paket.
+- Im Raum gibt es außerdem einen **Chat**: Nachrichten an alle und
+  **Direktnachrichten** an eine Person. **Dateien und Einträge** lassen sich
+  ebenso an alle oder an **einzelne Personen** schicken. Jede Person gibt
+  sich einen **Namen** (Einstellung „Dein Name am Tisch"); ohne eigenen
+  Namen gilt ein generischer („Gast 1"). Doppelte Namen bekommen im Raum
+  eine Zahl. Solange die Verbindung unverschlüsselt ist, sagt die App bei
+  Direktnachrichten sichtbar, dass sie im selben Netz mitlesbar sind.
+
+**Wie Stufe 1 gebaut ist:**
+
+- Eine Sendung ist das Markdown, das das Werkzeug ohnehin ablegt, dazu
+  Name, Art und die Bilder. Ein Paket ist eine lesbare Markdown-Datei
+  (`.ttrpg.md`); die Verwaltung steht in HTML-Kommentaren.
+- Gibt es eine Kennung schon, wird gefragt: daneben legen (Vorgabe),
+  übernehmen oder verwerfen. Daneben gelegt bekommt der Eintrag eine freie
+  Kennung, eine Notiz auch einen eindeutigen Titel („Der König (2)").
+- Eine Notiz geht in eine Kampagne, die der Empfänger wählt. Kennt die
+  Kampagne den Notiztyp nicht, wird er mit der Beschriftung des Absenders
+  angelegt. Beziehungen auf Notizen, die es beim Empfänger nicht gibt,
+  fallen weg.
+- Offizielle Regeln reisen als Verweis, Hausregeln ganz, Notizen am
+  Regeltext gar nicht.
+- Offene Werkzeuge erfahren vom Empfang: der Story Creator liest neu,
+  Monster Creator und Nachschlagewerk zeigen den angekommenen Eintrag.
+- Geprüft in `packages/austausch` (Paketformat), im Vault-Test des Story
+  Creators (Empfang mit Bild und Typ) und im Rauchtest
+  `smoke-austausch.cjs` (ganzer Weg, Werkzeuge geschlossen).
 
 ## Die Reihenfolge, um die es geht
 
