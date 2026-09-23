@@ -6,6 +6,19 @@
  * auch die der eingebetteten Anwendungen.
  */
 import { contextBridge, ipcRenderer } from 'electron';
+import type { GefundenerRaum, Raumereignis, Raumzustand } from '../main/raum';
+
+/** Ein angekommenes Paket, ohne seinen Inhalt. */
+export interface Raumpaket {
+  readonly id: number;
+  readonly von: string;
+  readonly titel: string;
+  readonly zeit: string;
+}
+/** Was aus dem Raum an die Oberflaeche geht. */
+export type RaumereignisOberflaeche =
+  | Exclude<Raumereignis, { art: 'paket' }>
+  | { readonly art: 'pakete'; readonly pakete: readonly Raumpaket[] };
 import type { Ankunft } from '../main/austausch';
 import type { Modus } from '@suite/austausch';
 import type { ShellSettings } from '../main/settings';
@@ -242,6 +255,42 @@ const api = {
       ipcRenderer.invoke('austausch:annehmen', entscheidungen, ziele) as Promise<
         { ok: boolean; kennung?: string; grund?: string; werkzeug: string; name: string }[]
       >
+  },
+  /**
+   * Der Raum im lokalen Netz (Stufe 2): Chat an alle oder an eine Person,
+   * Pakete ebenso. Der Verkehr ist unverschluesselt.
+   */
+  raum: {
+    zustand: () =>
+      ipcRenderer.invoke('raum:zustand') as Promise<{
+        zustand: Raumzustand;
+        raeume: GefundenerRaum[];
+        pakete: Raumpaket[];
+      }>,
+    suchen: () => ipcRenderer.invoke('raum:suchen') as Promise<GefundenerRaum[]>,
+    eroeffnen: (name: string, passwort: string) =>
+      ipcRenderer.invoke('raum:eroeffnen', name, passwort) as Promise<{ ok: boolean; port?: number; grund?: string }>,
+    beitreten: (adresse: string, port: number, passwort: string) =>
+      ipcRenderer.invoke('raum:beitreten', adresse, port, passwort) as Promise<Raumzustand>,
+    verlassen: () => ipcRenderer.invoke('raum:verlassen') as Promise<Raumzustand>,
+    chat: (text: string, an: string | null) => ipcRenderer.invoke('raum:chat', text, an) as Promise<boolean>,
+    senden: (auswahl: { werkzeug: string; kennung: string }[], an: string | null) =>
+      ipcRenderer.invoke('raum:senden', auswahl, an) as Promise<{ ok: boolean; anzahl: number }>,
+    paketAnsehen: (id: number) =>
+      ipcRenderer.invoke('austausch:raumpaket', id) as Promise<{
+        ok: boolean;
+        abgebrochen: boolean;
+        grund?: string;
+        ankuenfte?: Ankunft[];
+        ziele?: Record<string, { id: string; name: string }[]>;
+      }>,
+    beiEreignis: (fn: (ereignis: RaumereignisOberflaeche) => void): (() => void) => {
+      const hoerer = (_e: unknown, ereignis: RaumereignisOberflaeche) => fn(ereignis);
+      ipcRenderer.on('raum:ereignis', hoerer);
+      return () => {
+        ipcRenderer.off('raum:ereignis', hoerer);
+      };
+    }
   },
   /** Eine Sicherung der ganzen Sammlung — alle Werkzeuge, nicht nur eines. */
   sicherung: {

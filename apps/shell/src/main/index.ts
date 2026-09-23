@@ -75,7 +75,8 @@ import {
   teilbar,
   zieleFuer
 } from './austausch';
-import { PAKET_ENDUNG, type Modus, type Paket } from '@suite/austausch';
+import { alsPaket, gastname, lesePaket, PAKET_ENDUNG, type Modus, type Paket } from '@suite/austausch';
+import { Raumdienst, type Raumereignis } from './raum';
 import { sicherungsname } from '../shared/sicherung';
 import { brichFahrtAb, fahreEin } from './fahrt';
 import {
@@ -874,6 +875,83 @@ function registriereKanaele(): void {
     }
     try {
       eingang = await lesePaketDatei(quelle);
+    } catch (fehler) {
+      eingang = null;
+      return { ok: false, abgebrochen: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };
+    }
+    return {
+      ok: true,
+      abgebrochen: false,
+      ankuenfte: ankuenfte(eingang),
+      ziele: await zieleFuer(app.getPath('userData'), eingang.sendungen.map((s) => s.werkzeug))
+    };
+  });
+
+  /*
+   * Der Raum im lokalen Netz (Stufe 2). Der Dienst lebt im Hauptprozess,
+   * damit Chat und Verbindung einen geschlossenen Dialog ueberstehen.
+   * Angekommene Pakete warten hier, bis jemand sie ansieht; angesehen wird
+   * ueber denselben Weg wie eine Paketdatei.
+   */
+  const raumPakete: { id: number; von: string; titel: string; paket: string; zeit: string }[] = [];
+  let naechstesRaumpaket = 1;
+  const raum = new Raumdienst((ereignis: Raumereignis) => {
+    if (ereignis.art === 'paket') {
+      raumPakete.push({
+        id: naechstesRaumpaket++,
+        von: ereignis.von.name,
+        titel: ereignis.titel,
+        paket: ereignis.paket,
+        zeit: new Date().toISOString()
+      });
+      huelle?.webContents.send('raum:ereignis', { art: 'pakete', pakete: raumPakete.map(({ paket: _p, ...rest }) => rest) });
+      return;
+    }
+    huelle?.webContents.send('raum:ereignis', ereignis);
+  });
+  app.on('will-quit', () => raum.beende());
+  /** Der eigene Name, sonst ein Gastname mit einer Zahl, die selten doppelt ist. */
+  const meinName = () =>
+    gemerkteEinstellungen.tischName ||
+    gastname(1 + Math.floor(Math.random() * 99), gemerkteEinstellungen.language === 'de' ? 'de' : 'en');
+
+  handle('raum:zustand', () => ({
+    zustand: raum.zustand(),
+    raeume: raum.raeume(),
+    pakete: raumPakete.map(({ paket: _p, ...rest }) => rest)
+  }));
+  handle('raum:suchen', () => {
+    raum.suche();
+    return raum.raeume();
+  });
+  handle('raum:eroeffnen', async (_event, name: string, passwort: string) => {
+    try {
+      return { ok: true, port: await raum.eroeffne(name, passwort, meinName()) };
+    } catch (fehler) {
+      return { ok: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };
+    }
+  });
+  handle('raum:beitreten', async (_event, adresse: string, port: number, passwort: string) => {
+    await raum.trittBei(adresse, port, passwort, meinName());
+    return raum.zustand();
+  });
+  handle('raum:verlassen', () => {
+    raum.verlasse();
+    return raum.zustand();
+  });
+  handle('raum:chat', (_event, text: string, an: string | null) => raum.chatte(text, an));
+  handle('raum:senden', async (_event, auswahl: { werkzeug: string; kennung: string }[], an: string | null) => {
+    const paket = await schnuere(app.getPath('userData'), auswahl);
+    if (paket.sendungen.length === 0) return { ok: false, anzahl: 0 };
+    const namen = paket.sendungen.map((s) => s.name);
+    const titel = `${namen.length}: ${namen.slice(0, 4).join(', ')}${namen.length > 4 ? ', …' : ''}`;
+    return { ok: raum.sende(alsPaket(paket), titel, an), anzahl: paket.sendungen.length };
+  });
+  handle('austausch:raumpaket', async (_event, id: number) => {
+    const angekommen = raumPakete.find((p) => p.id === id);
+    if (!angekommen) return { ok: false, abgebrochen: false, grund: 'weg' };
+    try {
+      eingang = lesePaket(angekommen.paket);
     } catch (fehler) {
       eingang = null;
       return { ok: false, abgebrochen: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };

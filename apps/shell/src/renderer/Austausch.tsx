@@ -18,6 +18,11 @@ import { eintragsSchluessel, finde, type Eintrag } from '@suite/eintraege';
 import type { MessageKey, MessageParams } from '../shared/i18n';
 import { nameKey } from '../shared/apps';
 import { Dialog } from './Dialog';
+import { Raum } from './Raum';
+import type { GefundenerRaum, Raumzustand } from '../main/raum';
+import type { Raumpaket } from '../preload';
+
+const AUS: Raumzustand = { rolle: 'aus', raum: '', ich: null, personen: [], chat: [], port: null, adressen: [] };
 
 type Modus = 'uebernehmen' | 'daneben' | 'verwerfen';
 
@@ -42,8 +47,32 @@ function istOffiziell(e: Eintrag): boolean {
 }
 
 export function Austausch({ onClose, t }: Props) {
-  const [richtung, setRichtung] = useState<'geben' | 'nehmen'>('geben');
+  const [richtung, setRichtung] = useState<'geben' | 'nehmen' | 'raum'>('geben');
   const werkzeugName = (id: string) => t(nameKey(id));
+
+  /* ---------- Der Raum (Stufe 2) ---------- */
+  const [raum, setRaum] = useState<Raumzustand>(AUS);
+  const [raeume, setRaeume] = useState<readonly GefundenerRaum[]>([]);
+  const [raumPakete, setRaumPakete] = useState<readonly Raumpaket[]>([]);
+  const [raumFehler, setRaumFehler] = useState('');
+  const [raumAn, setRaumAn] = useState('');
+
+  useEffect(() => {
+    void window.shell.raum.zustand().then((s) => {
+      setRaum(s.zustand);
+      setRaeume(s.raeume);
+      setRaumPakete(s.pakete);
+    });
+    return window.shell.raum.beiEreignis((e) => {
+      if (e.art === 'zustand') {
+        setRaum(e.zustand);
+        if (e.zustand.rolle !== 'aus') setRaumFehler('');
+      } else if (e.art === 'raeume') setRaeume(e.raeume);
+      else if (e.art === 'pakete') setRaumPakete(e.pakete);
+      else if (e.art === 'chat') setRaum((alt) => ({ ...alt, chat: [...alt.chat, e.zeile] }));
+      else if (e.art === 'fehler') setRaumFehler(t(`room.error.${e.grund}` as MessageKey));
+    });
+  }, [t]);
 
   /* ---------- Weitergeben ---------- */
   const [teilbar, setTeilbar] = useState<Eintrag[] | null>(null);
@@ -73,10 +102,18 @@ export function Austausch({ onClose, t }: Props) {
     });
   };
 
-  const speichern = async () => {
-    const auswahl = (teilbar ?? [])
+  const auswahlListe = () =>
+    (teilbar ?? [])
       .filter((e) => gewaehlt.has(eintragsSchluessel(e)))
       .map((e) => ({ werkzeug: e.werkzeug, kennung: e.kennung }));
+
+  const inDenRaum = async () => {
+    const antwort = await window.shell.raum.senden(auswahlListe(), raumAn || null);
+    setMeldung(antwort.ok ? t('share.sentToRoom', { anzahl: antwort.anzahl }) : t('share.saveFailed'));
+  };
+
+  const speichern = async () => {
+    const auswahl = auswahlListe();
     const antwort = await window.shell.austausch.speichern(auswahl);
     if (antwort.abgebrochen) return;
     setMeldung(antwort.ok ? t('share.saved', { anzahl: antwort.anzahl }) : t('share.saveFailed'));
@@ -92,8 +129,9 @@ export function Austausch({ onClose, t }: Props) {
   const [fehler, setFehler] = useState('');
   const [ergebnis, setErgebnis] = useState<{ ok: boolean; name: string; grund?: string }[] | null>(null);
 
-  const oeffnen = async () => {
-    const antwort = await window.shell.austausch.oeffnen();
+  const oeffnen = async () => zeige(await window.shell.austausch.oeffnen());
+
+  const zeige = (antwort: Awaited<ReturnType<typeof window.shell.austausch.oeffnen>>) => {
     if (antwort.abgebrochen) return;
     setErgebnis(null);
     if (!antwort.ok || !antwort.ankuenfte) {
@@ -132,7 +170,7 @@ export function Austausch({ onClose, t }: Props) {
   return (
     <Dialog titel={t('share.title')} schliessenText={t('dialog.close')} onClose={onClose}>
       <div className="segment" role="group" aria-label={t('share.title')}>
-        {(['geben', 'nehmen'] as const).map((r) => (
+        {(['geben', 'nehmen', 'raum'] as const).map((r) => (
           <button
             key={r}
             type="button"
@@ -141,12 +179,15 @@ export function Austausch({ onClose, t }: Props) {
             aria-pressed={r === richtung}
             onClick={() => setRichtung(r)}
           >
-            {t(r === 'geben' ? 'share.give' : 'share.take')}
+            {t(r === 'geben' ? 'share.give' : r === 'nehmen' ? 'share.take' : 'share.room')}
+            {r === 'nehmen' && raumPakete.length > 0 ? ` (${raumPakete.length})` : ''}
           </button>
         ))}
       </div>
 
-      {richtung === 'geben' ? (
+      {richtung === 'raum' ? (
+        <Raum zustand={raum} raeume={raeume} fehler={raumFehler} t={t} />
+      ) : richtung === 'geben' ? (
         <div className="austausch" data-austausch="geben">
           <p className="einst__satz">{t('share.giveHint')}</p>
           <input
@@ -191,6 +232,29 @@ export function Austausch({ onClose, t }: Props) {
               {t('share.save')}
             </button>
           </div>
+          {raum.rolle !== 'aus' && (
+            <div className="austausch__fuss">
+              <select className="feld__wahl" data-raum-an value={raumAn} onChange={(e) => setRaumAn(e.target.value)}>
+                <option value="">{t('room.toAll')}</option>
+                {raum.personen
+                  .filter((p) => p.id !== raum.ich?.id)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {t('room.toOne', { name: p.name })}
+                    </option>
+                  ))}
+              </select>
+              <button
+                type="button"
+                className="dialog__knopf"
+                data-in-den-raum
+                disabled={gewaehlt.size === 0}
+                onClick={() => void inDenRaum()}
+              >
+                {t('share.sendToRoom')}
+              </button>
+            </div>
+          )}
           {meldung && (
             <p className="einst__satz" data-meldung>
               {meldung}
@@ -203,6 +267,24 @@ export function Austausch({ onClose, t }: Props) {
           <button type="button" className="dialog__knopf" data-paket-oeffnen onClick={() => void oeffnen()}>
             {t('share.open')}
           </button>
+          {raumPakete.length > 0 && (
+            <ul className="austausch__liste" data-raumpakete>
+              {raumPakete.map((p) => (
+                <li key={p.id} className="austausch__zeile">
+                  <span className="austausch__name">{p.titel}</span>
+                  <span className="austausch__art">{t('share.fromRoom', { name: p.von })}</span>
+                  <button
+                    type="button"
+                    className="dialog__knopf"
+                    data-raumpaket={p.id}
+                    onClick={() => void window.shell.raum.paketAnsehen(p.id).then(zeige)}
+                  >
+                    {t('share.look')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           {fehler && (
             <p className="einst__satz austausch__fehler" data-fehler>
               {fehler}

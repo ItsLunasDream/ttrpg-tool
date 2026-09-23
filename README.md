@@ -161,8 +161,10 @@ for the title bar and the rail.
   Monster Creator and the Reference (house rules; official rules as a
   reference) into one readable Markdown file, and reads such a file back.
   An entry that already exists is kept side by side unless you choose to
-  replace it. The tools take entries even while closed. The local-network
-  room is the next stage.
+  replace it. The tools take entries even while closed. Stage 2 adds a room
+  on the local network: chat to everyone or to one person, and packages to
+  everyone or to one person, under a name you choose. The room is not
+  encrypted, and the app says so.
 - The interface size (80 to 200 percent) works the same way: one setting,
   applied by the shell to every view; the tools move along with the title bar
   and the rail instead of slipping underneath them.

@@ -7,8 +7,40 @@ Zustände, Nachrichten.
 **Stand:** Stufe 1 ist gebaut: die gemeinsame Schnittstelle
 (`packages/austausch`) in drei Werkzeugen (Story Creator, Monster Creator,
 Nachschlagewerk) und der Dialog „Teilen" in der Hülle. Weitergegeben wird
-vorerst als Paketdatei, eingelesen aus einer. Der Raum im lokalen Netz
-(Stufe 2) steht noch aus.
+als Paketdatei oder über den Raum.
+
+Stufe 2 ist gebaut, in einer ersten Fassung: der **Raum im lokalen Netz**
+mit Chat, Direktnachrichten und Paketen an alle oder an eine Person
+(Reiter „Raum" im Dialog „Teilen"). Offen ist noch, ob der Chatverlauf
+gespeichert wird; vorläufig lebt er nur, solange der Raum offen ist.
+
+**Wie Stufe 2 gebaut ist:**
+
+- Wer einen Raum eröffnet, ist **Gastgeber**: ein TCP-Dienst auf einem
+  freien Port, dazu alle 2 Sekunden eine Ankündigung per UDP-Broadcast
+  (Port 47811). Die anderen sehen den Raum in der Liste und verbinden sich
+  mit dem Gastgeber; er verteilt alles. Lässt ein Netz Broadcasts nicht
+  durch, tritt man über die Adresse bei, die beim Gastgeber steht.
+- Auf der Leitung steht je Zeile eine JSON-Nachricht (Protokoll in
+  `packages/austausch/src/raum.ts`). Das **Passwort reist nie**: der
+  Gastgeber schickt eine Zufallszahl, der Gast antwortet mit einem HMAC
+  daraus.
+- **Alles andere ist unverschlüsselt.** Die App sagt das im Raum und bei
+  jeder Direktnachricht. Verschlüsselung bleibt Stufe 4.
+- Der Absender einer Nachricht ist, wer die Leitung hält, nicht, was im
+  Feld steht: ein Gast kann sich nicht als jemand anderes ausgeben.
+- Der eigene Name steht in den Einstellungen (`tischName`); ohne ihn gibt
+  es einen Gastnamen („Gast 42"). Doppelte Namen bekommen eine Zahl.
+- Angekommene Pakete warten im Reiter „Empfangen" und werden über
+  denselben Weg angesehen und angenommen wie eine Paketdatei. Am Knopf
+  „Teilen" zählt eine Zahl neue Nachrichten und Pakete mit.
+- Höchstens 16 Personen, eine Zeile höchstens 80 MB.
+- Unter Windows fragt die Firewall beim ersten Eröffnen, ob die App im
+  Netz erreichbar sein darf. Ohne Zustimmung findet niemand den Raum.
+- Geprüft in `packages/austausch` (Protokoll), in `apps/shell/tests`
+  (Gastgeber und Gäste in einem Prozess: Namen, Passwort, Chat,
+  Direktnachricht, Paket an eine Person, Raumliste) und im Rauchtest
+  `smoke-raum.cjs` (die App als Gastgeber, ein Gast aus dem Protokoll).
 
 **Entschieden (Nutzerin, 23.09.):**
 

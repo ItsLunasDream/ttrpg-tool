@@ -580,6 +580,26 @@ export function App() {
     []
   );
 
+  /*
+   * Neues aus dem Raum, solange der Dialog „Teilen" zu ist: Nachrichten
+   * anderer und angekommene Pakete. Der Zaehler steht am Knopf; beim
+   * Oeffnen ist er weg.
+   */
+  const [ungelesen, setUngelesen] = useState(0);
+  const dialogJetzt = useRef(dialog);
+  dialogJetzt.current = dialog;
+  useEffect(
+    () =>
+      window.shell.raum.beiEreignis((e) => {
+        if (dialogJetzt.current === 'teilen') return;
+        if ((e.art === 'chat' && !e.zeile.eigene) || e.art === 'pakete') setUngelesen((n) => n + 1);
+      }),
+    []
+  );
+  useEffect(() => {
+    if (dialog === 'teilen') setUngelesen(0);
+  }, [dialog]);
+
   const setzeGroesse = useCallback(async (prozent: number) => {
     const e = await window.shell.einstellungen.schreiben({ groesse: prozent });
     setGroesse(e.groesse);
@@ -704,6 +724,11 @@ export function App() {
         <span className="titelleiste__fueller" />
         <button type="button" className="titelleiste__knopf" data-teilen-knopf onClick={() => zeigeDialog('teilen')}>
           {t('title.share')}
+          {ungelesen > 0 && (
+            <span className="titelleiste__zahl" data-ungelesen>
+              {ungelesen}
+            </span>
+          )}
         </button>
         <button
           type="button"

@@ -317,3 +317,5 @@ export function mimeVon(name: string): string {
     ] ?? 'application/octet-stream'
   );
 }
+
+export * from './raum';

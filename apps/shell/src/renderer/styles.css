@@ -1522,3 +1522,72 @@ body {
   margin: 0;
   padding: 0;
 }
+
+/* ---------- Raum (Austausch, Stufe 2) ---------- */
+
+.raum__reihe {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.raum__eingabe {
+  box-sizing: border-box;
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.raum__kopf {
+  margin: 8px 0 0;
+  font-size: 1em;
+}
+
+.raum__warnung {
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.raum__kopfzeile {
+  justify-content: space-between;
+}
+
+.raum__chat {
+  max-height: 38vh;
+  min-height: 160px;
+  overflow: auto;
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.raum__zeile {
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+}
+
+.raum__wer {
+  font-weight: 600;
+}
+
+.raum__zeile.is-privat {
+  border-left: 3px solid var(--betont, currentColor);
+  padding-left: 6px;
+}
+
+.raum__privat {
+  opacity: 0.7;
+}
+
+.raum__text {
+  flex: 3 1 200px;
+}
+
+.titelleiste__zahl {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 0.8em;
+  background: var(--betont, #6b8cff);
+  color: var(--grund, #111);
+}

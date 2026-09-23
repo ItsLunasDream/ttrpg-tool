@@ -58,6 +58,11 @@ export interface ShellSettings {
    * alle Werkzeuge.
    */
   groesse: number;
+  /**
+   * Der eigene Name im Raum (Austausch, Stufe 2). Leer heisst: ein
+   * Gastname, den die Huelle beim Beitreten vergibt.
+   */
+  tischName: string;
 }
 
 export const DEFAULT_SETTINGS: ShellSettings = {
@@ -66,7 +71,8 @@ export const DEFAULT_SETTINGS: ShellSettings = {
   claudeSchluessel: '',
   einfuehrungGesehen: [],
   thema: VORGABE_THEMA,
-  groesse: VORGABE_GROESSE
+  groesse: VORGABE_GROESSE,
+  tischName: ''
 };
 
 /** Erzwingt gueltige Werte, egal was in der Datei stand. */
@@ -85,6 +91,7 @@ export function sanitizeSettings(roh: unknown): ShellSettings {
      */
     thema: themaMit(typeof wert.thema === 'string' ? wert.thema : '').id,
     groesse: gueltigeGroesse(wert.groesse),
+    tischName: typeof wert.tischName === 'string' ? wert.tischName.replace(/\s+/g, ' ').trim().slice(0, 40) : '',
     // Nur Zeichenketten, und jede nur einmal: die Liste waechst sonst bei
     // jedem Start um denselben Eintrag.
     einfuehrungGesehen: Array.isArray(wert.einfuehrungGesehen)
