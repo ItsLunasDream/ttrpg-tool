@@ -2033,3 +2033,36 @@ body {
   cursor: pointer;
   user-select: none;
 }
+
+/* Im Raum: gruener Knopf links neben „Teilen". */
+.titelleiste__raum {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  border: 1px solid #2f9e5b;
+  background: rgba(47, 158, 91, 0.16);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.titelleiste__raum:hover:not(:disabled) {
+  background: rgba(47, 158, 91, 0.28);
+}
+
+.titelleiste__raumpunkt {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3cc46f;
+  box-shadow: 0 0 0 3px rgba(60, 196, 111, 0.25);
+}
+
+.titelleiste__raumzahl {
+  flex: none;
+  font-size: 0.85em;
+  opacity: 0.8;
+}

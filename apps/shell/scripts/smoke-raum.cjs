@@ -88,6 +88,10 @@ app.whenReady().then(async () => {
   const { zustand } = await js('window.shell.raum.zustand()');
   pruefe(zustand.rolle === 'gastgeber' && zustand.port > 0, `die App ist Gastgeber (Port ${zustand.port})`);
   pruefe(zustand.ich.name === 'Spielleitung', 'unter dem eigenen Namen');
+  pruefe(
+    /Freitagsrunde/.test(await js("document.querySelector('[data-im-raum]')?.textContent ?? ''")),
+    'links neben „Teilen" steht der gruene Raumknopf mit dem Raumnamen'
+  );
 
   // --- Falsches und richtiges Passwort --------------------------------------
   const eve = gast(zustand.port, 'falsch', 'Eve');
@@ -144,6 +148,10 @@ app.whenReady().then(async () => {
     ''
   ].join('\n');
   // Dialog zu: der Zaehler am Knopf soll anspringen.
+  await js("document.querySelector('.dialog').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
+  await warte(500);
+  await js(`document.querySelector('[data-im-raum]').click(); true`);
+  pruefe(await bis(async () => js("Boolean(document.querySelector('[data-raum=\"drin\"]'))")), 'ein Klick auf den gruenen Knopf oeffnet den Raum');
   await js("document.querySelector('.dialog').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
   await warte(500);
   anna.schreibe({ typ: 'paket', von: anna.ich.id, an: 'gastgeber', titel: '1: Ghul', paket, zeit: '' });
@@ -257,6 +265,7 @@ app.whenReady().then(async () => {
   await js('window.shell.raum.verlassen()');
   pruefe(await bis(() => anna.getrennt && ben.getrennt), 'der Raum ist zu, die Gaeste sind getrennt');
   pruefe((await js('window.shell.raum.zustand()')).zustand.rolle === 'aus', 'und die App ist wieder draussen');
+  pruefe(await bis(async () => !(await js("Boolean(document.querySelector('[data-im-raum]'))"))), 'der gruene Raumknopf ist weg');
   pruefe(!anna.klartextNachAnmeldung && !ben.klartextNachAnmeldung, 'nach der Anmeldung kam nichts im Klartext');
   anna.zu();
   ben.zu();
