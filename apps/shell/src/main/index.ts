@@ -448,6 +448,21 @@ function raumLage(): RaumLage {
   return z ? { rolle: z.rolle, ich: z.ich, personen: z.personen } : { rolle: 'aus', ich: null, personen: [] };
 }
 
+/**
+ * Montiert ein Werkzeug, ohne es zu zeigen. Es steht danach in `offen`
+ * wie jedes andere; geladen wird seine Oberflaeche erst beim ersten Zeigen.
+ */
+async function montiereImHintergrund(id: string): Promise<void> {
+  if (offen.has(id) || !fenster) return;
+  const einstellungen = await readSettings(einstellungsDatei);
+  const montiert = await mountApp(id, montageHaken(id, einstellungen.language));
+  if (!montiert || offen.has(id)) return;
+  offen.set(id, montiert);
+  beobachteFarbe(montiert.sicht.webContents as WebContents);
+  montiert.sicht.setVisible(false);
+  fenster.contentView.addChildView(montiert.sicht);
+}
+
 function montageHaken(herkunft: string, sprache: Language): MontageHaken {
   return {
     language: sprache,
@@ -456,6 +471,7 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
     // getan hat. Die Huelle laesst dann eine Farbe ueber deren Symbol
     // wischen — einheitlich fuer alle Werkzeuge, gleich wer es ausloest.
     onEreignis: (appId) => huelle?.webContents.send('app:ereignis', appId),
+    stelleStoryBereit: () => montiereImHintergrund('backstory'),
     onOrt: (ort) => meldeOrt(herkunft, ort),
     raum: {
       sende: (werkzeug, inhalt, an) => raumDienst?.sendeWerkzeug(werkzeug, inhalt, an) ?? false,

@@ -106,6 +106,11 @@ export function Zeile(props: Props) {
             <span className="zeile__marke">{t('gruppe.mitglieder', { n: teilnehmer.koerper.length })}</span>
           ) : null}
           {teilnehmer.istSpieler ? <span className="zeile__marke">PC</span> : null}
+          {teilnehmer.rk ? (
+            <span className="zeile__marke zeile__rk" title={t('feld.rk')}>
+              {t('feld.rk')} {teilnehmer.rk}
+            </span>
+          ) : null}
           {props.besitzer ? (
             <span className="zeile__marke zeile__besitz" data-besitzer={props.besitzer}>
               {props.besitzer}
@@ -351,6 +356,18 @@ function Ausklapp({
             className="schmal"
             value={teilnehmer.feinwert}
             onChange={(e) => onAendern((alt) => ({ ...alt, feinwert: Number.parseInt(e.target.value, 10) || 0 }))}
+          />
+        </Feld>
+        <Feld label={t('feld.rk')}>
+          <input
+            type="number"
+            min={0}
+            className="schmal"
+            value={teilnehmer.rk ?? ''}
+            onChange={(e) => {
+              const rk = Number.parseInt(e.target.value, 10);
+              onAendern(({ rk: _alt, ...alt }) => (rk > 0 ? { ...alt, rk } : alt));
+            }}
           />
         </Feld>
         <Feld label={t('feld.hpMax')}>

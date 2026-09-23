@@ -179,6 +179,12 @@ export interface MontageHaken {
    */
   readonly onEreignis?: (appId: string) => void;
   /**
+   * Montiert den Story Creator unsichtbar, falls er noch nicht offen war.
+   * Ohne das scheiterte „In den Story Creator" in Monster und Zustaende,
+   * solange man ihn nicht einmal selbst geoeffnet hatte (Testbericht).
+   */
+  readonly stelleStoryBereit?: () => Promise<void>;
+  /**
    * Beginnt im Karteneditor eine leere Karte unter diesem Namen.
    *
    * Steht hier und nicht als Draht zwischen den beiden Anwendungen: die
@@ -526,6 +532,7 @@ async function legeNotizAn(
   wuensche: readonly string[],
   haken: MontageHaken
 ): Promise<{ ok: boolean; text: string }> {
+  if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
   if (!backstoryEmbed) {
     return { ok: false, text: OHNE_STORY() };
   }
@@ -569,6 +576,7 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
     // und soll auch keine eigene Einstellung bekommen.
     kiQuelle: haken.kiQuelle,
     anlegen: async (titel: string, markdown: string) => {
+      if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
       if (!backstoryEmbed) {
         return {
           ok: false,
@@ -694,6 +702,7 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
         }));
     },
     anlegen: async (notizen) => {
+      if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
       if (!backstoryEmbed) {
         return {
           ok: false,

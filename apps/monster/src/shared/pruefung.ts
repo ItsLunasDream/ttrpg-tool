@@ -164,6 +164,16 @@ export function wirksamerSchaden(werte: Werte, ziel: Richtwert): number {
  * Umrechnung von RK und Angriffsbonus (beide wirken relativ zum erwarteten
  * Wert, nicht absolut).
  */
+/**
+ * Die Schadensspanne, gegen die die Pruefung misst. Eigene Funktion, damit
+ * die Anzeige dieselbe Spanne zeigt: sie rechnete frueher mit einem reinen
+ * Viertel und zeigte bei CR 1/4 „7 · 4–6 ✓" (Testbericht).
+ */
+export function schadensSpanne(ziel: Richtwert): { von: number; bis: number } {
+  const spielraum = Math.max(ziel.schadenProRunde * 0.25, 2);
+  return { von: ziel.schadenProRunde - spielraum, bis: ziel.schadenProRunde + spielraum };
+}
+
 export function pruefe(werte: Werte, zielCr: string): Befund {
   const ziel = richtwert(zielCr) ?? richtwert('1')!;
 
@@ -205,9 +215,7 @@ export function pruefe(werte: Werte, zielCr: string): Befund {
    * aus der Quelle selbst macht 4 Schaden und galt prompt als zu stark.
    * Bei kleinen Zahlen ist der relative Abstand die falsche Groesse.
    */
-  const spielraum = Math.max(ziel.schadenProRunde * 0.25, 2);
-  const schadenVon = ziel.schadenProRunde - spielraum;
-  const schadenBis = ziel.schadenProRunde + spielraum;
+  const { von: schadenVon, bis: schadenBis } = schadensSpanne(ziel);
   const angriff: Haelfte = {
     cr: alsGrad(angriffWert).cr,
     wert: angriffWert,

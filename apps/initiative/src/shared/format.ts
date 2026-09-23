@@ -122,7 +122,8 @@ function leseTeilnehmer(roh: unknown): Teilnehmer[] {
       koerper: koerper.length > 0 ? koerper : [leerKoerper(index)],
       zustaende: leseZustaende(e.zustaende),
       bild: typeof e.bild === 'string' && e.bild ? e.bild : null,
-      notiz: text(e.notiz)
+      notiz: text(e.notiz),
+      ...(zahl(e.rk) > 0 ? { rk: zahl(e.rk) } : {})
     };
   });
 }

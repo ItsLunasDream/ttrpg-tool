@@ -96,6 +96,8 @@ export interface Teilnehmer {
   /** Dateiname im Bildordner des Trackers, oder null. */
   readonly bild: string | null;
   readonly notiz: string;
+  /** Ruestungsklasse, wenn bekannt. Fehlt sie, zeigt die Zeile nichts. */
+  readonly rk?: number;
 }
 
 /** Der laufende Kampf. Sitzungszustand, kein Dokument. */

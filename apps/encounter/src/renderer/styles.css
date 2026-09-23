@@ -951,3 +951,9 @@ textarea {
     transform: none;
   }
 }
+
+/* Der Platzhalter „egal" passte nicht in 56px und stand als „ega" da. */
+.zusammensteller__feld .gruppenfeld__zahl {
+  width: 9ch;
+  min-width: 72px;
+}

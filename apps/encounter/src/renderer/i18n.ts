@@ -14,7 +14,7 @@ const TEXTE = {
   ],
 
   'liste.leer': ['Noch keine Begegnung.', 'No encounters yet.'],
-  'liste.anzahl': ['{anzahl} Begegnungen', '{anzahl} encounters'],
+  'liste.anzahl': ['{anzahl} {{Begegnung|Begegnungen}}', '{anzahl} {{encounter|encounters}}'],
   'liste.eine': ['1 Begegnung', '1 encounter'],
   'liste.nichts': ['Nichts gefunden.', 'Nothing found.'],
   'liste.suche': ['Suchen', 'Search'],
@@ -39,7 +39,7 @@ const TEXTE = {
   'feld.notiz': ['Notiz', 'Note'],
 
   'gegner.keine': ['Noch keine Gegner.', 'No creatures yet.'],
-  'gegner.zahl': ['{anzahl} Wesen', '{anzahl} creatures'],
+  'gegner.zahl': ['{anzahl} Wesen', '{anzahl} {{creature|creatures}}'],
   'gegner.titel': ['Gegner', 'Creatures'],
   'gegner.weg': ['Entfernen', 'Remove'],
   'gegner.fehlt': [
@@ -62,7 +62,7 @@ const TEXTE = {
   'katalog.hgVon': ['HG ab', 'CR from'],
   'katalog.hgBis': ['HG bis', 'CR to'],
   'katalog.legendaer': ['Legendär', 'Legendary'],
-  'katalog.anzahl': ['{anzahl} Monster', '{anzahl} monsters'],
+  'katalog.anzahl': ['{anzahl} Monster', '{anzahl} {{monster|monsters}}'],
   'katalog.name': ['Name', 'Name'],
   'katalog.hg': ['HG', 'CR'],
   'katalog.tp': ['TP', 'HP'],
@@ -120,8 +120,8 @@ const TEXTE = {
     'no party set'
   ],
   'verhaeltnis.ohneGrad': [
-    '{anzahl} Gegner ohne lesbaren Grad sind nicht mitgezählt.',
-    '{anzahl} opponents without a readable rating are not counted.'
+    '{anzahl} Gegner ohne lesbaren Grad {{ist|sind}} nicht mitgezählt.',
+    '{anzahl} {{opponent|opponents}} without a readable rating {{is|are}} not counted.'
   ],
   'verhaeltnis.punkte': [
     '{punkte} EP · mittleres Budget {budget} EP',
@@ -173,6 +173,16 @@ export function getLanguage(): Language {
   return sprache;
 }
 
+/**
+ * `{{Einzahl|Mehrzahl}}` im Text waehlt nach der ersten Zahl in den
+ * Parametern (`anzahl` oder `n` zuerst): aus „1 creatures" wird so „1 creature".
+ */
+function mitMehrzahl(text: string, params: Record<string, string | number>): string {
+  if (!text.includes('{{')) return text;
+  const zahl = params.anzahl ?? params.n ?? Object.values(params).find((wert) => typeof wert === 'number');
+  return text.replace(/\{\{([^|}]*)\|([^}]*)\}\}/g, (_, eins: string, mehr: string) => (Number(zahl) === 1 ? eins : mehr));
+}
+
 export function t(key: TextKey, params?: Record<string, string | number>): string {
   const paar = TEXTE[key];
   let text: string = sprache === 'de' ? paar[0] : paar[1];
@@ -180,6 +190,7 @@ export function t(key: TextKey, params?: Record<string, string | number>): strin
     for (const [name, wert] of Object.entries(params)) {
       text = text.split(`{${name}}`).join(String(wert));
     }
+    text = mitMehrzahl(text, params);
   }
   return text;
 }

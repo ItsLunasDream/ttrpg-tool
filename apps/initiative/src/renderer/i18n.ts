@@ -79,6 +79,7 @@ export const texte = {
   'feld.tempHp': ['Temp', 'Temp'],
   'feld.anzahl': ['Anzahl', 'Count'],
   'feld.raus': ['Raus', 'Out'],
+  'feld.rk': ['RK', 'AC'],
   'feld.spieler': ['Spielerfigur', 'Player character'],
   'feld.notiz': ['Notiz', 'Note'],
   'feld.taktik': ['Taktik und Notizen', 'Tactics and notes'],
@@ -86,7 +87,7 @@ export const texte = {
   'runde': ['Runde {n}', 'Round {n}'],
   'amZug': ['Am Zug', 'Active'],
   'liegt': ['Liegt', 'Down'],
-  'gruppe.mitglieder': ['{n} Mitglieder', '{n} members'],
+  'gruppe.mitglieder': ['{n} {{Mitglied|Mitglieder}}', '{n} {{member|members}}'],
   'schaden.hinweis': ['Schaden eintippen, Minus heilt', 'Type damage, minus heals'],
   'wurf.modifikator': ['Modifikator', 'Modifier'],
   'wurf.nurGegner': ['Nur Gegner würfeln', 'Roll for enemies only'],
@@ -109,7 +110,7 @@ export const texte = {
     'Suche: Begegnung oder Teilnehmer',
     'Search: encounter or participant'
   ],
-  'begegnung.teilnehmerzahl': ['{n} Teilnehmer', '{n} participants'],
+  'begegnung.teilnehmerzahl': ['{n} Teilnehmer', '{n} {{participant|participants}}'],
   'begegnung.ohneTeilnehmer': ['Ohne Teilnehmer', 'No participants'],
   'sammlung.sortieren': ['Sortieren', 'Sort'],
   'sammlung.nachName': ['Nach Namen', 'By name'],
@@ -207,6 +208,16 @@ if (typeof window !== 'undefined' && window.ttrpgToolsSprache) {
   });
 }
 
+/**
+ * `{{Einzahl|Mehrzahl}}` im Text waehlt nach der ersten Zahl in den
+ * Parametern (`anzahl` oder `n` zuerst): aus „1 creatures" wird so „1 creature".
+ */
+function mitMehrzahl(text: string, params: Record<string, string | number>): string {
+  if (!text.includes('{{')) return text;
+  const zahl = params.anzahl ?? params.n ?? Object.values(params).find((wert) => typeof wert === 'number');
+  return text.replace(/\{\{([^|}]*)\|([^}]*)\}\}/g, (_, eins: string, mehr: string) => (Number(zahl) === 1 ? eins : mehr));
+}
+
 /** Uebersetzt. Platzhalter `{n}` werden aus `params` ersetzt. */
 export function t(key: TextKey, params?: Record<string, string | number>): string {
   const eintrag = texte[key];
@@ -216,6 +227,7 @@ export function t(key: TextKey, params?: Record<string, string | number>): strin
   let text: string = eintrag[aktuell === 'de' ? 0 : 1];
   if (params) {
     for (const name in params) text = text.replaceAll(`{${name}}`, String(params[name]));
+    text = mitMehrzahl(text, params);
   }
   return text;
 }

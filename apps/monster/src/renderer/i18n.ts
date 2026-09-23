@@ -98,8 +98,8 @@ const TEXTE = {
   ],
   'block.aufladen': ['(Aufladen 5–6)', '(Recharge 5–6)'],
   'block.summe': [
-    'Zusammen {gesamt} Schaden pro Runde — {anzahl} Angriffe zu je etwa {je}. Mit dieser Zahl rechnet die Prüfung.',
-    'Together {gesamt} damage per round — {anzahl} attacks at about {je} each. This is the number the check uses.'
+    'Zusammen {gesamt} Schaden pro Runde — {anzahl} {{Angriff|Angriffe}} zu je etwa {je}. Mit dieser Zahl rechnet die Prüfung.',
+    'Together {gesamt} damage per round — {anzahl} {{attack|attacks}} at about {je} each. This is the number the check uses.'
   ],
 
   'befund.passt': ['Passt zum Grad', 'Matches the rating'],
@@ -144,7 +144,8 @@ const TEXTE = {
     'Nothing built yet. What you save shows up here.'
   ],
   'sammlung.nichts': ['Nichts gefunden.', 'Nothing found.'],
-  'sammlung.anzahl': ['{anzahl} Monster', '{anzahl} monsters'],
+  'befund.grad': ['HG', 'CR'],
+  'sammlung.anzahl': ['{anzahl} Monster', '{anzahl} {{monster|monsters}}'],
   'sammlung.kacheln': ['Kacheln', 'Tiles'],
   'sammlung.liste': ['Liste', 'List'],
   'sammlung.sortieren': ['Sortieren', 'Sort'],
@@ -189,6 +190,16 @@ export function getLanguage(): Language {
   return sprache;
 }
 
+/**
+ * `{{Einzahl|Mehrzahl}}` im Text waehlt nach der ersten Zahl in den
+ * Parametern (`anzahl` oder `n` zuerst): aus „1 creatures" wird so „1 creature".
+ */
+function mitMehrzahl(text: string, params: Record<string, string | number>): string {
+  if (!text.includes('{{')) return text;
+  const zahl = params.anzahl ?? params.n ?? Object.values(params).find((wert) => typeof wert === 'number');
+  return text.replace(/\{\{([^|}]*)\|([^}]*)\}\}/g, (_, eins: string, mehr: string) => (Number(zahl) === 1 ? eins : mehr));
+}
+
 export function t(key: TextKey, params?: Record<string, string | number>): string {
   const paar = TEXTE[key];
   let text: string = sprache === 'de' ? paar[0] : paar[1];
@@ -196,6 +207,7 @@ export function t(key: TextKey, params?: Record<string, string | number>): strin
     for (const [name, wert] of Object.entries(params)) {
       text = text.split(`{${name}}`).join(String(wert));
     }
+    text = mitMehrzahl(text, params);
   }
   return text;
 }

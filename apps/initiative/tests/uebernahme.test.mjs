@@ -63,7 +63,7 @@ test('die Initiative wird NICHT gewuerfelt, der Zuschlag steht im Feinwert', () 
 
 test('die Ruestungsklasse landet in der Notiz', () => {
   const teilnehmer = I.alsTeilnehmer(HINTERHALT, zaehler());
-  assert.equal(teilnehmer.find((t) => t.name === 'Wolf').notiz, 'RK 13');
+  assert.equal(teilnehmer.find((t) => t.name === 'Wolf').rk, 13);
 });
 
 test('jede Regel der Umgebung wird ein eigener Terrain-Eintrag', () => {
