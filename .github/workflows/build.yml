@@ -110,6 +110,15 @@ jobs:
       # dass es wirklich hochkommt.
       - name: Gepacktes Paket starten
         run: xvfb-run -a npm run verify:package:suite -- "$PWD/apps/shell/release/linux-unpacked/lore"
+      # Nur bei einer Veroeffentlichung, und nur wenn das Projekt auf itch.io
+      # eingetragen ist (docs/itchio.md). Ohne die Variable bleibt der Schritt
+      # still aus; mit Variable, aber ohne Schluessel schlaegt er laut fehl.
+      - name: Auf itch.io hochladen
+        if: github.event_name == 'release' && vars.ITCH_PROJEKT != ''
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          ITCH_PROJEKT: ${{ vars.ITCH_PROJEKT }}
+        run: bash scripts/itch-hochladen.sh linux apps/shell/release/linux-unpacked
       - name: Log bei Fehler sichern
         if: failure()
         uses: actions/upload-artifact@v4
@@ -144,6 +153,13 @@ jobs:
       - run: npm run dist:suite:win
       - name: Gepacktes Paket starten
         run: npm run verify:package:suite -- "${{ github.workspace }}\apps\shell\release\win-unpacked\LORE.exe"
+      - name: Auf itch.io hochladen
+        if: github.event_name == 'release' && vars.ITCH_PROJEKT != ''
+        shell: bash
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          ITCH_PROJEKT: ${{ vars.ITCH_PROJEKT }}
+        run: bash scripts/itch-hochladen.sh windows apps/shell/release/win-unpacked
       - name: Ergebnis hochladen
         uses: actions/upload-artifact@v4
         with:
