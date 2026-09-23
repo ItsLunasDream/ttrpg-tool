@@ -601,7 +601,7 @@ function Blatt({
   };
 
   return (
-    <article className="regel" data-regel={regel.id}>
+    <article key={regel.id} className="regel motion-erscheinen" data-regel={regel.id}>
       <header className="regel__kopf">
         <div>
           <span className="regel__art">{ART_NAME[regel.art][spr]}</span>
@@ -743,7 +743,7 @@ function Hausblatt({
   if (!regel) return null;
   const bezug = regel.bezug ? nach(regel.bezug) : undefined;
   return (
-    <article className="regel regel--haus" data-regel={`hausregel/${regel.id}`}>
+    <article key={regel.id} className="regel regel--haus motion-erscheinen" data-regel={`hausregel/${regel.id}`}>
       <header className="regel__kopf">
         <div>
           <span className="regel__art">{ART_NAME.hausregel[spr]}</span>

@@ -104,6 +104,10 @@ export function App() {
   const [anzahl, setAnzahl] = useState(1);
   const [ergebnisse, setErgebnisse] = useState<readonly Ergebnis[]>([]);
   const [schnell, setSchnell] = useState<Ergebnis | null>(null);
+  // Jeder Wurf bekommt eigene Schluessel: sonst bliebe die Zeile stehen,
+  // und ein neues Ergebnis kaeme ohne Bewegung herein.
+  const wurfId = useMemo(() => Math.random().toString(36).slice(2), [ergebnisse]);
+  const schnellId = useMemo(() => Math.random().toString(36).slice(2), [schnell]);
   const [meldung, setMeldung] = useState('');
   const [fehler, setFehler] = useState('');
   // Die eingebauten Tabellen fuer `oeffne`, ohne es bei jedem Sprachwechsel neu zu bauen.
@@ -344,7 +348,7 @@ export function App() {
             <>
               <ol className="ergebnisse" data-ergebnisse>
                 {ergebnisse.map((e, i) => (
-                  <ErgebnisZeile key={i} ergebnis={e} />
+                  <ErgebnisZeile key={`${wurfId}-${i}`} ergebnis={e} />
                 ))}
               </ol>
               <div className="knopfreihe">
@@ -494,7 +498,7 @@ export function App() {
             </button>
           </div>
           <ol className="ergebnisse">
-            <ErgebnisZeile ergebnis={schnell} />
+            <ErgebnisZeile key={schnellId} ergebnis={schnell} />
           </ol>
         </section>
       ) : null}
@@ -552,7 +556,7 @@ export function App() {
 function ErgebnisZeile({ ergebnis }: { readonly ergebnis: Ergebnis }) {
   const unvollstaendig = hatFehler(ergebnis);
   return (
-    <li className="ergebnis" data-ergebnis>
+    <li className="ergebnis motion-eintritt" data-ergebnis>
       <span className="ergebnis__text">{ergebnis.text}</span>
       {unvollstaendig ? <span className="ergebnis__warnung"> ⚠ {t('wurf.unvollstaendig')}</span> : null}
       {ergebnis.teile.length > 0 || ergebnis.wurf !== undefined ? (

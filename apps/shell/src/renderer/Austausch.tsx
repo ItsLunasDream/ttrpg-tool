@@ -186,9 +186,9 @@ export function Austausch({ onClose, t }: Props) {
       </div>
 
       {richtung === 'raum' ? (
-        <Raum zustand={raum} raeume={raeume} fehler={raumFehler} t={t} />
+        <Raum key="raum" zustand={raum} raeume={raeume} fehler={raumFehler} t={t} />
       ) : richtung === 'geben' ? (
-        <div className="austausch" data-austausch="geben">
+        <div key="geben" className="austausch motion-erscheinen" data-austausch="geben">
           <p className="einst__satz">{t('share.giveHint')}</p>
           <input
             className="suche__feld austausch__filter"
@@ -262,7 +262,7 @@ export function Austausch({ onClose, t }: Props) {
           )}
         </div>
       ) : (
-        <div className="austausch" data-austausch="nehmen">
+        <div key="nehmen" className="austausch motion-erscheinen" data-austausch="nehmen">
           <p className="einst__satz">{t('share.takeHint')}</p>
           <button type="button" className="dialog__knopf" data-paket-oeffnen onClick={() => void oeffnen()}>
             {t('share.open')}

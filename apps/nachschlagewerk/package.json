@@ -26,9 +26,10 @@
   },
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "@suite/eintraege": "*",
     "@suite/austausch": "*",
+    "@suite/eintraege": "*",
     "@suite/i18n": "*",
+    "@suite/motion": "*",
     "@suite/srd": "*"
   }
 }

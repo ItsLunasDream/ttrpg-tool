@@ -29,6 +29,7 @@
     "@suite/dice": "*",
     "@suite/eintraege": "*",
     "@suite/i18n": "*",
+    "@suite/motion": "*",
     "@suite/srd": "*",
     "@suite/tabellen": "*"
   }

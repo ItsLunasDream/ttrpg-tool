@@ -585,3 +585,30 @@ body {
   color: var(--gefahr, #e5484d);
   font-size: 11px;
 }
+
+
+/* ---------- Bewegung (packages/motion) ----------
+ * Knoepfe und Felder reagieren weich, Kacheln kommen gestaffelt herein,
+ * eine Karte blendet beim Oeffnen ein. Bei weniger Bewegung bleibt nur das
+ * Einblenden (siehe motion.css).
+ */
+.knopf,
+button,
+input,
+select,
+textarea {
+  transition:
+    background-color var(--motion-feedback) var(--motion-ease-standard),
+    border-color var(--motion-feedback) var(--motion-ease-standard),
+    color var(--motion-feedback) var(--motion-ease-standard),
+    box-shadow var(--motion-feedback) var(--motion-ease-standard),
+    transform var(--motion-feedback) var(--motion-ease-standard);
+}
+
+.knopf:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.karte {
+  animation: motion-erscheinen var(--motion-state) var(--motion-ease-enter) backwards;
+}

@@ -46,7 +46,7 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
 
   if (zustand.rolle === 'aus') {
     return (
-      <div className="austausch raum" data-raum="aus">
+      <div className="austausch raum motion-erscheinen" data-raum="aus">
         <label className="feld">
           <span className="feld__name">{t('room.yourName')}</span>
           <input
@@ -156,7 +156,7 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   };
 
   return (
-    <div className="austausch raum" data-raum="drin">
+    <div className="austausch raum motion-erscheinen" data-raum="drin">
       <div className="raum__reihe raum__kopfzeile">
         <strong data-raumtitel>{zustand.raum}</strong>
         <span className="austausch__art">
@@ -180,7 +180,7 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
           <p className="einst__satz">{t('room.emptyChat')}</p>
         ) : (
           zustand.chat.map((z, i) => (
-            <p key={i} className={`raum__zeile${z.an ? ' is-privat' : ''}${z.eigene ? ' is-eigen' : ''}`}>
+            <p key={i} className={`raum__zeile motion-eintritt${z.an ? ' is-privat' : ''}${z.eigene ? ' is-eigen' : ''}`}>
               <span className="raum__wer">
                 {z.von.name}
                 {z.an ? ` → ${z.an.name}` : ''}

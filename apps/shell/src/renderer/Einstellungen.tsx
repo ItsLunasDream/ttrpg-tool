@@ -230,7 +230,7 @@ export function Einstellungen({
           <header className="einst__kopf">
             <h2>{titelDesBereichs()}</h2>
           </header>
-          <div className="einst__inhalt">
+          <div key={bereich} className="einst__inhalt motion-erscheinen">
             {bereich === 'aussehen' ? (
               <>
                 <section className="einst__gruppe">
