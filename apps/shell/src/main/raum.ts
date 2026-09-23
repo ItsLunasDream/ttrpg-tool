@@ -19,7 +19,7 @@
  * Ohne Electron: nur node:net, node:dgram, node:crypto. So laesst sich der
  * ganze Ablauf mit zwei Diensten in einem Prozess pruefen.
  */
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { createSocket, type Socket as UdpSocket } from 'node:dgram';
 import { createServer, connect, type Server, type Socket } from 'node:net';
 import { networkInterfaces } from 'node:os';
@@ -30,12 +30,14 @@ import {
   leseNachricht,
   MAX_CHAT,
   MAX_PERSONEN,
+  RAUM_INTERNETPORT,
   RAUM_SUCHPORT,
   RAUM_VERSION,
   Zeilenleser,
   type Nachricht,
   type Person
 } from '@suite/austausch';
+import { Leitungsschutz, nachweis, nachweisStimmt, neueNonce, neuesSalz, stammschluessel } from './raumkrypto';
 
 export interface GefundenerRaum {
   readonly raum: string;
@@ -64,6 +66,12 @@ export interface Raumzustand {
   readonly port: number | null;
   /** Nur beim Gastgeber: seine Adressen im lokalen Netz (IPv4). */
   readonly adressen: readonly string[];
+  /** Nur beim Gastgeber: seine oeffentlichen IPv6-Adressen (ueber das Internet erreichbar, wenn die Firewall laesst). */
+  readonly ipv6: readonly string[];
+  /** Ob der Verkehr verschluesselt ist (der Raum hat ein Passwort). */
+  readonly verschluesselt: boolean;
+  /** Nur beim Gastgeber: ob der Raum auch ueber das Internet gedacht ist (fester Port). */
+  readonly internet: boolean;
 }
 
 /** Die eigenen IPv4-Adressen im lokalen Netz, ohne die Schleife. */
@@ -74,29 +82,53 @@ export function eigeneAdressen(): string[] {
     .map((a) => a.address);
 }
 
+/**
+ * Die eigenen IPv6-Adressen, ueber die man aus dem Internet erreichbar sein
+ * kann: global (2000::/3), nicht die lokalen (fe80::, fc00::/7, ::1).
+ */
+export function eigeneIpv6(): string[] {
+  return [
+    ...new Set(
+      Object.values(networkInterfaces())
+        .flat()
+        .filter(
+          (a): a is NonNullable<typeof a> =>
+            Boolean(a) && (a!.family === 'IPv6' || (a!.family as unknown) === 6) && !a!.internal && /^[23]/i.test(a!.address)
+        )
+        .map((a) => a.address)
+    )
+  ];
+}
+
+/** Warum eine Verbindung nicht zustande kam, so dass man etwas damit anfangen kann. */
+export type Verbindungsgrund = 'verbindung' | 'getrennt' | 'nichtErreichbar' | 'abgewiesen' | 'unbekannt';
+
+function grundAus(fehler: unknown): Verbindungsgrund {
+  const code = (fehler as { code?: string } | null)?.code ?? '';
+  if (code === 'ECONNREFUSED') return 'abgewiesen';
+  if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'unbekannt';
+  if (['ETIMEDOUT', 'EHOSTUNREACH', 'ENETUNREACH', 'ZEIT'].includes(code)) return 'nichtErreichbar';
+  return 'verbindung';
+}
+
 export type Raumereignis =
   | { readonly art: 'raeume'; readonly raeume: readonly GefundenerRaum[] }
   | { readonly art: 'zustand'; readonly zustand: Raumzustand }
   | { readonly art: 'chat'; readonly zeile: Chatzeile }
   | { readonly art: 'paket'; readonly von: Person; readonly an: Person | null; readonly titel: string; readonly paket: string }
   | { readonly art: 'werkzeug'; readonly von: Person; readonly werkzeug: string; readonly inhalt: string }
-  | { readonly art: 'fehler'; readonly grund: 'passwort' | 'voll' | 'version' | 'verbindung' | 'getrennt' };
-
-export function nachweis(passwort: string, nonce: string): string {
-  return createHmac('sha256', passwort).update(nonce).digest('hex');
-}
-
-function gleich(a: string, b: string): boolean {
-  const x = Buffer.from(a);
-  const y = Buffer.from(b);
-  return x.length === y.length && timingSafeEqual(x, y);
-}
+  | { readonly art: 'fehler'; readonly grund: 'passwort' | 'voll' | 'version' | Verbindungsgrund };
 
 interface Gastverbindung {
   person: Person | null;
   socket: Socket;
   nonce: string;
+  /** Ab der Anmeldung, wenn der Raum ein Passwort hat. */
+  schutz: Leitungsschutz | null;
 }
+
+/** Wie lange ein Beitritt auf Antwort wartet, bevor er aufgibt. */
+const BEITRITT_FRIST_MS = 10_000;
 
 export class Raumdienst {
   private rolle: Raumzustand['rolle'] = 'aus';
@@ -108,12 +140,15 @@ export class Raumdienst {
   // Gastgeber
   private server: Server | null = null;
   private gaeste = new Set<Gastverbindung>();
-  private passwort = '';
+  private salz = '';
+  private stamm: Buffer | null = null;
+  private internet = false;
   private rufer: UdpSocket | null = null;
   private rufTakt: NodeJS.Timeout | null = null;
 
   // Gast
   private leitung: Socket | null = null;
+  private leitungsschutz: Leitungsschutz | null = null;
 
   // Suche
   private lauscher: UdpSocket | null = null;
@@ -137,7 +172,10 @@ export class Raumdienst {
       personen: this.personen,
       chat: this.chat,
       port: this.server ? ((this.server.address() as { port: number } | null)?.port ?? null) : null,
-      adressen: this.server ? eigeneAdressen() : []
+      adressen: this.server ? eigeneAdressen() : [],
+      ipv6: this.server ? eigeneIpv6() : [],
+      verschluesselt: this.rolle === 'gastgeber' ? this.stamm !== null : this.leitungsschutz !== null,
+      internet: this.rolle === 'gastgeber' && this.internet
     };
   }
 
@@ -208,20 +246,61 @@ export class Raumdienst {
 
   /* ------------------------------------------------------------ Gastgeber */
 
-  async eroeffne(raum: string, passwort: string, name: string): Promise<number> {
+  /**
+   * Einen Raum eroeffnen.
+   *
+   * Im lokalen Netz nimmt er einen freien Port. Ueber das Internet braucht er
+   * einen festen (fuer die Portfreigabe im Router) und ein Passwort: ohne
+   * Verschluesselung geht nichts ueber fremde Leitungen. Gelauscht wird auf
+   * IPv4 und IPv6 zugleich; wo es kein IPv6 gibt, nur auf IPv4.
+   */
+  async eroeffne(
+    raum: string,
+    passwort: string,
+    name: string,
+    optionen: { internet?: boolean; port?: number } = {}
+  ): Promise<number> {
     this.verlasse();
-    this.passwort = passwort;
+    const internet = optionen.internet === true;
+    if (internet && !passwort) throw new Error('passwort-noetig');
+    this.salz = passwort ? neuesSalz() : '';
+    this.stamm = passwort ? await stammschluessel(passwort, this.salz) : null;
+    this.internet = internet;
+    const wunschport = internet ? (optionen.port ?? RAUM_INTERNETPORT) : 0;
+    const server = createServer((socket) => this.nimmGastAuf(socket));
+    const lausche = (host: string) =>
+      new Promise<void>((fertig, fehler) => {
+        const beiFehler = (e: Error) => {
+          server.off('listening', beiBereit);
+          fehler(e);
+        };
+        const beiBereit = () => {
+          server.off('error', beiFehler);
+          fertig();
+        };
+        server.once('error', beiFehler);
+        server.once('listening', beiBereit);
+        server.listen({ port: wunschport, host, ipv6Only: false });
+      });
+    try {
+      await lausche('::');
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      if (code === 'EADDRINUSE') throw new Error('port-belegt');
+      // Kein IPv6 auf diesem Rechner: dann eben nur IPv4.
+      try {
+        await lausche('0.0.0.0');
+      } catch (e2) {
+        if ((e2 as { code?: string }).code === 'EADDRINUSE') throw new Error('port-belegt');
+        throw e2;
+      }
+    }
+    this.server = server;
     this.raumName = raum.trim().slice(0, 40) || name;
     this.ich = { id: 'gastgeber', name: eindeutigerName(name, []) };
     this.personen = [this.ich];
     this.chat = [];
     this.rolle = 'gastgeber';
-    const server = createServer((socket) => this.nimmGastAuf(socket));
-    this.server = server;
-    await new Promise<void>((fertig, fehler) => {
-      server.once('error', fehler);
-      server.listen(0, () => fertig());
-    });
     const port = (server.address() as { port: number }).port;
     this.starteRuf(port);
     this.meldeZustand();
@@ -248,7 +327,7 @@ export class Raumdienst {
         raum: this.raumName,
         gastgeber: this.ich.name,
         port,
-        geschuetzt: this.passwort.length > 0
+        geschuetzt: this.stamm !== null
       });
       rufer.send(text, this.suchport, this.optionen.rufziel ?? '255.255.255.255', () => undefined);
     };
@@ -258,14 +337,14 @@ export class Raumdienst {
 
   private nimmGastAuf(socket: Socket): void {
     socket.setEncoding('utf8');
-    const gast: Gastverbindung = { person: null, socket, nonce: randomBytes(16).toString('hex') };
+    const gast: Gastverbindung = { person: null, socket, nonce: neueNonce(), schutz: null };
     const leser = new Zeilenleser();
     if (this.gaeste.size >= MAX_PERSONEN - 1) {
       socket.end(kodiere({ typ: 'abgelehnt', grund: 'voll' }));
       return;
     }
     this.gaeste.add(gast);
-    socket.write(kodiere({ typ: 'herausforderung', raum: this.raumName, nonce: gast.nonce }));
+    socket.write(kodiere({ typ: 'herausforderung', raum: this.raumName, nonce: gast.nonce, salz: this.salz }));
     socket.on('data', (stueck: string) => {
       let zeilen: string[];
       try {
@@ -275,7 +354,14 @@ export class Raumdienst {
         return;
       }
       for (const zeile of zeilen) {
-        const n = leseNachricht(zeile);
+        // Nach der Anmeldung nur noch Verschluesseltes; was sich nicht
+        // entschluesseln laesst, ist gefaelscht oder vertauscht: Leitung zu.
+        const klar = gast.schutz ? gast.schutz.entpacke(zeile) : zeile;
+        if (klar === null) {
+          socket.destroy();
+          return;
+        }
+        const n = leseNachricht(klar);
         if (n) this.vonGast(gast, n);
       }
     });
@@ -297,16 +383,19 @@ export class Raumdienst {
         gast.socket.end(kodiere({ typ: 'abgelehnt', grund: 'version' }));
         return;
       }
-      if (this.passwort && !gleich(n.nachweis, nachweis(this.passwort, gast.nonce))) {
-        gast.socket.end(kodiere({ typ: 'abgelehnt', grund: 'passwort' }));
-        return;
+      if (this.stamm) {
+        if (!n.gastNonce || !nachweisStimmt(this.stamm, gast.nonce, n.gastNonce, n.nachweis)) {
+          gast.socket.end(kodiere({ typ: 'abgelehnt', grund: 'passwort' }));
+          return;
+        }
+        gast.schutz = new Leitungsschutz(this.stamm, gast.nonce, n.gastNonce, 'gastgeber');
       }
       gast.person = {
         id: randomBytes(6).toString('hex'),
         name: eindeutigerName(n.name, this.personen.map((p) => p.name))
       };
       this.personen = [...this.personen, gast.person];
-      gast.socket.write(kodiere({ typ: 'willkommen', du: gast.person, personen: this.personen }));
+      this.schreibe(gast, { typ: 'willkommen', du: gast.person, personen: this.personen });
       this.verteilePersonen();
       return;
     }
@@ -327,29 +416,40 @@ export class Raumdienst {
     if (n.typ === 'werkzeug') this.verteile({ ...n, von: gast.person.id, zeit: new Date().toISOString() });
   }
 
+  /** Eine Nachricht an einen Gast, verschluesselt, wenn der Raum ein Passwort hat. */
+  private schreibe(gast: Gastverbindung, n: Nachricht): void {
+    gast.socket.write(gast.schutz ? gast.schutz.verpacke(kodiere(n).slice(0, -1)) : kodiere(n));
+  }
+
   private verteilePersonen(): void {
-    const n = kodiere({ typ: 'personen', personen: this.personen });
-    for (const g of this.gaeste) if (g.person) g.socket.write(n);
+    for (const g of this.gaeste) if (g.person) this.schreibe(g, { typ: 'personen', personen: this.personen });
     this.meldeZustand();
   }
 
   /** Beim Gastgeber: an alle oder an eine Person, und an den Absender zurueck. */
   private verteile(n: Extract<Nachricht, { typ: 'chat' | 'paket' | 'werkzeug' }>): void {
-    const text = kodiere(n);
     for (const g of this.gaeste) {
       if (!g.person) continue;
-      if (n.an === null || g.person.id === n.an || g.person.id === n.von) g.socket.write(text);
+      if (n.an === null || g.person.id === n.an || g.person.id === n.von) this.schreibe(g, n);
     }
     if (n.an === null || n.an === this.ich?.id || n.von === this.ich?.id) this.empfange(n);
   }
 
   /* ----------------------------------------------------------------- Gast */
 
+  /**
+   * Einem Raum beitreten, im lokalen Netz oder ueber das Internet (IPv4,
+   * IPv6 oder ein Name). Nach `BEITRITT_FRIST_MS` ohne Antwort gibt er auf:
+   * ein Router ohne Portfreigabe verschluckt Anfragen oft stumm.
+   */
   trittBei(adresse: string, port: number, passwort: string, name: string): Promise<void> {
     this.verlasse();
     return new Promise((fertig) => {
-      const socket = connect({ host: adresse, port });
+      const host = adresse.trim().replace(/^\[(.*)\]$/, '$1');
+      const socket = connect({ host, port });
       socket.setEncoding('utf8');
+      socket.setTimeout(BEITRITT_FRIST_MS);
+      socket.on('timeout', () => socket.destroy(Object.assign(new Error('Zeit'), { code: 'ZEIT' })));
       this.leitung = socket;
       const leser = new Zeilenleser();
       let erledigt = false;
@@ -357,6 +457,31 @@ export class Raumdienst {
         if (!erledigt) {
           erledigt = true;
           fertig();
+        }
+      };
+      const verarbeite = (n: Nachricht) => {
+        if (n.typ === 'herausforderung') {
+          this.raumName = n.raum;
+          void this.antworte(socket, n.nonce, n.salz, passwort, name);
+        } else if (n.typ === 'willkommen') {
+          socket.setTimeout(0);
+          this.rolle = 'gast';
+          this.ich = n.du;
+          this.personen = [...n.personen];
+          this.chat = [];
+          this.meldeZustand();
+          ende();
+        } else if (n.typ === 'abgelehnt') {
+          this.melde({ art: 'fehler', grund: n.grund });
+          ende();
+        } else if (n.typ === 'personen') {
+          this.personen = [...n.personen];
+          // Der eigene Name kann sich geaendert haben (umbenannt, eindeutig gemacht).
+          const selbst = this.personen.find((p) => p.id === this.ich?.id);
+          if (selbst) this.ich = selbst;
+          this.meldeZustand();
+        } else if (n.typ === 'chat' || n.typ === 'paket' || n.typ === 'werkzeug') {
+          this.empfange(n);
         }
       };
       socket.on('data', (stueck: string) => {
@@ -368,46 +493,59 @@ export class Raumdienst {
           return;
         }
         for (const zeile of zeilen) {
-          const n = leseNachricht(zeile);
-          if (!n) continue;
-          if (n.typ === 'herausforderung') {
-            this.raumName = n.raum;
-            socket.write(
-              kodiere({ typ: 'hallo', name, nachweis: passwort ? nachweis(passwort, n.nonce) : '', version: RAUM_VERSION })
-            );
-          } else if (n.typ === 'willkommen') {
-            this.rolle = 'gast';
-            this.ich = n.du;
-            this.personen = [...n.personen];
-            this.chat = [];
-            this.meldeZustand();
-            ende();
-          } else if (n.typ === 'abgelehnt') {
-            this.melde({ art: 'fehler', grund: n.grund });
-            ende();
-          } else if (n.typ === 'personen') {
-            this.personen = [...n.personen];
-            // Der eigene Name kann sich geaendert haben (umbenannt, eindeutig gemacht).
-            const selbst = this.personen.find((p) => p.id === this.ich?.id);
-            if (selbst) this.ich = selbst;
-            this.meldeZustand();
-          } else if (n.typ === 'chat' || n.typ === 'paket' || n.typ === 'werkzeug') {
-            this.empfange(n);
+          let klar: string | null = zeile;
+          if (this.leitungsschutz && zeile.startsWith('~')) {
+            klar = this.leitungsschutz.entpacke(zeile);
+            if (klar === null) {
+              socket.destroy();
+              return;
+            }
           }
+          const n = leseNachricht(klar);
+          if (!n) continue;
+          // Im Klartext darf nach der Anmeldung nur noch eine Absage kommen.
+          if (this.leitungsschutz && !zeile.startsWith('~') && n.typ !== 'abgelehnt') continue;
+          verarbeite(n);
         }
       });
-      const zu = (grund: 'verbindung' | 'getrennt') => {
+      const zu = (grund: Verbindungsgrund) => {
         if (this.leitung !== socket) return;
         const warDrin = this.rolle === 'gast';
         this.leitung = null;
+        this.leitungsschutz = null;
         this.setzeZurueck();
         this.melde({ art: 'fehler', grund: warDrin ? 'getrennt' : grund });
         this.meldeZustand();
         ende();
       };
-      socket.on('error', () => zu('verbindung'));
-      socket.on('close', () => zu('getrennt'));
+      let letzterFehler: unknown = null;
+      socket.on('error', (e) => {
+        letzterFehler = e;
+      });
+      socket.on('close', () => zu(letzterFehler ? grundAus(letzterFehler) : 'getrennt'));
     });
+  }
+
+  /** Die Antwort auf die Herausforderung; mit Passwort ab dann verschluesselt. */
+  private async antworte(socket: Socket, nonce: string, salz: string, passwort: string, name: string): Promise<void> {
+    const gastNonce = neueNonce();
+    let nachweisText = '';
+    let schutz: Leitungsschutz | null = null;
+    if (salz && passwort) {
+      const stamm = await stammschluessel(passwort, salz);
+      nachweisText = nachweis(stamm, nonce, gastNonce);
+      schutz = new Leitungsschutz(stamm, nonce, gastNonce, 'gast');
+    }
+    if (this.leitung !== socket) return;
+    socket.write(kodiere({ typ: 'hallo', name, nachweis: nachweisText, version: RAUM_VERSION, gastNonce }));
+    this.leitungsschutz = schutz;
+  }
+
+  /** Eine Nachricht an den Gastgeber, verschluesselt, wenn die Leitung es ist. */
+  private schreibeLeitung(n: Nachricht): boolean {
+    if (!this.leitung) return false;
+    this.leitung.write(this.leitungsschutz ? this.leitungsschutz.verpacke(kodiere(n).slice(0, -1)) : kodiere(n));
+    return true;
   }
 
   /* ------------------------------------------------------------ Beide Seiten */
@@ -440,8 +578,7 @@ export class Raumdienst {
     if (!sauber || !this.ich) return false;
     const n = { typ: 'chat' as const, von: this.ich.id, an, text: sauber, zeit: new Date().toISOString() };
     if (this.rolle === 'gastgeber') this.verteile(n);
-    else if (this.leitung) this.leitung.write(kodiere(n));
-    else return false;
+    else return this.schreibeLeitung(n);
     return true;
   }
 
@@ -450,8 +587,7 @@ export class Raumdienst {
     if (!this.ich) return false;
     const n = { typ: 'paket' as const, von: this.ich.id, an, titel: titel.slice(0, 500), paket, zeit: new Date().toISOString() };
     if (this.rolle === 'gastgeber') this.verteile(n);
-    else if (this.leitung) this.leitung.write(kodiere(n));
-    else return false;
+    else return this.schreibeLeitung(n);
     return true;
   }
 
@@ -474,10 +610,7 @@ export class Raumdienst {
       this.verteilePersonen();
       return true;
     }
-    if (this.rolle === 'gast' && this.leitung) {
-      this.leitung.write(kodiere({ typ: 'name', name: neuName }));
-      return true;
-    }
+    if (this.rolle === 'gast') return this.schreibeLeitung({ typ: 'name', name: neuName });
     return false;
   }
 
@@ -485,8 +618,7 @@ export class Raumdienst {
     if (!this.ich) return false;
     const n = { typ: 'werkzeug' as const, von: this.ich.id, an, werkzeug, inhalt, zeit: new Date().toISOString() };
     if (this.rolle === 'gastgeber') this.verteile(n);
-    else if (this.leitung) this.leitung.write(kodiere(n));
-    else return false;
+    else return this.schreibeLeitung(n);
     return true;
   }
 
@@ -509,7 +641,11 @@ export class Raumdienst {
     this.server = null;
     const leitung = this.leitung;
     this.leitung = null;
+    this.leitungsschutz = null;
     leitung?.destroy();
+    this.stamm = null;
+    this.salz = '';
+    this.internet = false;
     const war = this.rolle !== 'aus';
     this.setzeZurueck();
     if (war) this.meldeZustand();

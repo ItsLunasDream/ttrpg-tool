@@ -1886,3 +1886,55 @@ body {
   text-align: center;
   color: var(--betont);
 }
+
+/* ---------- Raum uebers Internet ---------- */
+
+.raum__schalter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.raum__port {
+  width: 7ch;
+  box-sizing: content-box;
+}
+
+.raum__marke {
+  font-size: 0.8em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--rand);
+  opacity: 0.8;
+}
+
+.raum__marke.is-sicher {
+  border-color: var(--betont);
+  color: var(--betont);
+  opacity: 1;
+}
+
+.raum__adressen {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.raum__adresse {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.raum__adressart {
+  min-width: 11ch;
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.raum__adresstext {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+}

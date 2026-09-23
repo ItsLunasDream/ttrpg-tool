@@ -19,7 +19,7 @@
  */
 // Zuerst: der Datenordner, bevor irgendetwas ihn erfragt.
 import './datenordner';
-import { app, BaseWindow, WebContentsView, dialog, ipcMain, screen, shell, type IpcMainInvokeEvent, type WebContents } from 'electron';
+import { app, BaseWindow, WebContentsView, dialog, clipboard, ipcMain, net, screen, shell, type IpcMainInvokeEvent, type WebContents } from 'electron';
 /**
  * Startzeit messen, wenn TTRPG_TOOLS_STARTZEIT gesetzt ist.
  *
@@ -1011,9 +1011,11 @@ function registriereKanaele(): void {
     raum.aktualisiereSuche();
     return raum.raeume();
   });
-  handle('raum:eroeffnen', async (_event, name: string, passwort: string) => {
+  handle('raum:eroeffnen', async (_event, name: string, passwort: string, optionen?: { internet?: boolean; port?: number }) => {
     try {
-      return { ok: true, port: await raum.eroeffne(name, passwort, meinName()) };
+      const internet = optionen?.internet === true;
+      const port = Number.isInteger(optionen?.port) ? optionen!.port : undefined;
+      return { ok: true, port: await raum.eroeffne(name, passwort, meinName(), { internet, port }) };
     } catch (fehler) {
       return { ok: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };
     }
@@ -1021,6 +1023,21 @@ function registriereKanaele(): void {
   handle('raum:beitreten', async (_event, adresse: string, port: number, passwort: string) => {
     await raum.trittBei(adresse, port, passwort, meinName());
     return raum.zustand();
+  });
+  // Die oeffentliche IPv4 fuer Gaeste ueber das Internet. Nur auf Knopfdruck:
+  // dafuer wird ein fremder Dienst gefragt, der dabei die eigene IP sieht.
+  handle('raum:oeffentlicheIp', async () => {
+    try {
+      const antwort = await net.fetch('https://api.ipify.org?format=text', { signal: AbortSignal.timeout(8000) });
+      const text = (await antwort.text()).trim();
+      return antwort.ok && /^\d{1,3}(\.\d{1,3}){3}$/.test(text) ? text : null;
+    } catch {
+      return null;
+    }
+  });
+  handle('raum:kopieren', (_event, text: string) => {
+    if (typeof text === 'string' && text.length <= 200) clipboard.writeText(text);
+    return true;
   });
   handle('raum:verlassen', () => {
     raum.verlasse();

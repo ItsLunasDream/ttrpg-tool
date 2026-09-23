@@ -34,6 +34,9 @@ test('jeder englische Schluessel hat eine deutsche Entsprechung', () => {
 
 // Wenige Texte sind in beiden Sprachen gleich, das ist kein Fehler.
 const GLEICH_ERLAUBT = new Set([
+  // Fachwoerter, die im Deutschen genauso heissen.
+  'room.port',
+  'room.addrPublic',
   // Der Name der Sammlung.
   'menu.title',
   // Seine Aufloesung, bewusst englisch wie der Name selbst.

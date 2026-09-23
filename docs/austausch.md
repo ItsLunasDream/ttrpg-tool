@@ -46,11 +46,32 @@ gespeichert: er lebt nur, solange der Raum offen ist (entschieden).
   mit dem Gastgeber; er verteilt alles. Lässt ein Netz Broadcasts nicht
   durch, tritt man über die Adresse bei, die beim Gastgeber steht.
 - Auf der Leitung steht je Zeile eine JSON-Nachricht (Protokoll in
-  `packages/austausch/src/raum.ts`). Das **Passwort reist nie**: der
-  Gastgeber schickt eine Zufallszahl, der Gast antwortet mit einem HMAC
-  daraus.
-- **Alles andere ist unverschlüsselt.** Die App sagt das im Raum und bei
-  jeder Direktnachricht. Verschlüsselung bleibt Stufe 4.
+  `packages/austausch/src/raum.ts`, Fassung 2). Das **Passwort reist
+  nie**: der Gastgeber schickt Salz und Zufallszahl, der Gast leitet mit
+  scrypt denselben Schlüssel ab und antwortet mit einem HMAC-Nachweis und
+  einer eigenen Zufallszahl.
+- **Mit Passwort ist der Raum verschlüsselt** (`apps/shell/src/main/raumkrypto.ts`):
+  aus Schlüssel und beiden Zufallszahlen entsteht je Richtung ein
+  Sitzungsschlüssel (HKDF), jede Zeile ist AES-256-GCM mit Zähler.
+  Veränderte, wiederholte oder vertauschte Zeilen trennen die Leitung.
+  Grenze: wer das Passwort kennt, kann mitlesen. **Ohne Passwort** bleibt
+  der Raum offen; die App sagt das beim Eröffnen und bei Direktnachrichten
+  und zeigt im Raum „verschlüsselt“ oder „nicht verschlüsselt“.
+- **Über das Internet** (Häkchen „Auch über das Internet“): der Raum
+  bekommt einen **festen Port** (Vorgabe 47812) und **braucht ein
+  Passwort**. Der Gastgeber lauscht auf IPv4 und IPv6. Erreichbar ist er
+  - per **Portfreigabe** (IPv4): im Router den TCP-Port an die lokale
+    Adresse des Gastgebers weiterleiten. Die öffentliche IPv4 zeigt die App
+    auf Knopfdruck (fragt api.ipify.org, das dabei die IP sieht). Geht
+    **nicht hinter CGNAT oder DS-Lite**, wie oft bei Kabel und Mobilfunk.
+  - per **IPv6**: die App zeigt die öffentlichen IPv6-Adressen; im Router
+    muss eingehender TCP-Verkehr auf den Port für diesen Rechner erlaubt
+    sein.
+  - Kein fremder Server, kein UPnP, kein VPN (entschieden). Beitreten geht
+    über das Adressfeld: `1.2.3.4:47812`, `[2001:db8::1]:47812`, eine
+    nackte IPv6 oder ein Name; ohne Port gilt 47812.
+  - Bisher nur lokal getestet (auch über `::1`), **nicht über echte
+    Anschlüsse**.
 - Der Absender einer Nachricht ist, wer die Leitung hält, nicht, was im
   Feld steht: ein Gast kann sich nicht als jemand anderes ausgeben.
 - Der eigene Name steht in den Einstellungen (`tischName`); ohne ihn gibt
@@ -79,8 +100,9 @@ gespeichert: er lebt nur, solange der Raum offen ist (entschieden).
   ebenso an alle oder an **einzelne Personen** schicken. Jede Person gibt
   sich einen **Namen** (Einstellung „Dein Name am Tisch"); ohne eigenen
   Namen gilt ein generischer („Gast 1"). Doppelte Namen bekommen im Raum
-  eine Zahl. Solange die Verbindung unverschlüsselt ist, sagt die App bei
-  Direktnachrichten sichtbar, dass sie im selben Netz mitlesbar sind.
+  eine Zahl. Ohne Raumpasswort ist die Verbindung unverschlüsselt; dann
+  sagt die App bei Direktnachrichten sichtbar, dass sie im selben Netz
+  mitlesbar sind.
 - Der **Initiative Tracker** kann seinen Kampf im Raum **teilen**
   (Knopf „Im Raum teilen", nur sichtbar im Raum). Wer teilt, führt den
   Kampf; die anderen sehen ihn live über der eigenen Liste. Gefiltert:
@@ -278,6 +300,12 @@ Daraus folgt:
 Stufe 2 ist damit kein Ausbau von Stufe 1, sondern ein eigener Punkt mit
 eigener Entscheidung. Sie gehört nicht in dieselbe Planung.
 
+**Entschieden und gebaut:** der Gastgeber ist der Server. Erreichbar über
+Portfreigabe oder IPv6, ohne Vermittler, ohne UPnP, ohne VPN, und nur mit
+Passwort und damit verschlüsselt. Wer hinter CGNAT oder DS-Lite sitzt und
+kein IPv6 hat, kann so keinen Raum übers Internet öffnen (beitreten geht
+trotzdem).
+
 ## Was zuerst
 
 Die Reihenfolge fällt aus dem Obigen von selbst:
@@ -287,7 +315,8 @@ Die Reihenfolge fällt aus dem Obigen von selbst:
    (Strg+K, steht auch auf der Liste) genauso braucht.
 2. **Der Raum im lokalen Netz**, mit dem Hinweis auf offenen Verkehr.
 3. **Senden auf Zuruf**, mit der Rückfrage beim Annehmen.
-4. *Später und getrennt:* Verschlüsselung, und erst danach das Internet.
+4. *Später und getrennt:* Verschlüsselung, und erst danach das Internet
+   (beides gebaut, siehe oben).
 
 Stufe 1 lohnt sich auch allein. Das ist das beste Zeichen dafür, dass der
 Schnitt stimmt.

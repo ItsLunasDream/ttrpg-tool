@@ -18,3 +18,4 @@ export {
 export * from '../src/shared/sicherung';
 export * from '../src/main/sicherung';
 export * from '../src/main/raum';
+export * from '../src/main/raumkrypto';

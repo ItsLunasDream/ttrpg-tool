@@ -1,23 +1,29 @@
 /**
- * Der Raum im lokalen Netz (docs/austausch.md, Stufe 2): das Protokoll.
+ * Der Raum (docs/austausch.md, Stufe 2): das Protokoll.
  *
  * Wer einen Raum eroeffnet, ist Gastgeber. Er kuendigt den Raum im lokalen
  * Netz an (UDP, `RAUM_SUCHPORT`), die anderen sehen ihn in einer Liste und
  * verbinden sich mit ihm (TCP). Der Gastgeber verteilt: Chat an alle oder
- * an eine Person, Pakete ebenso. Kein Dienst im Internet.
+ * an eine Person, Pakete ebenso. Ueber das Internet erreicht man ihn per
+ * Portfreigabe oder IPv6 — ohne fremden Dienst dazwischen.
  *
  * Auf der Leitung steht je Zeile eine Nachricht als JSON. Das Passwort
- * reist nie: der Gastgeber schickt eine Zufallszahl, der Gast antwortet mit
- * einem Nachweis daraus (HMAC, gerechnet im Hauptprozess). Alles andere ist
- * UNVERSCHLUESSELT — wer im selben Netz mitliest, sieht es. Die Oberflaeche
- * sagt das.
+ * reist nie: der Gastgeber schickt eine Zufallszahl und ein Salz, der Gast
+ * antwortet mit einem Nachweis und einer eigenen Zufallszahl. Hat der Raum
+ * ein Passwort, ist ab dann jede Zeile VERSCHLUESSELT (AES-256-GCM, der
+ * Schluessel kommt aus dem Passwort; gerechnet im Hauptprozess). Ohne
+ * Passwort bleibt der Verkehr offen — das geht nur im lokalen Netz, und die
+ * Oberflaeche sagt es.
  *
  * Plattformfrei: nur Daten und reine Funktionen. Netz und Kryptografie
  * stehen im Hauptprozess der Huelle.
  */
 
 export const RAUM_SUCHPORT = 47811;
-export const RAUM_VERSION = 1;
+/** 2: Verschluesselung und IPv6/Internet. Aeltere Fassungen werden abgewiesen. */
+export const RAUM_VERSION = 2;
+/** Der Port, den ein Raum ueber das Internet nimmt, wenn nichts anderes eingestellt ist. */
+export const RAUM_INTERNETPORT = 47812;
 /** Mehr Personen braucht ein Tisch nicht; mehr Verbindungen nimmt der Gastgeber nicht an. */
 export const MAX_PERSONEN = 16;
 /** Eine Zeile darf so lang sein wie ein Paket plus Umschlag. */
@@ -42,8 +48,16 @@ export interface Ankuendigung {
 }
 
 export type Nachricht =
-  | { readonly typ: 'herausforderung'; readonly raum: string; readonly nonce: string }
-  | { readonly typ: 'hallo'; readonly name: string; readonly nachweis: string; readonly version: number }
+  /** `salz` ist leer, wenn der Raum kein Passwort hat (dann unverschluesselt). */
+  | { readonly typ: 'herausforderung'; readonly raum: string; readonly nonce: string; readonly salz: string }
+  | {
+      readonly typ: 'hallo';
+      readonly name: string;
+      readonly nachweis: string;
+      readonly version: number;
+      /** Die Zufallszahl des Gastes; geht mit in den Sitzungsschluessel. */
+      readonly gastNonce: string;
+    }
   | { readonly typ: 'willkommen'; readonly du: Person; readonly personen: readonly Person[] }
   | { readonly typ: 'abgelehnt'; readonly grund: 'passwort' | 'voll' | 'version' }
   | { readonly typ: 'personen'; readonly personen: readonly Person[] }
@@ -111,10 +125,15 @@ export function leseNachricht(zeile: string): Nachricht | null {
   const an = n.an === null || istText(n.an, 64) ? (n.an as string | null) : undefined;
   switch (n.typ) {
     case 'herausforderung':
-      return istText(n.raum, 64) && istText(n.nonce, 128) ? { typ: n.typ, raum: n.raum, nonce: n.nonce } : null;
+      return istText(n.raum, 64) && istText(n.nonce, 128) && istText(n.salz, 128)
+        ? { typ: n.typ, raum: n.raum, nonce: n.nonce, salz: n.salz }
+        : null;
     case 'hallo':
-      return istText(n.name, 64) && istText(n.nachweis, 256) && typeof n.version === 'number'
-        ? { typ: n.typ, name: n.name, nachweis: n.nachweis, version: n.version }
+      // Die Fassung zuerst: eine alte App schickt kein gastNonce, soll aber
+      // „falsche Fassung" hoeren und nicht stumm abgewiesen werden.
+      if (typeof n.version !== 'number') return null;
+      return istText(n.name, 64) && istText(n.nachweis, 256)
+        ? { typ: n.typ, name: n.name, nachweis: n.nachweis, version: n.version, gastNonce: istText(n.gastNonce, 128) ? n.gastNonce : '' }
         : null;
     case 'willkommen':
       return istPerson(n.du) && Array.isArray(n.personen) && n.personen.every(istPerson)
@@ -198,4 +217,36 @@ export function eindeutigerName(wunsch: string, vergeben: Iterable<string>): str
   let n = 2;
   while (belegt.has(`${sauber} (${n})`.toLocaleLowerCase('de-DE'))) n += 1;
   return `${sauber} (${n})`;
+}
+
+/**
+ * Eine Adresse, wie Menschen sie weitergeben: „192.168.1.20:47812",
+ * „[2001:db8::5]:47812", „mein-name.dyndns.org:47812". Eine IPv6-Adresse
+ * ohne Klammern (mehrere Doppelpunkte) wird ohne Port gelesen; dann gilt
+ * `standardPort`. Ohne Port gilt er ebenso. `null`, wenn nichts Brauchbares
+ * dasteht.
+ */
+export function leseAdresse(text: string, standardPort = RAUM_INTERNETPORT): { host: string; port: number } | null {
+  const t = text.trim();
+  if (!t || /\s/.test(t)) return null;
+  const portOk = (p: number) => Number.isInteger(p) && p > 0 && p < 65536;
+  const klammer = /^\[([0-9a-fA-F:.]+(?:%[\w.-]+)?)\](?::(\d{1,5}))?$/.exec(t);
+  if (klammer) {
+    const port = klammer[2] ? Number(klammer[2]) : standardPort;
+    return klammer[1].includes(':') && portOk(port) ? { host: klammer[1], port } : null;
+  }
+  const doppelpunkte = (t.match(/:/g) ?? []).length;
+  if (doppelpunkte >= 2) {
+    // Nackte IPv6-Adresse: der Port laesst sich nicht abtrennen.
+    return /^[0-9a-fA-F:.]+(%[\w.-]+)?$/.test(t) && portOk(standardPort) ? { host: t, port: standardPort } : null;
+  }
+  const [host, portText] = t.split(':');
+  if (!/^[A-Za-z0-9.-]+$/.test(host) || host.startsWith('.') || host.endsWith('-')) return null;
+  const port = portText === undefined ? standardPort : /^\d{1,5}$/.test(portText) ? Number(portText) : NaN;
+  return portOk(port) ? { host, port } : null;
+}
+
+/** Die Adresse zum Weitergeben: IPv6 in eckigen Klammern, damit der Port nicht verschwimmt. */
+export function alsAdresse(host: string, port: number): string {
+  return host.includes(':') ? `[${host}]:${port}` : `${host}:${port}`;
 }

@@ -14,8 +14,7 @@ const { app, BaseWindow } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
-const net = require('node:net');
-const { createHmac } = require('node:crypto');
+const { gast } = require('./raumgast.cjs');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'raum-smoke-'));
 const userData = path.join(tmp, 'userData');
@@ -48,33 +47,6 @@ async function bis(bedingung, ms = 4000) {
   return true;
 }
 
-/** Ein Gast aus dem Protokoll, ohne die App. */
-function gast(port, passwort, name) {
-  const s = net.connect({ host: '127.0.0.1', port });
-  s.setEncoding('utf8');
-  const nachrichten = [];
-  let rest = '';
-  s.on('data', (stueck) => {
-    rest += stueck;
-    const teile = rest.split('\n');
-    rest = teile.pop();
-    for (const t of teile) if (t.trim()) nachrichten.push(JSON.parse(t));
-    for (const n of nachrichten.splice(0)) {
-      gastobj.alle.push(n);
-      if (n.typ === 'herausforderung') {
-        const nachweis = passwort ? createHmac('sha256', passwort).update(n.nonce).digest('hex') : '';
-        s.write(`${JSON.stringify({ typ: 'hallo', name, nachweis, version: 1 })}\n`);
-      }
-      if (n.typ === 'willkommen') gastobj.ich = n.du;
-    }
-  });
-  s.on('error', () => undefined);
-  s.on('close', () => {
-    gastobj.getrennt = true;
-  });
-  const gastobj = { alle: [], ich: null, getrennt: false, schreibe: (n) => s.write(`${JSON.stringify(n)}\n`), zu: () => s.destroy() };
-  return gastobj;
-}
 
 app.whenReady().then(async () => {
   await warte(4000);
@@ -125,6 +97,11 @@ app.whenReady().then(async () => {
   pruefe(
     await bis(async () => /Anna/.test(await js("document.querySelector('[data-personen]')?.textContent ?? ''"))),
     'und steht in der Liste der Personen'
+  );
+  pruefe(anna.verschluesselt, 'mit Passwort ist Annas Leitung verschluesselt');
+  pruefe(
+    (await js("document.querySelector('[data-raum-verschluesselt]')?.dataset.raumVerschluesselt")) === 'true',
+    'die Marke zeigt „verschluesselt"'
   );
 
   // --- Chat -------------------------------------------------------------------
@@ -224,9 +201,39 @@ app.whenReady().then(async () => {
   await js('window.shell.raum.verlassen()');
   pruefe(await bis(() => anna.getrennt && ben.getrennt), 'der Raum ist zu, die Gaeste sind getrennt');
   pruefe((await js('window.shell.raum.zustand()')).zustand.rolle === 'aus', 'und die App ist wieder draussen');
+  pruefe(!anna.klartextNachAnmeldung && !ben.klartextNachAnmeldung, 'nach der Anmeldung kam nichts im Klartext');
   anna.zu();
   ben.zu();
   eve.zu();
+
+  // --- Raum ueber das Internet: fester Port, Passwort noetig ------------------
+  await js(`document.querySelector('[data-teilen-knopf]').click(); true`);
+  await warte(800);
+  await js(`document.querySelector('[data-richtung="raum"]').click(); true`);
+  await warte(500);
+  await js(`document.querySelector('[data-raum-internet]').click(); true`);
+  await warte(200);
+  await setze('[data-raum-port]', '47913');
+  await setze('[data-raum-passwort]', '');
+  await warte(200);
+  pruefe(await js("document.querySelector('[data-raum-eroeffnen]').disabled"), 'ohne Passwort laesst sich kein Internetraum eroeffnen');
+  await setze('[data-raum-passwort]', 'geheim');
+  await warte(200);
+  await js(`document.querySelector('[data-raum-eroeffnen]').click(); true`);
+  pruefe(await bis(async () => js("Boolean(document.querySelector('[data-raum=\"drin\"]'))")), 'mit Passwort ist er offen');
+  const netz = (await js('window.shell.raum.zustand()')).zustand;
+  pruefe(netz.internet && netz.port === 47913 && netz.verschluesselt, `fester Port ${netz.port}, verschluesselt`);
+  pruefe(await js("Boolean(document.querySelector('[data-raum-adresse=\"lan\"]'))"), 'die Adresse im lokalen Netz steht da');
+  pruefe(/47913/.test(await js("document.querySelector('[data-raum-portfreigabe]')?.textContent ?? ''")), 'der Hinweis zur Portfreigabe nennt den Port');
+  if (process.env.BILD_NETZ) await warte(800);
+  if (process.env.BILD_NETZ) fs.writeFileSync(process.env.BILD_NETZ, (await huelle.webContents.capturePage()).toPNG());
+  const hatV6 = Object.values(require('node:os').networkInterfaces()).flat().some((a) => a && a.address === '::1');
+  if (hatV6) {
+    const carla = gast(47913, 'geheim', 'Carla', '::1');
+    pruefe(await bis(() => carla.ich !== null), 'ein Gast kommt ueber IPv6 (::1) herein');
+    carla.zu();
+  } else console.log('  (kein ::1 auf diesem Rechner, IPv6-Beitritt uebersprungen)');
+  await js('window.shell.raum.verlassen()');
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
   console.log(fehler.length === 0 ? '\nRaum bestanden.' : `\n${fehler.length} Fehler.`);
