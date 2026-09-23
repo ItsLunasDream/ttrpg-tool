@@ -260,3 +260,78 @@ export function pruefe(tabelle: Tabelle, alle: readonly Tabelle[]): Befund[] {
   }
   return befunde;
 }
+
+/**
+ * Nummeriert die Zeilen einer Tabelle (Rueckmeldung: „Entries sollen
+ * automatisch nummeriert werden, die Zahl soll man aendern koennen").
+ *
+ * - Hat noch keine Zeile eine Nummer, bekommen alle der Reihe nach 1 bis n.
+ * - Haben schon welche eine, bekommen die uebrigen die naechsten freien
+ *   Zahlen nach der hoechsten. Vorhandene Nummern bleiben, wie sie sind:
+ *   sie gehoeren dem Menschen.
+ * - Ist kein Wuerfel eingetragen, wird er aus der hoechsten Zahl gesetzt
+ *   (`1d12`). Ein eingetragener Wuerfel bleibt stehen; passt er nicht, sagt
+ *   das `pruefe`.
+ *
+ * Plattformfrei. Liefert dieselben Werte zurueck, wenn es nichts zu tun gibt.
+ */
+export function nummeriere(zeilen: string, wuerfel: string): { zeilen: string; wuerfel: string } {
+  const eintraege = alsEintraege(zeilen);
+  if (eintraege.length === 0 || eintraege.every((e) => typeof e.von === 'number')) {
+    const max = Math.max(0, ...eintraege.map((e) => e.bis ?? e.von ?? 0));
+    return { zeilen, wuerfel: wuerfel.trim() || max < 2 ? wuerfel : `1d${max}` };
+  }
+  let naechste = Math.max(0, ...eintraege.map((e) => e.bis ?? e.von ?? 0)) + 1;
+  const nummeriert = eintraege.map((e) => (typeof e.von === 'number' ? e : { ...e, von: naechste, bis: naechste++ }));
+  const max = naechste - 1;
+  // Unter zwei Zeilen kein Wuerfel: einen „1d1" gibt es nicht.
+  return { zeilen: alsZeilen(nummeriert), wuerfel: wuerfel.trim() || max < 2 ? wuerfel : `1d${max}` };
+}
+
+/**
+ * Befunde, die das Wuerfeln sperren: bei einer Luecke, einer doppelten Zahl
+ * oder einer Zahl ausserhalb des Wuerfels waere das Ergebnis nicht das, was
+ * die Tabelle verspricht. Hinweise wie ein fehlender Verweis sperren nicht.
+ */
+export function sperrt(befund: Befund): boolean {
+  return befund.art === 'luecke' || befund.art === 'doppelt' || befund.art === 'ausserhalb' || befund.art === 'wuerfel-unlesbar';
+}
+
+/**
+ * Ein angefangener Verweis vor dem Cursor: ein „[" in derselben Zeile, noch
+ * ohne „]". Liefert, wo er beginnt, und was schon getippt ist.
+ */
+export function offenerVerweis(text: string, cursor: number): { von: number; suche: string } | null {
+  const davor = text.slice(0, cursor);
+  const von = davor.lastIndexOf('[');
+  if (von < 0) return null;
+  const suche = davor.slice(von + 1);
+  if (/[\]\n[]/.test(suche)) return null;
+  return { von, suche };
+}
+
+/**
+ * Setzt den gewaehlten Namen als Verweis ein. Ein „]" direkt hinter dem
+ * Cursor wird mitverwendet statt verdoppelt.
+ */
+export function setzeVerweis(
+  text: string,
+  von: number,
+  cursor: number,
+  name: string
+): { text: string; cursor: number } {
+  const danach = text.slice(cursor);
+  const rest = danach.startsWith(']') ? danach.slice(1) : danach;
+  const eingesetzt = `[${name}]`;
+  return { text: text.slice(0, von) + eingesetzt + rest, cursor: von + eingesetzt.length };
+}
+
+/** Die Tabellen, die zu einem angefangenen Verweis passen: Anfang vor Mitte. */
+export function verweisVorschlaege(namen: readonly string[], suche: string, anzahl = 8): string[] {
+  const s = suche.trim().toLocaleLowerCase();
+  const eindeutig = [...new Set(namen)];
+  const anfang = eindeutig.filter((n) => n.toLocaleLowerCase().startsWith(s));
+  const mitte = eindeutig.filter((n) => !n.toLocaleLowerCase().startsWith(s) && n.toLocaleLowerCase().includes(s));
+  const sortiert = (l: string[]) => l.sort((a, b) => a.localeCompare(b));
+  return [...sortiert(anfang), ...sortiert(mitte)].slice(0, anzahl);
+}

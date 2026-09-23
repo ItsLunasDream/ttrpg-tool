@@ -149,6 +149,35 @@ app.whenReady().then(async () => {
   await warte(200);
   pruefe((await js("document.querySelector('[data-befunde]') === null")), 'ohne Luecke keine Befunde');
 
+  // Luecke oder doppelte Nummer: Wuerfeln gesperrt, mit Begruendung.
+  await tippe('zeilen', `1-2: a\n2: b\n4: c`);
+  await warte(200);
+  pruefe(
+    (await js("document.querySelector('[data-wuerfeln]').disabled")) === true &&
+      /3/.test(await js("document.querySelector('[data-gesperrt]')?.textContent ?? ''")),
+    'bei Luecke und doppelter Nummer ist Wuerfeln gesperrt, mit Begruendung'
+  );
+
+  // Ohne Nummern: beim Verlassen des Felds nummeriert, Wuerfel passend.
+  await tippe('wuerfel', '');
+  await tippe('zeilen', 'a\nb\nc');
+  await js(`document.querySelector('[data-feld="zeilen"]').dispatchEvent(new FocusEvent('focusout', { bubbles: true })); true`);
+  await warte(200);
+  const nummeriert = await js(`document.querySelector('[data-feld="zeilen"]').value`);
+  const wurf = await js(`document.querySelector('[data-feld="wuerfel"]').value`);
+  pruefe(nummeriert === '1: a\n2: b\n3: c' && wurf === '1d3', `Eintraege nummeriert (${JSON.stringify(nummeriert)}, ${wurf})`);
+
+  // "[" schlaegt Tabellen vor; Enter setzt den Verweis ein.
+  await tippe('zeilen', `1: a\n2: [${kram.slice(0, 4)}`);
+  await warte(200);
+  const vorschlaege = await js("[...document.querySelectorAll('[data-vorschlag]')].map(e => e.getAttribute('data-vorschlag'))");
+  pruefe(vorschlaege.includes(kram), `"[" schlaegt ${kram} vor (${vorschlaege.join(', ')})`);
+  await js(`document.querySelector('[data-feld="zeilen"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); true`);
+  await warte(200);
+  const mitVerweis = await js(`document.querySelector('[data-feld="zeilen"]').value`);
+  pruefe(mitVerweis === `1: a\n2: [${kram}]`, `Enter setzt den Verweis ein (${JSON.stringify(mitVerweis)})`);
+  pruefe(await js("document.querySelector('[data-vorschlaege]') === null"), 'danach ist die Liste zu');
+
   await tippe('wuerfel', '');
   await tippe('zeilen', `[${kram}]`);
   await js(`(() => {

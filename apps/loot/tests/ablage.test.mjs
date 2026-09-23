@@ -162,3 +162,40 @@ test('der Bestand des Magic Item Creators wird zu Tabellen, leere Seltenheiten f
   assert.deepEqual(L.pruefe(truhe, de), []);
   assert.equal(L.gegenstandsTabellen([], 'en').length, 0);
 });
+
+test('Zeilen werden nummeriert, vorhandene Nummern bleiben', () => {
+  // Noch keine Nummer: alle der Reihe nach, der Wuerfel passend dazu.
+  assert.deepEqual(L.nummeriere('Schwert\nSchild\nSeil', ''), { zeilen: '1: Schwert\n2: Schild\n3: Seil', wuerfel: '1d3' });
+  // Schon welche: die uebrigen bekommen die naechsten freien Zahlen.
+  assert.deepEqual(L.nummeriere('1-4: Gold\nSilber', '1d6'), { zeilen: '1-4: Gold\n5: Silber', wuerfel: '1d6' });
+  // Nichts zu tun: dieselben Werte.
+  assert.deepEqual(L.nummeriere('1: A\n2: B', '1d2'), { zeilen: '1: A\n2: B', wuerfel: '1d2' });
+  assert.deepEqual(L.nummeriere('', ''), { zeilen: '', wuerfel: '' });
+  // Eine einzige Zeile bekommt eine Nummer, aber keinen Wuerfel „1d1".
+  assert.deepEqual(L.nummeriere('Nur eins', ''), { zeilen: '1: Nur eins', wuerfel: '' });
+});
+
+test('Luecken und doppelte Nummern sperren das Wuerfeln, Hinweise nicht', () => {
+  const tabelle = (zeilen, wuerfel) => ({ id: 't', name: 'T', wuerfel, eintraege: L.alsEintraege(zeilen) });
+  const luecke = L.pruefe(tabelle('1-20: A\n23: B', '1d23'), []);
+  assert.ok(luecke.some(L.sperrt), JSON.stringify(luecke));
+  const doppelt = L.pruefe(tabelle('33: A\n33: B\n1-32: C', '1d33'), []);
+  assert.ok(doppelt.some((b) => b.art === 'doppelt' && b.zahl === 33) && doppelt.some(L.sperrt));
+  const verweis = L.pruefe(tabelle('1: A\n2: [Gibtsnicht]', '1d2'), []);
+  assert.ok(verweis.some((b) => b.art === 'verweis-fehlt') && !verweis.some(L.sperrt), JSON.stringify(verweis));
+});
+
+test('"[" erkennt einen angefangenen Verweis und setzt den Namen ein', () => {
+  assert.deepEqual(L.offenerVerweis('1: [Tas', 7), { von: 3, suche: 'Tas' });
+  assert.equal(L.offenerVerweis('1: [Tasche] und', 15), null);
+  assert.equal(L.offenerVerweis('1: [Tas\n2: x', 12), null);
+  assert.equal(L.offenerVerweis('ohne', 4), null);
+  assert.deepEqual(L.setzeVerweis('1: [Tas', 3, 7, 'Taschenkram'), { text: '1: [Taschenkram]', cursor: 16 });
+  // Ein schon vorhandenes "]" wird nicht verdoppelt.
+  assert.deepEqual(L.setzeVerweis('1: [T] Rest', 3, 5, 'Truhe'), { text: '1: [Truhe] Rest', cursor: 10 });
+  assert.deepEqual(L.verweisVorschlaege(['Edelsteine', 'Taschenkram', 'Kleine Taschen', 'Taschenkram'], 'tasch'), [
+    'Taschenkram',
+    'Kleine Taschen'
+  ]);
+  assert.equal(L.verweisVorschlaege(['a', 'b', 'c'], '').length, 3);
+});
