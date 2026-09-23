@@ -108,6 +108,16 @@ jobs:
           # Fassung aus der .nvmrc der Wurzel, Begruendung im Job oben.
           node-version-file: .nvmrc
           cache: npm
+      # Electron (gut 100 MB) und die Werkzeuge von electron-builder
+      # zwischenspeichern. Sonst laedt jeder Lauf sie neu von GitHub, und ein
+      # abgebrochener Download liess den Build scheitern (Lauf 360, main).
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: electron-linux-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-linux-
       - run: npm ci
       # Bei einem Release traegt der Build die Fassung des Tags (v1.0.2 wird
       # 1.0.2): Ueber-Dialog, Dateiname des Installers und itch.io. Das
@@ -170,6 +180,16 @@ jobs:
           # Fassung aus der .nvmrc der Wurzel, Begruendung im Job oben.
           node-version-file: .nvmrc
           cache: npm
+      # Electron (gut 100 MB) und die Werkzeuge von electron-builder
+      # zwischenspeichern. Sonst laedt jeder Lauf sie neu von GitHub, und ein
+      # abgebrochener Download liess den Build scheitern (Lauf 360, main).
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: electron-win-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-win-
       - run: npm ci
       # Bei einem Release traegt der Build die Fassung des Tags (v1.0.2 wird
       # 1.0.2): Ueber-Dialog, Dateiname des Installers und itch.io. Das
