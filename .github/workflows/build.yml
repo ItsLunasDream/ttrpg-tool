@@ -3,7 +3,15 @@ name: Build
 on:
   push:
     branches: ['**']
+  # Von Hand starten (Actions > Build > Run workflow). Mit „itch" laedt der
+  # Lauf danach auf itch.io hoch, ohne dass es dafuer ein Release braucht,
+  # etwa zum Testen gegen ein Projekt, das dort noch Entwurf ist.
   workflow_dispatch:
+    inputs:
+      itch:
+        description: 'Danach auf itch.io hochladen'
+        type: boolean
+        default: false
   release:
     types: [published]
 
@@ -110,6 +118,16 @@ jobs:
       # dass es wirklich hochkommt.
       - name: Gepacktes Paket starten
         run: xvfb-run -a npm run verify:package:suite -- "$PWD/apps/shell/release/linux-unpacked/lore"
+      # Bei einer Veroeffentlichung oder von Hand mit „itch", und nur wenn das
+      # Projekt eingetragen ist (Variable ITCH_PROJEKT, z. B. name/lore). Ohne
+      # die Variable bleibt der Schritt still aus; mit Variable, aber ohne
+      # Secret BUTLER_API_KEY schlaegt er laut fehl.
+      - name: Auf itch.io hochladen
+        if: (github.event_name == 'release' || inputs.itch) && vars.ITCH_PROJEKT != ''
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          ITCH_PROJEKT: ${{ vars.ITCH_PROJEKT }}
+        run: bash scripts/itch-hochladen.sh linux apps/shell/release/linux-unpacked
       - name: Log bei Fehler sichern
         if: failure()
         uses: actions/upload-artifact@v4
@@ -144,6 +162,13 @@ jobs:
       - run: npm run dist:suite:win
       - name: Gepacktes Paket starten
         run: npm run verify:package:suite -- "${{ github.workspace }}\apps\shell\release\win-unpacked\LORE.exe"
+      - name: Auf itch.io hochladen
+        if: (github.event_name == 'release' || inputs.itch) && vars.ITCH_PROJEKT != ''
+        shell: bash
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          ITCH_PROJEKT: ${{ vars.ITCH_PROJEKT }}
+        run: bash scripts/itch-hochladen.sh windows apps/shell/release/win-unpacked
       - name: Ergebnis hochladen
         uses: actions/upload-artifact@v4
         with:
