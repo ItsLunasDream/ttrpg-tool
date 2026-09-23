@@ -396,10 +396,14 @@ app.whenReady().then(async () => {
   );
 
   // --- Die Sammlung --------------------------------------------------------
+  // Die Zusammenstellung ist nicht gespeichert: „Zurueck" fragt nach, statt
+  // sie still zu verwerfen. Hier wird die Rueckfrage mit „Ja" beantwortet.
+  await js(`window.__gefragt = 0; window.confirm = () => { window.__gefragt += 1; return true; }; true`);
   await js(
     `[...document.querySelectorAll('button')].find(b => /Zurück zur Liste|Back to the list/.test(b.textContent)).click(); true`
   );
   await warte(700);
+  pruefe((await js('window.__gefragt')) === 1, 'Zurueck mit ungespeicherter Zusammenstellung fragt nach');
   pruefe(
     (await js("document.querySelectorAll('.begegnungskachel').length")) === 3,
     'alle drei stehen in der Sammlung'

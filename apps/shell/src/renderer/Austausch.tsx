@@ -156,9 +156,15 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
   const nimmAn = async () => {
     if (!ankuenfte) return;
     const entscheidungen = ankuenfte
-      .filter((a) => annehmen.has(a.nummer) && a.annehmbar && !ohneZiel(a))
+      .filter((a) => annehmen.has(a.nummer) && a.annehmbar && !ohneZiel(a) && !gespeichert.has(a.nummer))
       .map((a) => ({ nummer: a.nummer, modus: konflikt[a.nummer] ? (modi[a.nummer] ?? 'daneben') : 'daneben' }));
-    setErgebnis(await window.shell.austausch.annehmen(entscheidungen, zielWahl));
+    const ergebnisse = await window.shell.austausch.annehmen(entscheidungen, zielWahl);
+    setErgebnis(ergebnisse);
+    // Angenommenes ist erledigt: abgehakt und nicht mehr waehlbar, damit ein
+    // zweiter Klick es nicht noch einmal daneben legt (Testbericht).
+    const fertig = entscheidungen.filter((_, i) => ergebnisse[i]?.ok).map((e) => e.nummer);
+    setGespeichert((alt) => new Set([...alt, ...fertig]));
+    setAnnehmen((alt) => new Set([...alt].filter((n) => !fertig.includes(n))));
   };
 
   /** Eine einzelne Ankunft annehmen, aus ihrem Fenster heraus. */
@@ -225,8 +231,8 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
                 <label className={annehmen.has(a.nummer) && a.annehmbar && !ohneZiel(a) ? 'auswahl__karte is-an' : 'auswahl__karte'}>
                   <input
                     type="checkbox"
-                    disabled={!a.annehmbar || ohneZiel(a)}
-                    checked={annehmen.has(a.nummer) && a.annehmbar && !ohneZiel(a)}
+                    disabled={!a.annehmbar || ohneZiel(a) || gespeichert.has(a.nummer)}
+                    checked={annehmen.has(a.nummer) && a.annehmbar && !ohneZiel(a) && !gespeichert.has(a.nummer)}
                     onChange={() =>
                       setAnnehmen((alt) => {
                         const neu = new Set(alt);
@@ -288,7 +294,13 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
           <p className="einst__satz raum__warnung">{t('share.openHint')}</p>
           <div className="austausch__fuss">
             <span />
-            <button type="button" className="dialog__knopf" data-annehmen onClick={() => void nimmAn()}>
+            <button
+              type="button"
+              className="dialog__knopf"
+              data-annehmen
+              disabled={![...annehmen].some((n) => !gespeichert.has(n))}
+              onClick={() => void nimmAn()}
+            >
               {t('share.accept')}
             </button>
           </div>

@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import type { Eintrag } from '../shared/ablage';
-import { alsLeib, zuId } from '../shared/ablage';
+import { alsLeib, freieKennung, zuId } from '../shared/ablage';
 import { alsVariante, erzeugeMonster, wuerfleNeu, type Monster } from '../shared/erzeuge';
 import type { Kampfweite } from '../shared/angriffe';
 import { alsFoundryDatei } from '../shared/foundry';
@@ -164,11 +164,14 @@ export function App() {
 
   const speichern = async () => {
     if (!monster) return;
+    // Das offene Stueck behaelt seine Datei. Alles andere bekommt eine freie
+    // Kennung: ein neues gleichen Namens ersetzt kein gespeichertes still.
+    const id = offenId ?? freieKennung(zuId(monster.name), eintraege.map((e) => e.id));
     const ergebnis = await api.sammlung.speichern(
-      { ...monster, id: zuId(monster.name), geaendert: new Date().toISOString() },
+      { ...monster, id, geaendert: new Date().toISOString() },
       getLanguage()
     );
-    if (ergebnis.ok) setOffenId(zuId(monster.name));
+    if (ergebnis.ok) setOffenId(id);
     setMeldung(
       ergebnis.ok
         ? t('meldung.gespeichert', { name: monster.name })
@@ -426,7 +429,11 @@ export function App() {
                 <button type="button" className="knopf knopf--klein" onClick={() => setMonster(wuerfleNeu(monster, 'werte', getLanguage(), wuerfel))}>
                   {t('knopf.neueWerte')}
                 </button>
-                <button type="button" className="knopf knopf--klein" onClick={() => setMonster(alsVariante(monster, cr, wuerfel))}>
+                <button type="button" className="knopf knopf--klein" onClick={() => {
+                    // Eine Variante ist ein neues Monster: gespeichert wird sie neben dem Original.
+                    setOffenId(null);
+                    setMonster(alsVariante(monster, cr, wuerfel));
+                  }}>
                   {t('knopf.variante')}
                 </button>
               </section>

@@ -28,6 +28,7 @@ const TEXTE = {
   speichern: ['Speichern', 'Save'],
   gespeichert: ['Gespeichert.', 'Saved.'],
   loeschen: ['Löschen', 'Delete'],
+  'verwerfen.sicher': ['Ungespeicherte Änderungen verwerfen?', 'Discard unsaved changes?'],
   'loeschen.sicher': [
     '„{name}" wirklich löschen? Das lässt sich nicht rückgängig machen.',
     'Really delete “{name}”? This cannot be undone.'

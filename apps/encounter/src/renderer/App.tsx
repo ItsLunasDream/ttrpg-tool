@@ -113,7 +113,7 @@ export function App() {
       api.beiSuchtreffer((kennung) => {
         void (async () => {
           const geladen = await api.sammlung.lesen(kennung);
-          if (geladen) setOffen(geladen);
+          if (geladen) setzeGrund(geladen);
           else setFehler(t('fehler.lesen'));
         })();
       }),
@@ -126,17 +126,28 @@ export function App() {
    * (Rueckmeldung). `null` ist die Liste, ein ungespeicherter Entwurf heisst
    * „entwurf" und laesst sich nicht wieder herstellen.
    */
+  /*
+   * Was zuletzt geladen oder gespeichert wurde. Weicht die offene Begegnung
+   * davon ab, fragt „Zurueck", statt sie still zu verwerfen (Testbericht).
+   */
+  const [stand, setStand] = useState<string | null>(null);
+  const setzeGrund = (b: Begegnung | null) => {
+    setOffen(b);
+    setStand(b ? JSON.stringify(b) : null);
+  };
+  const veraendert = offen !== null && stand !== null && JSON.stringify(offen) !== stand;
+
   const ort = offen ? offen.id || 'entwurf' : null;
   useEffect(() => api.ort.melde(ort), [ort]);
   useEffect(
     () =>
       api.ort.beiSprung((ziel) => {
         if (ziel === null) {
-          setOffen(null);
+          setzeGrund(null);
           return;
         }
         if (ziel === 'entwurf') return;
-        void api.sammlung.lesen(ziel).then((geladen) => geladen && setOffen(geladen));
+        void api.sammlung.lesen(ziel).then((geladen) => geladen && setzeGrund(geladen));
       }),
     []
   );
@@ -180,7 +191,7 @@ export function App() {
     if (id === null) return;
     // Mit der Kennung, die der Hauptprozess vergeben hat — sie kann wegen
     // eines Namensgleichstands eine andere sein als die geratene.
-    setOffen({ ...fertig, id });
+    setzeGrund({ ...fertig, id });
     setIstNeu(false);
   };
 
@@ -253,7 +264,8 @@ export function App() {
             type="button"
             className="knopf"
             onClick={() => {
-              setOffen(null);
+              if (veraendert && !confirm(t('verwerfen.sicher'))) return;
+              setzeGrund(null);
               setIstNeu(false);
               setMeldung('');
             }}
@@ -444,7 +456,7 @@ export function App() {
           onClick={() => {
             // Gleich in die Begegnung, ohne erst nach dem Namen zu fragen.
             // Auf die Platte kommt sie mit dem ersten Speichern.
-            setOffen(leereBegegnung('', new Date().toISOString()));
+            setzeGrund(leereBegegnung('', new Date().toISOString()));
             setIstNeu(true);
             setMeldung('');
             setFehler('');
@@ -494,7 +506,7 @@ export function App() {
                   void (async () => {
                     const geladen = await api.sammlung.lesen(eintrag.id);
                     if (geladen) {
-                      setOffen(geladen);
+                      setzeGrund(geladen);
                       setIstNeu(false);
                     } else setFehler(t('fehler.lesen'));
                   })();

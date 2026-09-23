@@ -87,13 +87,26 @@ export function App() {
    * (Rueckmeldung). `null` ist die Liste, ein ungespeicherter Entwurf heisst
    * „entwurf" und laesst sich nicht wieder herstellen.
    */
+  /*
+   * Was zuletzt erzeugt, geladen oder gespeichert wurde. Weicht der offene
+   * Gegenstand davon ab, hat man daran gearbeitet: dann fragen Neu-Wuerfeln,
+   * Zurueck und „Leer" nach, statt die Aenderung still zu verwerfen.
+   */
+  const [stand, setStand] = useState<string | null>(null);
+  const setzeGrund = (g: Gegenstand | null) => {
+    setOffen(g);
+    setStand(g ? JSON.stringify(g) : null);
+  };
+  const veraendert = offen !== null && stand !== null && JSON.stringify(offen) !== stand;
+  const darfVerwerfen = () => !veraendert || confirm(t('verwerfen.sicher'));
+
   const ort = offen ? offen.id || 'entwurf' : null;
   useEffect(() => api.ort.melde(ort), [ort]);
   useEffect(
     () =>
       api.ort.beiSprung((ziel) => {
         if (ziel === null) {
-          setOffen(null);
+          setzeGrund(null);
           setIstNeu(false);
           setMeldung('');
           setKiZeilen([]);
@@ -102,7 +115,7 @@ export function App() {
         if (ziel === 'entwurf') return;
         void api.sammlung.lesen(ziel).then((g) => {
           if (!g) return;
-          setOffen(g);
+          setzeGrund(g);
           setWirkungenFuer(g.seltenheit);
           setIstNeu(false);
         });
@@ -140,6 +153,7 @@ export function App() {
     const zielSeltenheit = seltenheit || erzeuge({ art: zielArt }, sprache()).seltenheit;
     const wert = (await frageKi({ aufgabe: 'gegenstand', art: zielArt, seltenheit: zielSeltenheit })) as RohGegenstand | null;
     if (!wert) return;
+    if (!darfVerwerfen()) return;
     const grundlage = erzeuge({ art: zielArt, seltenheit: zielSeltenheit, fluchChance: 0 }, sprache());
     const neu = mitPruefung({
       ...grundlage,
@@ -148,7 +162,7 @@ export function App() {
       fluch: wert.fluch,
       einstimmung: wert.einstimmung
     });
-    setOffen(neu);
+    setzeGrund(neu);
     setWirkungenFuer(neu.seltenheit);
     setIstNeu(true);
   };
@@ -175,7 +189,7 @@ export function App() {
         void (async () => {
           const geladen = await api.sammlung.lesen(kennung);
           if (geladen) {
-            setOffen(geladen);
+            setzeGrund(geladen);
             setWirkungenFuer(geladen.seltenheit);
             setIstNeu(false);
           } else setFehler(t('fehler.lesen'));
@@ -196,12 +210,13 @@ export function App() {
   }, [eintraege, suche]);
 
   const wuerfle = () => {
+    if (!darfVerwerfen()) return;
     setKiZeilen([]);
     const neu = erzeuge(
       { art: art || undefined, seltenheit: seltenheit || undefined, fluchChance: fluch ? 0.1 : 0 },
       spr
     );
-    setOffen(neu);
+    setzeGrund(neu);
     setWirkungenFuer(neu.seltenheit);
     setIstNeu(true);
     setMeldung('');
@@ -218,7 +233,7 @@ export function App() {
       setFehler(t('fehler.speichern', { detail: ergebnis.text }));
       return null;
     }
-    setOffen({ ...fertig, id: ergebnis.id });
+    setzeGrund({ ...fertig, id: ergebnis.id });
     setIstNeu(false);
     setMeldung(t('gespeichert'));
     await ladeListe();
@@ -234,7 +249,7 @@ export function App() {
     const gespeichert = await speichere();
     if (!gespeichert) return;
     if (await api.sammlung.inDenLoot(gespeichert.id)) {
-      setOffen({ ...gespeichert, imLoot: true });
+      setzeGrund({ ...gespeichert, imLoot: true });
       setMeldung(t('loot.fertig'));
     } else setFehler(t('loot.fehler'));
   };
@@ -291,7 +306,8 @@ export function App() {
         </label>
         <span className="leiste__luecke" />
         <button type="button" className="knopf" data-leer onClick={() => {
-          setOffen(leer());
+          if (!darfVerwerfen()) return;
+          setzeGrund(leer());
           setWirkungenFuer(null);
           setIstNeu(true);
         }}>
@@ -365,7 +381,8 @@ export function App() {
             type="button"
             className="knopf"
             onClick={() => {
-              setOffen(null);
+              if (!darfVerwerfen()) return;
+              setzeGrund(null);
               setIstNeu(false);
               setMeldung('');
               setKiZeilen([]);
@@ -679,7 +696,7 @@ export function App() {
                   void (async () => {
                     const geladen = await api.sammlung.lesen(e.id);
                     if (geladen) {
-                      setOffen(geladen);
+                      setzeGrund(geladen);
                       setWirkungenFuer(geladen.seltenheit);
                       setIstNeu(false);
                     } else setFehler(t('fehler.lesen'));
