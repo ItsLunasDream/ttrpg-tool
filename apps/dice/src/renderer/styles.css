@@ -890,3 +890,19 @@ input[type='number'] {
   transition: background var(--motion-feedback) var(--motion-ease-standard),
     border-color var(--motion-feedback) var(--motion-ease-standard);
 }
+
+/*
+ * Ein grosser Wurf (8 × 100 Wuerfel) hat einen langen Rechenweg. Er darf die
+ * Buehne nicht zusammendruecken (Testbericht: 35 px Wuerfelstreifen): hoechstens
+ * ein paar Zeilen hoch, der Rest scrollt.
+ */
+.buehne__summe {
+  max-height: 30%;
+  min-height: 0;
+}
+
+.buehne__summe-weg {
+  max-height: 5.5em;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}

@@ -25,6 +25,7 @@ const TEXTE = {
   gespeichert: ['Gespeichert.', 'Saved.'],
   loeschen: ['Löschen', 'Delete'],
   'loeschen.sicher': ['„{name}" wirklich löschen?', 'Really delete “{name}”?'],
+  'erzeuger.naechster': ['Nächster Wurf:', 'Next roll:'],
   'verwerfen.sicher': ['Ungespeicherte Änderungen verwerfen?', 'Discard unsaved changes?'],
   zurueck: ['Zurück zur Liste', 'Back to the list'],
   nochmal: ['Neu würfeln', 'Reroll'],

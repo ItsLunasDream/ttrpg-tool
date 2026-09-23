@@ -13,7 +13,7 @@ import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { SELTENHEITEN, SELTENHEIT_NAME, gegenstandswert, type Seltenheit } from '@suite/srd';
 import { api } from './api';
 import { getLanguage, setLanguage, t, type TextKey } from './i18n';
-import { erzeuge, wuerfleFluch, wuerfleWirkung, type Gegenstand, type Sprache } from '../shared/erzeuge';
+import { erzeuge, hoechsterGrad, wuerfleFluch, wuerfleWirkung, type Gegenstand, type Sprache } from '../shared/erzeuge';
 import type { Eintrag } from '../shared/ablage';
 import type { Frage, RohGegenstand } from '../shared/kiAufgaben';
 import { pruefeKi } from '../shared/pruefung';
@@ -65,7 +65,10 @@ export function App() {
   // Fuer welche Seltenheit die Wirkungen gewuerfelt wurden. Weicht die
   // eingestellte davon ab, bietet ein Knopf neue Wirkungen an — von selbst
   // ueberschrieben wird nichts, die Texte gehoeren der Spielleitung.
-  const [wirkungenFuer, setWirkungenFuer] = useState<Seltenheit | null>(null);
+  // Fuer welche Seltenheit UND Art die Wirkungen gewuerfelt wurden: aendert
+  // sich eins davon, bietet der Knopf „anpassen" neue an (Testbericht: bei
+  // einer anderen Art blieben Waffenwirkungen an einer Schriftrolle stehen).
+  const [wirkungenFuer, setWirkungenFuer] = useState<string | null>(null);
   const [fehler, setFehler] = useState('');
   /*
    * Die KI, wie beim Monster Creator: sie schreibt, die Pruefung zieht ihre
@@ -116,7 +119,7 @@ export function App() {
         void api.sammlung.lesen(ziel).then((g) => {
           if (!g) return;
           setzeGrund(g);
-          setWirkungenFuer(g.seltenheit);
+          setWirkungenFuer(`${g.seltenheit}|${g.art}`);
           setIstNeu(false);
         });
       }),
@@ -163,7 +166,7 @@ export function App() {
       einstimmung: wert.einstimmung
     });
     setzeGrund(neu);
-    setWirkungenFuer(neu.seltenheit);
+    setWirkungenFuer(`${neu.seltenheit}|${neu.art}`);
     setIstNeu(true);
   };
 
@@ -190,7 +193,7 @@ export function App() {
           const geladen = await api.sammlung.lesen(kennung);
           if (geladen) {
             setzeGrund(geladen);
-            setWirkungenFuer(geladen.seltenheit);
+            setWirkungenFuer(`${geladen.seltenheit}|${geladen.art}`);
             setIstNeu(false);
           } else setFehler(t('fehler.lesen'));
         })();
@@ -217,7 +220,7 @@ export function App() {
       spr
     );
     setzeGrund(neu);
-    setWirkungenFuer(neu.seltenheit);
+    setWirkungenFuer(`${neu.seltenheit}|${neu.art}`);
     setIstNeu(true);
     setMeldung('');
     setFehler('');
@@ -268,6 +271,10 @@ export function App() {
         genau die.
       */}
       <div className="erzeuger">
+        {/* Im offenen Gegenstand gibt es zwei Auswahlen fuer Art und
+            Seltenheit: diese hier gilt fuer den NAECHSTEN Wurf, die unten fuer
+            den offenen Gegenstand. Das Etikett sagt es (Testbericht). */}
+        {imGegenstand ? <span className="erzeuger__etikett">{t('erzeuger.naechster')}</span> : null}
         <select
           className="feld__wahl"
           aria-label={t('erzeuger.art')}
@@ -347,9 +354,17 @@ export function App() {
       const neu = { ...offen, ...teil };
       // Der Wert folgt der Seltenheit — ausser bei der Schriftrolle, deren
       // Wert am Zaubergrad haengt und beim Wuerfeln schon feststand.
-      if ((teil.seltenheit || teil.art) && neu.art !== 'schriftrolle') {
-        neu.wert = gegenstandswert(neu.seltenheit, { verbrauch: VERBRAUCH[neu.art] });
+      if (teil.seltenheit || teil.art) {
+        // Die Schriftrolle rechnet mit dem hoechsten Zaubergrad ihrer
+        // Seltenheit: sonst kostete eine gewoehnliche Rolle, die eben noch
+        // eine legendaere Waffe war, 100.000 GM (Testbericht).
+        neu.wert = gegenstandswert(neu.seltenheit, {
+          verbrauch: VERBRAUCH[neu.art],
+          schriftrolleGrad: neu.art === 'schriftrolle' ? hoechsterGrad(neu.seltenheit) : undefined
+        });
       }
+      // Traenke und Schriftrollen verlangen nie Einstimmung.
+      if (teil.art && (neu.art === 'trank' || neu.art === 'schriftrolle')) neu.einstimmung = false;
       setOffen(neu);
       setMeldung('');
     };
@@ -472,7 +487,7 @@ export function App() {
           <p className="wert" title={t('wert.hinweis')} data-wert>
             {t('feld.wert', { wert: zahl(offen.wert) })}
           </p>
-          {wirkungenFuer && wirkungenFuer !== offen.seltenheit ? (
+          {wirkungenFuer && wirkungenFuer !== `${offen.seltenheit}|${offen.art}` ? (
             <p className="anpassen">
               <button
                 type="button"
@@ -482,7 +497,7 @@ export function App() {
                   if (offen.wirkungen.some((w) => w.trim()) && !confirm(t('anpassen.sicher'))) return;
                   const neu = erzeuge({ art: offen.art, seltenheit: offen.seltenheit, fluchChance: 0 }, spr);
                   setze({ wirkungen: neu.wirkungen, einstimmung: neu.einstimmung || Boolean(offen.fluch.trim()) });
-                  setWirkungenFuer(offen.seltenheit);
+                  setWirkungenFuer(`${offen.seltenheit}|${offen.art}`);
                 }}
               >
                 ⚄ {t('anpassen', { seltenheit: SELTENHEIT_NAME[offen.seltenheit][spr] })}
@@ -697,7 +712,7 @@ export function App() {
                     const geladen = await api.sammlung.lesen(e.id);
                     if (geladen) {
                       setzeGrund(geladen);
-                      setWirkungenFuer(geladen.seltenheit);
+                      setWirkungenFuer(`${geladen.seltenheit}|${geladen.art}`);
                       setIstNeu(false);
                     } else setFehler(t('fehler.lesen'));
                   })();

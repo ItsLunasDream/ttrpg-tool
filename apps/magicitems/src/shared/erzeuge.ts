@@ -78,6 +78,11 @@ const HEILUNG_EN = ['2d4 + 2', '4d4 + 4', '8d4 + 8', '10d4 + 20', '10d4 + 20'];
 
 /** Der hoechste Zaubergrad je Seltenheit, fuer Staebe und Schriftrollen. */
 const HOECHSTER_GRAD = [1, 3, 5, 7, 9];
+
+/** Der hoechste Zaubergrad einer Seltenheit (fuer den Wert einer Schriftrolle). */
+export function hoechsterGrad(seltenheit: Seltenheit): number {
+  return HOECHSTER_GRAD[Math.max(0, SELTENHEITEN.indexOf(seltenheit))] ?? 1;
+}
 /** SG eines Stabs je Seltenheit. */
 const STAB_SG = [13, 13, 15, 17, 19];
 

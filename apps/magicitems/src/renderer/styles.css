@@ -543,3 +543,9 @@ textarea {
   margin: 4px 0 0;
   padding-left: 18px;
 }
+
+.erzeuger__etikett {
+  color: var(--text-leise);
+  font-size: 0.9em;
+  white-space: nowrap;
+}

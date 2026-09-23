@@ -396,6 +396,12 @@ function Artfeld({
   onSeiten?: (seiten: number) => void;
 }) {
   const name = artName(art, einstellungen.eigeneSeiten);
+  /*
+   * Der Text im Seitenfeld, solange getippt wird. Sofortiges Klemmen auf
+   * mindestens 2 machte aus „leeren und 7 tippen" eine 27 (Testbericht);
+   * uebernommen wird jetzt eine gueltige Zahl, geklemmt erst beim Verlassen.
+   */
+  const [seitenText, setSeitenText] = useState<string | null>(null);
   return (
     <div className={`artfeld ${anzahl !== 0 ? 'artfeld--aktiv' : ''} ${anzahl < 0 ? 'artfeld--abzug' : ''}`}>
       <Wuerfel
@@ -421,10 +427,18 @@ function Artfeld({
             type="number"
             min={2}
             max={1000}
-            value={einstellungen.eigeneSeiten}
-            onChange={(ereignis) =>
-              onSeiten(Math.max(2, Math.min(1000, Number.parseInt(ereignis.target.value, 10) || 2)))
-            }
+            value={seitenText ?? einstellungen.eigeneSeiten}
+            onChange={(ereignis) => {
+              const text = ereignis.target.value;
+              setSeitenText(text);
+              const zahl = Number.parseInt(text, 10);
+              if (zahl >= 2 && zahl <= 1000) onSeiten(zahl);
+            }}
+            onBlur={() => {
+              const zahl = Number.parseInt(seitenText ?? '', 10);
+              if (seitenText !== null) onSeiten(Math.max(2, Math.min(1000, zahl || einstellungen.eigeneSeiten)));
+              setSeitenText(null);
+            }}
             aria-label={t('feld.seiten')}
           />
         </span>
