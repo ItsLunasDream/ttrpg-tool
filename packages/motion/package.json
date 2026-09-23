@@ -1,6 +1,6 @@
 {
   "name": "@suite/motion",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "private": true,
   "license": "AGPL-3.0-or-later",
   "description": "Zeiten, Kurven und Grundanimationen der Oberflaeche — plattformfreies, geteiltes Paket",

@@ -1,6 +1,6 @@
 {
   "name": "backstory-creator",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Desktop-Tool zum Schreiben von D&D-Charakter-Backstorys",
   "repository": {

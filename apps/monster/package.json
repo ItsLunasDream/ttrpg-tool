@@ -1,6 +1,6 @@
 {
   "name": "ttrpg-monster",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Monster Creator — Homebrew-Monster zu einem vorgegebenen CR, mit Pruefung",
   "type": "module",
