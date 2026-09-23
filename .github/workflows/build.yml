@@ -109,6 +109,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # Bei einem Release traegt der Build die Fassung des Tags (v1.0.2 wird
+      # 1.0.2): Ueber-Dialog, Dateiname des Installers und itch.io. Das
+      # Skript liest das Tag selbst aus GITHUB_REF_NAME, damit kein Tagtext
+      # in eine Shell-Zeile eingesetzt wird.
+      - name: Fassung aus dem Release-Tag
+        if: github.event_name == 'release'
+        run: node scripts/version-aus-tag.mjs
       - name: Linux-Paket der Sammlung bauen
         run: npm run dist:suite:linux:dir
       # Der Rauchtest laeuft gegen die ungepackte Huelle und sieht nicht, ob
@@ -164,6 +171,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # Bei einem Release traegt der Build die Fassung des Tags (v1.0.2 wird
+      # 1.0.2): Ueber-Dialog, Dateiname des Installers und itch.io. Das
+      # Skript liest das Tag selbst aus GITHUB_REF_NAME, damit kein Tagtext
+      # in eine Shell-Zeile eingesetzt wird.
+      - name: Fassung aus dem Release-Tag
+        if: github.event_name == 'release'
+        run: node scripts/version-aus-tag.mjs
       - run: npm run dist:suite:win
       - name: Gepacktes Paket starten
         run: npm run verify:package:suite -- "${{ github.workspace }}\apps\shell\release\win-unpacked\LORE.exe"
