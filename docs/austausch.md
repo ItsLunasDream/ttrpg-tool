@@ -86,6 +86,17 @@ gespeichert: er lebt nur, solange der Raum offen ist (entschieden).
 - Geteilte Einträge stehen im Chat, beim Absender und bei allen, die sie
   bekommen: die ersten fünf Namen, dann „und N weitere“. Ein Klick klappt
   die ganze Liste auf.
+- Solange man in einem Raum ist, steht links neben „Teilen“ ein grüner
+  Knopf mit Raumname, Zahl der Personen und (als Gast) dem Ping; ein Klick
+  öffnet den Raum.
+- **Ping:** Gast und Gastgeber messen alle 3 Sekunden die Laufzeit
+  (`ping`/`pong` im Protokoll, verschlüsselt wie alles andere). Der Gast
+  sieht seinen Ping zum Gastgeber, der Gastgeber den Ping zu jedem Gast
+  neben dessen Namen.
+- Ein Raum, der schließt, meldet das per Broadcast (`zu: true`) und
+  verschwindet sofort aus den Listen im Netz, statt noch Sekunden darin zu
+  stehen. Geht die Meldung verloren, läuft er wie bisher nach 8 Sekunden
+  aus.
 - Beim Gastgeber: „Einladung kopieren“ legt Raumname und alle Adressen als
   Text in die Zwischenablage, ohne Passwort. Bei einem Raum übers Internet
   wird die öffentliche IPv4 gleich beim Eröffnen erfragt (api.ipify.org).

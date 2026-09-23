@@ -268,6 +268,11 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
         <span className="austausch__art">
           {zustand.rolle === 'gastgeber' ? t('room.youHost') : t('room.youAre', { name: zustand.ich?.name ?? '' })}
         </span>
+        {zustand.rolle === 'gast' && (
+          <span className="raum__marke" data-raum-ping title={t('room.pingHint')}>
+            {zustand.ping === null ? t('room.pingWaiting') : t('room.ping', { ms: zustand.ping })}
+          </span>
+        )}
         <span className={`raum__marke${zustand.verschluesselt ? ' is-sicher' : ''}`} data-raum-verschluesselt={zustand.verschluesselt}>
           {zustand.verschluesselt ? t('room.encrypted') : t('room.notEncrypted')}
         </span>
@@ -317,7 +322,15 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
         </button>
       </div>
       <p className="austausch__art" data-personen>
-        {t('room.people')}: {zustand.personen.map((p) => p.name).join(', ')}
+        {t('room.people')}:{' '}
+        {zustand.personen.map((p, i) => (
+          <span key={p.id} data-person={p.name}>
+            {i > 0 ? ', ' : ''}
+            {p.name}
+            {/* Beim Gastgeber: der Ping zu jedem Gast. */}
+            {zustand.pings[p.id] !== undefined && <span className="raum__personping"> ({zustand.pings[p.id]} ms)</span>}
+          </span>
+        ))}
       </p>
       <div className="raum__chat" ref={liste} data-chat>
         {zustand.chat.length === 0 ? (

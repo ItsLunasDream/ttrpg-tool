@@ -20,12 +20,15 @@
  * zu sein. Waehrend einer Suche sind alle Gruppen mit Treffern offen.
  * „Zuletzt geoeffnet" ist von Anfang an offen: es ist der schnelle Griff.
  */
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { useVorschau } from './Vorschau';
 import { eintragsSchluessel, finde, type Eintrag } from '@suite/eintraege';
 import type { MessageKey, MessageParams } from '../shared/i18n';
 import { nameKey } from '../shared/apps';
 import { AppSymbol } from './icons';
+
+/** Ein fester leerer Vorgabewert, damit `memo` nicht an einem neuen [] scheitert. */
+const LEER: readonly never[] = [];
 
 interface Props {
   readonly teilbar: readonly Eintrag[] | null;
@@ -46,7 +49,12 @@ const istSondergruppe = (id: string) => id === ZULETZT || id === NEU;
 /** Wie viele „Zuletzt geoeffnet" zeigt. */
 const ZULETZT_ANZAHL = 10;
 
-export function Auswahl({ teilbar, zuletzt = [], gewaehlt, setGewaehlt, symbole, t }: Props) {
+/**
+ * Mit `memo`: der Dialog zeichnet bei jeder Chatzeile und jedem Raumereignis
+ * neu, die Auswahl (mit aufgeklapptem Nachschlagewerk ueber 900 Eintraege)
+ * aber nur, wenn sich ihre eigenen Daten aendern.
+ */
+export const Auswahl = memo(function Auswahl({ teilbar, zuletzt = LEER, gewaehlt, setGewaehlt, symbole, t }: Props) {
   const [suche, setSuche] = useState('');
   const [apps, setApps] = useState<ReadonlySet<string>>(new Set());
   const [offen, setOffen] = useState<ReadonlySet<string>>(new Set([ZULETZT, NEU]));
@@ -260,4 +268,4 @@ export function Auswahl({ teilbar, zuletzt = [], gewaehlt, setGewaehlt, symbole,
       )}
     </div>
   );
-}
+});

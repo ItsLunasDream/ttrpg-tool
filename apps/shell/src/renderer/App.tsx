@@ -594,6 +594,18 @@ export function App() {
   // Pakete zaehlen nur, wenn eines dazukommt; ein angenommenes, das aus der
   // Liste verschwindet, ist nichts Neues.
   const paketeVorher = useRef(0);
+  // Im Raum: ein gruener Knopf links neben „Teilen" mit Raumname und Zahl
+  // der Personen; ein Klick oeffnet den Raum.
+  const [imRaum, setImRaum] = useState<{ raum: string; personen: number; ping: number | null } | null>(null);
+  useEffect(() => {
+    const setze = (z: { rolle: string; raum: string; personen: readonly unknown[]; ping: number | null }) =>
+      setImRaum(z.rolle === 'aus' ? null : { raum: z.raum, personen: z.personen.length, ping: z.ping });
+    void window.shell.raum.zustand().then((s) => setze(s.zustand), () => undefined);
+    return window.shell.raum.beiEreignis((e) => {
+      if (e.art === 'zustand') setze(e.zustand);
+      else if (e.art === 'ping') setImRaum((alt) => (alt && alt.ping !== e.ping ? { ...alt, ping: e.ping } : alt));
+    });
+  }, []);
   useEffect(
     () =>
       window.shell.raum.beiEreignis((e) => {
@@ -738,6 +750,24 @@ export function App() {
         </span>
         {eintrag && <span className="titelleiste__pfad">› {t(nameKey(eintrag.id))}</span>}
         <span className="titelleiste__fueller" />
+        {imRaum && (
+          <button
+            type="button"
+            className="titelleiste__knopf titelleiste__raum motion-erscheinen"
+            data-im-raum
+            title={t('title.inRoom', { raum: imRaum.raum, n: imRaum.personen })}
+            onClick={() => zeigeDialog('teilen')}
+          >
+            <span className="titelleiste__raumpunkt" aria-hidden="true" />
+            {imRaum.raum}
+            <span className="titelleiste__raumzahl">{imRaum.personen}</span>
+            {imRaum.ping !== null && (
+              <span className="titelleiste__raumzahl" data-titel-ping>
+                · {imRaum.ping} ms
+              </span>
+            )}
+          </button>
+        )}
         <button type="button" className="titelleiste__knopf titelleiste__knopf--symbol" data-teilen-knopf onClick={() => zeigeDialog('teilen')}>
           <AppSymbol id="austausch" size={16} bild={symbole.austausch} />
           {t('title.share')}

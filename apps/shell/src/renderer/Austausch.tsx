@@ -27,7 +27,7 @@ import { Ankunftsfenster } from './Ankunftsfenster';
 import type { GefundenerRaum, Raumzustand } from '../main/raum';
 import type { Raumpaket } from '../preload';
 
-const AUS: Raumzustand = { rolle: 'aus', raum: '', ich: null, personen: [], chat: [], port: null, adressen: [], ipv6: [], verschluesselt: false, internet: false };
+const AUS: Raumzustand = { rolle: 'aus', raum: '', ich: null, personen: [], chat: [], port: null, adressen: [], ipv6: [], verschluesselt: false, internet: false, ping: null, pings: {} };
 
 type Modus = 'uebernehmen' | 'daneben' | 'verwerfen';
 
@@ -70,7 +70,9 @@ export function Austausch({ onClose, t, symbole = {} }: Props) {
         if (e.zustand.rolle !== 'aus') setRaumFehler('');
       } else if (e.art === 'raeume') setRaeume(e.raeume);
       else if (e.art === 'pakete') setRaumPakete(e.pakete);
-      else if (e.art === 'chat') setRaum((alt) => ({ ...alt, chat: [...alt.chat, e.zeile] }));
+      // Wie im Hauptprozess hoechstens 500 Zeilen, sonst waechst die Liste bis zum naechsten Zustand.
+      else if (e.art === 'chat') setRaum((alt) => ({ ...alt, chat: [...alt.chat, e.zeile].slice(-500) }));
+      else if (e.art === 'ping') setRaum((alt) => ({ ...alt, ping: e.ping, pings: e.pings }));
       else if (e.art === 'fehler') setRaumFehler(t(`room.error.${e.grund}` as MessageKey));
     });
   }, [t]);

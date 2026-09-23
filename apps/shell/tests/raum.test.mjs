@@ -299,3 +299,56 @@ test('Beitritt: wo niemand lauscht, heisst der Grund „abgewiesen"; eine alte F
     g.d.beende();
   }
 });
+
+test('der Gast misst den Ping zum Gastgeber, verschluesselt und im Klartext', async () => {
+  for (const passwort of ['geheim', '']) {
+    const g = dienst(47931);
+    const a = dienst(47931);
+    try {
+      const port = await g.d.eroeffne('Runde', passwort, 'SL');
+      await a.d.trittBei('127.0.0.1', port, passwort, 'Anna');
+      assert.equal(g.d.zustand().ping, null, 'der Gastgeber hat keinen Ping zu sich selbst');
+      await bis(() => typeof a.d.zustand().ping === 'number');
+      assert.ok(a.d.zustand().ping >= 0 && a.d.zustand().ping < 1000, `Ping ${a.d.zustand().ping} ms`);
+      a.d.verlasse();
+      assert.equal(a.d.zustand().ping, null, 'nach dem Verlassen ist der Ping weg');
+    } finally {
+      a.d.beende();
+      g.d.beende();
+    }
+  }
+});
+
+test('der Gastgeber sieht den Ping zu jedem Gast', async () => {
+  const g = dienst(47932);
+  const a = dienst(47932);
+  try {
+    const port = await g.d.eroeffne('Runde', 'geheim', 'SL');
+    await a.d.trittBei('127.0.0.1', port, 'geheim', 'Anna');
+    const anna = a.d.zustand().ich.id;
+    await bis(() => typeof g.d.zustand().pings[anna] === 'number', 5000);
+    assert.deepEqual(Object.keys(a.d.zustand().pings), [], 'ein Gast sieht keine Pings der anderen');
+    a.d.verlasse();
+    await bis(() => g.d.zustand().pings[anna] === undefined);
+  } finally {
+    a.d.beende();
+    g.d.beende();
+  }
+});
+
+test('ein geschlossener Raum verschwindet sofort aus der Liste', async () => {
+  const g = dienst(47933);
+  const s = dienst(47933);
+  try {
+    s.d.suche();
+    await g.d.eroeffne('Weg', '', 'SL');
+    await bis(() => s.d.raeume().some((r) => r.raum === 'Weg'), 5000);
+    const vorher = Date.now();
+    g.d.verlasse();
+    await bis(() => !s.d.raeume().some((r) => r.raum === 'Weg'), 2000);
+    assert.ok(Date.now() - vorher < 2000, 'nicht erst nach dem Auslaufen');
+  } finally {
+    s.d.beende();
+    g.d.beende();
+  }
+});

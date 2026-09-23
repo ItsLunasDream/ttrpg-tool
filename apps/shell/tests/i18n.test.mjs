@@ -37,6 +37,8 @@ const GLEICH_ERLAUBT = new Set([
   // Fachwoerter, die im Deutschen genauso heissen.
   'room.port',
   'room.addrPublic',
+  'room.ping',
+  'room.pingWaiting',
   // Der Name der Sammlung.
   'menu.title',
   // Seine Aufloesung, bewusst englisch wie der Name selbst.
