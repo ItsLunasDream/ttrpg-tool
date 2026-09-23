@@ -19,7 +19,18 @@ export interface DiceEmbedOptions {
   readonly devServerUrl?: string;
   readonly language?: string;
   readonly onLanguageChange?: (language: string) => void;
+  /**
+   * Der Raum im lokalen Netz, wenn die Huelle einen hat: ob man drin ist,
+   * und eine Chatzeile schicken (an alle oder an eine Person).
+   */
+  readonly raum?: {
+    lage(): { readonly rolle: 'aus' | 'gastgeber' | 'gast'; readonly ichId: string | null };
+    chatte(text: string, an: string | null): boolean;
+  };
 }
+
+/** Die Kennung des Gastgebers im Raum — er ist die Spielleitung. */
+const GASTGEBER = 'gastgeber';
 
 export interface DiceEmbed {
   readonly preloadPath: string;
@@ -59,6 +70,20 @@ export async function mountDice(options: DiceEmbedOptions): Promise<DiceEmbed> {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.handle(kanal('einstellungen:lesen'), () => ablage.lesen());
+  for (const name of ['raum:lage', 'raum:wurf']) ipcMain.removeHandler(kanal(name));
+  ipcMain.handle(kanal('raum:lage'), () => options.raum?.lage() ?? { rolle: 'aus', ichId: null });
+  /*
+   * Einen Wurf in den Raum schicken. „dm" geht an den Gastgeber; ist man
+   * selbst der Gastgeber, bleibt der Wurf hier (ein verdeckter Wurf der
+   * Spielleitung) und es wird nichts geschickt.
+   */
+  ipcMain.handle(kanal('raum:wurf'), (_e, text: string, ziel: 'alle' | 'dm') => {
+    const lage = options.raum?.lage();
+    if (!options.raum || !lage || lage.rolle === 'aus') return 'aus';
+    if (ziel === 'dm' && lage.ichId === GASTGEBER) return 'selbst';
+    const ok = options.raum.chatte(String(text).slice(0, 400), ziel === 'dm' ? GASTGEBER : null);
+    return ok ? 'ok' : 'fehler';
+  });
   ipcMain.handle(kanal('einstellungen:schreiben'), (_e, neu: Einstellungen) =>
     ablage.schreiben(neu)
   );

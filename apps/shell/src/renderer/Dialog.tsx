@@ -32,9 +32,11 @@ interface Props {
    * zweimal da.
    */
   readonly kopf?: ReactNode;
+  /** Eine eigene Klasse am Kasten, etwa fuer eine eigene Breite. */
+  readonly klasse?: string;
 }
 
-export function Dialog({ titel, schliessenText, onClose, children, breit, kopf }: Props) {
+export function Dialog({ titel, schliessenText, onClose, children, breit, kopf, klasse }: Props) {
   const kasten = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,7 +65,7 @@ export function Dialog({ titel, schliessenText, onClose, children, breit, kopf }
       }}
     >
       <div
-        className={breit ? 'dialog dialog--breit motion-eintritt' : 'dialog motion-eintritt'}
+        className={['dialog', breit ? 'dialog--breit' : '', klasse ?? '', 'motion-eintritt'].filter(Boolean).join(' ')}
         role="dialog"
         aria-modal="true"
         aria-label={titel}

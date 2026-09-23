@@ -636,6 +636,37 @@ input[type='number'] {
   border-top: 1px solid var(--rand);
 }
 
+.teilen {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rand);
+}
+
+.teilen__wahl {
+  display: flex;
+  gap: 4px;
+}
+
+.teilen__knopf {
+  flex: 1;
+  padding: 5px 6px;
+  font-size: 12px;
+}
+
+.teilen__knopf--an {
+  border-color: var(--betont);
+  background: color-mix(in srgb, var(--betont) 18%, transparent);
+  color: var(--text);
+}
+
+.teilen__hinweis {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
 .aussehen__titel {
   font-size: 11px;
   color: var(--text-leise);

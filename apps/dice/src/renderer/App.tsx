@@ -19,7 +19,7 @@ import {
   type Auswahl,
   type Wurf
 } from '../shared/pool';
-import { STANDARD, type Einstellungen } from '../shared/einstellungen';
+import { STANDARD, TEILEN, type Einstellungen, type Teilen } from '../shared/einstellungen';
 import { getLanguage, onLanguageChange, t, type Language } from './i18n';
 import { Wuerfel } from './Wuerfel';
 import { Verlauf } from './Verlauf';
@@ -110,6 +110,42 @@ export function App() {
   const dreiDAn =
     einstellungen.dreiD && grafikDa && gesamt <= DREID_HOECHSTENS && dreiDEinwuerfe.length > 0;
 
+  /*
+   * Wuerfe in den Raum (Teilen). Die Lage wird beim Start, beim Zurueckkommen
+   * ins Fenster und nach jedem geteilten Wurf frisch gefragt: wer den Raum
+   * verlaesst, soll nicht glauben, seine Wuerfe gingen noch hinaus.
+   */
+  const [imRaum, setImRaum] = useState(false);
+  const [teilMeldung, setTeilMeldung] = useState('');
+  useEffect(() => {
+    const frage = () => void api.raum.lage().then((l) => setImRaum(l.rolle !== 'aus'), () => setImRaum(false));
+    frage();
+    window.addEventListener('focus', frage);
+    const takt = window.setInterval(frage, 5000);
+    return () => {
+      window.removeEventListener('focus', frage);
+      window.clearInterval(takt);
+    };
+  }, []);
+  const teileWurf = useCallback(
+    (text: string, ziel: Teilen) => {
+      if (ziel === 'aus') return;
+      void api.raum.wurf(text, ziel).then((ergebnis) => {
+        setImRaum(ergebnis !== 'aus');
+        setTeilMeldung(
+          ergebnis === 'ok'
+            ? t(ziel === 'dm' ? 'teilen.gesendetDm' : 'teilen.gesendetAlle')
+            : ergebnis === 'selbst'
+              ? t('teilen.selbstDm')
+              : ergebnis === 'aus'
+                ? t('teilen.keinRaum')
+                : t('teilen.fehler')
+        );
+      });
+    },
+    []
+  );
+
   const rolle = useCallback(() => {
     if (gesamt === 0 || rollt) return;
     setRollt(true);
@@ -121,6 +157,7 @@ export function App() {
       wurfNummer.current += 1;
       setWurf(neuerWurf);
       setRollt(false);
+      teileWurf(`🎲 ${ausdruck}: ${neuerWurf.summe}  (${rechenweg(neuerWurf)})`, einstellungen.teilen);
       setVerlauf((vorher) =>
         [
           {
@@ -136,7 +173,7 @@ export function App() {
         ].slice(0, VERLAUF_LAENGE)
       );
     }, ROLLDAUER);
-  }, [auswahl, einstellungen.eigeneSeiten, modifikator, gesamt, rollt]);
+  }, [auswahl, einstellungen.eigeneSeiten, einstellungen.teilen, modifikator, gesamt, rollt, ausdruck, teileWurf]);
 
   return (
     <div className="wuerfelapp">
@@ -184,6 +221,35 @@ export function App() {
         </label>
 
         <Aussehen einstellungen={einstellungen} onAendern={aendereEinstellungen} />
+
+        <section className="teilen">
+          <span className="aussehen__titel">{t('teilen.titel')}</span>
+          <div className="teilen__wahl" role="radiogroup" aria-label={t('teilen.titel')}>
+            {TEILEN.map((wert) => (
+              <button
+                key={wert}
+                type="button"
+                role="radio"
+                aria-checked={einstellungen.teilen === wert}
+                data-teilen-wurf={wert}
+                className={einstellungen.teilen === wert ? 'teilen__knopf teilen__knopf--an' : 'teilen__knopf'}
+                onClick={() => {
+                  setTeilMeldung('');
+                  aendereEinstellungen({ teilen: wert });
+                }}
+              >
+                {t(`teilen.${wert}`)}
+              </button>
+            ))}
+          </div>
+          {einstellungen.teilen !== 'aus' && !imRaum ? (
+            <p className="teilen__hinweis">{t('teilen.keinRaum')}</p>
+          ) : teilMeldung ? (
+            <p className="teilen__hinweis" data-teilen-meldung>
+              {teilMeldung}
+            </p>
+          ) : null}
+        </section>
 
         <div className="auswahl__knoepfe">
           <button type="button" className="knopf--haupt" onClick={rolle} disabled={gesamt === 0 || rollt}>

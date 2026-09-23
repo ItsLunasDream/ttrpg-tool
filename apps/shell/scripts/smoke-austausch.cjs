@@ -88,22 +88,54 @@ app.whenReady().then(async () => {
   );
   await js(`document.querySelector('[data-richtung="datei"]').click(); true`);
   await warte(500);
-  const zeilen = await js("document.querySelectorAll('[data-austausch=\"geben\"] [data-teilen]').length");
-  pruefe(zeilen === 3, `der Dialog zeigt ohne Suchwort die drei eigenen Eintraege (${zeilen})`);
+  // Oben „Zuletzt hinzugefuegt" (offen), darunter die Apps, eingeklappt.
+  const gruppen = (await js("[...document.querySelectorAll('[data-gruppe]')].map(g => g.dataset.gruppe + ':' + g.dataset.offen).join(',')")).split(',');
   pruefe(
-    (await js("[...document.querySelectorAll('[data-gruppe]')].map(g => g.dataset.gruppe).join(',')")).split(',').length === 3,
-    'nach Apps gruppiert'
+    gruppen[0] === '~neu:true' && gruppen.slice(1).every((g) => g.endsWith(':false')),
+    `„Zuletzt hinzugefuegt" offen oben, die Apps eingeklappt (${gruppen.join(' ')})`
   );
+  pruefe(
+    ['backstory', 'monster', 'nachschlagewerk'].every((w) => gruppen.includes(`${w}:false`)),
+    'nach Apps gruppiert, auch mit den offiziellen Regeln ohne Suchwort'
+  );
+  const frisch = await js("[...document.querySelectorAll('[data-gruppe=\"~neu\"] [data-teilen]')].map(e => e.dataset.teilen)");
+  pruefe(
+    frisch.length === 3 && !frisch.some((k) => k.startsWith('nachschlagewerk/regel/')),
+    `darin die drei eigenen Eintraege, keine offizielle Regel (${frisch.join(', ')})`
+  );
+  // Aufklappen: die Regeln stehen darin, auch ohne Suche.
+  await js(`document.querySelector('[data-gruppe-klappe="nachschlagewerk"]').click(); true`);
+  await warte(300);
+  const regeln = await js("document.querySelectorAll('[data-gruppe=\"nachschlagewerk\"] [data-teilen]').length");
+  pruefe(regeln > 100, `aufgeklappt zeigt das Nachschlagewerk die Regeln (${regeln})`);
+  await js(`document.querySelector('[data-gruppe-klappe="nachschlagewerk"]').click(); true`);
+  // Vorschau beim Darueberfahren.
+  await js(`document.querySelector('[data-gruppe="~neu"] [data-teilen="monster/ghul"]').closest('label').dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); true`);
+  await warte(900);
+  const vorschau = await js("document.querySelector('[data-vorschau]')?.textContent ?? ''");
+  pruefe(/Klauen, die laehmen/.test(vorschau), `beim Darueberfahren eine Vorschau (${vorschau.slice(0, 60)})`);
+  await js(`document.querySelector('[data-gruppe="~neu"] [data-teilen="monster/ghul"]').closest('label').dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); true`);
   // Filter-Chips: nur Monster zeigen, dann wieder alle.
   await js(`document.querySelector('[data-chip="monster"]').click(); true`);
   await warte(200);
   pruefe(
-    (await js("document.querySelectorAll('[data-austausch=\"geben\"] [data-teilen]').length")) === 1,
+    (await js("[...document.querySelectorAll('[data-gruppe]')].map(g => g.dataset.gruppe).join(',')")) === '~neu,monster',
     'ein Filter-Chip zeigt nur die Eintraege seiner App'
   );
+  // Suche: klappt die Gruppen mit Treffern auf.
+  await js(`(() => { const el = document.querySelector('[data-auswahl-suche]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, 'ghul'); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+  await warte(300);
+  pruefe(
+    (await js("document.querySelector('[data-gruppe=\"monster\"]')?.dataset.offen")) === 'true',
+    'eine Suche klappt die Gruppen mit Treffern auf'
+  );
+  pruefe(/Search/.test(await js("document.querySelector('[data-auswahl-suche]').placeholder")), 'das Suchfeld heisst Search');
+  await js(`(() => { const el = document.querySelector('[data-auswahl-suche]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ''); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
   await js(`document.querySelector('[data-chip="alle"]').click(); true`);
   await warte(200);
-  await js(`document.querySelector('[data-teilen="monster/ghul"]').click(); true`);
+  const breite = await js("document.querySelector('.dialog--teilen')?.getBoundingClientRect().width ?? 0");
+  pruefe(breite > 800, `der Dialog ist doppelt so breit (${Math.round(breite)} px)`);
+  await js(`document.querySelector('[data-gruppe="~neu"] [data-teilen="monster/ghul"]').click(); true`);
   await warte(200);
   pruefe(
     /1/.test(await js("document.querySelector('.austausch__fuss span').textContent")),

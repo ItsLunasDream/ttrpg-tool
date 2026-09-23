@@ -253,6 +253,8 @@ const api = {
       }>,
     konflikte: (ziele: Record<string, string>) =>
       ipcRenderer.invoke('austausch:konflikte', ziele) as Promise<boolean[]>,
+    vorschau: (werkzeug: string, kennung: string) =>
+      ipcRenderer.invoke('austausch:vorschau', werkzeug, kennung) as Promise<string>,
     annehmen: (entscheidungen: { nummer: number; modus?: Modus }[], ziele: Record<string, string>) =>
       ipcRenderer.invoke('austausch:annehmen', entscheidungen, ziele) as Promise<
         { ok: boolean; kennung?: string; grund?: string; werkzeug: string; name: string }[]
@@ -270,6 +272,7 @@ const api = {
         pakete: Raumpaket[];
       }>,
     suchen: () => ipcRenderer.invoke('raum:suchen') as Promise<GefundenerRaum[]>,
+    aktualisieren: () => ipcRenderer.invoke('raum:aktualisieren') as Promise<GefundenerRaum[]>,
     eroeffnen: (name: string, passwort: string) =>
       ipcRenderer.invoke('raum:eroeffnen', name, passwort) as Promise<{ ok: boolean; port?: number; grund?: string }>,
     beitreten: (adresse: string, port: number, passwort: string) =>

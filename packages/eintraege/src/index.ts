@@ -51,6 +51,12 @@ export interface Eintrag {
    * sein. Wer eine Volltextsuche will, baut sie im Werkzeug.
    */
   readonly stichworte?: string;
+  /**
+   * Wann es zuletzt gespeichert wurde, als ISO-Zeit. Fuer „Zuletzt
+   * hinzugefuegt" im Teilen; fehlt, wo es keinen Sinn hat (offizielle
+   * Regeln).
+   */
+  readonly geaendert?: string;
 }
 
 /**

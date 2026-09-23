@@ -114,7 +114,9 @@ app.whenReady().then(async () => {
   const zuletzt = await hjs("[...document.querySelectorAll('[data-gruppe=\"~zuletzt\"] [data-teilen]')].map(e => e.dataset.teilen)");
   pruefe(gruppen[0] === '~zuletzt', `„Zuletzt geoeffnet" steht als eigene Gruppe ganz oben (${gruppen.slice(0, 3).join(', ')})`);
   pruefe(
-    zuletzt[0] === 'nachschlagewerk/zustand/prone' && zuletzt.includes('nachschlagewerk/zustand/blinded'),
+    // Zuletzt war der Gegenstand im Magic Item Creator offen, davor die Regeln.
+    zuletzt[0] === 'magicitems/klinge' &&
+      zuletzt.indexOf('nachschlagewerk/zustand/prone') < zuletzt.indexOf('nachschlagewerk/zustand/blinded'),
     `mit den zuletzt geoeffneten Eintraegen, neueste zuerst (${zuletzt.join(', ')})`
   );
 

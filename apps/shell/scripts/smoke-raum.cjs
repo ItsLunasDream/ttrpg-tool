@@ -22,6 +22,14 @@ const userData = path.join(tmp, 'userData');
 const monsterOrdner = path.join(userData, 'monster', 'monster');
 fs.mkdirSync(monsterOrdner, { recursive: true });
 fs.writeFileSync(path.join(monsterOrdner, 'ork.md'), '---\nid: ork\nname: Ork\ncr: "1"\n---\n# Ork\n');
+// Ein Gegenstand aus dem Magic Item Creator: auch er laesst sich teilen.
+const gegenstandOrdner = path.join(userData, 'magicitems', 'gegenstaende');
+fs.mkdirSync(gegenstandOrdner, { recursive: true });
+fs.writeFileSync(
+  path.join(gegenstandOrdner, 'klinge.md'),
+  '---\nname: Klinge\nart: waffe\nseltenheit: rare\neinstimmung: nein\nwert: 4000\ngeaendert: 2026-01-01\n---\n## Wirkungen\n\n- Glaenzt.\n'
+);
+fs.writeFileSync(path.join(userData, 'einstellungen.json'), JSON.stringify({ language: 'en', einfuehrungGesehen: ['suite', 'dice'] }));
 app.setPath('userData', userData);
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
 
@@ -88,6 +96,13 @@ app.whenReady().then(async () => {
   await warte(800);
   await js(`document.querySelector('[data-richtung="raum"]').click(); true`);
   await warte(500);
+  // Aktualisieren: der Kreis dreht.
+  await js(`document.querySelector('[data-raum-aktualisieren]').click(); true`);
+  await warte(150);
+  pruefe(
+    (await js("document.querySelector('[data-raum-kreis]')?.dataset.raumKreis")) === 'true',
+    '„Aktualisieren" laesst den Kreis drehen'
+  );
   await setze('[data-tischname]', 'Spielleitung');
   await setze('[data-raumname]', 'Freitagsrunde');
   await setze('[data-raum-passwort]', 'pw');
@@ -154,6 +169,11 @@ app.whenReady().then(async () => {
   await warte(500);
   anna.schreibe({ typ: 'paket', von: anna.ich.id, an: 'gastgeber', titel: '1: Ghul', paket, zeit: '' });
   pruefe(await bis(async () => Boolean(await js("document.querySelector('[data-ungelesen]')"))), 'bei geschlossenem Dialog zaehlt der Knopf mit');
+  anna.schreibe({ typ: 'chat', von: anna.ich.id, an: null, text: 'Seid ihr da?', zeit: '' });
+  pruefe(
+    await bis(async () => (await js("document.querySelector('[data-ungelesen]')?.textContent")) === '2'),
+    'Paket und Nachricht: der Knopf zeigt 2'
+  );
   const pakete = (await js('window.shell.raum.zustand()')).pakete;
   pruefe(pakete.length === 1 && pakete[0].von === 'Anna', 'das Paket wartet in der App');
   const angesehen = await js(`window.shell.raum.paketAnsehen(${pakete[0].id})`);
@@ -169,6 +189,34 @@ app.whenReady().then(async () => {
   pruefe(await bis(() => anna.alle.some((n) => n.typ === 'paket' && /# Ork/.test(n.paket))), 'Anna bekommt es');
   await warte(300);
   pruefe(!ben.alle.some((n) => n.typ === 'paket'), 'Ben nicht');
+
+  // --- Weitere Apps: ein magischer Gegenstand -------------------------------
+  const gegenstand = await js(`window.shell.raum.senden([{ werkzeug: 'magicitems', kennung: 'klinge' }], null)`);
+  pruefe(gegenstand.ok && gegenstand.anzahl === 1, 'auch ein magischer Gegenstand geht in den Raum');
+  pruefe(await bis(() => ben.alle.some((n) => n.typ === 'paket' && /Glaenzt/.test(n.paket))), 'und kommt an');
+
+  // --- Wuerfe aus dem Wuerfel -------------------------------------------------
+  await js(`document.querySelector('[data-app="dice"]').click(); true`);
+  await warte(4500);
+  const wuerfel = fenster.contentView.children.find((v) => v.webContents.getURL().includes('/apps/dice/'));
+  const djs = (a) => wuerfel.webContents.executeJavaScript(a);
+  await djs(`document.querySelector('[data-teilen-wurf="alle"]').click(); true`);
+  await warte(300);
+  await djs("[...document.querySelectorAll('.artfeld .wuerfel')][5].click(); true");
+  await djs("[...document.querySelectorAll('button')].find(b => /^(Roll|Rollen)$/.test(b.textContent.trim())).click(); true");
+  pruefe(
+    await bis(() => anna.alle.some((n) => n.typ === 'chat' && /^🎲 /.test(n.text) && n.an === null), 6000),
+    'ein Wurf geht an alle im Raum'
+  );
+  await djs(`document.querySelector('[data-teilen-wurf="dm"]').click(); true`);
+  await warte(300);
+  const vorher = anna.alle.length;
+  await djs("[...document.querySelectorAll('button')].find(b => /^(Roll|Rollen)$/.test(b.textContent.trim())).click(); true");
+  pruefe(
+    await bis(async () => /host|leitest/i.test(await djs("document.querySelector('[data-teilen-meldung]')?.textContent ?? ''")), 6000),
+    'als Gastgeber bleibt ein Wurf „nur an DM" hier'
+  );
+  pruefe(!anna.alle.slice(vorher).some((n) => n.typ === 'chat' && /^🎲 /.test(n.text)), 'und geht nicht hinaus');
 
   // --- Raum schliessen -------------------------------------------------------
   await js('window.shell.raum.verlassen()');
