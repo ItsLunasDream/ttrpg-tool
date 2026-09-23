@@ -140,6 +140,11 @@ jobs:
   windows:
     name: Windows-Paket der Sammlung
     needs: [package-check, suite-check]
+    # Nur dieser Job schreibt: er haengt die .exe an das Release. Ohne diese
+    # Zeile hat das Token nur Leserecht, und der Schritt scheiterte mit
+    # „Resource not accessible by integration" (v0.3.0, v0.4.0).
+    permissions:
+      contents: write
     # Windows-Laeufer zaehlen doppelt auf das Kontingent. Das fertige Paket
     # wird nur dort gebaut, wo es auch gebraucht wird: auf main, fuer eine
     # Veroeffentlichung und wenn jemand den Lauf von Hand startet. Auf Zweigen
