@@ -1,6 +1,6 @@
 {
   "name": "@suite/tabellen",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "private": true,
   "license": "AGPL-3.0-or-later",
   "description": "Zufallstabellen, die die Spielleitung selbst schreibt — verschachtelbar, plattformfrei",

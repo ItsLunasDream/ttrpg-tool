@@ -1,6 +1,6 @@
 {
   "name": "@suite/einstellungen",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "private": true,
   "license": "AGPL-3.0-or-later",
   "description": "Beschreibung der Einstellungen eines Werkzeugs, damit die Huelle sie zeigen kann — plattformfrei",
