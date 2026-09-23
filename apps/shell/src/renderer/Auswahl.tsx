@@ -182,7 +182,16 @@ export function Auswahl({ teilbar, zuletzt = [], gewaehlt, setGewaehlt, symbole,
                 data-gruppe={werkzeug}
                 data-offen={aufgeklappt}
               >
-                <header className="auswahl__kopf">
+                {/* Die ganze Kopfzeile klappt, nicht nur der Pfeil (Rueckmeldung);
+                    der Knopf „Alle" rechts bleibt fuer sich. */}
+                <header
+                  className="auswahl__kopf"
+                  data-gruppe-kopf={werkzeug}
+                  onClick={(ev) => {
+                    if ((ev.target as HTMLElement).closest('.auswahl__alle, .auswahl__klappe')) return;
+                    schalteGruppe(werkzeug);
+                  }}
+                >
                   <button
                     type="button"
                     className="auswahl__klappe"
@@ -207,7 +216,7 @@ export function Auswahl({ teilbar, zuletzt = [], gewaehlt, setGewaehlt, symbole,
                   <span className="auswahl__zahl">
                     {gewaehltHier > 0 ? `${gewaehltHier} / ${eintraege.length}` : eintraege.length}
                   </span>
-                  <span className="auswahl__luecke" onClick={() => schalteGruppe(werkzeug)} />
+                  <span className="auswahl__luecke" />
                   <button
                     type="button"
                     className="auswahl__alle"

@@ -948,7 +948,7 @@ function registriereKanaele(): void {
     return {
       ok: true,
       abgebrochen: false,
-      ankuenfte: ankuenfte(eingang),
+      ankuenfte: ankuenfte(eingang, gemerkteEinstellungen?.language === 'de' ? 'de' : 'en'),
       ziele: await zieleFuer(app.getPath('userData'), eingang.sendungen.map((s) => s.werkzeug))
     };
   });
@@ -1080,7 +1080,7 @@ function registriereKanaele(): void {
     return {
       ok: true,
       abgebrochen: false,
-      ankuenfte: ankuenfte(eingang),
+      ankuenfte: ankuenfte(eingang, gemerkteEinstellungen?.language === 'de' ? 'de' : 'en'),
       ziele: await zieleFuer(app.getPath('userData'), eingang.sendungen.map((s) => s.werkzeug))
     };
   });
