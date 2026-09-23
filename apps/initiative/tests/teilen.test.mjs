@@ -25,6 +25,13 @@ test('die geteilte Ansicht zeigt Spieler genau und Gegner nur grob', () => {
   assert.equal(laufend.teilnehmer.find((t) => t.amZug)?.name, 'Thorin');
 });
 
+test('ohne Stufen sehen die Spieler vom Gegner gar keinen Zustand', () => {
+  const [held, ork] = teileKampf(kampf(), false).teilnehmer;
+  assert.equal(held.koerper[0].hp, 22);
+  assert.deepEqual(ork.koerper, []);
+  assert.doesNotMatch(JSON.stringify(ork), /stufe|raus/);
+});
+
 test('die Stufen', () => {
   assert.equal(stufe(15, 15), 'unverletzt');
   assert.equal(stufe(10, 15), 'angeschlagen');

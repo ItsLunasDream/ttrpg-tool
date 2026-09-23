@@ -62,7 +62,8 @@ gespeichert wird; vorläufig lebt er nur, solange der Raum offen ist.
   Kampf; die anderen sehen ihn live über der eigenen Liste. Gefiltert:
   Spielerfiguren mit genauen TP, alle anderen nur mit Name, Reihenfolge,
   Zuständen und einer groben Stufe (unverletzt, angeschlagen, schwer
-  verletzt, kampfunfähig), ohne TP und RK. Über das Rechtsklickmenü einer
+  verletzt, kampfunfähig), ohne TP und RK. Mit dem Schalter
+  „Gegnerzustand zeigen“ lässt sich auch die Stufe ganz ausblenden. Über das Rechtsklickmenü einer
   Zeile gehört eine Figur einer Person im Raum; diese Person darf deren TP
   und Zustände ändern. Die Änderung geht an den Teilenden, der sie gegen
   die Zuordnung prüft und den neuen Stand an alle schickt. Alles andere

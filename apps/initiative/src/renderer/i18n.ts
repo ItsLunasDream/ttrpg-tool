@@ -47,6 +47,11 @@ export const texte = {
     'Everyone in the room follows the combat live. Of enemies only the name and a rough state.'
   ],
   'raum.gehoert': ['Gehört zu {name}', 'Belongs to {name}'],
+  'raum.stufen': ['Gegnerzustand zeigen', 'Show enemy state'],
+  'raum.stufenTitel': [
+    'Spieler sehen bei Gegnern grob, wie verletzt sie sind. Aus: gar nichts davon.',
+    'Players see roughly how hurt enemies are. Off: nothing at all.'
+  ],
   'raum.loesen': ['Zuordnung lösen', 'Remove owner'],
   'raum.geteilt': ['Geteilter Kampf von {name}', 'Shared combat by {name}'],
   'raum.deine': ['deine Figur', 'your character'],

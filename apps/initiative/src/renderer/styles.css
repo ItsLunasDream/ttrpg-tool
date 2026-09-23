@@ -1008,3 +1008,13 @@ input[type='number'] {
 .geteilt__neu .geteilt__runden {
   width: 4.5em;
 }
+
+.leiste__schalter {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-leise);
+  white-space: nowrap;
+  cursor: pointer;
+}

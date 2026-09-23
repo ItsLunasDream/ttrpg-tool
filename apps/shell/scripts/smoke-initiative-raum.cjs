@@ -209,6 +209,16 @@ app.whenReady().then(async () => {
   anna.schreibe({ typ: 'werkzeug', von: 'x', an: null, werkzeug: 'initiative', inhalt: JSON.stringify({ art: 'ende' }), zeit: '' });
   pruefe(await bis(() => js("!document.querySelector('[data-geteilt]')")), 'und verschwindet mit ihrem Ende');
 
+  // --- Gegnerzustand ganz aus ----------------------------------------------
+  await js("document.querySelector('[data-initiative-stufen]').click(); true");
+  pruefe(
+    await bis(() => {
+      const s = letzterStand(anna)?.stand;
+      return s && s.teilnehmer.find((t) => t.id === 'ork')?.koerper.length === 0 && s.teilnehmer.find((t) => t.id === 'held')?.koerper[0].hp === 11;
+    }),
+    'ausgeschaltet sieht Anna vom Ork keinen Zustand mehr, von Mira weiter die TP'
+  );
+
   // --- Beenden -----------------------------------------------------------------
   await js("document.querySelector('[data-initiative-teilen]').click(); true");
   pruefe(await bis(() => letzterStand(anna)?.art === 'ende'), '„Teilen beenden" meldet das Ende');

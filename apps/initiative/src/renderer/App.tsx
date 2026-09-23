@@ -111,6 +111,14 @@ export function App() {
    */
   const [raum, setRaum] = useState<RaumLage>(KEIN_RAUM);
   const [teilt, setTeilt] = useState(false);
+  /** Sehen die Spieler den groben Zustand der Gegner? Merkt sich die Wahl. */
+  const [stufenZeigen, setStufenZeigen] = useState(() => {
+    try {
+      return localStorage.getItem('initiative.stufenZeigen') !== 'nein';
+    } catch {
+      return true;
+    }
+  });
   const [geteilt, setGeteilt] = useState<{ von: { id: string; name: string }; stand: GeteilterKampf } | null>(
     null
   );
@@ -477,7 +485,10 @@ export function App() {
    * Teilen: jede Aenderung, und jede neue Person im Raum, bekommt den Stand.
    * Kurz gebuendelt, damit Tippen in ein Feld nicht jeden Buchstaben schickt.
    */
-  const ansicht = useMemo(() => JSON.stringify({ art: 'stand', stand: teileKampf(kampf) }), [kampf]);
+  const ansicht = useMemo(
+    () => JSON.stringify({ art: 'stand', stand: teileKampf(kampf, stufenZeigen) }),
+    [kampf, stufenZeigen]
+  );
   const personenSchluessel = raum.personen.map((p) => p.id).join(',');
   useEffect(() => {
     if (!teilt) return;
@@ -582,6 +593,25 @@ export function App() {
           >
             {teilt ? t('raum.teilenEnde') : t('raum.teilen')}
           </button>
+        ) : null}
+        {raum.rolle !== 'aus' ? (
+          <label className="leiste__schalter" title={t('raum.stufenTitel')}>
+            <input
+              type="checkbox"
+              checked={stufenZeigen}
+              data-initiative-stufen
+              onChange={(e) => {
+                const an = e.target.checked;
+                setStufenZeigen(an);
+                try {
+                  localStorage.setItem('initiative.stufenZeigen', an ? 'ja' : 'nein');
+                } catch {
+                  // Ohne Speicher gilt die Wahl nur bis zum Schliessen.
+                }
+              }}
+            />
+            {t('raum.stufen')}
+          </label>
         ) : null}
         {/*
           Hier stand ein eigener EN/DE-Waehler. Die Sprache steht in den

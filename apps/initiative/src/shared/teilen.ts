@@ -80,8 +80,13 @@ export function stufe(hp: number, hpMax: number): Stufe {
   return hp * 2 <= hpMax ? 'schwer' : 'angeschlagen';
 }
 
-/** Die Ansicht fuer den Raum: Spieler genau, alle anderen grob. */
-export function teileKampf(kampf: Kampf): GeteilterKampf {
+/**
+ * Die Ansicht fuer den Raum: Spieler genau, alle anderen grob.
+ *
+ * `stufen: false` laesst auch das Grobe weg: von Gegnern sehen die Spieler
+ * dann nur Name, Reihenfolge und Zustaende.
+ */
+export function teileKampf(kampf: Kampf, stufen = true): GeteilterKampf {
   // Laeuft der Kampf, ist die Liste schon sortiert und `amZug` zeigt direkt
   // hinein (siehe beginne()).
   const liste: readonly Teilnehmer[] = kampf.laeuft ? kampf.teilnehmer : reihenfolge(kampf.teilnehmer);
@@ -99,15 +104,16 @@ export function teileKampf(kampf: Kampf): GeteilterKampf {
       gehoert: kampf.besitz?.[t.id] ?? null,
       amZug: t.id === amZugId,
       zustaende: t.zustaende.map((z) => ({ id: z.id, name: z.name, rundenRest: z.rundenRest })),
-      koerper: t.istTerrain
-        ? []
-        : t.koerper.map((k) => ({
-            id: k.id,
-            marke: k.marke,
-            stufe: stufe(k.hp, k.hpMax),
-            raus: k.raus,
-            ...(t.istSpieler ? { hp: k.hp, hpMax: k.hpMax, tempHp: k.tempHp } : {})
-          }))
+      koerper:
+        t.istTerrain || (!stufen && !t.istSpieler)
+          ? []
+          : t.koerper.map((k) => ({
+              id: k.id,
+              marke: k.marke,
+              stufe: stufe(k.hp, k.hpMax),
+              raus: k.raus,
+              ...(t.istSpieler ? { hp: k.hp, hpMax: k.hpMax, tempHp: k.tempHp } : {})
+            }))
     }))
   };
 }
