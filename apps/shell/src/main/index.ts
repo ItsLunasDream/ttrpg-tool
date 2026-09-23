@@ -1161,9 +1161,27 @@ function registriereKanaele(): void {
    */
   handle('verlauf:springe', async (_event, id: string, ort: string | null): Promise<boolean> => {
     const montiert = offen.get(id);
-    if (!montiert?.springeZuOrt) return false;
-    montiert.springeZuOrt(ort);
+    if (!montiert) return false;
+    // Der Story Creator hat einen eigenen Weg; alle anderen den gemeinsamen.
+    if (montiert.springeZuOrt) montiert.springeZuOrt(ort);
+    else if (!montiert.sicht.webContents.isDestroyed()) montiert.sicht.webContents.send('huelle:ort-springe', ort);
     return true;
+  });
+
+  /*
+   * Der gemeinsame Weg fuer den Verlauf INNERHALB eines Werkzeugs: es meldet,
+   * wo es steht (eine offene Tabelle, ein Gegenstand, ein Eintrag), und die
+   * Huelle nimmt das in ihren Verlauf auf. „Zurueck" aus einer offenen
+   * Tabelle fuehrt so zur Liste und nicht zum vorigen Werkzeug
+   * (Rueckmeldung). Zugeordnet wird ueber den Absender, nicht ueber eine
+   * Angabe im Inhalt.
+   */
+  ipcMain.on('huelle:ort', (ereignis, ort: unknown) => {
+    for (const [id, montiert] of offen) {
+      if (montiert.sicht.webContents !== ereignis.sender) continue;
+      meldeOrt(id, typeof ort === 'string' && ort ? ort.slice(0, 200) : null);
+      return;
+    }
   });
 
   handle('app:zeigen', async (_event, id: string, fruehestensMs = 0): Promise<ZeigenErgebnis> => {

@@ -9,6 +9,21 @@ import type { Gegenstand } from '../shared/erzeuge';
 import type { Frage } from '../shared/kiAufgaben';
 
 const api = {
+  /**
+   * Der Ort im Werkzeug fuer den Verlauf der Huelle (eine offene Tabelle,
+   * ein Gegenstand, ein Eintrag; `null` fuer die Liste). Gemeinsamer Kanal
+   * aller Werkzeuge, siehe `huelle:ort` in der Huelle.
+   */
+  ort: {
+    melde: (ort: string | null) => ipcRenderer.send('huelle:ort', ort),
+    beiSprung: (hoerer: (ort: string | null) => void) => {
+      const lauscher = (_e: unknown, ort: string | null) => hoerer(ort);
+      ipcRenderer.on('huelle:ort-springe', lauscher);
+      return () => {
+        ipcRenderer.off('huelle:ort-springe', lauscher);
+      };
+    }
+  },
   sammlung: {
     liste: () => ipcRenderer.invoke(kanal('liste')) as Promise<Eintrag[]>,
     lesen: (id: string) => ipcRenderer.invoke(kanal('lesen'), id) as Promise<Gegenstand | null>,

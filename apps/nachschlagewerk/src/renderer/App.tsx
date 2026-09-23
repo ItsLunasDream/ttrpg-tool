@@ -213,6 +213,21 @@ export function App() {
     });
   }, []);
 
+  /*
+   * Der Verlauf der Huelle kennt auch den Ort IM Werkzeug: „Zurueck" fuehrt
+   * zum vorigen Eintrag oder zur Liste, nicht zum vorigen Werkzeug
+   * (Rueckmeldung).
+   */
+  useEffect(() => api.ort.melde(offenId), [offenId]);
+  useEffect(
+    () =>
+      api.ort.beiSprung((ziel) => {
+        setBearbeitung(null);
+        setOffenId(ziel);
+      }),
+    []
+  );
+
   /** Ein Treffer aus der Suche der Huelle (Strg+K) oeffnet den Eintrag. */
   useEffect(
     () =>

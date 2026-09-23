@@ -168,6 +168,28 @@ export function App() {
     setMeldung('');
     setFehler('');
   }, []);
+
+  /*
+   * Der Verlauf der Huelle kennt auch den Ort IM Werkzeug: „Zurueck" aus
+   * einem geoeffneten Eintrag fuehrt zur Liste, nicht zum vorigen Werkzeug
+   * (Rueckmeldung). `null` ist die Liste, ein ungespeicherter Entwurf heisst
+   * „entwurf" und laesst sich nicht wieder herstellen.
+   */
+  const ort = offen ? offen.id || 'entwurf' : null;
+  useEffect(() => api.ort.melde(ort), [ort]);
+  useEffect(
+    () =>
+      api.ort.beiSprung((ziel) => {
+        if (ziel === null) {
+          setOffen(null);
+          setMeldung('');
+          setFehler('');
+          return;
+        }
+        if (ziel !== 'entwurf') void oeffne(ziel);
+      }),
+    [oeffne]
+  );
   festRef.current = srd;
 
   useEffect(() => api.beiSuchtreffer((kennung) => void oeffne(kennung)), [oeffne]);

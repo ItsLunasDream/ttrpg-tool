@@ -11,6 +11,21 @@ import type { Hausregel } from '../shared/hausregeln';
 import type { Notiz } from '../shared/notizen';
 
 const api = {
+  /**
+   * Der Ort im Werkzeug fuer den Verlauf der Huelle (eine offene Tabelle,
+   * ein Gegenstand, ein Eintrag; `null` fuer die Liste). Gemeinsamer Kanal
+   * aller Werkzeuge, siehe `huelle:ort` in der Huelle.
+   */
+  ort: {
+    melde: (ort: string | null) => ipcRenderer.send('huelle:ort', ort),
+    beiSprung: (hoerer: (ort: string | null) => void) => {
+      const lauscher = (_e: unknown, ort: string | null) => hoerer(ort);
+      ipcRenderer.on('huelle:ort-springe', lauscher);
+      return () => {
+        ipcRenderer.off('huelle:ort-springe', lauscher);
+      };
+    }
+  },
   notizen: {
     liste: () => ipcRenderer.invoke(kanal('notizen:liste')) as Promise<Notiz[]>,
     schreiben: (notizen: Notiz[]) => ipcRenderer.invoke(kanal('notizen:schreiben'), notizen) as Promise<boolean>

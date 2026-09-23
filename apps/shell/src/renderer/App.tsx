@@ -426,8 +426,11 @@ export function App() {
       sprungLaeuft.current = null;
 
       verlauf.current = besuche(verlauf.current, stelle);
+      // Die Pfeile muessen es erfahren: sonst bleibt „Zurueck" grau, obwohl
+      // es jetzt einen Schritt zurueck innerhalb des Werkzeugs gibt.
+      zieheVerlaufNach();
     });
-  }, []);
+  }, [zieheVerlaufNach]);
 
   useEffect(() => {
     /*
@@ -1139,6 +1142,7 @@ function Buehne({
             <button
               key={app.id}
               type="button"
+              data-schiene={app.id}
               className={`schiene__eintrag ${app.id === aktiv ? 'schiene__eintrag--an' : ''} ${
                 waehlbar ? '' : 'schiene__eintrag--geplant'
               } ${gemeldet.includes(app.id) ? 'schiene__eintrag--gemeldet' : ''}`}

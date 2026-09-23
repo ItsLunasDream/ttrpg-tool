@@ -81,6 +81,35 @@ export function App() {
     return api.ki.beiWechsel(() => void api.ki.da().then(setKiDa));
   }, []);
 
+  /*
+   * Der Verlauf der Huelle kennt auch den Ort IM Werkzeug: „Zurueck" aus
+   * einem geoeffneten Eintrag fuehrt zur Liste, nicht zum vorigen Werkzeug
+   * (Rueckmeldung). `null` ist die Liste, ein ungespeicherter Entwurf heisst
+   * „entwurf" und laesst sich nicht wieder herstellen.
+   */
+  const ort = offen ? offen.id || 'entwurf' : null;
+  useEffect(() => api.ort.melde(ort), [ort]);
+  useEffect(
+    () =>
+      api.ort.beiSprung((ziel) => {
+        if (ziel === null) {
+          setOffen(null);
+          setIstNeu(false);
+          setMeldung('');
+          setKiZeilen([]);
+          return;
+        }
+        if (ziel === 'entwurf') return;
+        void api.sammlung.lesen(ziel).then((g) => {
+          if (!g) return;
+          setOffen(g);
+          setWirkungenFuer(g.seltenheit);
+          setIstNeu(false);
+        });
+      }),
+    []
+  );
+
   /** Fragt die KI; bei einem Fehler steht er unten, und es kommt `null`. */
   const frageKi = async (frage: Frage): Promise<unknown> => {
     if (kiLaeuft) return null;
