@@ -157,7 +157,7 @@ async function leseAlle(ordner: string): Promise<Begegnung[]> {
  * Die Gegner gehoeren als Stichworte dazu: wer eine Begegnung sucht, weiss
  * oft nur noch, wer darin vorkam.
  */
-export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]> {
+export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<SuchEintrag[]> {
   /*
    * ZWEIMAL `encounter`. Die Huelle gibt dem Werkzeug seinen eigenen
    * Unterordner, und `mountEncounter` legt darin den Ablageordner an — der
@@ -171,7 +171,7 @@ export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]>
     werkzeug: 'encounter',
     kennung: begegnung.id,
     name: begegnung.name,
-    art: 'Begegnung',
+    art: sprache === 'de' ? 'Begegnung' : 'Encounter',
     stichworte: begegnung.gegner.map((einer) => einer.name).join(' ')
   }));
 }

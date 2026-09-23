@@ -30,14 +30,17 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   const [text, setText] = useState('');
   const [an, setAn] = useState('');
   const liste = useRef<HTMLDivElement>(null);
-  // Der Kreis neben „Aktualisieren": dreht beim Klick und immer dann kurz,
-  // wenn sich die Liste von selbst aendert (ein Raum kommt oder geht).
-  const [dreht, setDreht] = useState(false);
+  // Neben „Aktualisieren": erst ein drehender Kreis, dann eine Sekunde ein
+  // Haken, dann nichts. Auch wenn sich die Liste von selbst aendert.
+  const [anzeige, setAnzeige] = useState<'ruhe' | 'dreht' | 'fertig'>('ruhe');
   const drehTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const drehe = (ms: number) => {
-    setDreht(true);
+    setAnzeige('dreht');
     if (drehTimer.current) clearTimeout(drehTimer.current);
-    drehTimer.current = setTimeout(() => setDreht(false), ms);
+    drehTimer.current = setTimeout(() => {
+      setAnzeige('fertig');
+      drehTimer.current = setTimeout(() => setAnzeige('ruhe'), 1000);
+    }, ms);
   };
   const raumSchluessel = raeume
     .map((r) => `${r.adresse}:${r.port}:${r.raum}`)
@@ -84,14 +87,15 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
 
         <div className="raum__suchkopf">
           <h3 className="raum__kopf">{t('room.found')}</h3>
-          <span className={dreht ? 'raum__kreis is-an' : 'raum__kreis'} aria-hidden="true" data-raum-kreis={dreht} />
+          <span className="raum__zeichen" aria-hidden="true" data-raum-anzeige={anzeige}>
+            {anzeige === 'dreht' ? <span className="raum__kreis" /> : anzeige === 'fertig' ? <span className="raum__haken">✓</span> : null}
+          </span>
           <button
             type="button"
             className="dialog__knopf"
             data-raum-aktualisieren
             onClick={() => {
-              // Zwei Sekunden: so lange braucht ein Gastgeber, um sich wieder zu melden.
-              drehe(2000);
+              drehe(1000);
               void window.shell.raum.aktualisieren();
             }}
           >

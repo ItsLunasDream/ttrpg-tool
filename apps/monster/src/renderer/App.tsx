@@ -32,6 +32,12 @@ type Reiter = 'bauen' | 'sammlung' | 'pruefen';
 export function App() {
   const [sprache, setSpracheState] = useState<Language>(DEFAULT_LANGUAGE);
   const [reiter, setReiter] = useState<Reiter>('bauen');
+  /*
+   * Welches gespeicherte Monster gerade offen ist. Die Huelle merkt es sich
+   * (Verlauf, „Zuletzt geoeffnet" im Teilen); ein frisch gewuerfeltes ist
+   * noch keines.
+   */
+  const [offenId, setOffenId] = useState<string | null>(null);
   const [cr, setCr] = useState('5');
   const [themaId, setThemaId] = useState('');
   const [rolleId, setRolleId] = useState('');
@@ -81,6 +87,7 @@ export function App() {
 
   const wuerfeln = () => {
     setKiVorschlag(null);
+    setOffenId(null);
     setMonster(
       erzeugeMonster(
         { cr, themaId: themaId || undefined, rolleId: rolleId || undefined, legendaer, kampfweite },
@@ -126,6 +133,7 @@ export function App() {
         getLanguage(),
         wuerfel
       );
+      setOffenId(null);
       setMonster({
         ...grundlage,
         name: roh.name || grundlage.name,
@@ -160,6 +168,7 @@ export function App() {
       { ...monster, id: zuId(monster.name), geaendert: new Date().toISOString() },
       getLanguage()
     );
+    if (ergebnis.ok) setOffenId(zuId(monster.name));
     setMeldung(
       ergebnis.ok
         ? t('meldung.gespeichert', { name: monster.name })
@@ -227,6 +236,7 @@ export function App() {
     });
     setCr(eintrag.cr);
     setReiter('bauen');
+    setOffenId(id);
   };
 
   /*
@@ -243,8 +253,15 @@ export function App() {
    * zum vorigen Reiter (Bauen, Sammlung, Pruefen), nicht zum vorigen Werkzeug
    * (Rueckmeldung).
    */
-  useEffect(() => api.ort.melde(reiter === 'bauen' ? null : reiter), [reiter]);
-  useEffect(() => api.ort.beiSprung((ziel) => setReiter(ziel === 'sammlung' || ziel === 'pruefen' ? ziel : 'bauen')), []);
+  // Beim Bauen ist der Ort das offene Monster (falls gespeichert), sonst der Reiter.
+  useEffect(() => api.ort.melde(reiter === 'bauen' ? offenId : reiter), [reiter, offenId]);
+  useEffect(() =>
+    api.ort.beiSprung((ziel) => {
+      if (ziel === 'sammlung' || ziel === 'pruefen') setReiter(ziel);
+      else if (ziel && ziel !== offenId) void ladeSammlung().then(() => oeffnen(ziel));
+      else setReiter('bauen');
+    })
+  );
 
   useEffect(() => api.beiSuchtreffer((kennung) => void ladeSammlung().then(() => oeffnen(kennung))));
 

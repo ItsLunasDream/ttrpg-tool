@@ -872,7 +872,9 @@ function registriereKanaele(): void {
    * Bei jedem Oeffnen frisch von der Platte. Siehe suche.ts, warum kein
    * Verzeichnis gefuehrt wird.
    */
-  handle('suche:eintraege', () => alleEintraege(app.getPath('userData')));
+  handle('suche:eintraege', () =>
+    alleEintraege(app.getPath('userData'), gemerkteEinstellungen.language === 'de' ? 'de' : 'en')
+  );
 
   /*
    * Der Austausch (docs/austausch.md, Stufe 1): weitergeben als Paketdatei,
@@ -885,7 +887,9 @@ function registriereKanaele(): void {
    */
   let eingang: Paket | null = null;
 
-  handle('austausch:teilbar', () => teilbar(app.getPath('userData')));
+  handle('austausch:teilbar', () =>
+    teilbar(app.getPath('userData'), gemerkteEinstellungen.language === 'de' ? 'de' : 'en')
+  );
   handle('austausch:vorschau', (_event, werkzeug: string, kennung: string) =>
     austauschVorschau(
       app.getPath('userData'),

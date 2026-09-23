@@ -138,8 +138,8 @@ export function machtMit(werkzeug: string): boolean {
  * die mitmachen. Ohne die Notizen am Regeltext — die sind fuer einen selbst
  * (docs/austausch.md).
  */
-export async function teilbar(datenordner: string): Promise<readonly Eintrag[]> {
-  const eintraege = (await alleEintraege(datenordner)).filter(
+export async function teilbar(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<readonly Eintrag[]> {
+  const eintraege = (await alleEintraege(datenordner, sprache)).filter(
     (e) => machtMit(e.werkzeug) && !(e.werkzeug === 'nachschlagewerk' && e.kennung.startsWith('notiz/'))
   );
   // „Zuletzt hinzugefuegt" braucht ein Datum. Wer keines mitbringt und als

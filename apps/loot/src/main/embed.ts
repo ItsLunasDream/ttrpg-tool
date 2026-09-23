@@ -88,13 +88,13 @@ async function leseAlle(ordner: string): Promise<Gespeichert[]> {
  * Was dieses Werkzeug abgelegt hat, fuer die Suche der Huelle. Die Huelle
  * gibt ihren Datenordner; darin hat jedes Werkzeug seinen eigenen.
  */
-export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]> {
+export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<SuchEintrag[]> {
   const alle = await leseAlle(path.join(datenordner, WERKZEUG, ORDNER_NAME));
   return alle.map((t) => ({
     werkzeug: WERKZEUG,
     kennung: t.id,
     name: t.name,
-    art: 'Zufallstabelle',
+    art: sprache === 'de' ? 'Zufallstabelle' : 'Random table',
     stichworte: ['random table', 'loot', 'Beute', t.eintraege.map((e) => e.text).join(' ').slice(0, 300)].join(' ')
   }));
 }

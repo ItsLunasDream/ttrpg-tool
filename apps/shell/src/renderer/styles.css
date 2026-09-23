@@ -1574,21 +1574,31 @@ body {
   flex: 1;
 }
 
-/* Der kleine Kreis beim Aktualisieren. Unsichtbar, solange nichts passiert,
-   damit der Knopf nicht springt. */
+/* Neben „Aktualisieren": Kreis, dann Haken. Der Platz bleibt immer
+   frei, damit der Knopf nicht springt. */
+.raum__zeichen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
 .raum__kreis {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border: 2px solid var(--rand);
   border-top-color: var(--betont);
   border-radius: 50%;
-  opacity: 0;
-  transition: opacity 150ms ease;
+  animation: raum-kreis 0.8s linear infinite;
 }
 
-.raum__kreis.is-an {
-  opacity: 1;
-  animation: raum-kreis 0.8s linear infinite;
+.raum__haken {
+  color: var(--betont);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  animation: raum-haken 200ms ease-out;
 }
 
 @keyframes raum-kreis {
@@ -1597,8 +1607,15 @@ body {
   }
 }
 
+@keyframes raum-haken {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .raum__kreis.is-an {
+  .raum__kreis {
     animation-duration: 2.4s;
   }
 }

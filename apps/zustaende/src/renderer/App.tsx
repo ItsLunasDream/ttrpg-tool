@@ -116,6 +116,9 @@ export function App() {
     return { ...befund, gewicht: kiGewicht };
   }, [befund, kiGewicht]);
 
+  /** Welcher gespeicherte Zustand gerade offen ist (fuer den Verlauf der Huelle). */
+  const [offenId, setOffenId] = useState<string | null>(null);
+
   const zuruecksetzen = () => {
     setKiBefund(null);
     setAusformuliert({});
@@ -125,6 +128,7 @@ export function App() {
 
   const wuerfeln = () => {
     zuruecksetzen();
+    setOffenId(null);
     setZustand(
       erzeugeZustand(
         {
@@ -177,6 +181,7 @@ export function App() {
       const roh = ergebnis.wert as RohZustand;
       const { zustand: gemischt, befund: kiUrteil } = zieheKiNach(roh, entwurf);
       zuruecksetzen();
+      setOffenId(null);
       setZustand(gemischt);
 
       if (kiUrteil.ok) {
@@ -242,6 +247,7 @@ export function App() {
       { ...zustand, id: zuId(zustand.name), geaendert: new Date().toISOString() },
       getLanguage()
     );
+    if (ergebnis.ok) setOffenId(zuId(zustand.name));
     setMeldung(
       ergebnis.ok
         ? t('meldung.gespeichert', { name: zustand.name })
@@ -408,6 +414,7 @@ export function App() {
     setHaerteId(eintrag.haerteId || 'ernst');
     setStufen(Math.max(1, eintrag.stufen));
     setReiter('bauen');
+    setOffenId(id);
   };
 
   /*
@@ -422,8 +429,15 @@ export function App() {
    * zum vorigen Reiter (Bauen, Paket, Sammlung), nicht zum vorigen Werkzeug
    * (Rueckmeldung).
    */
-  useEffect(() => api.ort.melde(reiter === 'bauen' ? null : reiter), [reiter]);
-  useEffect(() => api.ort.beiSprung((ziel) => setReiter(ziel === 'paket' || ziel === 'sammlung' ? ziel : 'bauen')), []);
+  // Beim Bauen ist der Ort der offene Zustand (falls gespeichert), sonst der Reiter.
+  useEffect(() => api.ort.melde(reiter === 'bauen' ? offenId : reiter), [reiter, offenId]);
+  useEffect(() =>
+    api.ort.beiSprung((ziel) => {
+      if (ziel === 'paket' || ziel === 'sammlung') setReiter(ziel);
+      else if (ziel && ziel !== offenId) void oeffnen(ziel);
+      else setReiter('bauen');
+    })
+  );
 
   useEffect(() => api.beiSuchtreffer((kennung) => void oeffnen(kennung)));
 

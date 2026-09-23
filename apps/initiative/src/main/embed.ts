@@ -103,7 +103,7 @@ const CSP = [
  * sondern der Zustand des Abends. Die Teilnehmer gehoeren als Stichworte
  * dazu — wer eine Begegnung sucht, weiss oft nur noch, wer darin vorkam.
  */
-export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]> {
+export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<SuchEintrag[]> {
   try {
     // `datenordner` ist die Wurzel der Huelle, nicht der Ordner dieses
     // Werkzeugs: jedes Werkzeug haengt seinen eigenen Unterordner an (siehe
@@ -114,7 +114,7 @@ export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]>
       werkzeug: 'initiative',
       kennung: begegnung.id,
       name: begegnung.name,
-      art: 'Begegnung',
+      art: sprache === 'de' ? 'Begegnung' : 'Encounter',
       stichworte: begegnung.teilnehmer.map((teilnehmer) => teilnehmer.name).join(' ')
     }));
   } catch {

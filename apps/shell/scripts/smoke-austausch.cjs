@@ -76,6 +76,8 @@ app.whenReady().then(async () => {
     `Monster, Hausregel und Notiz lassen sich teilen (${teilbar.length})`
   );
   pruefe(kennungen.includes('nachschlagewerk/regel/critical-hit'), 'offizielle Regeln auch, als Verweis');
+  const liegend = teilbar.find((e) => e.kennung === 'zustand/prone');
+  pruefe(liegend?.name === 'Prone', `bei englischer Oberflaeche heissen die Regeln englisch (${liegend?.name})`);
   pruefe(!kennungen.some((k) => k.startsWith('dice/')), 'Werkzeuge, die nicht mitmachen, fehlen');
 
   // --- Der Dialog ----------------------------------------------------------

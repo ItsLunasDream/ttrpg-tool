@@ -93,7 +93,7 @@ export const ORDNER_NAME = 'zustaende';
  * Liest direkt von der Platte, ohne geladene Ansicht: die Suche soll auch
  * Zustaende finden, die man in dieser Sitzung noch nicht offen hatte.
  */
-export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]> {
+export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<SuchEintrag[]> {
   /*
    * ZWEIMAL der Name, und das ist kein Tippfehler — siehe `mountZustaende`
    * unten: die Huelle gibt dem Werkzeug `<userData>/zustaende`, und die
@@ -118,7 +118,7 @@ export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]>
         werkzeug: 'zustaende',
         kennung: eintrag.id,
         name: eintrag.name,
-        art: 'Zustand',
+        art: sprache === 'de' ? 'Zustand' : 'Status effect',
         // Der Paketname gehoert dazu: wer ein Paket gewuerfelt hat, sucht
         // oft danach und nicht nach dem einzelnen Zustand darin.
         stichworte: [eintrag.artId, eintrag.themaId, eintrag.haerteId, eintrag.paketName]

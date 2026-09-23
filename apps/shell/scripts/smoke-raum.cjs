@@ -98,11 +98,13 @@ app.whenReady().then(async () => {
   await warte(500);
   // Aktualisieren: der Kreis dreht.
   await js(`document.querySelector('[data-raum-aktualisieren]').click(); true`);
+  const anzeige = () => js("document.querySelector('[data-raum-anzeige]')?.dataset.raumAnzeige");
   await warte(150);
-  pruefe(
-    (await js("document.querySelector('[data-raum-kreis]')?.dataset.raumKreis")) === 'true',
-    '„Aktualisieren" laesst den Kreis drehen'
-  );
+  pruefe((await anzeige()) === 'dreht', '„Aktualisieren" laesst den Kreis drehen');
+  await warte(1100);
+  pruefe((await anzeige()) === 'fertig', 'nach einer Sekunde steht ein Haken da');
+  await warte(1100);
+  pruefe((await anzeige()) === 'ruhe', 'und eine Sekunde spaeter nichts mehr');
   await setze('[data-tischname]', 'Spielleitung');
   await setze('[data-raumname]', 'Freitagsrunde');
   await setze('[data-raum-passwort]', 'pw');
