@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { rollD20 } from '@suite/dice';
 import { api } from './api';
-import { nichtsZuVerlieren, pruefeVerlust } from '../shared/neuebegegnung';
+import { nichtsZuVerlieren, pruefeVerlust, speicherZiel } from '../shared/neuebegegnung';
 import { alsTaktik, alsTeilnehmer } from '../shared/uebernahme';
 import type { Uebergabe } from '@suite/uebergabe';
 import {
@@ -95,6 +95,10 @@ export function App() {
    * Electron, und `confirm()` haelt den ganzen Renderer an.
    */
   const [dialog, setDialog] = useState<'speichern' | 'beenden' | 'neu' | null>(null);
+  /** Ein Name, unter dem schon eine andere Begegnung liegt: erst fragen. */
+  const [kollision, setKollision] = useState<string | null>(null);
+  /** Eine Begegnung, die geladen werden soll, waehrend etwas auf dem Spiel steht. */
+  const [wartendesLaden, setWartendesLaden] = useState<string | null>(null);
   /**
    * Eine Begegnung aus dem Encounter Creator, die auf ihre Antwort wartet.
    *
@@ -298,13 +302,22 @@ export function App() {
     }));
   }, [setzeUndSichere]);
 
+  const beende = useCallback(() => {
+    setzeUndSichere((vorher) => ({ ...vorher, laeuft: false, amZug: -1, runde: 0 }));
+  }, [setzeUndSichere]);
+
   const starteOderBeende = useCallback(() => {
+    // Ohne Teilnehmer gibt es nichts zu verlieren: ohne Rueckfrage beenden.
+    if (kampf.laeuft && kampf.teilnehmer.length === 0) {
+      beende();
+      return;
+    }
     if (kampf.laeuft) {
       setDialog('beenden');
       return;
     }
     setzeUndSichere((vorher) => beginne(vorher));
-  }, [kampf.laeuft, setzeUndSichere]);
+  }, [kampf.laeuft, kampf.teilnehmer.length, beende, setzeUndSichere]);
 
   /**
    * Eine neue Begegnung anfangen.
@@ -373,14 +386,17 @@ export function App() {
     [uebernimm, warnung]
   );
 
-  const beende = useCallback(() => {
-    setzeUndSichere((vorher) => ({ ...vorher, laeuft: false, amZug: -1, runde: 0 }));
-  }, [setzeUndSichere]);
-
-  const speichereBegegnung = useCallback(async (name: string) => {
+  const speichereBegegnung = useCallback(async (name: string, ersetzen = false) => {
+    // Neuer Name: eine neue Datei. Eine fremde gleichen Namens wird nicht
+    // still ersetzt, sondern erst nach Rueckfrage.
+    const ziel = speicherZiel(name, kampf, begegnungen, zuId);
+    if (ziel.kollision && !ersetzen) {
+      setKollision(name);
+      return;
+    }
     const begegnung: Begegnung = {
       schemaVersion: 1,
-      id: kampf.begegnungId ?? zuId(name),
+      id: ziel.id,
       name,
       // Ohne laufende Trefferpunkte und Zustaende: eine gespeicherte
       // Begegnung ist eine Vorlage, kein eingefrorener Kampf.
@@ -400,9 +416,9 @@ export function App() {
     setKampf((vorher) => ({ ...vorher, name, begegnungId: begegnung.id }));
     setBegegnungen(await api.begegnungen.liste());
     melde(t('msg.gespeichert'));
-  }, [kampf, taktik, melde]);
+  }, [kampf, begegnungen, taktik, melde]);
 
-  const ladeBegegnung = useCallback(
+  const ladeBegegnungJetzt = useCallback(
     async (id: string) => {
       const begegnung = await api.begegnungen.lesen(id);
       setzeUndSichere({
@@ -416,6 +432,15 @@ export function App() {
       melde(t('msg.geladen'));
     },
     [setzeUndSichere, melde]
+  );
+  // Laden ersetzt den jetzigen Kampf: gefragt wird wie bei „Neue Begegnung",
+  // nur wo etwas auf dem Spiel steht.
+  const ladeBegegnung = useCallback(
+    async (id: string) => {
+      if (nichtsZuVerlieren(warnung) || id === kampf.begegnungId) await ladeBegegnungJetzt(id);
+      else setWartendesLaden(id);
+    },
+    [warnung, kampf.begegnungId, ladeBegegnungJetzt]
   );
 
   /*
@@ -563,7 +588,8 @@ export function App() {
           type="button"
           className={kampf.laeuft ? '' : 'knopf--haupt'}
           onClick={starteOderBeende}
-          disabled={sortiert.length === 0}
+          // Ein laufender Kampf ohne Teilnehmer muss sich beenden lassen.
+          disabled={sortiert.length === 0 && !kampf.laeuft}
         >
           {kampf.laeuft ? t('knopf.beenden') : t('knopf.beginnen')}
         </button>
@@ -829,6 +855,36 @@ export function App() {
             const welche = wartendeUebergabe;
             setWartendeUebergabe(null);
             if (wert) uebernimm(welche);
+          }}
+        />
+      ) : null}
+
+      {kollision !== null ? (
+        <Dialog
+          titel={t('bestaetigen.ersetzen', { name: kollision })}
+          bestaetigen={t('knopf.ersetzen')}
+          onAbschluss={(wert) => {
+            const name = kollision;
+            setKollision(null);
+            if (wert) void speichereBegegnung(name, true);
+          }}
+        />
+      ) : null}
+
+      {wartendesLaden !== null ? (
+        <Dialog
+          titel={
+            warnung.laeuft && warnung.ungespeichert
+              ? t('bestaetigen.neuBeides')
+              : warnung.laeuft
+                ? t('bestaetigen.neuLaeuft')
+                : t('bestaetigen.neuUngespeichert')
+          }
+          bestaetigen={t('knopf.verwerfen')}
+          onAbschluss={(wert) => {
+            const id = wartendesLaden;
+            setWartendesLaden(null);
+            if (wert) void ladeBegegnungJetzt(id);
           }}
         />
       ) : null}

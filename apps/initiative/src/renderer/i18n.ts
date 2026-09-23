@@ -129,6 +129,11 @@ export const texte = {
     'Kampf wirklich beenden? Die Reihenfolge geht verloren.',
     'Really end combat? The order will be lost.'
   ],
+  'bestaetigen.ersetzen': [
+    'Es gibt schon eine Begegnung „{name}“. Ersetzen?',
+    'An encounter "{name}" already exists. Replace it?'
+  ],
+  'knopf.ersetzen': ['Ersetzen', 'Replace'],
   'ja': ['Ja', 'Yes'],
   'nein': ['Nein', 'No']
 } as const;

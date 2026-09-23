@@ -55,3 +55,24 @@ export function pruefeVerlust(kampf: Kampf, begegnungen: readonly Begegnung[]): 
     ungespeichert: !gespeichert || alsVorlage(gespeichert.teilnehmer) !== alsVorlage(kampf.teilnehmer)
   };
 }
+
+/**
+ * Wohin eine Begegnung beim Speichern geht, und ob dort schon eine andere
+ * liegt.
+ *
+ * - Gleicher Name wie geladen: dieselbe Datei, ohne Frage.
+ * - Neuer Name: eine neue Datei („Speichern unter"); die alte bleibt.
+ * - Liegt unter der neuen Kennung schon eine andere Begegnung, wird
+ *   gefragt, statt sie still zu ersetzen (Testbericht: Datenverlust).
+ */
+export function speicherZiel(
+  name: string,
+  kampf: Pick<Kampf, 'begegnungId' | 'name'>,
+  begegnungen: readonly Begegnung[],
+  zuId: (name: string) => string
+): { readonly id: string; readonly kollision: Begegnung | null } {
+  if (kampf.begegnungId && name.trim() === kampf.name.trim()) return { id: kampf.begegnungId, kollision: null };
+  const id = zuId(name);
+  const vorhanden = begegnungen.find((b) => b.id === id) ?? null;
+  return { id, kollision: vorhanden && vorhanden.id !== kampf.begegnungId ? vorhanden : null };
+}

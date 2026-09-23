@@ -38,6 +38,6 @@ export {
   VERLAUF_TIEFE
 } from '../src/shared/verlauf';
 export { finde, passt, heuhaufen, treffendeTeilnehmer } from '../src/shared/suche';
-export { pruefeVerlust, nichtsZuVerlieren, alsVorlage } from '../src/shared/neuebegegnung';
+export { pruefeVerlust, nichtsZuVerlieren, alsVorlage, speicherZiel } from '../src/shared/neuebegegnung';
 export { alsTeilnehmer, alsTaktik } from '../src/shared/uebernahme';
 export { teileKampf, stufe, leseBotschaft, wendeAn, setzeBesitz } from '../src/shared/teilen';
