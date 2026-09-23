@@ -59,8 +59,11 @@ export function finde(
 
   const heraus: Treffer[] = [];
   for (const regel of regeln) {
-    const namen = schluessel(`${regel.name.de} ${regel.name.en}`);
-    const text = schluessel(`${regel.text.de} ${regel.text.en}`);
+    // Auf Deutsch wird in beiden Sprachen gesucht (englische Begriffe sind
+    // am Tisch ueblich), auf Englisch nur im Englischen: sonst stuende ein
+    // Treffer da, dessen Grund ein deutscher Satz ist, der nie gezeigt wird.
+    const namen = schluessel(sprache === 'de' ? `${regel.name.de} ${regel.name.en}` : regel.name.en);
+    const text = schluessel(sprache === 'de' ? `${regel.text.de} ${regel.text.en}` : regel.text.en);
     // Alle Worte muessen vorkommen, irgendwo — sonst wird die Liste mit
     // jedem getippten Wort laenger statt kuerzer.
     if (!worte.every((wort) => namen.includes(wort) || text.includes(wort))) continue;
@@ -79,7 +82,7 @@ export function finde(
       ? null
       : ausschnitt(regel.text[sprache], ganz) ??
         ausschnitt(regel.text[sprache], worte[0]) ??
-        ausschnitt(regel.text[sprache === 'de' ? 'en' : 'de'], ganz);
+        (sprache === 'de' ? ausschnitt(regel.text.en, ganz) : null);
 
     heraus.push({ regel, guete, stelle });
   }
