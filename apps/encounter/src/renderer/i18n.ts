@@ -73,6 +73,8 @@ const TEXTE = {
   'bau.titel': ['Zusammenstellen lassen', 'Build automatically'],
   'bau.ziel': ['Ziel', 'Target'],
   'bau.hg': ['HG', 'CR'],
+  'bau.schwierigkeit': ['Schwierigkeit', 'Difficulty'],
+  'bau.ohneGruppe': ['Erst unten die Gruppe eintragen.', 'Enter the party below first.'],
   'bau.ep': ['EP', 'XP'],
   'bau.anzahl': ['Gegner', 'Opponents'],
   'bau.beliebig': ['egal', 'any'],
@@ -124,8 +126,8 @@ const TEXTE = {
     '{anzahl} {{opponent|opponents}} without a readable rating {{is|are}} not counted.'
   ],
   'verhaeltnis.punkte': [
-    '{punkte} EP · mittleres Budget {budget} EP',
-    '{punkte} XP · moderate budget {budget} XP'
+    '{punkte} EP · Budgets: niedrig {niedrig}, mittel {mittel}, hoch {hoch} EP',
+    '{punkte} XP · budgets: low {niedrig}, moderate {mittel}, high {hoch} XP'
   ],
   'verhaeltnis.keineGrade': [
     'Keine Einordnung: kein Gegner hat einen bekannten Grad.',

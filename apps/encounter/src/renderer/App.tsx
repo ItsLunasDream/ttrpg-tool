@@ -375,11 +375,16 @@ export function App() {
             </ul>
           )}
 
+          {/* Direkt unter den Gegnern: vorher stand die Einordnung unter dem
+              ganzen Katalog, 2700 Pixel tief (Testbericht). */}
+          <Verhaeltnis offen={offen} monster={karten} gruppe={gruppe} />
+
           <Klappe id="bauen" titel={t('bau.titel')}>
             <Zusammensteller
               karten={karten}
               gegner={offen.gegner}
               sprache={sprache()}
+              gruppe={gruppe}
               setzeGegner={(gegner) => setOffen({ ...offen, gegner })}
             />
           </Klappe>
@@ -410,8 +415,6 @@ export function App() {
           <Klappe id="gruppe" titel={t('gruppe.titel')} zusatz={gruppeKurz(gruppe)}>
             <Gruppenfeld gruppe={gruppe} setze={(neu) => void setzeGruppe(neu)} />
           </Klappe>
-
-          <Verhaeltnis offen={offen} monster={karten} gruppe={gruppe} />
 
           <Klappe
             id="umgebung"
@@ -595,9 +598,9 @@ function Verhaeltnis({
           <span className="verhaeltnis__punkte">
             {t('verhaeltnis.punkte', {
               punkte: punkte.summe.toLocaleString(spr === 'de' ? 'de-DE' : 'en-US'),
-              budget: (budget(gruppe, 'mittel') ?? 0).toLocaleString(
-                spr === 'de' ? 'de-DE' : 'en-US'
-              )
+              niedrig: (budget(gruppe, 'niedrig') ?? 0).toLocaleString(spr === 'de' ? 'de-DE' : 'en-US'),
+              mittel: (budget(gruppe, 'mittel') ?? 0).toLocaleString(spr === 'de' ? 'de-DE' : 'en-US'),
+              hoch: (budget(gruppe, 'hoch') ?? 0).toLocaleString(spr === 'de' ? 'de-DE' : 'en-US')
             })}
           </span>
         </p>

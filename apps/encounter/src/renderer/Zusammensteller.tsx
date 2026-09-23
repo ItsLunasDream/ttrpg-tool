@@ -17,6 +17,8 @@ import {
   zielAusGrad,
   type Pflicht
 } from '../shared/zusammenstellen';
+import { budget, SCHWIERIGKEIT_NAME, text as srdText, type Schwierigkeit } from '@suite/srd';
+import type { Gruppe } from '../shared/schwierigkeit';
 import { t } from './i18n';
 
 type Quelle = 'srd' | 'eigen' | 'gemischt';
@@ -33,14 +35,25 @@ export function Zusammensteller({
   karten,
   gegner,
   sprache,
+  gruppe,
   setzeGegner
 }: {
   readonly karten: readonly Katalogkarte[];
   readonly gegner: readonly Gegner[];
   readonly sprache: Sprache;
+  /** Die eingetragene Gruppe; fuer das Ziel „Schwierigkeit". */
+  readonly gruppe: Gruppe;
   readonly setzeGegner: (neu: Gegner[]) => void;
 }) {
-  const [art, setArt] = useState<'hg' | 'ep'>('hg');
+  /*
+   * „Schwierigkeit" rechnet mit der Gruppe: niedrig, mittel oder hoch als
+   * Budget der eingetragenen Figuren. Vorher ging nur Grad oder EP, und
+   * mit vier Figuren auf Stufe 1 und Ziel HG 5 kam „ueber hoch" heraus
+   * (Testbericht). Ist eine Gruppe da, ist es der Anfang.
+   */
+  const gruppeDa = (budget(gruppe, 'mittel') ?? 0) > 0;
+  const [art, setArt] = useState<'schwierigkeit' | 'hg' | 'ep'>(gruppeDa ? 'schwierigkeit' : 'hg');
+  const [stufe, setStufe] = useState<Schwierigkeit>('mittel');
   const [grad, setGrad] = useState('3');
   const [ep, setEp] = useState('700');
   const [anzahl, setAnzahl] = useState('');
@@ -52,7 +65,8 @@ export function Zusammensteller({
   const zahlformat = (n: number) => n.toLocaleString(sprache === 'de' ? 'de-DE' : 'en-US');
 
   const los = () => {
-    const ziel = art === 'hg' ? zielAusGrad(grad) : Math.round(Number(ep));
+    const ziel =
+      art === 'schwierigkeit' ? budget(gruppe, stufe) : art === 'hg' ? zielAusGrad(grad) : Math.round(Number(ep));
     if (!ziel || ziel <= 0) return;
     const vorrat = karten.filter(
       (k) => (quelle === 'gemischt' || k.quelle === quelle) && (!typ || k.typ === typ)
@@ -76,7 +90,7 @@ export function Zusammensteller({
     <div className="zusammensteller">
       <div className="zusammensteller__reihe">
         <div className="katalog__quelle" role="group" aria-label={t('bau.ziel')}>
-          {(['hg', 'ep'] as const).map((a) => (
+          {(['schwierigkeit', 'hg', 'ep'] as const).map((a) => (
             <button
               key={a}
               type="button"
@@ -89,7 +103,25 @@ export function Zusammensteller({
             </button>
           ))}
         </div>
-        {art === 'hg' ? (
+        {art === 'schwierigkeit' ? (
+          gruppeDa ? (
+            <select
+              className="feld__wahl"
+              aria-label={t('bau.schwierigkeit')}
+              data-bau="schwierigkeit"
+              value={stufe}
+              onChange={(e) => setStufe(e.target.value as Schwierigkeit)}
+            >
+              {(['niedrig', 'mittel', 'hoch'] as const).map((s) => (
+                <option key={s} value={s}>
+                  {srdText(SCHWIERIGKEIT_NAME[s], sprache)} · {zahlformat(budget(gruppe, s) ?? 0)} {t('bau.ep')}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="hinweis hinweis--klein">{t('bau.ohneGruppe')}</span>
+          )
+        ) : art === 'hg' ? (
           <select
             className="feld__wahl katalog__grad"
             aria-label={t('bau.hg')}
