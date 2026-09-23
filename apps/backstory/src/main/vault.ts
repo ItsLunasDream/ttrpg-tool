@@ -699,14 +699,34 @@ export class Vault {
     // Titel aber nicht, und ein zweiter Versuch faende nichts mehr.
     for (const alias of note.aliases) assertLinkable(alias);
 
+    /*
+     * Teilt sich der alte Titel mit einer anderen Notiz, gehoeren die
+     * [[Links]] darauf nicht eindeutig zu dieser. Dann bleiben sie stehen —
+     * lieber ein Link, den man selbst nachzieht, als einer, der still auf
+     * eine fremde Notiz umgebogen wird (Testbericht: aus [[Bo]] wurde
+     * [[Borin]], obwohl es eine eigene Notiz „Bo" gab).
+     */
+    const alle = await this.listNotes(campaignId);
+    const alterName = note.title.trim().toLowerCase();
+    const geteilt = alle.some(
+      (other) =>
+        other.id !== noteId &&
+        (other.title.trim().toLowerCase() === alterName ||
+          other.aliases.some((alias) => alias.trim().toLowerCase() === alterName))
+    );
+
     let rewritten = 0;
     let ownBody = note.body;
+    if (geteilt) {
+      const updated = await this.saveNote(campaignId, { ...note, title: trimmed });
+      return { note: updated, rewritten: 0 };
+    }
 
     // Erst die Verweise umschreiben, den Titel zuletzt setzen. Bricht es
     // dazwischen ab, traegt die Notiz noch den alten Titel und ein erneutes
     // Umbenennen holt den Rest nach. Andersherum waere der Zustand nicht
     // mehr zu reparieren.
-    for (const other of await this.listNotes(campaignId)) {
+    for (const other of alle) {
       const body = rewriteWikiLinks(other.body, note.title, trimmed);
       if (body === other.body) continue;
 

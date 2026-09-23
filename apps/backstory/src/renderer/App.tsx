@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, call } from './api';
 import { buildIndex, filterNotes, searchNotes, type SearchFilters } from './noteIndex';
-import { hasLinkReservedChars, normalizeName } from '../shared/wikilinks';
+import { hasLinkReservedChars, normalizeName, rewriteWikiLinks } from '../shared/wikilinks';
 import { verlinkteNotizen } from '../shared/kiKontext';
 import { effektiverStand, zieheUmbenennungNach, type Entwurf } from './entwuerfe';
 import { vorlageNotiztypen } from '../shared/noteTypes';
@@ -432,7 +432,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     [reloadNotes, report, t, zieheEntwuerfeNach]
   );
 
-  const persist = useCallback(async (): Promise<Note | null> => {
+  const persist = useCallback(async (ohneUmbenennen = false): Promise<Note | null> => {
     const current = draftRef.current;
     const campaignId = activeCampaignId;
     if (!current || !campaignId || !dirtyRef.current || savingRef.current) return current;
@@ -440,6 +440,21 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     savingRef.current = true;
     setSaving(true);
     try {
+      /*
+       * Der Autosave benennt nicht um, solange im Titelfeld getippt wird.
+       *
+       * Sonst wurde bei jeder Pause umbenannt: aus „Aldric" wurde „B", „Bo",
+       * „Borin" — und weil es schon eine Notiz „Bo" gab, zog der letzte
+       * Schritt auch deren Links mit (Testbericht). Gesichert wird der Text
+       * unter dem alten Titel; umbenannt wird beim Verlassen des Felds.
+       */
+      const persisted = notesRef.current.find((note) => note.id === current.id);
+      if (ohneUmbenennen && persisted && persisted.title !== current.title) {
+        const saved = await call(api.notes.save(campaignId, { ...current, title: persisted.title }));
+        notesRef.current = notesRef.current.map((note) => (note.id === saved.id ? saved : note));
+        setNotes(notesRef.current);
+        return current;
+      }
       const saved = await schreibe(current, campaignId);
       // Beim Umbenennen kann der Rumpf von der Platte anders aussehen als im
       // Editor (die Links wurden mitgezogen).
@@ -530,9 +545,12 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   // Autosave laeuft nur, wenn er in den Einstellungen aktiv ist.
   useEffect(() => {
     if (!settings?.autosaveEnabled || !dirty || !draft || !draftLinkable) return;
-    const timer = window.setTimeout(() => void save(), settings.autosaveDelayMs);
+    const timer = window.setTimeout(
+      () => void guard(() => persist(document.activeElement?.classList.contains('note-editor__title') ?? false)),
+      settings.autosaveDelayMs
+    );
     return () => window.clearTimeout(timer);
-  }, [settings?.autosaveEnabled, settings?.autosaveDelayMs, dirty, draft, draftLinkable, save]);
+  }, [settings?.autosaveEnabled, settings?.autosaveDelayMs, dirty, draft, draftLinkable, guard, persist]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -1225,6 +1243,17 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
           onConfirm={() =>
             void guard(async () => {
               await call(api.campaigns.remove(dialog.campaign.id));
+              // Entwuerfe der geloeschten Kampagne verwerfen; gespeichert
+              // legten sie einen verwaisten Ordner ohne campaign.json an.
+              const weg = dialog.campaign.id;
+              setEntwuerfe((vorher) => {
+                const naechste = new Map([...vorher].filter(([, entwurf]) => entwurf.campaignId !== weg));
+                return naechste.size === vorher.size ? vorher : naechste;
+              });
+              if (activeCampaignIdRef.current === weg) {
+                setDirty(false);
+                setDraft(null);
+              }
               const list = await call(api.campaigns.list());
               setCampaigns(list);
               setActiveCampaignId(list[0]?.id ?? null);
@@ -1244,6 +1273,16 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
             setPendingLinkTitle(null);
           }}
           onConfirm={(type, title) => {
+            // Ungueltige Titel gleich hier abfangen: vorher ging der Dialog
+            // zu, und die Eingabe war mit dem Fehler weg (Testbericht).
+            if (!title.trim()) {
+              report(t('error.noteTitle'));
+              return;
+            }
+            if (hasLinkReservedChars(title)) {
+              report(t('error.linkChars', { name: title }));
+              return;
+            }
             createNote(type, title);
             setDialog({ kind: 'none' });
             setPendingLinkTitle(null);
@@ -1264,17 +1303,40 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               if (!campaignId) return;
               // Umbenennen zieht die [[Links]] in der ganzen Kampagne mit —
               // das macht der Vault, nicht die Oberflaeche.
+              const alterTitel = dialog.note.title;
               const ergebnis = await call(api.notes.rename(campaignId, dialog.note.id, title));
+              const neuerTitel = ergebnis.note.title;
               const list = await reloadNotes(campaignId);
-              // Steht die umbenannte Notiz gerade im Editor, muss auch dort
-              // der neue Titel stehen.
-              setDraft((vorher) =>
-                vorher && vorher.id === dialog.note.id
-                  ? (list.find((eintrag) => eintrag.id === dialog.note.id) ?? vorher)
-                  : vorher
-              );
+              // Die beiseitegelegten Entwuerfe erreicht der Vault nicht; ohne
+              // das schrieb ein spaeter gespeicherter Entwurf den alten Namen
+              // zurueck (Testbericht).
+              zieheEntwuerfeNach(campaignId, alterTitel, neuerTitel);
+              /*
+               * Und die offene Notiz. Ungespeicherter Text bleibt stehen und
+               * bekommt nur Titel und Links nachgezogen — vorher ersetzte der
+               * Plattenstand den Entwurf, und „Neu" war nach Strg+S weg.
+               * Ohne Aenderungen kommt der Plattenstand, denn dort wurden die
+               * Links schon mitgezogen.
+               */
+              const offen = draftRef.current;
+              if (offen) {
+                if (dirtyRef.current) {
+                  const body = rewriteWikiLinks(offen.body, alterTitel, neuerTitel);
+                  const titel = offen.id === dialog.note.id ? neuerTitel : offen.title;
+                  if (body !== offen.body || titel !== offen.title) setDraft({ ...offen, title: titel, body });
+                  if (body !== offen.body) setReloadKey((vorher) => vorher + 1);
+                } else {
+                  const frisch = list.find((eintrag) => eintrag.id === offen.id);
+                  if (frisch && (frisch.body !== offen.body || frisch.title !== offen.title)) {
+                    setDraft(frisch);
+                    if (frisch.body !== offen.body) setReloadKey((vorher) => vorher + 1);
+                  }
+                }
+              }
               if (ergebnis.rewritten > 0) {
-                report(t('msg.renamed', { count: ergebnis.rewritten }));
+                report(
+                  ergebnis.rewritten === 1 ? t('msg.renamedOne') : t('msg.renamed', { count: ergebnis.rewritten })
+                );
               }
               setDialog({ kind: 'none' });
             })
@@ -1292,9 +1354,16 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               const campaignId = activeCampaignId;
               if (!campaignId) return;
               await call(api.notes.remove(campaignId, dialog.note.id));
+              // Auch der beiseitegelegte Entwurf muss weg, sonst schrieb ihn
+              // „Speichern" spaeter wieder auf die Platte (Testbericht).
+              loescheEntwurf(dialog.note.id);
               const list = await reloadNotes(campaignId);
-              setDraft(list[0] ?? null);
-              setDirty(false);
+              // Die offene Notiz bleibt, wenn eine andere geloescht wurde.
+              const offen = draftRef.current;
+              if (!offen || offen.id === dialog.note.id) {
+                setDraft(list[0] ?? null);
+                setDirty(false);
+              }
               setDialog({ kind: 'none' });
             })
           }

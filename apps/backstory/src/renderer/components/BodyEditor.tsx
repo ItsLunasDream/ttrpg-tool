@@ -12,6 +12,7 @@ import TaskItem from '@tiptap/extension-task-item';
 import { ContextMenu } from './ContextMenu';
 import { SizedImage } from '../editor/sizedImage';
 import { Unterstrichen } from '../editor/unterstrichen';
+import { Kommentar } from '../editor/kommentar';
 import { createEinklappExtension, einklappenPluginKey, klappeAllesAuf } from '../editor/einklappen';
 import { createWikiLinkExtension, type SuggestionState } from '../editor/wikiLinkExtension';
 import { createSearchHighlightExtension, replaceMatches, selectMatch } from '../editor/searchHighlight';
@@ -269,7 +270,22 @@ export function BodyEditor({
       // der Datei verlor beim Speichern seine Adresse. Geoeffnet wird wie bei
       // Wiki-Links mit Strg+Klick, damit der Cursor sonst normal gesetzt
       // werden kann, und im Systembrowser statt im App-Fenster.
-      Link.configure({ openOnClick: false, autolink: false, protocols: LINK_PROTOCOLS }),
+      // Titel und die Schreibweise in spitzen Klammern reisen mit, sonst
+      // fehlten sie nach dem Speichern in der Datei (Testbericht).
+      Link.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            title: { default: null },
+            spitz: {
+              default: null,
+              parseHTML: (element) => element.getAttribute('data-spitz'),
+              renderHTML: (attribute) => (attribute.spitz ? { 'data-spitz': attribute.spitz } : {})
+            }
+          };
+        }
+      }).configure({ openOnClick: false, autolink: false, protocols: LINK_PROTOCOLS }),
+      Kommentar,
       // Ohne Tabellen zog der Editor alle Zellen zu einer Textwurst zusammen.
       // resizable false: Spaltenbreiten liessen sich in Markdown ohnehin nicht
       // ablegen, sie waeren beim naechsten Laden wieder weg.

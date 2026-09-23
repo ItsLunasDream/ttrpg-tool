@@ -29,6 +29,8 @@ import {
   type BackstoryEmbed
 } from '../../../backstory/src/main/embed';
 import { mountMapmaker } from '../../../mapmaker/src/embed';
+import { translate as storyText, type MessageKey } from '../../../backstory/src/shared/i18n';
+import { hasLinkReservedChars } from '../../../backstory/src/shared/wikilinks';
 import {
   mountInitiative,
   registriereBildSchema as registriereInitiativeSchema
@@ -427,6 +429,32 @@ const OHNE_STORY = () =>
     'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.',
     'Open the Story Creator once, then the collection knows where to put it.'
   );
+/**
+ * Fehler des Story Creators in lesbarem Text.
+ *
+ * Der Vault wirft Schluessel wie `error.linkChars`; die standen roh in der
+ * Oberflaeche des NPC Creators und der Inspirationshilfe (Testbericht).
+ */
+function fehlerText(fehler: unknown): string {
+  const f = fehler as { key?: unknown; params?: Record<string, string | number> } | null;
+  if (f && typeof f.key === 'string' && f.key.startsWith('error.')) {
+    return storyText(sammlungssprache, f.key as MessageKey, f.params);
+  }
+  return fehler instanceof Error ? fehler.message : String(fehler);
+}
+
+/** Gibt es in der Kampagne schon eine Notiz mit diesem Titel (oder Alias)? */
+async function titelVergeben(kampagneId: string, titel: string): Promise<boolean> {
+  if (!backstoryEmbed) return false;
+  const gesucht = titel.trim().toLowerCase();
+  const notizen = await backstoryEmbed.vault.listNotes(kampagneId);
+  return notizen.some(
+    (notiz) =>
+      notiz.title.trim().toLowerCase() === gesucht ||
+      notiz.aliases.some((alias) => alias.trim().toLowerCase() === gesucht)
+  );
+}
+
 const OHNE_KAMPAGNE = () =>
   zweisprachig('Es gibt noch keine Kampagne, in die das passt.', 'There is no campaign yet to put this in.');
 
@@ -543,8 +571,12 @@ async function legeNotizAn(
   const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
   const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
   const typ = passenderNotiztyp(kampagne, wuensche);
-  const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
-  await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+  try {
+    const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
+    await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+  } catch (fehler) {
+    return { ok: false, text: fehlerText(fehler) };
+  }
 
   // Dem Story Creator sagen, dass etwas dazugekommen ist — sonst liegt
   // die Notiz auf der Platte und seine offene Liste zeigt sie nicht.
@@ -603,9 +635,24 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
       const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
       const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
 
+      // Zweimal „Senden" legte zwei Notizen gleichen Namens an (Testbericht).
+      // Eine vorhandene Figur wird nicht ueberschrieben und nicht verdoppelt.
+      if (await titelVergeben(kampagne.id, titel)) {
+        return {
+          ok: false,
+          text: zweisprachig(
+            `„${titel}" gibt es in ${kampagne.name} schon.`,
+            `"${titel}" already exists in ${kampagne.name}.`
+          )
+        };
+      }
       const typ = passenderNotiztyp(kampagne, ['character', 'note']);
-      const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
-      await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+      try {
+        const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
+        await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+      } catch (fehler) {
+        return { ok: false, text: fehlerText(fehler) };
+      }
 
       // Dem Story Creator sagen, dass etwas dazugekommen ist. Ohne das
       // liegt die Notiz zwar auf der Platte, seine offene Liste zeigt sie
@@ -724,19 +771,51 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
       const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
       const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
 
+      /*
+       * Erst pruefen, dann anlegen. Ein Titel mit [ ] | scheiterte sonst
+       * mitten im Geflecht, und die Haelfte lag schon da (Testbericht).
+       */
+      const kaputt = notizen.find((notiz) => !notiz.titel.trim() || hasLinkReservedChars(notiz.titel));
+      if (kaputt) {
+        const schluessel: MessageKey = kaputt.titel.trim() ? 'error.linkChars' : 'error.noteTitle';
+        return { ok: false, text: storyText(sammlungssprache, schluessel, { name: kaputt.titel }), angelegt: 0 };
+      }
+
+      /*
+       * Was es schon gibt, wird uebersprungen. Zweimal senden legte vorher
+       * das ganze Geflecht doppelt an, obwohl dort „nichts wird
+       * ueberschrieben" steht — und jeder Verweis war danach mehrdeutig.
+       */
       let angelegt = 0;
+      let uebersprungen = 0;
       try {
         for (const notiz of notizen) {
+          if (await titelVergeben(kampagne.id, notiz.titel)) {
+            uebersprungen += 1;
+            continue;
+          }
           const neu = await backstoryEmbed.vault.createNote(kampagne.id, notiz.typ, notiz.titel);
           await backstoryEmbed.vault.saveNote(kampagne.id, { ...neu, body: notiz.markdown });
           angelegt += 1;
         }
       } catch (fehler) {
-        // Was schon liegt, bleibt liegen: die Haelfte eines Geflechts ist
-        // immer noch mehr wert als nichts, und geloescht wird hier nichts,
-        // was der Nutzer nicht selbst geloescht hat.
-        const grund = fehler instanceof Error ? fehler.message : String(fehler);
-        return { ok: false, text: `${grund} (${angelegt} angelegt)`, angelegt };
+        // Was schon liegt, bleibt liegen: geloescht wird hier nichts, was
+        // der Nutzer nicht selbst geloescht hat.
+        return {
+          ok: false,
+          text: `${fehlerText(fehler)} ${zweisprachig(`(${angelegt} angelegt)`, `(${angelegt} created)`)}`,
+          angelegt
+        };
+      }
+      if (angelegt === 0 && uebersprungen > 0) {
+        return {
+          ok: false,
+          text: zweisprachig(
+            `Alles davon steht schon in ${kampagne.name}; nichts doppelt angelegt.`,
+            `All of it is already in ${kampagne.name}; nothing was duplicated.`
+          ),
+          angelegt: 0
+        };
       }
 
       // Dem Story Creator sagen, dass etwas dazugekommen ist. Ohne das
@@ -746,7 +825,17 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
         backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
       }
       haken.onEreignis?.('backstory');
-      return { ok: true, text: kampagne.name, angelegt };
+      return {
+        ok: true,
+        text:
+          uebersprungen > 0
+            ? zweisprachig(
+                `${kampagne.name} (${uebersprungen} schon vorhanden, übersprungen)`,
+                `${kampagne.name} (${uebersprungen} already there, skipped)`
+              )
+            : kampagne.name,
+        angelegt
+      };
     }
   });
 

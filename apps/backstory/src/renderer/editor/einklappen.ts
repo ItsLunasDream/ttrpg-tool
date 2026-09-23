@@ -1,6 +1,7 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { hatInhalt, versteckteBloecke, type Stufen } from '../../shared/abschnitte';
 
 /**
@@ -45,7 +46,29 @@ export function createEinklappExtension(handlers: EinklappHandlers) {
 
           state: {
             init: () => new Set<number>(),
-            apply: (tr, vorher) => tr.getMeta(einklappenPluginKey) ?? vorher
+            /*
+             * Gemerkt wird die laufende Nummer der Ueberschrift. Aendert sich
+             * das Dokument, wandert die Nummer mit ihrer Ueberschrift: wurde
+             * ein Absatz davor zur Ueberschrift, war sonst ploetzlich die
+             * vorige eingeklappt und die eigentliche offen (Testbericht).
+             */
+            apply: (tr, vorher) => {
+              const gesetzt = tr.getMeta(einklappenPluginKey) as Set<number> | undefined;
+              if (gesetzt) return gesetzt;
+              if (!tr.docChanged || vorher.size === 0) return vorher;
+              const alt = ueberschriftStellen(tr.before);
+              const neu = ueberschriftStellen(tr.doc);
+              const naechste = new Set<number>();
+              for (const nummer of vorher) {
+                const stelle = alt[nummer];
+                if (stelle === undefined) continue;
+                const ergebnis = tr.mapping.mapResult(stelle, 1);
+                if (ergebnis.deleted) continue;
+                const index = neu.indexOf(ergebnis.pos);
+                if (index >= 0) naechste.add(index);
+              }
+              return naechste;
+            }
           },
 
           props: {
@@ -153,6 +176,15 @@ export function createEinklappExtension(handlers: EinklappHandlers) {
       ];
     }
   });
+}
+
+/** Wo die Ueberschriften der obersten Ebene beginnen, der Reihe nach. */
+function ueberschriftStellen(doc: ProseMirrorNode): number[] {
+  const stellen: number[] = [];
+  doc.forEach((node, offset) => {
+    if (node.type.name === 'heading') stellen.push(offset);
+  });
+  return stellen;
 }
 
 function setze(view: EditorView, eingeklappt: Set<number>): void {
