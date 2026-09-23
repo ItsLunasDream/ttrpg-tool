@@ -148,6 +148,40 @@ app.whenReady().then(async () => {
     'beide Haelften werden getrennt ausgewiesen'
   );
 
+  // --- Bearbeiten -----------------------------------------------------------
+  console.log('\nVon Hand bearbeiten:');
+  const klickeKnopf = (muster) => js(`(() => {
+    const knopf = [...document.querySelectorAll('.werkzeuge .knopf')].find((k) => ${muster}.test(k.textContent));
+    if (knopf) knopf.click();
+    return Boolean(knopf);
+  })()`);
+  const alterName = await js("document.querySelector('.statblock__name')?.textContent ?? ''");
+  pruefe(await klickeKnopf('/^(Edit|Bearbeiten)$/'), 'der Knopf „Bearbeiten" ist da');
+  await warte(300);
+  pruefe(await js("Boolean(document.querySelector('[data-bearbeiten]'))"), 'die Bearbeiten-Ansicht geht auf');
+  const setzeName = (name) => js(`(() => {
+    const feld = document.querySelector('[data-bearbeiten] input');
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setter.call(feld, ${JSON.stringify(name)});
+    feld.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  })()`);
+  await setzeName('Probebiest');
+  await warte(200);
+  await klickeKnopf('/^(Done|Fertig)$/');
+  await warte(300);
+  pruefe(
+    (await js("document.querySelector('.statblock__name')?.textContent ?? ''")) === 'Probebiest',
+    'der geaenderte Name steht im Statblock'
+  );
+  // Zurueck zum alten Namen, damit die Schritte danach wie vorher laufen.
+  await klickeKnopf('/^(Edit|Bearbeiten)$/');
+  await warte(200);
+  await setzeName(alterName);
+  await warte(200);
+  await klickeKnopf('/^(Done|Fertig)$/');
+  await warte(300);
+
   // --- Speichern ------------------------------------------------------------
   console.log('\nIn die Sammlung:');
   await js("[...document.querySelectorAll('.knopf')].find(k => /collection|Sammlung/i.test(k.textContent)).click(); true");

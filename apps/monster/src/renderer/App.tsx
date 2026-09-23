@@ -22,6 +22,7 @@ import { api } from './api';
 import { Befund } from './Befund';
 import { Sammlung } from './Sammlung';
 import { Statblock } from './Statblock';
+import { Bearbeiten } from './Bearbeiten';
 import { getLanguage, setLanguage, t, type TextKey } from './i18n';
 
 /** Der Zufall der Oberflaeche. Die reinen Funktionen bekommen ihn uebergeben. */
@@ -46,6 +47,7 @@ export function App() {
   /** Was der KI thematisch gesagt wird. Leer heisst: nur die Regler zaehlen. */
   const [kiWunsch, setKiWunsch] = useState('');
   const [monster, setMonster] = useState<Monster | null>(null);
+  const [bearbeiten, setBearbeiten] = useState(false);
   const [eintraege, setEintraege] = useState<Eintrag[]>([]);
   const [kiDa, setKiDa] = useState(false);
   const [kiLaeuft, setKiLaeuft] = useState(false);
@@ -389,7 +391,11 @@ export function App() {
 
           {monster && befund && (
             <>
-              <Statblock monster={monster} />
+              {bearbeiten ? (
+                <Bearbeiten monster={monster} onAendern={setMonster} />
+              ) : (
+                <Statblock monster={monster} />
+              )}
               <Befund befund={befund} onUebernehmen={uebernimmVorschlag} />
 
               {kiVorschlag && (
@@ -414,6 +420,9 @@ export function App() {
               )}
 
               <section className="werkzeuge">
+                <button type="button" className="knopf knopf--klein" aria-pressed={bearbeiten} onClick={() => setBearbeiten((vorher) => !vorher)}>
+                  {bearbeiten ? t('knopf.fertig') : t('knopf.bearbeiten')}
+                </button>
                 <button type="button" className="knopf knopf--klein" onClick={() => setMonster(wuerfleNeu(monster, 'name', getLanguage(), wuerfel))}>
                   {t('knopf.neuerName')}
                 </button>

@@ -242,6 +242,57 @@ export function alsWuerfel(durchschnitt: number, wuerfelseiten: number, bonus: n
  * Ohne Schlusspunkt: der Satz drumherum setzt seinen eigenen, und „5 ft.."
  * mit zwei Punkten stand prompt im ersten Bild der Oberflaeche.
  */
+/**
+ * Ein Wuerfelausdruck, dessen Zuschlag GENAU der Modifikator ist.
+ *
+ * `alsWuerfel` rundet den Rest in den Zuschlag, und so stand bei CR 0
+ * „Langschwert 1d8 − 2" neben Staerke +0 (Testbericht). Hier bleibt der
+ * Zuschlag der Modifikator; getroffen wird der Schnitt ueber die Zahl der
+ * Wuerfel und, wenn die Waffe dafuer zu grob ist, ueber eine andere
+ * Wuerfelgroesse. Heraus kommt auch der wirkliche Schnitt, abgerundet wie
+ * im Statblock („7 (1d8 + 3)").
+ */
+export function wuerfelMitMod(
+  durchschnitt: number,
+  bevorzugt: number,
+  mod: number
+): { wuerfel: string; schnitt: number } {
+  const versuch = (seiten: number) => {
+    const proWuerfel = (seiten + 1) / 2;
+    const anzahl = Math.max(1, Math.round((durchschnitt - mod) / proWuerfel));
+    const schnitt = Math.max(1, Math.floor(anzahl * proWuerfel + mod));
+    return { seiten, anzahl, schnitt, abstand: Math.abs(schnitt - durchschnitt) };
+  };
+  let bester = versuch(bevorzugt);
+  // Die Waffe behaelt ihren Wuerfel, solange er bis auf einen halben Punkt passt.
+  if (bester.abstand > 0.5) {
+    for (const seiten of [4, 6, 8, 10, 12]) {
+      const anderer = versuch(seiten);
+      if (anderer.abstand < bester.abstand) bester = anderer;
+    }
+  }
+  const zeichen = mod === 0 ? '' : mod > 0 ? ` + ${mod}` : ` − ${Math.abs(mod)}`;
+  return { wuerfel: `${bester.anzahl}d${bester.seiten}${zeichen}`, schnitt: bester.schnitt };
+}
+
+/**
+ * Welches Attribut einen Angriff traegt.
+ *
+ * Gefuehrte Fernwaffen und leichte Klingen gehen ueber Geschicklichkeit,
+ * schwere Nahkampfwaffen und Koerperteile ueber Staerke. Was keinen
+ * koerperlichen Schaden macht (Schattenpfeil, zehrende Beruehrung), ist
+ * Magie und laeuft ueber das Hauptattribut des Wesens.
+ */
+const FINESSE = new Set(['dolch', 'kurzschwert', 'peitsche']);
+export function angriffsAttribut(angriff: Angriff, hauptattribut: AttributId): AttributId {
+  const w = waffe(angriff.waffeId);
+  if (!w || angriff.art === 'flaeche') return hauptattribut;
+  if (!schadensart(angriff.schadensartId)?.koerperlich) return hauptattribut;
+  if (w.art === 'fern') return 'ge';
+  if (FINESSE.has(w.id)) return hauptattribut === 'st' ? 'st' : 'ge';
+  return 'st';
+}
+
 export function reichweiteText(waffe: Waffe, sprache: Sprache): string {
   const fuss = sprache === 'en' ? 'ft' : 'Fuß';
   if (waffe.art === 'nah') return `${waffe.reichweite ?? 5} ${fuss}`;
@@ -314,7 +365,9 @@ export function baueAngriffe(wunsch: Angriffswunsch, rng: () => number): Angriff
 
   const haupt = waehleWaffe(wunsch, weite, rng);
   const anzahl = Math.max(1, wunsch.angriffeProRunde);
-  const jeAngriff = Math.max(1, Math.round(wunsch.schadenProRunde / anzahl));
+  // Ungerundet: gerundet wird erst am Wuerfel, sonst addiert sich der
+  // Fehler ueber mehrere Angriffe (2 × 6 statt 9 bei CR 1/2).
+  const jeAngriff = Math.max(1, wunsch.schadenProRunde / anzahl);
 
   heraus.push(baueAngriff(haupt, wunsch, anzahl, jeAngriff, hauptMod));
 
@@ -393,12 +446,13 @@ function baueAngriff(
     };
   }
 
+  const { wuerfel, schnitt } = wuerfelMitMod(schaden, waffe.wuerfel, hauptMod);
   return {
     waffeId: waffe.id,
     art: waffe.art,
     anzahl,
-    schadenJeAngriff: schaden,
-    wuerfel: alsWuerfel(schaden, waffe.wuerfel, hauptMod),
+    schadenJeAngriff: schnitt,
+    wuerfel,
     schadensartId,
     trefferbonus: wunsch.angriffsbonus
   };

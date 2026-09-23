@@ -61,6 +61,10 @@ const TEXTE = {
   'werte.angriffe': ['Angriffe', 'Attacks'],
   'werte.tempo': ['Bewegung', 'Speed'],
   'werte.umgebung': ['Umgebung', 'Environment'],
+  'werte.initiative': ['Initiative', 'Initiative'],
+  'werte.sinne': ['Sinne', 'Senses'],
+  'werte.passiv': ['Passive Wahrnehmung {n}', 'Passive Perception {n}'],
+  'werte.grad': ['{cr} (EP {ep}; ÜB +{ub})', '{cr} (XP {ep}; PB +{ub})'],
   'werte.resistent': ['Resistenzen', 'Damage Resistances'],
   'werte.immun': ['Immunitäten', 'Damage Immunities'],
   'werte.verwundbar': ['Verwundbarkeiten', 'Damage Vulnerabilities'],
@@ -71,6 +75,22 @@ const TEXTE = {
 
   'block.aktionen': ['Aktionen', 'Actions'],
   'block.bonusaktionen': ['Bonusaktionen', 'Bonus Actions'],
+  'kategorie.passiv': ['Eigenschaft', 'Trait'],
+  'kategorie.aktion': ['Aktion', 'Action'],
+  'kategorie.bonusaktion': ['Bonusaktion', 'Bonus action'],
+  'kategorie.reaktion': ['Reaktion', 'Reaction'],
+  'kategorie.legendaer': ['Legendäre Aktion', 'Legendary action'],
+  'knopf.bearbeiten': ['Bearbeiten', 'Edit'],
+  'knopf.fertig': ['Fertig', 'Done'],
+  'bearbeiten.name': ['Name', 'Name'],
+  'bearbeiten.satz': ['Beschreibung', 'Description'],
+  'bearbeiten.anzahl': ['Anzahl', 'Count'],
+  'bearbeiten.schnitt': ['Schnitt', 'Average'],
+  'bearbeiten.wuerfel': ['Würfel', 'Dice'],
+  'bearbeiten.faehigkeiten': ['Fähigkeiten', 'Features'],
+  'bearbeiten.art': ['Art', 'Kind'],
+  'bearbeiten.neueFaehigkeit': ['Neue Fähigkeit', 'New feature'],
+  'bearbeiten.dazu': ['Fähigkeit hinzufügen', 'Add feature'],
   'block.reaktionen': ['Reaktionen', 'Reactions'],
   'block.legendaer': ['Legendäre Aktionen', 'Legendary Actions'],
   'block.legendaerText': [
@@ -97,6 +117,14 @@ const TEXTE = {
     '{flaeche}. Each creature in the area makes a DC {sg} {attribut} saving throw, taking {schaden} on a failure, or half as much on a success.'
   ],
   'block.aufladen': ['(Aufladen 5–6)', '(Recharge 5–6)'],
+  'block.summeMitFaehigkeit': [
+    'Zusammen {gesamt} Schaden pro Runde — {anzahl} {{Angriff|Angriffe}} zu je etwa {je}, dazu etwa {zusatz} aus seinen Fähigkeiten. Mit dieser Zahl rechnet die Prüfung.',
+    'Together {gesamt} damage per round — {anzahl} {{attack|attacks}} at about {je} each, plus about {zusatz} from its features. This is the number the check uses.'
+  ],
+  'block.summeFlaeche': [
+    'Die Fläche mit Aufladen ersetzt in ihrer Runde die Angriffe und zählt deshalb nicht dazu.',
+    'The recharge area replaces the attacks on its turn, so it is not added.'
+  ],
   'block.summe': [
     'Zusammen {gesamt} Schaden pro Runde — {anzahl} {{Angriff|Angriffe}} zu je etwa {je}. Mit dieser Zahl rechnet die Prüfung.',
     'Together {gesamt} damage per round — {anzahl} {{attack|attacks}} at about {je} each. This is the number the check uses.'

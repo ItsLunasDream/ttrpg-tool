@@ -10,11 +10,13 @@
  * in einer Reihe, dann Widerstaende, dann die passiven Faehigkeiten, dann
  * Aktionen, Bonusaktionen, Reaktionen und zuletzt die legendaeren.
  */
-import { ATTRIBUTE, alsVorzeichen, attributKuerzel, modifikator } from '../shared/attribute';
+import { ATTRIBUTE, alsVorzeichen, attributKuerzel, modifikator, uebungsbonus } from '../shared/attribute';
+import { epFuerGrad } from '@suite/srd';
+import { richtwert } from '../shared/richtwerte';
 import { alsZeile } from '../shared/bewegung';
 import { angriffName, angriffSchaden, reichweiteText, WAFFEN, type Angriff } from '../shared/angriffe';
 import { schadensartName } from '../shared/schadensarten';
-import { angriffeProRunde, type Monster } from '../shared/erzeuge';
+import { abzweig, angriffeProRunde, type Monster } from '../shared/erzeuge';
 import type { Kategorie } from '../shared/tabellen';
 import { getLanguage, t } from './i18n';
 
@@ -46,6 +48,11 @@ export function Statblock({ monster }: { readonly monster: Monster }) {
         <Zeile name={t('werte.rk')} wert={String(w.rk)} />
         <Zeile name={t('werte.tp')} wert={String(w.tp)} />
         <Zeile name={t('werte.tempo')} wert={alsZeile(monster.bewegung, sprache)} />
+        {/* Wie im Statblock von 2024: Initiative mit Wert in Klammern. */}
+        <Zeile
+          name={t('werte.initiative')}
+          wert={`${alsVorzeichen(modifikator(monster.attribute.ge))} (${10 + modifikator(monster.attribute.ge)})`}
+        />
       </div>
 
       <Trennlinie />
@@ -89,6 +96,15 @@ export function Statblock({ monster }: { readonly monster: Monster }) {
         {monster.widerstaende.immunitaeten.length > 0 && (
           <Zeile name={t('werte.immun')} wert={arten(monster.widerstaende.immunitaeten)} />
         )}
+        <Zeile name={t('werte.sinne')} wert={t('werte.passiv', { n: 10 + modifikator(monster.attribute.we) })} />
+        <Zeile
+          name={t('feld.cr')}
+          wert={t('werte.grad', {
+            cr: monster.cr,
+            ep: (epFuerGrad(monster.cr) ?? 0).toLocaleString(sprache === 'de' ? 'de-DE' : 'en-US'),
+            ub: uebungsbonus(richtwert(monster.cr)?.wert ?? 0)
+          })}
+        />
         <Zeile name={t('werte.umgebung')} wert={monster.umgebung} />
       </div>
 
@@ -133,11 +149,13 @@ export function Statblock({ monster }: { readonly monster: Monster }) {
        * selbst ist das, was sie ist: die Zahl, mit der die Pruefung rechnet.
        */}
       <p className="statblock__summe">
-        {t('block.summe', {
+        {t(abzweig(monster.faehigkeiten, w.schadenProRunde).schaden > 0 ? 'block.summeMitFaehigkeit' : 'block.summe', {
           gesamt: w.schadenProRunde,
           anzahl: gesamt,
-          je: angriffe[0]?.schadenJeAngriff ?? w.schadenProRunde
+          je: angriffe[0]?.schadenJeAngriff ?? w.schadenProRunde,
+          zusatz: abzweig(monster.faehigkeiten, w.schadenProRunde).schaden
         })}
+        {flaechen.some((a) => a.aufladen) ? ` ${t('block.summeFlaeche')}` : ''}
       </p>
 
       <Abschnitt titel={t('block.bonusaktionen')} eintraege={ausListe('bonusaktion')} />

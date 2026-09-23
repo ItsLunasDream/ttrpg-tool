@@ -788,3 +788,51 @@ textarea {
     transform: none;
   }
 }
+
+/* --- Bearbeiten -------------------------------------------------------- */
+.bearbeiten {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  background: var(--grund-hoch);
+}
+.bearbeiten__reihe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+}
+.bearbeiten__feld {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  min-width: 90px;
+}
+.bearbeiten__feld--breit {
+  flex: 1 1 240px;
+}
+.bearbeiten__titel {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+.bearbeiten__waffe {
+  min-width: 120px;
+  padding-bottom: 6px;
+}
+.bearbeiten__faehigkeit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bearbeiten__fname {
+  flex: 1 1 200px;
+}
+.bearbeiten input,
+.bearbeiten textarea,
+.bearbeiten select {
+  font: inherit;
+}
