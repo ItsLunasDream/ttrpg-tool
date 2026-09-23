@@ -1,4 +1,6 @@
-# TTRPG-Tools
+# LORE
+
+**Library Of RPG Essentials**
 
 *[This document in English: README.md](README.md)*
 
@@ -46,12 +48,15 @@ Arbeitstitel, Symbole und Werkzeugnamen sind vorläufig.
 Ohne Node und npm:
 
 1. Reiter **Actions** öffnen, obersten Lauf **Build** anklicken
-2. Unter **Artifacts** `ttrpg-tools-windows` herunterladen und entpacken
-3. Darin: `TTRPGTools-Setup-<version>.exe` (Installer) und
-   `TTRPGTools-portable-<version>.exe` (läuft ohne Installation)
+2. Unter **Artifacts** `lore-windows` herunterladen und entpacken
+3. Darin: `LORE-Setup-<version>.exe` (Installer) und
+   `LORE-portable-<version>.exe` (läuft ohne Installation)
 
 Hinweise:
 
+- Der Datenordner liegt unter `%APPDATA%\LORE`. Installationen von vor der
+  Umbenennung benutzen weiter `%APPDATA%\TTRPG-Tools`; umziehen muss man
+  nichts.
 - SmartScreen warnt beim ersten Start, weil die Datei nicht signiert ist:
   „Weitere Informationen" → „Trotzdem ausführen". Eine Signatur bräuchte ein
   kostenpflichtiges Zertifikat.

@@ -1,4 +1,6 @@
-# TTRPG-Tools
+# LORE
+
+**Library Of RPG Essentials**
 
 *[Dieses Dokument auf Deutsch: README.de.md](README.de.md)*
 
@@ -45,9 +47,9 @@ Working titles, icons and tool names are provisional.
 No Node, no npm needed:
 
 1. Open the **Actions** tab, click the topmost **Build** run
-2. Under **Artifacts**, download `ttrpg-tools-windows` and unpack it
-3. Inside: `TTRPGTools-Setup-<version>.exe` (installer) and
-   `TTRPGTools-portable-<version>.exe` (runs without installing)
+2. Under **Artifacts**, download `lore-windows` and unpack it
+3. Inside: `LORE-Setup-<version>.exe` (installer) and
+   `LORE-portable-<version>.exe` (runs without installing)
 
 Notes:
 
@@ -149,6 +151,8 @@ for the title bar and the rail.
   this machine's keychain and would be useless anywhere else, and a backup
   is the last place a key belongs. Restoring is manual and deliberately so:
   close the app, unpack into the data folder, start again.
+- The data folder is `%APPDATA%\LORE` on Windows. Installations from before
+  the rename keep using `%APPDATA%\TTRPG-Tools`; nothing has to be moved.
 - Colours live in one place. `packages/farben` holds fourteen colour *roles*
   („the ground everything sits on“, not „dark blue“) and seven themes that
   fill them — five dark, two light, which is what covers light mode. The

@@ -17,6 +17,8 @@
  * steht fuer sich. Die Aufteilung ist aber schon so angelegt, dass das
  * Einbetten spaeter nichts daran umstellt.
  */
+// Zuerst: der Datenordner, bevor irgendetwas ihn erfragt.
+import './datenordner';
 import { app, BaseWindow, WebContentsView, dialog, ipcMain, screen, shell, type IpcMainInvokeEvent, type WebContents } from 'electron';
 /**
  * Startzeit messen, wenn TTRPG_TOOLS_STARTZEIT gesetzt ist.
@@ -516,7 +518,7 @@ async function erzeugeFenster(): Promise<void> {
     frame: false,
     backgroundColor: '#14161c',
     show: false,
-    title: 'TTRPG-Tools'
+    title: 'LORE'
   });
 
   huelle = new WebContentsView({
@@ -877,7 +879,7 @@ function registriereKanaele(): void {
         const heute = new Date().toISOString().slice(0, 10);
         const antwort = await dialog.showSaveDialog(fenster as never, {
           defaultPath: `paket-${heute}${PAKET_ENDUNG}`,
-          filters: [{ name: 'TTRPG-Tools', extensions: ['md'] }]
+          filters: [{ name: 'LORE', extensions: ['md'] }]
         });
         if (antwort.canceled || !antwort.filePath) return { ok: false, abgebrochen: true, anzahl: 0 };
         ziel = antwort.filePath;
@@ -894,7 +896,7 @@ function registriereKanaele(): void {
       if (!fenster) return { ok: false, abgebrochen: true };
       const antwort = await dialog.showOpenDialog(fenster as never, {
         properties: ['openFile'],
-        filters: [{ name: 'TTRPG-Tools', extensions: ['md'] }]
+        filters: [{ name: 'LORE', extensions: ['md'] }]
       });
       if (antwort.canceled || !antwort.filePaths[0]) return { ok: false, abgebrochen: true };
       quelle = antwort.filePaths[0];

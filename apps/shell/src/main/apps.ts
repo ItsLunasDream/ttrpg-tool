@@ -270,7 +270,7 @@ export function appDistDir(id: string, ...weiter: string[]): string {
  * Wo das *eigenstaendige* Programm einer Anwendung seine Daten haette.
  *
  * Electron leitet den Datenordner aus dem Namen der Anwendung ab, und der ist
- * eigenstaendig ein anderer als hier: die Huelle heisst „TTRPG-Tools", das
+ * eigenstaendig ein anderer als hier: die Huelle heisst „LORE" (frueher „TTRPG-Tools", siehe datenordner.ts), das
  * gepackte Einzelprogramm „Story Creator", und aus dem Workspace
  * gestartet gilt der Name aus seiner package.json. Alle drei liegen
  * nebeneinander im selben uebergeordneten Verzeichnis.

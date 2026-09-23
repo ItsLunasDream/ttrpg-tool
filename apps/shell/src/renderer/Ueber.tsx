@@ -36,7 +36,8 @@ export function Ueber({ version, onClose, t, sprache }: Props) {
         <span className="ueber__marke" aria-hidden="true">
           <SuiteIcon size={48} />
         </span>
-        <p className="ueber__name">TTRPG-Tools</p>
+        <p className="ueber__name">LORE</p>
+        <p className="ueber__untertitel">{t('menu.subtitle')}</p>
         <p className="ueber__autor">{t('about.author')}</p>
         {/* Die Fassung ist eine Zugabe: kommt sie nicht an, faellt die Zeile
             weg, statt den Dialog aufzuhalten. */}

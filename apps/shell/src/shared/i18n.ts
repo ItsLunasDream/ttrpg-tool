@@ -74,7 +74,8 @@ const en = {
   'window.restore': 'Restore',
   'window.close': 'Close',
 
-  'menu.title': 'TTRPG-Tools',
+  'menu.title': 'LORE',
+  'menu.subtitle': 'Library Of RPG Essentials',
   'menu.groupGm': 'For running the game',
   'menu.groupAll': 'For everyone at the table',
   'menu.version': 'Version {version}',
@@ -192,7 +193,7 @@ const en = {
   'intro.start': 'Let’s go',
   'intro.wieder': 'Shown once. You can bring it back in the settings.',
 
-  'about.title': 'About TTRPG-Tools',
+  'about.title': 'About LORE',
   'about.author': 'By ItsLunasDream',
   'about.version': 'Version {version}',
   'about.description':
@@ -302,7 +303,8 @@ const de: Partial<Record<MessageKey, string>> = {
   'window.restore': 'Wiederherstellen',
   'window.close': 'Schließen',
 
-  'menu.title': 'TTRPG-Tools',
+  'menu.title': 'LORE',
+  'menu.subtitle': 'Library Of RPG Essentials',
   'menu.groupGm': 'Zum Leiten',
   'menu.groupAll': 'Für alle am Tisch',
   'menu.version': 'Fassung {version}',
@@ -420,7 +422,7 @@ const de: Partial<Record<MessageKey, string>> = {
   'intro.start': 'Los geht’s',
   'intro.wieder': 'Wird einmal gezeigt. In den Einstellungen holst du es zurück.',
 
-  'about.title': 'Über TTRPG-Tools',
+  'about.title': 'Über LORE',
   'about.author': 'Von ItsLunasDream',
   'about.version': 'Fassung {version}',
   'about.description':

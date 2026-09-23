@@ -719,7 +719,9 @@ export function App() {
             </svg>
           </button>
         </span>
-        <span className="titelleiste__name">TTRPG-Tools</span>
+        <span className="titelleiste__name" title={t('menu.subtitle')}>
+          LORE
+        </span>
         {eintrag && <span className="titelleiste__pfad">› {t(nameKey(eintrag.id))}</span>}
         <span className="titelleiste__fueller" />
         <button type="button" className="titelleiste__knopf" data-teilen-knopf onClick={() => zeigeDialog('teilen')}>
@@ -945,6 +947,7 @@ function Startmenue({
       ) : (
         <h1 className="menue__titel">{t('menu.title')}</h1>
       )}
+      <p className="menue__untertitel">{t('menu.subtitle')}</p>
 
       {/*
         Nach Rolle am Tisch gruppiert statt alle neun nebeneinander.
@@ -1108,7 +1111,7 @@ function Buehne({
       <nav
         className="schiene"
         style={{ width: CHROME.schieneBreite }}
-        aria-label="TTRPG-Tools"
+        aria-label="LORE"
         ref={schiene}
       >
         {markeOben !== null && (

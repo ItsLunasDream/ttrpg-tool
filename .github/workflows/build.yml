@@ -109,7 +109,7 @@ jobs:
       # startet das Paket mit einem geoeffneten Werkzeug und wartet darauf,
       # dass es wirklich hochkommt.
       - name: Gepacktes Paket starten
-        run: xvfb-run -a npm run verify:package:suite -- "$PWD/apps/shell/release/linux-unpacked/ttrpg-tools"
+        run: xvfb-run -a npm run verify:package:suite -- "$PWD/apps/shell/release/linux-unpacked/lore"
       - name: Log bei Fehler sichern
         if: failure()
         uses: actions/upload-artifact@v4
@@ -143,11 +143,11 @@ jobs:
       - run: npm ci
       - run: npm run dist:suite:win
       - name: Gepacktes Paket starten
-        run: npm run verify:package:suite -- "${{ github.workspace }}\apps\shell\release\win-unpacked\TTRPG-Tools.exe"
+        run: npm run verify:package:suite -- "${{ github.workspace }}\apps\shell\release\win-unpacked\LORE.exe"
       - name: Ergebnis hochladen
         uses: actions/upload-artifact@v4
         with:
-          name: ttrpg-tools-windows
+          name: lore-windows
           path: apps/shell/release/*.exe
           if-no-files-found: error
           retention-days: 1

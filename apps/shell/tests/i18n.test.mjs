@@ -36,6 +36,8 @@ test('jeder englische Schluessel hat eine deutsche Entsprechung', () => {
 const GLEICH_ERLAUBT = new Set([
   // Der Name der Sammlung.
   'menu.title',
+  // Seine Aufloesung, bewusst englisch wie der Name selbst.
+  'menu.subtitle',
   // Eigennamen der Werkzeuge, die in beiden Sprachen gleich heissen.
   'app.backstory.name',
   'app.initiative.name',

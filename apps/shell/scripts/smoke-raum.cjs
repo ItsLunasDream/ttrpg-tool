@@ -136,7 +136,7 @@ app.whenReady().then(async () => {
 
   // --- Ein Paket von Anna, angenommen in der App -----------------------------
   const paket = [
-    '# TTRPG-Tools',
+    '# LORE',
     '',
     '<!-- ttrpg:paket {"version":1,"erstellt":""} -->',
     '',

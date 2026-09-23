@@ -2,7 +2,7 @@
   "name": "ttrpg-tools-shell",
   "version": "0.4.0",
   "private": true,
-  "description": "TTRPG-Tools — Huelle, in die die einzelnen Werkzeuge eingebettet werden",
+  "description": "LORE (Library Of RPG Essentials) — Huelle, in die die einzelnen Werkzeuge eingebettet werden",
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "node scripts/dev.mjs",
@@ -51,7 +51,7 @@
   },
   "build": {
     "appId": "de.itslunasdream.ttrpgtools",
-    "productName": "TTRPG-Tools",
+    "productName": "LORE",
     "copyright": "Copyright © ItsLunasDream",
     "electronVersion": "33.4.11",
     "npmRebuild": false,
@@ -212,11 +212,11 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "TTRPG-Tools",
-      "artifactName": "TTRPGTools-Setup-${version}.${ext}"
+      "shortcutName": "LORE",
+      "artifactName": "LORE-Setup-${version}.${ext}"
     },
     "portable": {
-      "artifactName": "TTRPGTools-portable-${version}.${ext}"
+      "artifactName": "LORE-portable-${version}.${ext}"
     },
     "linux": {
       "icon": "build/icon.png",
@@ -224,7 +224,7 @@
       "target": [
         "AppImage"
       ],
-      "executableName": "ttrpg-tools"
+      "executableName": "lore"
     }
   },
   "repository": {

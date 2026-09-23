@@ -144,7 +144,7 @@ function umbrechen(daten: string): string[] {
 
 export function alsPaket(paket: Paket): string {
   const zeilen = [
-    '# TTRPG-Tools',
+    '# LORE',
     '',
     `${MARKE}paket ${JSON.stringify({ version: paket.version, erstellt: paket.erstellt })} -->`,
     ''

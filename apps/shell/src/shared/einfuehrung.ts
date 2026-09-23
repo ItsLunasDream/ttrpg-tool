@@ -37,8 +37,8 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
     id: WILLKOMMEN,
     titel: { de: 'Willkommen', en: 'Welcome' },
     satz: {
-      de: 'Sechs Werkzeuge für Pen-&-Paper-Runden, nebeneinander in einem Fenster.',
-      en: 'Six tools for tabletop campaigns, side by side in one window.'
+      de: 'Werkzeuge für Pen-&-Paper-Runden, nebeneinander in einem Fenster.',
+      en: 'Tools for tabletop campaigns, side by side in one window.'
     },
     punkte: [
       {

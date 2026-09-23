@@ -218,7 +218,15 @@ body {
   font-size: 26px;
   font-weight: 600;
   letter-spacing: 0.02em;
+  margin: 0 0 4px;
+}
+
+/* Die Aufloesung des Namens, leise unter Titel oder Banner. */
+.menue__untertitel {
   margin: 0 0 24px;
+  color: var(--text-leise);
+  font-size: 14px;
+  letter-spacing: 0.04em;
 }
 
 /* Ein eigenes Banner statt des Titels: so breit wie die Kacheln, nie
@@ -852,6 +860,12 @@ body {
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 2px !important;
+}
+
+.ueber__untertitel {
+  margin: 0 0 6px !important;
+  color: var(--text-leise);
+  font-size: 13px;
 }
 
 .ueber__autor,

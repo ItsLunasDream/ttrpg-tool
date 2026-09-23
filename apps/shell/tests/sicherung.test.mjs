@@ -127,8 +127,8 @@ test('der Dateiname traegt Datum und Uhrzeit', () => {
   // Die Stunde gehoert dazu: wer an einem Nachmittag zweimal sichert, will
   // nicht raten muessen, welche die neuere ist.
   const name = sicherungsname(new Date(2026, 8, 22, 9, 5));
-  assert.equal(name, 'ttrpg-tools-sicherung-2026-09-22-0905.zip');
-  assert.match(sicherungsname(new Date()), /^ttrpg-tools-sicherung-\d{4}-\d{2}-\d{2}-\d{4}\.zip$/);
+  assert.equal(name, 'lore-sicherung-2026-09-22-0905.zip');
+  assert.match(sicherungsname(new Date()), /^lore-sicherung-\d{4}-\d{2}-\d{2}-\d{4}\.zip$/);
 });
 
 /*
