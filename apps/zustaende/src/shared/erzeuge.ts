@@ -151,7 +151,13 @@ function zieheStufen(
   thema: Thema,
   rng: () => number
 ): Stufe[] {
-  const richtungen = richtungenFuer(wirkrichtung);
+  /*
+   * „Gemischt" zieht die Stufen aus einer Richtung, den Gegenpol aus der
+   * anderen. Zogen die Stufen selbst schon Buffs und Debuffs durcheinander,
+   * hob eine Stufe die vorige auf und der Zustand war kaputt (Testbericht:
+   * „laestig, gemischt" mit vier oder fuenf Stufen).
+   */
+  const richtungen = wirkrichtung === 'gemischt' ? richtungenFuer('debuff') : richtungenFuer(wirkrichtung);
   const vergeben = new Set<string>();
   const bisher: Wirkung[] = [];
   const gezogen: Wirkung[] = [];
@@ -200,8 +206,10 @@ function zieheStufen(
     const letzte = stufen[stufen.length - 1];
     const bisherige = letzte.wirkungen.map((id) => bisher.find((w) => w.id === id)).filter(Boolean) as Wirkung[];
     const gegenrichtung: Richtung = bisherige.some((w) => w.richtung === 'buff') ? 'debuff' : 'buff';
+    // Eine Schwere leichter als die Stufe: der Gegenpol soll ziehen, nicht aufheben.
+    const gegenSchwere = SCHWEREN[Math.max(0, schwereWert(schwereFuerStufe(letzte.nummer, anzahl, haerte)) - 1)];
     const gegenpol = waehleWirkung(
-      schwereFuerStufe(letzte.nummer, anzahl, haerte),
+      gegenSchwere,
       [gegenrichtung],
       thema,
       vergeben,
@@ -219,11 +227,14 @@ function zieheStufen(
      * Angriffswuerfe" aus „mittel" in einem laestigen Zustand.
      */
     if (gegenpol && schwereWert(gegenpol.schwere) <= schwereWert(haerte.bis as Schwere)) {
-      vergeben.add(gegenpol.id);
-      stufen[stufen.length - 1] = {
-        nummer: letzte.nummer,
-        wirkungen: [...letzte.wirkungen, gegenpol.id]
-      };
+      const mit = [...stufen];
+      mit[mit.length - 1] = { nummer: letzte.nummer, wirkungen: [...letzte.wirkungen, gegenpol.id] };
+      // Nur, wenn die letzte Stufe danach noch etwas dazubringt: sonst waere
+      // sie flach, und der Zustand kaputt (Testbericht: „laestig, gemischt").
+      if (pruefe(mit, haerte.id).steigtAn) {
+        vergeben.add(gegenpol.id);
+        stufen.splice(0, stufen.length, ...mit);
+      }
     }
   }
 
@@ -237,26 +248,69 @@ function zieheStufen(
    * ohnehin die schweren sind und der Verlauf so steigend bleibt.
    */
   const richtungenAuffuellen = wirkrichtung === 'gemischt' ? richtungenFuer('debuff') : richtungen;
-  for (let runde = 0; runde < 2; runde += 1) {
+  // Mit ein oder zwei Stufen muss eine Stufe mehr tragen: bis zu vier Wirkungen.
+  const hoechstensJeStufe = stufen.length <= 2 ? 4 : 3;
+  for (let runde = 0; runde < 3; runde += 1) {
     for (let i = stufen.length - 1; i >= 0; i -= 1) {
-      if (Math.abs(gesamtgewicht(stufen)) >= haerte.gewichtVon) return stufen;
-      if (stufen[i].wirkungen.length >= 3) continue;
-      const dazu = waehleWirkung(
-        schwereFuerStufe(stufen[i].nummer, stufen.length, haerte),
-        richtungenAuffuellen,
-        thema,
-        vergeben,
-        [],
-        rng,
-        haerte
-      );
+      if (Math.abs(gesamtgewicht(stufen)) >= haerte.gewichtVon) return speckeAb(stufen, haerte, wirkrichtung, vergeben);
+      if (stufen[i].wirkungen.length >= hoechstensJeStufe) continue;
+      const gewuenscht = schwereFuerStufe(stufen[i].nummer, stufen.length, haerte);
+      // Ist die Schwere erschoepft (ein Segen hat nur zwei toedliche Buffs), eine darunter.
+      const dazu =
+        waehleWirkung(gewuenscht, richtungenAuffuellen, thema, vergeben, [], rng, haerte) ??
+        waehleWirkung(SCHWEREN[Math.max(0, schwereWert(gewuenscht) - 1)], richtungenAuffuellen, thema, vergeben, [], rng, haerte);
       if (!dazu || schwereWert(dazu.schwere) > schwereWert(haerte.bis as Schwere)) continue;
       vergeben.add(dazu.id);
       stufen[i] = { nummer: stufen[i].nummer, wirkungen: [...stufen[i].wirkungen, dazu.id] };
     }
   }
 
-  return stufen;
+  return speckeAb(stufen, haerte, wirkrichtung, vergeben);
+}
+
+/** Jede Stufe wiegt fuer sich mindestens so viel wie die davor. */
+function staffelt(stufen: readonly Stufe[]): boolean {
+  const je = stufen.map((stufe) => stufe.wirkungen.reduce((summe, id) => summe + Math.abs(wirkung(id)?.punkte ?? 0), 0));
+  return je.every((wert, i) => i === 0 || wert >= je[i - 1]);
+}
+
+/**
+ * Zu schwer fuer die Haerte: die schwerste Wirkung durch eine leichtere
+ * derselben Schwere und Richtung ersetzen, bis es passt.
+ *
+ * Fuenf Stufen auf „laestig" ziehen fuenf leichte Wirkungen, und fuenf
+ * leichte koennen zusammen ueber 15 kommen (Testbericht: die Haelfte war
+ * zu schwer). Getauscht wird nur innerhalb der Schwere, damit der Verlauf
+ * bleibt, wie er war; danach wird wie beim Ziehen sortiert.
+ */
+function speckeAb(stufen: Stufe[], haerte: Haerte, wirkrichtung: Wirkrichtung, vergeben: Set<string>): Stufe[] {
+  let jetzt = stufen;
+  for (let schritt = 0; schritt < 12 && Math.abs(gesamtgewicht(jetzt)) > haerte.gewichtBis; schritt += 1) {
+    const kandidaten = jetzt
+      .flatMap((stufe, i) => stufe.wirkungen.map((id) => ({ i, id, w: wirkung(id) })))
+      .filter((k): k is { i: number; id: string; w: Wirkung } => Boolean(k.w))
+      // Nur, was in die Hauptrichtung zieht: einen Gegenpol leichter zu machen, machte es schwerer.
+      .filter((k) => wirkrichtung === 'gemischt' || richtungenFuer(wirkrichtung).includes(k.w.richtung))
+      .sort((a, b) => Math.abs(b.w.punkte) - Math.abs(a.w.punkte));
+    let getauscht = false;
+    for (const k of kandidaten) {
+      const leichter = wirkungenFuer(k.w.schwere, [k.w.richtung])
+        .filter((w) => !vergeben.has(w.id) && Math.abs(w.punkte) < Math.abs(k.w.punkte))
+        .sort((a, b) => Math.abs(b.punkte) - Math.abs(a.punkte))[0];
+      if (!leichter) continue;
+      const neu = jetzt.map((stufe, i) =>
+        i === k.i ? { ...stufe, wirkungen: stufe.wirkungen.map((id) => (id === k.id ? leichter.id : id)) } : stufe
+      );
+      if (!pruefe(neu, haerte.id).steigtAn || !staffelt(neu)) continue;
+      vergeben.delete(k.id);
+      vergeben.add(leichter.id);
+      jetzt = neu;
+      getauscht = true;
+      break;
+    }
+    if (!getauscht) break;
+  }
+  return jetzt;
 }
 
 /**

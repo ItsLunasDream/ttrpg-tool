@@ -27,6 +27,8 @@ const TEXTE = {
   abbrechen: ['Abbrechen', 'Cancel'],
   speichern: ['Speichern', 'Save'],
   gespeichert: ['Gespeichert.', 'Saved.'],
+  speichernNeu: ['Als neu speichern', 'Save as new'],
+  gespeichertNeu: ['Als neue Begegnung gespeichert; die alte bleibt.', 'Saved as a new encounter; the old one stays.'],
   loeschen: ['Löschen', 'Delete'],
   'verwerfen.sicher': ['Ungespeicherte Änderungen verwerfen?', 'Discard unsaved changes?'],
   'loeschen.sicher': [

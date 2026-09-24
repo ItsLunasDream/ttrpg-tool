@@ -195,6 +195,20 @@ export function App() {
     setIstNeu(false);
   };
 
+  /**
+   * Als neue Begegnung speichern: die gespeicherte bleibt, wie sie ist
+   * (wie in Monster und Status Effects; Testbericht).
+   */
+  const speichereAlsNeu = async () => {
+    if (!offen) return;
+    const fertig = { ...offen, name: nameVon(offen) };
+    const id = await speichere(fertig, true);
+    if (id === null) return;
+    setzeGrund({ ...fertig, id });
+    setIstNeu(false);
+    setMeldung(t('gespeichertNeu'));
+  };
+
   const setzeGruppe = async (neu: Gruppe) => {
     setGruppe(neu);
     try {
@@ -289,6 +303,11 @@ export function App() {
           >
             {t('tracker.knopf')}
           </button>
+          {!istNeu ? (
+            <button type="button" className="knopf" data-als-neu onClick={() => void speichereAlsNeu()}>
+              {t('speichernNeu')}
+            </button>
+          ) : null}
           <button
             type="button"
             className="knopf knopf--haupt"
