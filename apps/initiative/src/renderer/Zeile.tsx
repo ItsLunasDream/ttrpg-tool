@@ -126,11 +126,10 @@ export function Zeile(props: Props) {
             type="button"
             className="zeile__statblock"
             title={t('knopf.statblock')}
-            aria-label={t('knopf.statblock')}
             data-statblock-knopf
             onClick={() => setStatblockOffen(true)}
           >
-            📜
+            {t('knopf.statblockKurz')}
           </button>
         ) : null}
         {statblockOffen && teilnehmer.statblock ? (

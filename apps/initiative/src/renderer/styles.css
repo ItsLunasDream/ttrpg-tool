@@ -1022,67 +1022,18 @@ input[type='number'] {
 /* --- Statblock per Klick ------------------------------------------------ */
 .zeile__statblock {
   background: none;
-  border: none;
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  color: var(--text-leise);
   cursor: pointer;
-  font-size: 16px;
-  padding: 0 4px;
-  opacity: 0.8;
+  font: inherit;
+  font-size: 11px;
+  padding: 1px 7px;
+  white-space: nowrap;
 }
 .zeile__statblock:hover {
-  opacity: 1;
-}
-.statblock-huelle {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  justify-content: flex-end;
-  background: rgba(0, 0, 0, 0.35);
-}
-.statblock-fenster {
-  position: relative;
-  width: min(460px, 92vw);
-  height: 100%;
-  overflow-y: auto;
-  padding: 20px 22px;
-  background: var(--flaeche, var(--grund, #1b1e26));
-  color: var(--text, inherit);
-  border-left: 1px solid var(--rand, #333);
-  line-height: 1.45;
-  font-size: 14px;
-}
-.statblock-fenster h2 {
-  margin: 0 0 6px;
-}
-.statblock-fenster h3 {
-  margin: 14px 0 4px;
-  border-bottom: 1px solid var(--rand, #444);
-}
-.statblock-fenster p {
-  margin: 0 0 8px;
-}
-.statblock-fenster__zu {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  background: none;
-  border: none;
-  color: inherit;
-  font-size: 22px;
-  cursor: pointer;
-}
-
-/* --- Statblock per Klick ------------------------------------------------ */
-.zeile__statblock {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  padding: 0 4px;
-  opacity: 0.8;
-}
-.zeile__statblock:hover {
-  opacity: 1;
+  color: var(--text);
+  border-color: var(--text-leise);
 }
 .statblock-huelle {
   position: fixed;

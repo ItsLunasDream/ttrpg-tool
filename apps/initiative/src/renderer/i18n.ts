@@ -82,6 +82,7 @@ export const texte = {
   'feld.rk': ['RK', 'AC'],
   'zustand.eigen': ['Eigener Zustand', 'Own condition'],
   'knopf.statblock': ['Statblock zeigen', 'Show stat block'],
+  'knopf.statblockKurz': ['Statblock', 'Stat block'],
   'feld.spieler': ['Spielerfigur', 'Player character'],
   'feld.notiz': ['Notiz', 'Note'],
   'feld.taktik': ['Taktik und Notizen', 'Tactics and notes'],

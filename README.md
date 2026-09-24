@@ -162,7 +162,7 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
   `+` or `-` heals. Enter applies, Escape discards.
 - **AC, temp HP, "out"** have their own fields.
 - Changing an initiative re-sorts; the active row stays and scrolls into view.
-- **📜 stat block** for monsters from the Encounter Creator.
+- **Stat block** on click for monsters from the Encounter Creator.
 - **Ctrl+Z / Ctrl+Y** undo and redo everything in the fight.
 - Encounters are Markdown files in a searchable collection; the running fight
   (including the tactics note) is saved as JSON next to them.

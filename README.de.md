@@ -175,7 +175,7 @@ Obsidian.
 - **RK, Temp-HP, „Raus"** haben eigene Felder.
 - Initiative ändern sortiert neu; die aktive Zeile bleibt und rollt in den
   Blick.
-- **📜 Statblock** bei Monstern aus dem Encounter Creator.
+- **Statblock** per Klick bei Monstern aus dem Encounter Creator.
 - **Strg+Z / Strg+Y** nimmt alles im Kampf zurück und wiederholt es.
 - Begegnungen sind Markdown-Dateien in einer durchsuchbaren Sammlung; der
   laufende Kampf (samt Taktik-Notiz) liegt als JSON daneben.

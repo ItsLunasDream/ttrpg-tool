@@ -1,5 +1,5 @@
 /**
- * Der Statblock eines Teilnehmers, per Klick auf 📜 in der Zeile.
+ * Der Statblock eines Teilnehmers, per Klick auf „Statblock“ in der Zeile.
  *
  * Er kommt als Markdown aus dem Encounter Creator (SRD-Monster und eigene
  * aus dem Monster Creator). Gerendert wird nur, was ein Statblock braucht:
