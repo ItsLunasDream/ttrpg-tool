@@ -27,6 +27,7 @@ import { finde } from '../shared/suche';
 import { verlinke } from '../shared/verweise';
 import { zerlege, type Hausregel } from '../shared/hausregeln';
 import { findetStelle, markiere, nteStelle, vorkommenBei, type Notiz } from '../shared/notizen';
+import { Verweisfeld } from './Verweisfeld';
 
 /**
  * Die Notizen am Text: welche es gibt, und wie man eine oeffnet. Als Kontext
@@ -928,6 +929,14 @@ function Hausregelformular({
         .sort((a, b) => a.name[spr].localeCompare(b.name[spr], spr)),
     [regeln, spr]
   );
+  // Fuer „[[" im Text: alle Eintraege mit ihrer Art, die eigene Regel nicht.
+  const verweisVorschlaege = useMemo(
+    () =>
+      regeln
+        .filter((r) => r.id !== `hausregel/${regel.id}`)
+        .map((r) => ({ name: r.name[spr], art: ART_NAME[r.art]?.[spr] ?? '' })),
+    [regeln, spr, regel.id]
+  );
   return (
     <form
       className="hausformular"
@@ -964,12 +973,13 @@ function Hausregelformular({
       </label>
       <label className="hausformular__feld">
         <span>{t('haus.text')}</span>
-        <textarea
+        <Verweisfeld
           rows={10}
-          value={entwurf.text}
+          wert={entwurf.text}
           data-feld="text"
           placeholder={t('haus.textHinweis')}
-          onChange={(e) => setEntwurf({ ...entwurf, text: e.target.value })}
+          vorschlaege={verweisVorschlaege}
+          setze={(text) => setEntwurf({ ...entwurf, text })}
         />
       </label>
       {fehler ? <p className="hausformular__fehler">{fehler}</p> : null}

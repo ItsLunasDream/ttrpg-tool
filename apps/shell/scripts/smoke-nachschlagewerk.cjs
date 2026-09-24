@@ -244,6 +244,17 @@ app.whenReady().then(async () => {
     return true;
   })()`);
   await tippe('name', 'Kritische Treffer: maximal');
+  // „[[" schlaegt Eintraege vor, wie im Story Creator; Enter setzt den Verweis.
+  await tippe('text', 'Gilt auch bei [[Blin');
+  await warte(200);
+  const vorgeschlagen = await js("[...document.querySelectorAll('[data-verweisvorschlag]')].map(e => e.dataset.verweisvorschlag)");
+  pruefe(vorgeschlagen.some((n) => /^Blind/.test(n)), `"[[" schlaegt Eintraege vor (${vorgeschlagen.slice(0, 4).join(', ')})`);
+  await js(`document.querySelector('[data-hausregel-formular] [data-feld="text"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); true`);
+  await warte(200);
+  pruefe(
+    /\[\[Blind(ed)?\]\]/.test(await js("document.querySelector('[data-hausregel-formular] [data-feld=\"text\"]').value")),
+    'und Enter setzt den ganzen Verweis'
+  );
   await tippe('text', 'Bei uns wird der Schaden maximiert. Gilt auch bei [[Liegend]].');
   await warte(200);
   pruefe(

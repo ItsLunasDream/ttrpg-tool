@@ -612,3 +612,40 @@ textarea {
 .karte {
   animation: motion-erscheinen var(--motion-state) var(--motion-ease-enter) backwards;
 }
+
+/* --- „[[" schlaegt Eintraege vor (Hausregeln) ----------------------------- */
+.verweisfeld {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.verweisfeld__liste {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin: 2px 0 0;
+  padding: 4px 0;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--grund-hoch, #1b1e26);
+  border: 1px solid var(--rand, #333);
+  border-radius: var(--radius, 6px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+.verweisfeld__eintrag {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.verweisfeld__eintrag.is-an {
+  background: var(--betont-leise, rgba(122, 162, 247, 0.18));
+}
+.verweisfeld__art {
+  opacity: 0.65;
+  font-size: 12px;
+}
