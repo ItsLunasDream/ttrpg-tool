@@ -244,3 +244,9 @@ test('der Rettungswurf richtet sich nach Thema und Art des Zustands', () => {
   const en = T.mitEigenemZustand(monster, { name: 'Frost', thema: 'kaelte' }, 'en');
   assert.match(en.faehigkeiten.at(-1).text, /DC \d+ Constitution saving throw/);
 });
+
+test('Klang rettet mit Charisma', () => {
+  assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'klang' }), 'ch');
+  const monster = T.erzeugeMonster({ cr: '3' }, 'de', wuerfelgeber(2));
+  assert.match(T.mitEigenemZustand(monster, { name: 'Dröhnen', thema: 'klang' }, 'de').faehigkeiten.at(-1).text, /Charismarettung/);
+});

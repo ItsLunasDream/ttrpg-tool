@@ -591,7 +591,8 @@ export interface EigenerZustand {
  * (Kaelte, Gift, Faeulnis), rettet Konstitution; was den Geist angreift
  * (Wahnsinn, Traum, Schatten, Fluch), Weisheit; Leere, Zeit und Magie
  * Intelligenz; Feuer weicht man aus (Geschicklichkeit), Sturm haelt man
- * stand (Staerke). Wunsch des Nutzers: „Eis = Kon, Leere = Wei/Int".
+ * stand (Staerke), Klang trifft die Persoenlichkeit (Charisma). Wunsch des
+ * Nutzers: „Eis = Kon, Leere = Wei/Int, Klang = Cha".
  */
 const RETTUNG_NACH_THEMA: Readonly<Record<string, AttributId>> = {
   kaelte: 'ko',
@@ -601,7 +602,6 @@ const RETTUNG_NACH_THEMA: Readonly<Record<string, AttributId>> = {
   saeure: 'ko',
   blut: 'ko',
   stein: 'ko',
-  klang: 'ko',
   licht: 'ko',
   tiefe: 'ko',
   feuer: 'ge',
@@ -610,7 +610,9 @@ const RETTUNG_NACH_THEMA: Readonly<Record<string, AttributId>> = {
   traum: 'we',
   schatten: 'we',
   leere: 'in',
-  zeit: 'in'
+  zeit: 'in',
+  // Klang greift die Persoenlichkeit an, nicht den Koerper (Wunsch des Nutzers).
+  klang: 'ch'
 };
 const RETTUNG_NACH_ART: Readonly<Record<string, AttributId>> = {
   gift: 'ko',
