@@ -164,11 +164,13 @@ export function App() {
     }
   };
 
-  const speichern = async () => {
+  // `alsNeu`: „Als neu speichern" legt eine zweite Datei an, auch wenn das
+  // Stueck schon in der Sammlung liegt (Wunsch aus dem Testbericht).
+  const speichern = async (alsNeu = false) => {
     if (!monster) return;
     // Das offene Stueck behaelt seine Datei. Alles andere bekommt eine freie
     // Kennung: ein neues gleichen Namens ersetzt kein gespeichertes still.
-    const id = offenId ?? freieKennung(zuId(monster.name), eintraege.map((e) => e.id));
+    const id = (alsNeu ? null : offenId) ?? freieKennung(zuId(monster.name), eintraege.map((e) => e.id));
     const ergebnis = await api.sammlung.speichern(
       { ...monster, id, geaendert: new Date().toISOString() },
       getLanguage()
@@ -451,6 +453,11 @@ export function App() {
                 <button type="button" className="knopf knopf--haupt" onClick={() => void speichern()}>
                   {t('knopf.speichern')}
                 </button>
+                {offenId && (
+                  <button type="button" className="knopf" onClick={() => void speichern(true)}>
+                    {t('knopf.alsNeu')}
+                  </button>
+                )}
                 <button type="button" className="knopf" onClick={() => void exportieren()}>
                   {t('knopf.export')}
                 </button>

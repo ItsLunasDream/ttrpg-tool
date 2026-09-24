@@ -40,6 +40,7 @@ const TEXTE = {
   'knopf.wuerfeln': ['Würfeln', 'Roll'],
   'knopf.ki': ['Von der KI', 'From the AI'],
   'knopf.kiLaeuft': ['Fragt …', 'Asking …'],
+  'knopf.alsNeu': ['Als neu speichern', 'Save as new'],
   'knopf.speichern': ['In die Sammlung', 'To the collection'],
   'knopf.export': ['In den Story Creator', 'To the Story Creator'],
   // Der Name des Programms, nicht uebersetzt — er heisst ueberall so.

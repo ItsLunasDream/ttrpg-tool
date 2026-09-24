@@ -77,6 +77,7 @@ const TEXTE = {
   'knopf.ki': ['Von der KI', 'From the AI'],
   'knopf.kiLaeuft': ['Fragt …', 'Asking …'],
   'knopf.ausformulieren': ['Ausformulieren lassen', 'Have it written out'],
+  'knopf.alsNeu': ['Als neu speichern', 'Save as new'],
   'knopf.speichern': ['In die Sammlung', 'To the collection'],
   'knopf.export': ['In den Story Creator', 'To the Story Creator'],
   // Der Name des Programms, nicht uebersetzt — er heisst ueberall so.
