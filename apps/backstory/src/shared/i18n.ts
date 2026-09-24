@@ -82,7 +82,7 @@ const de = {
   'list.noMatch': 'Keine Notiz passt zum Filter.',
   'list.total': '{total} Notizen · {visible} sichtbar',
   'list.withoutType': 'Ohne Typ',
-  'list.unreadable': '{count} Dateien lassen sich nicht lesen und fehlen in dieser Liste.',
+  'list.unreadable': '{count} {{count:Datei lässt|Dateien lassen}} sich nicht lesen und {{count:fehlt|fehlen}} in dieser Liste.',
   'list.unreadableOne': 'Eine Datei lässt sich nicht lesen und fehlt in dieser Liste.',
   'list.unreadableName':
     'Bei {count} davon liegt es am Dateinamen: erlaubt sind nur Buchstaben ohne Umlaute, Ziffern, - und _.',
@@ -97,7 +97,7 @@ const de = {
   'editor.saving': 'Speichert …',
   'editor.unsaved': 'Nicht gespeichert',
   'editor.saved': 'Gespeichert',
-  'editor.words': '{count} Wörter',
+  'editor.words': '{count} {{count:Wort|Wörter}}',
   'editor.autosaveOffHint': 'Autosave ist aus. Strg+S speichert.',
   'list.unsaved': 'Nicht gespeichert',
   'bar.unsavedCount': '{count} nicht gespeichert',
@@ -122,7 +122,7 @@ const de = {
   'search.replace': 'Ersetzen',
   'search.replaceAll': 'Alle ersetzen',
   'search.close': 'Suche schließen (Esc)',
-  'search.replaced': '{count} Stellen ersetzt.',
+  'search.replaced': '{count} {{count:Stelle|Stellen}} ersetzt.',
   'search.replacedOne': 'Eine Stelle ersetzt.',
   'search.fromSidebar': 'Suche aus der Seitenleiste',
 
@@ -171,7 +171,7 @@ const de = {
   'types.removeField': 'Feld entfernen',
   'types.hint':
     'Ein entferntes Feld löscht keine Werte. Sie bleiben in der Notizdatei stehen und erscheinen wieder, wenn du das Feld zurückholst. Der Schlüssel eines Felds bleibt beim Umbenennen unverändert, damit bestehende Einträge erhalten bleiben.',
-  'types.inUse': '„{label}" wird noch von {count} Notizen benutzt.',
+  'types.inUse': '„{label}" wird noch von {count} {{count:Notiz|Notizen}} benutzt.',
   'types.inUseOne': '„{label}" wird noch von einer Notiz benutzt.',
   'types.needsLabel': 'Jeder Notiztyp braucht eine Bezeichnung.',
   'types.fieldNeedsLabel': 'Ein Feld in „{label}" hat keine Bezeichnung.',
@@ -320,7 +320,7 @@ const de = {
   'error.aiOther': 'Der Anbieter meldet: {detail}',
   'error.aiNoModels': 'In Ollama ist kein Modell installiert.',
   'error.aiModelNotInstalled': 'Das Modell {model} ist in Ollama nicht installiert.',
-  'error.aiNoKey': 'Kein API-Schlüssel hinterlegt.',
+  'error.aiNoKey': 'Kein API-Schlüssel hinterlegt. Eintragen unter „Einstellungen“ in der Titelleiste → KI.',
   'error.noSecureStorage':
     'Dieses System bietet keine sichere Ablage für Schlüssel. Der Schlüssel wird deshalb nicht gespeichert.',
 
@@ -335,12 +335,12 @@ const de = {
 
   'history.title': 'Versionsverlauf',
   'history.open': 'Verlauf',
-  'history.empty': 'Noch keine früheren Fassungen. Es wird höchstens alle fünf Minuten eine gesichert.',
+  'history.empty': 'Noch keine früheren Fassungen. Es wird höchstens alle zwei Minuten eine gesichert.',
   'history.disabled': 'Der Versionsverlauf ist in den Einstellungen abgeschaltet.',
   'history.restore': 'Wiederherstellen',
   'history.restored': 'Fassung vom {date} wiederhergestellt.',
   'history.current': 'Aktueller Stand',
-  'history.words': '{count} Wörter',
+  'history.words': '{count} {{count:Wort|Wörter}}',
   'history.hint':
     'Beim Wiederherstellen wird der aktuelle Stand vorher gesichert. Du kannst also auch das wieder rückgängig machen.',
 
@@ -351,7 +351,7 @@ const de = {
   'export.markdownNote': 'Notiz als Markdown',
   'export.markdownCampaign': 'Kampagne als Markdown',
   'export.done': 'Exportiert nach {path}',
-  'export.doneCount': '{count} Notizen exportiert nach {path}',
+  'export.doneCount': '{count} {{count:Notiz|Notizen}} exportiert nach {path}',
   'export.relations': 'Beziehungen',
   'export.mentionedBy': 'Erwähnt von',
   'export.aliases': 'Aliase',
@@ -383,7 +383,7 @@ const de = {
   'graph.empty': 'Noch keine Verbindungen in dieser Kampagne.',
   'graph.hint': 'Klick auf einen Knoten öffnet die Notiz. Knoten lassen sich verschieben.',
   'graph.recalculate': 'Neu anordnen',
-  'graph.nodes': '{nodes} Notizen, {edges} Verbindungen',
+  'graph.nodes': '{nodes} {{nodes:Notiz|Notizen}}, {edges} {{edges:Verbindung|Verbindungen}}',
   'graph.zoomIn': 'Vergrößern',
   'graph.zoomOut': 'Verkleinern',
   'graph.zoomReset': 'Zoom zurücksetzen',
@@ -432,15 +432,19 @@ const de = {
   'cleanup.open': 'Aufräumen',
   'cleanup.title': 'Ungenutzte Bilder',
   'cleanup.none': 'Alle Bilder werden noch benutzt. Nichts aufzuräumen.',
-  'cleanup.found': '{count} Bilder ohne Verweis, zusammen {size}.',
+  'cleanup.found': '{count} {{count:Bild|Bilder}} ohne Verweis, zusammen {size}.',
   'cleanup.foundOne': 'Ein Bild ohne Verweis, {size}.',
   'cleanup.delete': 'Ausgewählte löschen',
   'cleanup.selectAll': 'Alle auswählen',
   'cleanup.deselectAll': 'Auswahl aufheben',
-  'cleanup.deleted': '{count} Bilder gelöscht.',
+  'cleanup.deleted': '{count} {{count:Bild|Bilder}} gelöscht.',
   'cleanup.deletedOne': 'Ein Bild gelöscht.',
   'cleanup.hint':
-    'Gezählt wird auch, was gesicherte Fassungen im Versionsverlauf noch brauchen. Ein Bild taucht hier also erst auf, wenn wirklich nichts mehr darauf zeigt. Löschen lässt sich nicht rückgängig machen.'
+    'Gezählt wird auch, was gesicherte Fassungen im Versionsverlauf noch brauchen. Ein Bild taucht hier also erst auf, wenn wirklich nichts mehr darauf zeigt. Löschen lässt sich nicht rückgängig machen.',
+  'list.emptyCampaign': 'Noch keine Notizen. Lege oben eine an.',
+  'editor.titleNeeded': 'Ein Titel fehlt, sonst geht es nicht weiter',
+  'list.untitled': '(ohne Titel)',
+  'msg.createdInBackground': 'Notiz „{title}" angelegt. Du kannst hier weiterschreiben.'
 } as const;
 
 export type MessageKey = keyof typeof de;
@@ -502,7 +506,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'list.noMatch': 'No note matches the filter.',
   'list.total': '{total} notes · {visible} shown',
   'list.withoutType': 'Without type',
-  'list.unreadable': '{count} files cannot be read and are missing from this list.',
+  'list.unreadable': '{count} {{count:file cannot|files cannot}} be read and {{count:is|are}} missing from this list.',
   'list.unreadableOne': 'One file cannot be read and is missing from this list.',
   'list.unreadableName':
     'For {count} of them the file name is the reason: only letters without diacritics, digits, - and _ are allowed.',
@@ -517,7 +521,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'editor.saving': 'Saving …',
   'editor.unsaved': 'Unsaved',
   'editor.saved': 'Saved',
-  'editor.words': '{count} words',
+  'editor.words': '{count} {{count:word|words}}',
   'editor.autosaveOffHint': 'Autosave is off. Ctrl+S saves.',
   'list.unsaved': 'Not saved',
   'bar.unsavedCount': '{count} not saved',
@@ -542,7 +546,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'search.replace': 'Replace',
   'search.replaceAll': 'Replace all',
   'search.close': 'Close search (Esc)',
-  'search.replaced': 'Replaced {count} occurrences.',
+  'search.replaced': 'Replaced {count} {{count:occurrence|occurrences}}.',
   'search.replacedOne': 'Replaced one occurrence.',
   'search.fromSidebar': 'Search from the sidebar',
 
@@ -740,7 +744,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'error.aiOther': 'The provider reports: {detail}',
   'error.aiNoModels': 'No model is installed in Ollama.',
   'error.aiModelNotInstalled': 'The model {model} is not installed in Ollama.',
-  'error.aiNoKey': 'No API key stored.',
+  'error.aiNoKey': 'No API key stored. Enter it under “Settings” in the title bar → AI.',
   'error.noSecureStorage':
     'This system offers no secure storage for keys, so the key was not saved.',
 
@@ -755,12 +759,12 @@ const en: Partial<Record<MessageKey, string>> = {
 
   'history.title': 'Version history',
   'history.open': 'History',
-  'history.empty': 'No earlier versions yet. At most one is kept every five minutes.',
+  'history.empty': 'No earlier versions yet. At most one is kept every two minutes.',
   'history.disabled': 'Version history is switched off in the settings.',
   'history.restore': 'Restore',
   'history.restored': 'Restored the version from {date}.',
   'history.current': 'Current state',
-  'history.words': '{count} words',
+  'history.words': '{count} {{count:word|words}}',
   'history.hint':
     'Restoring saves the current state first, so you can undo the restore as well.',
 
@@ -771,7 +775,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'export.markdownNote': 'Note as Markdown',
   'export.markdownCampaign': 'Campaign as Markdown',
   'export.done': 'Exported to {path}',
-  'export.doneCount': 'Exported {count} notes to {path}',
+  'export.doneCount': 'Exported {count} {{count:note|notes}} to {path}',
   'export.relations': 'Relationships',
   'export.mentionedBy': 'Mentioned by',
   'export.aliases': 'Aliases',
@@ -802,7 +806,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'graph.empty': 'No connections in this campaign yet.',
   'graph.hint': 'Click a node to open the note. Nodes can be dragged.',
   'graph.recalculate': 'Rearrange',
-  'graph.nodes': '{nodes} notes, {edges} connections',
+  'graph.nodes': '{nodes} {{nodes:note|notes}}, {edges} {{edges:connection|connections}}',
   'graph.zoomIn': 'Zoom in',
   'graph.zoomOut': 'Zoom out',
   'graph.zoomReset': 'Reset zoom',
@@ -851,15 +855,19 @@ const en: Partial<Record<MessageKey, string>> = {
   'cleanup.open': 'Clean up',
   'cleanup.title': 'Unused images',
   'cleanup.none': 'Every image is still in use. Nothing to clean up.',
-  'cleanup.found': '{count} images with no reference, {size} in total.',
+  'cleanup.found': '{count} {{count:image|images}} with no reference, {size} in total.',
   'cleanup.foundOne': 'One image with no reference, {size}.',
   'cleanup.delete': 'Delete selected',
   'cleanup.selectAll': 'Select all',
   'cleanup.deselectAll': 'Clear selection',
-  'cleanup.deleted': 'Deleted {count} images.',
+  'cleanup.deleted': 'Deleted {count} {{count:image|images}}.',
   'cleanup.deletedOne': 'Deleted one image.',
   'cleanup.hint':
-    'What saved versions in the history still need is counted too. An image only shows up here once nothing points to it any more. Deleting cannot be undone.'
+    'What saved versions in the history still need is counted too. An image only shows up here once nothing points to it any more. Deleting cannot be undone.',
+  'list.emptyCampaign': 'No notes yet. Create one with the buttons above.',
+  'editor.titleNeeded': 'A title is needed to continue',
+  'list.untitled': '(no title)',
+  'msg.createdInBackground': 'Note "{title}" created. You can keep writing here.',
 };
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { de, en };
@@ -875,7 +883,14 @@ const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { de, en
  */
 export function translate(language: Language, key: MessageKey, params?: MessageParams): string {
   const template = MESSAGES[language]?.[key] ?? en[key] ?? de[key] ?? key;
-  return fillPlaceholders(template, params);
+  const text = fillPlaceholders(template, params);
+  // `{{count:Wort|Wörter}}` waehlt nach dem Parameter: „1 Wort", nicht
+  // „1 Wörter" (Testbericht).
+  return text.includes('{{')
+    ? text.replace(/\{\{(\w+):([^|}]*)\|([^}]*)\}\}/g, (_, name: string, eins: string, mehr: string) =>
+        Number(params?.[name]) === 1 ? eins : mehr
+      )
+    : text;
 }
 
 /** Alle bekannten Textschluessel, fuer Vollstaendigkeitspruefungen. */

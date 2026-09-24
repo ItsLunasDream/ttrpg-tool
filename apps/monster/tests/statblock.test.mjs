@@ -190,7 +190,8 @@ test('die Angriffe teilen den Rundenschaden auf, sie erhoehen ihn nicht', () => 
     for (const thema of T.THEMEN) {
       for (let saat = 1; saat <= 4; saat += 1) {
         const monster = T.erzeugeMonster({ cr: richtwert.cr, themaId: thema.id }, 'de', wuerfelgeber(saat));
-        const summe = T.schadenProRunde(monster.angriffe);
+        // Was eine Aura oder Stachelhaut austeilt, gehoert zur Runde dazu.
+        const summe = T.schadenProRunde(monster.angriffe) + T.abzweig(monster.faehigkeiten, monster.werte.schadenProRunde).schaden;
         // Gerundet wird je Angriff, deshalb eine Toleranz von der Anzahl
         // der Angriffe — mehr waere ein Fehler.
         const spielraum = Math.max(2, T.angriffeProRunde(monster));

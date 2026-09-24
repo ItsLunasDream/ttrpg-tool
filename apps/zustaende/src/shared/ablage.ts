@@ -20,7 +20,7 @@
 
 import { gesamtgewicht, betragVon } from './gewicht';
 import { eichname, naechsterVergleich } from './eichung';
-import type { Zustand } from './erzeuge';
+import { fristText, verlaufsZeilen, type Zustand } from './erzeuge';
 import { wirkung } from './wirkungen';
 import { text, type Sprache } from './tabellen';
 
@@ -230,14 +230,19 @@ function leibzeilen(zustand: Abgelegt, sprache: Sprache): string[] {
     leib.push(`**${de ? 'Wirkung' : 'Effect'}** ${wirkungen}`, '');
   }
 
-  leib.push(
-    `**${de ? 'Dauer' : 'Duration'}** ${zustand.dauer}`,
-    '',
-    `**${de ? 'Schlimmer' : 'Worse'}** ${zustand.verschlimmerung}`,
-    '',
-    `**${de ? 'Besser' : 'Better'}** ${zustand.linderung}`,
-    ''
-  );
+  leib.push(`**${de ? 'Dauer' : 'Duration'}** ${zustand.dauer}`, '');
+  const frist = fristText(zustand, sprache);
+  if (frist) leib.push(`**${de ? 'Frist' : 'Interval'}** ${frist}`, '');
+  const verlauf = verlaufsZeilen(zustand);
+  if (verlauf !== 'keine') {
+    const segen = verlauf === 'segen';
+    leib.push(
+      `**${segen ? (de ? 'Stärker' : 'Grows') : de ? 'Schlimmer' : 'Worse'}** ${zustand.verschlimmerung}`,
+      '',
+      `**${segen ? (de ? 'Schwächer' : 'Fades') : de ? 'Besser' : 'Better'}** ${zustand.linderung}`,
+      ''
+    );
+  }
 
   if (zustand.ausloeser !== '') {
     leib.push(`**${de ? 'Ausgelöst' : 'Triggered'}** ${zustand.ausloeser}`, '');

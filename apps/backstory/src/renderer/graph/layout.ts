@@ -397,8 +397,15 @@ function fitToViewport(nodes: GraphNode[], width: number, height: number, margin
   const usableWidth = Math.max(1, width - margin * 2);
   const usableHeight = Math.max(1, height - margin * 2);
 
-  // Gleichmaessig skalieren, sonst verzerrt sich das Netz.
-  const scale = Math.min(spanX > 1 ? usableWidth / spanX : 1, spanY > 1 ? usableHeight / spanY : 1);
+  // Gleichmaessig skalieren, sonst verzerrt sich das Netz. Wenige Knoten
+  // ruecken nicht bis an den Rand: zwei Notizen standen sonst 1000 Pixel
+  // auseinander (Testbericht).
+  const hoechstensWeit = 170 * Math.sqrt(nodes.length);
+  const scale = Math.min(
+    spanX > 1 ? usableWidth / spanX : 1,
+    spanY > 1 ? usableHeight / spanY : 1,
+    Math.max(spanX, spanY) > 1 ? hoechstensWeit / Math.max(spanX, spanY) : 1
+  );
 
   const offsetX = (width - spanX * scale) / 2 - minX * scale;
   const offsetY = (height - spanY * scale) / 2 - minY * scale;

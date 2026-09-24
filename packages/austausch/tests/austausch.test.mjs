@@ -55,6 +55,16 @@ test('eine fremde oder abgebrochene Datei wird abgelehnt statt halb angenommen',
   assert.throws(() => A.lesePaket(bild.replace('QUJD', 'kein base64!')), /Base64/);
 });
 
+test('der Grund einer abgelehnten Datei gibt es auch auf Englisch', () => {
+  try {
+    A.lesePaket('# Nur eine Notiz');
+    assert.fail('haette werfen muessen');
+  } catch (fehler) {
+    assert.equal(fehler.text('de'), 'Keine Paketdatei');
+    assert.equal(fehler.text('en'), 'Not a package file');
+  }
+});
+
 test('freie Kennung, Kopfwert und Bildverweise', () => {
   assert.equal(A.freieKennung('ghul', ['ghul', 'ghul-2']), 'ghul-3');
   assert.equal(A.freieKennung('ork', ['ghul']), 'ork');

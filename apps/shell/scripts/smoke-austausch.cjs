@@ -206,7 +206,7 @@ app.whenReady().then(async () => {
   const kaputt = path.join(tmp, 'kaputt.ttrpg.md');
   fs.writeFileSync(kaputt, text.slice(0, text.indexOf('<!-- ttrpg:ende')));
   const abgelehnt = await js(`window.shell.austausch.oeffnen(${JSON.stringify(kaputt)})`);
-  pruefe(!abgelehnt.ok && /bricht/.test(abgelehnt.grund ?? ''), `ein abgebrochenes Paket wird abgelehnt (${abgelehnt.grund})`);
+  pruefe(!abgelehnt.ok && /bricht|ends in the middle/.test(abgelehnt.grund ?? ''), `ein abgebrochenes Paket wird abgelehnt (${abgelehnt.grund})`);
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
   console.log(fehler.length === 0 ? '\nAustausch bestanden.' : `\n${fehler.length} Fehler.`);

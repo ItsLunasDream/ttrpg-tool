@@ -45,6 +45,21 @@ const TEXTE = {
   'wurf.unvollstaendig': ['Nicht alles ließ sich auflösen, siehe „Woher".', 'Not everything could be resolved, see “Where from”.'],
   'baum.fehlt': ['„{name}" gibt es nicht', '“{name}” does not exist'],
   'baum.zutief': ['„{name}": zu tief verschachtelt, hier abgebrochen', '“{name}”: nested too deeply, stopped here'],
+  'baum.kreis': ['„{name}": Kreisverweis, hier abgebrochen', '“{name}”: circular reference, stopped here'],
+  'baum.zuviel': ['„{name}": zu viele Würfe auf einmal, hier abgebrochen', '“{name}”: too many rolls at once, stopped here'],
+  'befund.verweis-kreis': [
+    '„[{name}]" führt über Verweise wieder hierher zurück; der Kreis wird beim Würfeln abgebrochen.',
+    '“[{name}]” leads back here through references; the loop is cut off when rolling.'
+  ],
+  'befund.ohne-nummer': [
+    'Die Tabelle hat Nummern, {anzahl} Zeile(n) aber keine: diese kämen nie dran.',
+    'The table has numbers, but {anzahl} line(s) have none: they would never come up.'
+  ],
+  'zurueckgelegt': ['Gezogenes zurücklegen', 'Put drawn entries back'],
+  'zurueckgelegt.hinweis': [
+    'Ohne Zurücklegen: {n} von {m} schon gezogen, auch über mehrere Würfe.',
+    'Without replacement: {n} of {m} already drawn, across several rolls.'
+  ],
   'feld.name': ['Name', 'Name'],
   'feld.wuerfel': ['Würfel', 'Die'],
   'feld.wuerfelHinweis': ['z. B. 1d6 oder 1W100, leer = alle gleich', 'e.g. 1d6 or 1d100, empty = all equal'],
@@ -63,6 +78,12 @@ const TEXTE = {
   'kachel.eintraege': ['{anzahl} Einträge', '{anzahl} entries'],
   'kachel.ohneZuruecklegen': ['ohne Zurücklegen', 'without replacement'],
   'kachel.gleich': ['gleich verteilt', 'equal odds'],
+  'kachel.eintrag': ['1 Eintrag', '1 entry'],
+  'schnell.gesperrt': ['Würfeln gesperrt: die Nummern passen nicht. Zum Berichtigen öffnen.', 'Rolling is blocked: the numbers do not fit. Open the table to fix it.'],
+  'warnung.doppelterName': [
+    'Eine andere Tabelle heißt schon „{name}". Verweise [{name}] treffen dann nur eine davon.',
+    'Another table is already called "{name}". References [{name}] will then only reach one of them.'
+  ],
   'befund.wuerfel-unlesbar': ['„{wuerfel}" ist kein Würfel, den das Werkzeug lesen kann.', '“{wuerfel}” is not a die the tool can read.'],
   'befund.spannen-ohne-wuerfel': [
     'Einträge haben Spannen, die Tabelle aber keinen Würfel: alle Einträge sind gleich wahrscheinlich.',

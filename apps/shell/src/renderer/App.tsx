@@ -105,7 +105,8 @@ export function App() {
    * zeichnen. Sitzungszustand ist er ohnehin — beim naechsten Start faengt
    * er leer an, wie ein frisches Fenster auch.
    */
-  const verlauf = useRef<Verlauf>(LEERER_VERLAUF);
+  // Die Startseite ist die erste Stelle: sonst ist „Zurück" nach dem ersten Werkzeug gesperrt (Testbericht).
+  const verlauf = useRef<Verlauf>(besuche(LEERER_VERLAUF, { app: null }));
   /**
    * Bis wann ein Ortsbericht zu einem laufenden Verlaufsschritt gehoert.
    * `null`, solange kein Schritt laeuft.
@@ -464,7 +465,13 @@ export function App() {
         kennung: app.id,
         name: t(nameKey(app.id)),
         art: t('search.appArt'),
-        stichworte: t(descriptionKey(app.id))
+        // Beide Sprachen: „würfel" findet die Würfel auch in der englischen Oberfläche.
+        stichworte: [
+          t(descriptionKey(app.id)),
+          translate('de', nameKey(app.id)),
+          translate('en', nameKey(app.id)),
+          translate('de', descriptionKey(app.id))
+        ].join(' ')
       })),
     [t]
   );
@@ -597,13 +604,24 @@ export function App() {
   // Im Raum: ein gruener Knopf links neben „Teilen" mit Raumname und Zahl
   // der Personen; ein Klick oeffnet den Raum.
   const [imRaum, setImRaum] = useState<{ raum: string; personen: number; ping: number | null } | null>(null);
+  /*
+   * Ein Raumfehler bei geschlossenem Dialog (etwa: Verbindung abgerissen).
+   * Er steht dann in der Titelleiste, bis Teilen geoeffnet wird, und der
+   * Dialog zeigt ihn beim Oeffnen (Testbericht: sonst verschwand nur der
+   * gruene Knopf).
+   */
+  const [raumFehler, setRaumFehler] = useState<string | null>(null);
   useEffect(() => {
     const setze = (z: { rolle: string; raum: string; personen: readonly unknown[]; ping: number | null }) =>
       setImRaum(z.rolle === 'aus' ? null : { raum: z.raum, personen: z.personen.length, ping: z.ping });
     void window.shell.raum.zustand().then((s) => setze(s.zustand), () => undefined);
     return window.shell.raum.beiEreignis((e) => {
-      if (e.art === 'zustand') setze(e.zustand);
-      else if (e.art === 'ping') setImRaum((alt) => (alt && alt.ping !== e.ping ? { ...alt, ping: e.ping } : alt));
+      if (e.art === 'zustand') {
+        setze(e.zustand);
+        if (e.zustand.rolle !== 'aus') setRaumFehler(null);
+      } else if (e.art === 'fehler') {
+        if (dialogJetzt.current !== 'teilen') setRaumFehler(e.grund);
+      } else if (e.art === 'ping') setImRaum((alt) => (alt && alt.ping !== e.ping ? { ...alt, ping: e.ping } : alt));
     });
   }, []);
   useEffect(
@@ -656,6 +674,21 @@ export function App() {
 
   useEffect(() => {
     const beiTaste = (ereignis: KeyboardEvent) => {
+      if ((ereignis.ctrlKey || ereignis.metaKey) && ereignis.altKey) {
+        const stufe =
+          ereignis.key === '+' || ereignis.code === 'NumpadAdd' || ereignis.code === 'Equal'
+            ? 'groesser'
+            : ereignis.key === '-' || ereignis.code === 'NumpadSubtract' || ereignis.code === 'Minus'
+              ? 'kleiner'
+              : ereignis.code === 'Digit0' || ereignis.code === 'Numpad0'
+                ? 'zurueck'
+                : null;
+        if (stufe) {
+          ereignis.preventDefault();
+          window.shell.einstellungen.groesseTaste(stufe);
+          return;
+        }
+      }
       if ((ereignis.ctrlKey || ereignis.metaKey) && ereignis.key.toLowerCase() === 'k') {
         ereignis.preventDefault();
         oeffneSuche();
@@ -666,6 +699,7 @@ export function App() {
   }, [oeffneSuche]);
 
   useEffect(() => window.shell.suche.beiTastenkuerzel(oeffneSuche), [oeffneSuche]);
+  useEffect(() => window.shell.einstellungen.beiGroesseVonAussen(setGroesse), []);
 
   const ladeSymboleNeu = useCallback(async () => {
     setSymbole(await window.shell.symbole.lesen());
@@ -750,6 +784,17 @@ export function App() {
         </span>
         {eintrag && <span className="titelleiste__pfad">› {t(nameKey(eintrag.id))}</span>}
         <span className="titelleiste__fueller" />
+        {!imRaum && raumFehler && (
+          <button
+            type="button"
+            className="titelleiste__knopf titelleiste__raumweg motion-erscheinen"
+            data-raum-fehler-titel
+            title={t(`room.error.${raumFehler}` as MessageKey)}
+            onClick={() => zeigeDialog('teilen')}
+          >
+            ⚠ {t(`room.error.${raumFehler}` as MessageKey)}
+          </button>
+        )}
         {imRaum && (
           <button
             type="button"
@@ -759,7 +804,7 @@ export function App() {
             onClick={() => zeigeDialog('teilen')}
           >
             <span className="titelleiste__raumpunkt" aria-hidden="true" />
-            {imRaum.raum}
+            <span className="titelleiste__raumname">{imRaum.raum}</span>
             <span className="titelleiste__raumzahl">{imRaum.personen}</span>
             {imRaum.ping !== null && (
               <span className="titelleiste__raumzahl" data-titel-ping>
@@ -915,7 +960,17 @@ export function App() {
           t={t}
         />
       )}
-      {dialog === 'teilen' && <Austausch onClose={() => zeigeDialog(null)} t={t} symbole={symbole} />}
+      {dialog === 'teilen' && (
+        <Austausch
+          onClose={() => {
+            setRaumFehler(null);
+            zeigeDialog(null);
+          }}
+          t={t}
+          symbole={symbole}
+          anfangsFehler={raumFehler}
+        />
+      )}
 
       {dialog === 'suche' && (
         <Suche

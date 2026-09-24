@@ -122,8 +122,9 @@ async function main() {
     JSON.parse(fs.readFileSync(path.join(userData, 'vault', 'campaigns', id, 'campaign.json'), 'utf8')).name
   );
   check(
-    namen.filter((name) => name === 'Sturmküste').length === 2,
-    `Die eingelesene Kampagne heisst nicht wie die gesicherte: ${JSON.stringify(namen)}`
+    // Der Name ist vergeben, also bekommt die eingelesene den Zusatz.
+    namen.includes('Sturmküste') && namen.some((name) => /^Sturmküste \((importiert|imported)\)$/.test(name)),
+    `Die eingelesene Kampagne traegt nicht den Zusatz: ${JSON.stringify(namen)}`
   );
 
   // Die Notiz muss mitgekommen sein, samt Text.

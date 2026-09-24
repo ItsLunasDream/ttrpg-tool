@@ -34,6 +34,11 @@ export interface UebergabeGegner {
    * auslegen muss.
    */
   readonly iniMod: number;
+  /**
+   * Der Statblock als Markdown, damit der Tracker ihn per Klick zeigen kann.
+   * Fehlt er (altes Werkzeug, geloeschtes Monster), gibt es keinen Knopf.
+   */
+  readonly statblock?: string;
 }
 
 /**

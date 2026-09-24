@@ -38,3 +38,10 @@ test('zipDirectory schreibt ein gueltiges, entpackbares Archiv', async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('Dateinamen im Markdown-Export unterscheiden sich auch ohne Gross/Klein', async () => {
+  const { toFileName, aliasKopf } = entry;
+  assert.equal(toFileName('bo', ['Bo.md']), 'bo 2.md');
+  assert.equal(aliasKopf('Bo', 'Bo.md'), '');
+  assert.match(aliasKopf('Wer ist Bo?', 'Wer ist Bo.md'), /aliases:\n {2}- "Wer ist Bo\?"/);
+});

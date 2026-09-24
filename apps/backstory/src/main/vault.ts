@@ -65,9 +65,12 @@ function istBearbeitet(liste: PromptCategory[]): boolean {
  * Mindestabstand zwischen zwei Versionen derselben Notiz. Ohne diese Sperre
  * wuerde der Autosave im Sekundentakt hunderte fast gleicher Staende anlegen.
  * Innerhalb des Fensters bleibt der aelteste Stand erhalten, man kommt also
- * verlaesslich fuenf, zehn, fuenfzehn Minuten zurueck.
+ * verlaesslich zwei, vier, sechs Minuten zurueck. Frueher waren es fuenf:
+ * wer nach vier Minuten Arbeit etwas zurueckholen wollte, fand nur den
+ * leeren Anfangsstand (Testbericht). Bei 50 Fassungen reicht das fuer gut
+ * anderthalb Stunden ununterbrochenes Schreiben.
  */
-const HISTORY_MIN_INTERVAL_MS = 5 * 60 * 1000;
+const HISTORY_MIN_INTERVAL_MS = 2 * 60 * 1000;
 
 export const ALLOWED_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif'];
 const MAX_ASSET_BYTES = 25 * 1024 * 1024;
@@ -437,7 +440,7 @@ export class Vault {
    * das waere der Fehler, bei dem jemand Arbeit verliert und es erst Wochen
    * spaeter merkt.
    */
-  async importCampaign(archivDatei: string): Promise<Campaign> {
+  async importCampaign(archivDatei: string, zusatz = 'importiert'): Promise<Campaign> {
     let inhalt: Buffer;
     try {
       inhalt = await fs.readFile(archivDatei);
@@ -454,10 +457,21 @@ export class Vault {
     if (!gelesen) throw new VaultError('error.importNoCampaign');
 
     const roh = gelesen.kampagne;
+    /*
+     * Gibt es den Namen schon, bekommt die eingelesene einen Zusatz: sonst
+     * standen zwei gleiche Namen im Kampagnenmenue, nicht zu unterscheiden
+     * (Testbericht).
+     */
+    const grundname = String(roh.name).trim() || 'Kampagne';
+    const vergeben = new Set((await this.listCampaigns()).map((k) => k.name.trim().toLowerCase()));
+    let name = grundname;
+    for (let n = 1; vergeben.has(name.toLowerCase()); n += 1) {
+      name = n === 1 ? `${grundname} (${zusatz})` : `${grundname} (${zusatz} ${n})`;
+    }
     const campaign: Campaign = {
       id: randomUUID(),
       schemaVersion: SCHEMA_VERSION,
-      name: String(roh.name).trim() || 'Kampagne',
+      name,
       createdAt: typeof roh.createdAt === 'string' ? roh.createdAt : new Date().toISOString(),
       noteTypes: normalizeNoteTypes(roh.noteTypes as NoteTypeDef[]),
       graphPositions:
@@ -678,8 +692,51 @@ export class Vault {
       schemaVersion: SCHEMA_VERSION,
       updatedAt: new Date().toISOString()
     };
+    let vorher: Note | null = null;
+    try {
+      vorher = await this.getNote(campaignId, note.id);
+    } catch {
+      // Neu: es gibt noch keine Aliasse, die nachzuziehen waeren.
+    }
     await this.writeNote(campaignId, updated);
+    if (vorher) await this.zieheAliasVerweiseNach(campaignId, vorher, updated);
     return updated;
+  }
+
+  /**
+   * Ein Alias faellt weg oder wird ersetzt: die [[Links]] darauf ziehen mit
+   * (Testbericht: nur der Titel wurde nachgezogen). Ein weggefallener Alias
+   * zeigt danach auf den Titel, ein ersetzter auf den neuen Alias. Wie beim
+   * Umbenennen bleibt stehen, was sich eine andere Notiz mit diesem Namen
+   * teilt. Die eigene Notiz bleibt unberuehrt; sie ist gerade offen.
+   */
+  private async zieheAliasVerweiseNach(campaignId: string, vorher: Note, nachher: Note): Promise<number> {
+    const norm = (name: string) => name.trim().toLowerCase();
+    const jetzt = new Set(nachher.aliases.map(norm));
+    const frueher = new Set(vorher.aliases.map(norm));
+    const weg = vorher.aliases.filter((alias) => !jetzt.has(norm(alias)));
+    if (weg.length === 0) return 0;
+    const neu = nachher.aliases.filter((alias) => !frueher.has(norm(alias)));
+    const alle = await this.listNotes(campaignId);
+    let umgeschrieben = 0;
+    for (const [i, alt] of weg.entries()) {
+      const ziel = neu[i] ?? nachher.title;
+      const geteilt = alle.some(
+        (other) =>
+          other.id !== nachher.id &&
+          (norm(other.title) === norm(alt) || other.aliases.some((alias) => norm(alias) === norm(alt)))
+      );
+      if (geteilt) continue;
+      for (const other of alle) {
+        if (other.id === nachher.id) continue;
+        const body = rewriteWikiLinks(other.body, alt, ziel);
+        if (body === other.body) continue;
+        other.body = body;
+        await this.writeNote(campaignId, { ...other, body, updatedAt: new Date().toISOString() });
+        umgeschrieben += 1;
+      }
+    }
+    return umgeschrieben;
   }
 
   /**
@@ -699,14 +756,34 @@ export class Vault {
     // Titel aber nicht, und ein zweiter Versuch faende nichts mehr.
     for (const alias of note.aliases) assertLinkable(alias);
 
+    /*
+     * Teilt sich der alte Titel mit einer anderen Notiz, gehoeren die
+     * [[Links]] darauf nicht eindeutig zu dieser. Dann bleiben sie stehen —
+     * lieber ein Link, den man selbst nachzieht, als einer, der still auf
+     * eine fremde Notiz umgebogen wird (Testbericht: aus [[Bo]] wurde
+     * [[Borin]], obwohl es eine eigene Notiz „Bo" gab).
+     */
+    const alle = await this.listNotes(campaignId);
+    const alterName = note.title.trim().toLowerCase();
+    const geteilt = alle.some(
+      (other) =>
+        other.id !== noteId &&
+        (other.title.trim().toLowerCase() === alterName ||
+          other.aliases.some((alias) => alias.trim().toLowerCase() === alterName))
+    );
+
     let rewritten = 0;
     let ownBody = note.body;
+    if (geteilt) {
+      const updated = await this.saveNote(campaignId, { ...note, title: trimmed });
+      return { note: updated, rewritten: 0 };
+    }
 
     // Erst die Verweise umschreiben, den Titel zuletzt setzen. Bricht es
     // dazwischen ab, traegt die Notiz noch den alten Titel und ein erneutes
     // Umbenennen holt den Rest nach. Andersherum waere der Zustand nicht
     // mehr zu reparieren.
-    for (const other of await this.listNotes(campaignId)) {
+    for (const other of alle) {
       const body = rewriteWikiLinks(other.body, note.title, trimmed);
       if (body === other.body) continue;
 

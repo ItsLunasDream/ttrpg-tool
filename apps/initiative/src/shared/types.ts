@@ -96,6 +96,10 @@ export interface Teilnehmer {
   /** Dateiname im Bildordner des Trackers, oder null. */
   readonly bild: string | null;
   readonly notiz: string;
+  /** Ruestungsklasse, wenn bekannt. Fehlt sie, zeigt die Zeile nichts. */
+  readonly rk?: number;
+  /** Der Statblock als Markdown, wenn er aus dem Encounter Creator kam. */
+  readonly statblock?: string;
 }
 
 /** Der laufende Kampf. Sitzungszustand, kein Dokument. */
@@ -115,6 +119,8 @@ export interface Kampf {
    * Kennung im Raum ist jedes Mal neu, der Name am Tisch bleibt.
    */
   readonly besitz?: Readonly<Record<string, string>>;
+  /** Die Taktik-Notiz des laufenden Kampfs (nur in kampf.json). */
+  readonly taktik?: string;
 }
 
 /** Eine gespeicherte Begegnung: Markdown mit YAML-Kopf (Konvention 1). */

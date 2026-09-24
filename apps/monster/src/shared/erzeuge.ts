@@ -19,11 +19,17 @@ import {
   type Richtwert
 } from './richtwerte';
 import { LEGENDAER_FAKTOR, RK_ZU_TP, pruefe, widerstandsAnteil, type Werte } from './pruefung';
-import { kampfzahlen, setzeZahlen, type Kampfzahlen } from './platzhalter';
+import { ANTEIL_KLEIN, kampfzahlen, setzeZahlen, type Kampfzahlen } from './platzhalter';
 import { umgebungFuer, umgebungName } from './umgebungen';
-import { attributeFuer, profilFuer, type AttributId, type Attribute } from './attribute';
+import { attributeFuer, modifikator, profilFuer, rettungsSg, type AttributId, type Attribute } from './attribute';
 import { bewegungFuer, type Bewegung } from './bewegung';
-import { baueAngriffe, type Angriff, type Kampfweite } from './angriffe';
+import {
+  angriffsAttribut,
+  baueAngriffe,
+  schadenProRunde as angriffsschaden,
+  type Angriff,
+  type Kampfweite
+} from './angriffe';
 import { gewicht, widerstaendeFuer, KEINE_WIDERSTAENDE, type Widerstaende } from './widerstaende';
 import {
   FAEHIGKEITEN,
@@ -70,6 +76,29 @@ export interface Faehigkeitseintrag {
   readonly text: string;
   /** In welchen Abschnitt des Statblocks sie gehoert. */
   readonly kategorie: Faehigkeit['kategorie'];
+  /** Siehe `Faehigkeit.kostetAngriff`. */
+  readonly kostetAngriff?: true;
+  /** Kam aus dem Haken „Eigene Zustaende einbauen", siehe `mitEigenemZustand`. */
+  readonly eigenerZustand?: true;
+}
+
+/**
+ * Was Faehigkeiten mit „ein Angriff weniger" vom Rundenschaden abzweigen.
+ *
+ * Der Rundenschaden der Werte bleibt die Summe, gegen die die Pruefung
+ * misst. Die Angriffe bekommen davon nur den Rest und einen Angriff weniger;
+ * die Naehe oder die Stachelhaut traegt den Anteil, den sie am Tisch
+ * austeilt. Vorher stand „dafuer ein Angriff weniger" nur im Text
+ * (Testbericht).
+ */
+export function abzweig(
+  faehigkeiten: readonly Faehigkeitseintrag[],
+  schadenProRunde: number
+): { weniger: number; schaden: number } {
+  const weniger = faehigkeiten.filter((f) => f.kostetAngriff).length;
+  const je = Math.max(1, Math.round(schadenProRunde * ANTEIL_KLEIN));
+  // Nie alles: ein Angriff mit wenigstens einem Punkt bleibt stehen.
+  return { weniger, schaden: Math.min(weniger * je, Math.max(0, schadenProRunde - 1)) };
 }
 
 export interface Wuensche {
@@ -310,22 +339,7 @@ export function erzeugeMonster(wunsch: Wuensche, sprache: Sprache, rng: () => nu
   const attribute = attributeFuer(ziel, profil, rng);
   const bewegung = bewegungFuer(thema, rng);
 
-  const angriffe = baueAngriffe(
-    {
-      themaId: thema.id,
-      rolleId: rolle.id,
-      themenschaden: thema.schaden,
-      kampfweite: wunsch.kampfweite ?? 'egal',
-      angriffeProRunde: ziel.angriffe,
-      schadenProRunde: werte.schadenProRunde,
-      angriffsbonus: werte.angriffsbonus,
-      attribute,
-      hauptattribut: profil.haupt
-    },
-    rng
-  );
-
-  return {
+  const roh: Monster = {
     name: baueNamen(thema, sprache, rng),
     cr: ziel.cr,
     themaId: thema.id,
@@ -343,7 +357,7 @@ export function erzeugeMonster(wunsch: Wuensche, sprache: Sprache, rng: () => nu
     attribute,
     hauptattribut: profil.haupt,
     bewegung,
-    angriffe,
+    angriffe: [],
     widerstaende,
     faehigkeiten: alsEintraege(
       waehleFaehigkeiten(rolle, anzahlFaehigkeiten(ziel.wert, rng), rng, wunsch.legendaer ?? false),
@@ -365,6 +379,7 @@ export function erzeugeMonster(wunsch: Wuensche, sprache: Sprache, rng: () => nu
     ),
     satz: text(rolle.satz, sprache)
   };
+  return mitAngriffen(roh, rng, wunsch.kampfweite ?? 'egal');
 }
 
 /** Faehigkeiten in die Form bringen, in der sie im Statblock stehen. */
@@ -376,7 +391,8 @@ function alsEintraege(
   return faehigkeiten.map((f) => ({
     name: text(f.name, sprache),
     text: setzeZahlen(text(f.text, sprache), zahlen),
-    kategorie: f.kategorie
+    kategorie: f.kategorie,
+    ...(f.kostetAngriff ? { kostetAngriff: true as const } : {})
   }));
 }
 
@@ -423,9 +439,11 @@ export function wuerfleNeu(
       // Nur die Angriffe neu, die Werte bleiben: der Rundenschaden ist
       // vorgegeben und wird nur anders aufgeteilt. Wer den Biss nicht mag,
       // will nicht gleich ein anderes Monster.
-      return { ...monster, angriffe: neueAngriffe(monster, rng) };
+      return mitAngriffen(monster, rng);
     case 'faehigkeiten':
-      return {
+      // Die Angriffe muessen mit: eine neue Aura kostet einen Angriff,
+      // eine weggewuerfelte gibt ihn zurueck.
+      return mitAngriffen({
         ...monster,
         faehigkeiten: alsEintraege(
           waehleFaehigkeiten(
@@ -445,7 +463,7 @@ export function wuerfleNeu(
             sprache
           )
         )
-      };
+      }, rng);
     case 'werte': {
       const werte = werteFuer(
         ziel,
@@ -456,29 +474,50 @@ export function wuerfleNeu(
       );
       // Die Angriffe haengen am Rundenschaden und muessen mit: sonst steht
       // im Statblock eine Summe, die nicht mehr aufgeht.
-      return { ...monster, werte, angriffe: neueAngriffe({ ...monster, werte }, rng) };
+      return mitAngriffen({ ...monster, werte }, rng);
     }
   }
 }
 
-/** Die Angriffe zu den jetzigen Werten eines Monsters. */
-function neueAngriffe(monster: Monster, rng: () => number): Angriff[] {
+/**
+ * Neue Angriffe zu den jetzigen Werten, und den Rest daran angeglichen.
+ *
+ * Angeglichen wird zweierlei. Die Attribute: traegt ein Bogen den Angriff,
+ * muss die Geschicklichkeit zum Trefferbonus passen, auch wenn das Wesen
+ * sonst ueber Staerke kaempft (Testbericht: „+7 bei GE +3"). Und der
+ * Rundenschaden: die Wuerfel treffen den Schnitt nur ungefaehr, und der
+ * Statblock soll die Summe nennen, die wirklich dasteht — solange die
+ * Pruefung sie traegt.
+ */
+function mitAngriffen(monster: Monster, rng: () => number, kampfweite: Kampfweite = 'egal'): Monster {
   const thema = THEMEN.find((t) => t.id === monster.themaId) ?? THEMEN[0];
   const ziel = richtwert(monster.cr) ?? richtwert('1')!;
-  return baueAngriffe(
+  const ab = abzweig(monster.faehigkeiten, monster.werte.schadenProRunde);
+  const angriffe = baueAngriffe(
     {
       themaId: monster.themaId,
       rolleId: monster.rolleId,
       themenschaden: thema.schaden,
-      kampfweite: 'egal',
-      angriffeProRunde: ziel.angriffe,
-      schadenProRunde: monster.werte.schadenProRunde,
+      kampfweite,
+      angriffeProRunde: Math.max(1, ziel.angriffe - ab.weniger),
+      schadenProRunde: Math.max(1, monster.werte.schadenProRunde - ab.schaden),
       angriffsbonus: monster.werte.angriffsbonus,
       attribute: monster.attribute,
       hauptattribut: monster.hauptattribut
     },
     rng
   );
+
+  const hauptMod = modifikator(monster.attribute[monster.hauptattribut]);
+  const attribute: Record<AttributId, number> = { ...monster.attribute };
+  for (const angriff of angriffe) {
+    const id = angriffsAttribut(angriff, monster.hauptattribut);
+    if (modifikator(attribute[id]) < hauptMod) attribute[id] = 10 + hauptMod * 2;
+  }
+
+  const angeglichen: Werte = { ...monster.werte, schadenProRunde: angriffsschaden(angriffe) + ab.schaden };
+  const werte = pruefe(angeglichen, monster.cr).urteil === 'passt' ? angeglichen : monster.werte;
+  return { ...monster, angriffe, attribute, werte };
 }
 
 /**
@@ -501,8 +540,7 @@ export function alsVariante(monster: Monster, neuerCr: string, rng: () => number
   const profil = profilFuer(thema, rolle);
   const attribute = attributeFuer(ziel, profil, rng);
 
-  const gewandelt: Monster = { ...monster, cr: ziel.cr, werte, attribute };
-  return { ...gewandelt, angriffe: neueAngriffe(gewandelt, rng) };
+  return mitAngriffen({ ...monster, cr: ziel.cr, werte, attribute }, rng);
 }
 
 /**
@@ -526,4 +564,95 @@ export function angriffeProRunde(monster: Monster): number {
 /** Besteht dieses Monster die eigene Pruefung? Bequemlichkeit fuer Tests und Oberflaeche. */
 export function istStimmig(monster: Monster): boolean {
   return pruefe(monster.werte, monster.cr).urteil === 'passt';
+}
+
+/**
+ * Ein eigener Zustand aus dem Status Effect Creator als Faehigkeit.
+ *
+ * Nur mit dem Haken „Eigene Zustaende einbauen": trifft das Monster, muss
+ * das Ziel retten oder bekommt den Zustand. Der SG kommt aus dem Grad wie
+ * bei allen anderen Faehigkeiten; die Regel des Zustands selbst steht im
+ * Status Effect Creator und im Tracker, nicht noch einmal hier.
+ *
+ * Ein Monster traegt hoechstens einen: ein zweiter ersetzt den ersten.
+ */
+export interface EigenerZustand {
+  readonly name: string;
+  /** Thema aus dem Status Effect Creator: „kaelte", „leere" … */
+  readonly thema?: string;
+  /** Art aus dem Status Effect Creator: „gift", „fluch" … */
+  readonly art?: string;
+}
+
+/**
+ * Welcher Rettungswurf zu einem Zustand passt.
+ *
+ * Nach dem Thema, und ohne Thema nach der Art. Was den Koerper angreift
+ * (Kaelte, Gift, Faeulnis), rettet Konstitution; was den Geist angreift
+ * (Wahnsinn, Traum), Weisheit; was das Selbst angreift (Klang, Schatten,
+ * Fluch), Charisma; Leere, Zeit und Magie Intelligenz. Feuer weicht man aus
+ * (Geschicklichkeit), Sturm haelt man stand (Staerke). Wunsch des Nutzers:
+ * „Eis = Kon, Leere = Wei/Int, Klang/Schatten/Fluch = Cha".
+ */
+const RETTUNG_NACH_THEMA: Readonly<Record<string, AttributId>> = {
+  kaelte: 'ko',
+  hitze: 'ko',
+  faeulnis: 'ko',
+  gift: 'ko',
+  saeure: 'ko',
+  blut: 'ko',
+  stein: 'ko',
+  licht: 'ko',
+  tiefe: 'ko',
+  feuer: 'ge',
+  sturm: 'st',
+  wahnsinn: 'we',
+  traum: 'we',
+  leere: 'in',
+  zeit: 'in',
+  // Klang greift die Persoenlichkeit an, nicht den Koerper (Wunsch des Nutzers).
+  klang: 'ch',
+  // Schatten verzehrt das Selbst: Charisma (Wunsch des Nutzers).
+  schatten: 'ch'
+};
+const RETTUNG_NACH_ART: Readonly<Record<string, AttributId>> = {
+  gift: 'ko',
+  krankheit: 'ko',
+  verletzung: 'ko',
+  umgebung: 'ko',
+  // Fluch wie Verbannen und Besessenheit: Charisma (Wunsch des Nutzers).
+  fluch: 'ch',
+  magie: 'in'
+};
+
+export function rettungFuerZustand(zustand: EigenerZustand): AttributId {
+  return RETTUNG_NACH_THEMA[zustand.thema ?? ''] ?? RETTUNG_NACH_ART[zustand.art ?? ''] ?? 'ko';
+}
+
+const RETTUNG_TEXT: Readonly<Record<AttributId, { de: string; en: string }>> = {
+  st: { de: 'Stärkerettung', en: 'Strength' },
+  ge: { de: 'Geschicklichkeitsrettung', en: 'Dexterity' },
+  ko: { de: 'Konstitutionsrettung', en: 'Constitution' },
+  in: { de: 'Intelligenzrettung', en: 'Intelligence' },
+  we: { de: 'Weisheitsrettung', en: 'Wisdom' },
+  ch: { de: 'Charismarettung', en: 'Charisma' }
+};
+
+export function mitEigenemZustand(monster: Monster, zustandEingabe: EigenerZustand | string, sprache: Sprache): Monster {
+  const zustand: EigenerZustand = typeof zustandEingabe === 'string' ? { name: zustandEingabe } : zustandEingabe;
+  const sg = rettungsSg(monster.werte.angriffsbonus);
+  const rettung = RETTUNG_TEXT[rettungFuerZustand(zustand)];
+  const eintrag: Faehigkeitseintrag = {
+    name: zustand.name,
+    text:
+      sprache === 'en'
+        ? `When it hits with an attack, the target must succeed on a DC ${sg} ${rettung.en} saving throw or gain the condition “${zustand.name}”.`
+        : `Trifft es mit einem Angriff, muss das Ziel eine ${rettung.de} (SG ${sg}) bestehen, sonst erhält es den Zustand „${zustand.name}“.`,
+    kategorie: 'passiv',
+    eigenerZustand: true
+  };
+  return {
+    ...monster,
+    faehigkeiten: [...monster.faehigkeiten.filter((f) => !f.eigenerZustand), eintrag]
+  };
 }

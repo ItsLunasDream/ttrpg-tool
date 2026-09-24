@@ -4,671 +4,337 @@
 
 *[Dieses Dokument auf Deutsch: README.de.md](README.de.md)*
 
-Tools for tabletop RPG campaigns, running side by side in one window. No
-account, no cloud: everything stays on your own disk. The one exception is
-the optional AI connection you set up yourself, and even that only speaks to
-the provider you entered.
+Tools for tabletop RPG campaigns in one window. No account, no cloud:
+everything stays on your disk. The only exception is the optional AI
+connection you set up yourself.
 
-- **Initiative Tracker** — turn order, hit points, conditions with a
-  duration, terrain events. System-neutral, with groups for monster hordes.
-- **Dice** — a pool from d4 to d100 plus a custom die, flat or as falling
-  bodies. Subtraction works too (`1d20 − 1d4`).
-- **Story Creator** — characters, places, relationships: rich-text editor,
-  wiki links, profile fields, stored as Markdown.
-- **NPC Creator** — background characters at the push of a button, from
-  tables or from an AI, exported as a note into the Story Creator.
-- **Inspiration** — the scaffold for a new campaign: hook, factions,
-  characters, places, connections, timeline. From tables, with AI if you
-  want it.
-- **Monster Creator** — homebrew monsters at a challenge rating you choose.
-  Every number is checked against the baselines, whether it came from the
-  tables, from your keyboard or from an AI.
-- **Status Effect Creator** — custom conditions with levels, weighed against
-  the ones everyone knows, with a card to read aloud at the table.
-- **Encounter Creator** — encounters from the 331 SRD monsters and your own,
-  with an environment, pushed into the initiative tracker in one go. The
-  difficulty is worked out from the rules; it can also build an encounter
-  for a target CR.
-- **Magic Item Creator** — roll magic items by type and rarity, adjust them,
-  store them. Values follow the SRD table.
-- **Loot Generator** — write your own random tables, one line per entry,
-  with ranges, dice in the text and references to other tables; roll them
-  once from the tile or several times without repeats.
-- **Reference** — the whole rules glossary, the equipment chapter (weapons,
-  armor, tools, gear), all 339 spells and all 258 magic items of the System Reference Document, offline and in both languages, with cross-references, house
-  rules and notes, in the same Ctrl+K search as everything else.
-- **TTRPG Map Editor** — draw battlemaps and world maps, export as Universal
-  VTT.
+- **Initiative Tracker**: turn order, hit points, conditions with a duration,
+  terrain events, groups for hordes.
+- **Dice**: d4 to d100 plus a custom die, flat or 3D, subtraction included.
+- **Story Creator**: characters, places, relationships as Markdown notes with
+  wiki links.
+- **NPC Creator**: background characters from tables or AI.
+- **Inspiration**: scaffold for a new campaign (hook, factions, characters,
+  places, connections, timeline).
+- **Monster Creator**: homebrew monsters, checked against CR baselines.
+- **Status Effect Creator**: custom conditions with levels, weighed against
+  the official ones.
+- **Encounter Creator**: encounters from 331 SRD monsters and your own,
+  difficulty per the rules, one click into the tracker.
+- **Magic Item Creator**: magic items by type and rarity, values per the SRD.
+- **Loot Generator**: your own nested random tables.
+- **Reference**: SRD glossary, equipment, 339 spells, 258 magic items,
+  offline in both languages, with house rules and notes.
+- **TTRPG Map Editor**: battlemaps and world maps, export as Universal VTT.
 
-Working titles, icons and tool names are provisional.
+Names and icons are provisional.
 
-## Download a finished build
+## Download
 
-No Node, no npm needed:
+1. **Actions** tab → topmost **Build** run
+2. **Artifacts** → download and unpack `lore-windows`
+3. `LORE-Setup-<version>.exe` (installer) or `LORE-portable-<version>.exe`
 
-1. Open the **Actions** tab, click the topmost **Build** run
-2. Under **Artifacts**, download `lore-windows` and unpack it
-3. Inside: `LORE-Setup-<version>.exe` (installer) and
-   `LORE-portable-<version>.exe` (runs without installing)
+- SmartScreen warns because the file is unsigned: "More info" → "Run anyway".
+- Artifacts expire after one day; releases keep the files permanently.
 
-Notes:
+## Building
 
-- SmartScreen warns on first launch because the file is not signed: "More
-  info" → "Run anyway". A signature would need a paid certificate.
-- Artifacts are kept for one day. For a permanent download, create a
-  release; the workflow attaches the files there.
-
-## Building it yourself
-
-Only needed if you want to work on the code.
-
-Two rules, without which the build fails:
-
-- Run every command inside the project folder, not in your home folder.
-- **Run `npm install` once after every `git pull`.** Otherwise references to
-  new workspace packages are missing. `scripts/pruefe-installation.mjs` runs
-  before `dev`, `start`, `build`, `test`, `typecheck` and the smoke tests and
-  says so in plain words instead of `Rollup failed to resolve import`.
+Run commands inside the project folder, and **run `npm install` after every
+`git pull`** (`scripts/pruefe-installation.mjs` checks this).
 
 ```bash
-cd path\to\project
 npm install
-npm run dev             # shell in development mode, with hot reload
-npm start               # start the production build
-npm test                # core logic tests, across all workspaces
+npm run dev             # shell with hot reload
+npm start               # production build
+npm test                # core logic, all workspaces
 npm run typecheck
 npm run smoke           # smoke test of the built shell
-npm run smoke:backstory # smoke test of the Story Creator (separate run)
+npm run smoke:backstory # Story Creator smoke test (separate run)
+npm run roundtrip       # saving does not change the Markdown
 npm run dist:win        # Windows installer into apps/shell/release/
 ```
 
-Also:
+- `scripts\bauen-win.cmd`: pull, install and build in one go on Windows.
+- One tool alone: `npm run dev:backstory` (also `dev:mapmaker`,
+  `dev:initiative`, `dev:dice`, `dev:npc`).
+- One workspace: `npm run <script> -w apps/backstory`.
+- Suite packages: `npm run dist:suite:win`, `dist:suite:linux`, then
+  `npm run verify:package:suite -- <path>`.
 
-- `scripts\bauen-win.cmd` does `git fetch -p`, `git pull`, `npm install` and
-  `npm run dist:win` in one go on Windows. It opens `apps\shell\release` when
-  it is done, keeps the window open either way, and writes which step ran to
-  `bauen-win.log`.
-- Work on one tool alone: `npm run dev:backstory`, `dev:mapmaker`,
-  `dev:initiative`, `dev:dice`, `dev:npc`.
-- A command without a suffix always means the suite, not the Story Creator.
-- For a single workspace: `npm run <script> -w apps/backstory`.
-
-### Workspace layout
-
-An npm workspace monorepo; the commands at the root delegate.
+### Layout
 
 ```
-apps/shell/        The shell: window, start menu, rail, settings
-apps/backstory/    Story Creator
-apps/mapmaker/     TTRPG Map Editor (also buildable as a Tauri app)
-apps/initiative/   Initiative Tracker
-apps/dice/         Dice
-apps/npc/          NPC Creator
-apps/inspiration/  Inspiration
-apps/monster/      Monster Creator
-apps/zustaende/    Status Effect Creator
-apps/encounter/    Encounter Creator
-apps/nachschlagewerk/ Reference (the rules, offline)
-apps/magicitems/   Magic Item Creator
-apps/loot/         Loot Generator
-packages/dice/     Reading and rolling dice expressions
-packages/i18n/     Language choice and text substitution
-packages/motion/   Timings, curves and base animations
-packages/ki/       Connection to language models (Ollama, Claude)
-packages/umgebungen/ Environments: what you see, and what has a numbered effect
-packages/einstellungen/ How a tool describes its own settings for the shell
-packages/foundry/  Monsters and conditions as JSON that Foundry VTT reads
-packages/farben/   Colour roles and the selectable themes
-packages/eintraege/ What a tool has filed, in a form every tool understands
-packages/tabellen/ Random tables: the format, rolling on one and nesting them
-packages/uebergabe/ The shape an encounter travels in, from one tool to another
-packages/srd/     Everything taken from the SRD 5.2.1, in both languages
+apps/shell/           Shell: window, start menu, rail, settings, sharing
+apps/backstory/       Story Creator
+apps/mapmaker/        TTRPG Map Editor (also a Tauri app)
+apps/initiative/      Initiative Tracker
+apps/dice/            Dice
+apps/npc/             NPC Creator
+apps/inspiration/     Inspiration
+apps/monster/         Monster Creator
+apps/zustaende/       Status Effect Creator
+apps/encounter/       Encounter Creator
+apps/nachschlagewerk/ Reference
+apps/magicitems/      Magic Item Creator
+apps/loot/            Loot Generator
+packages/dice/        Dice expressions
+packages/i18n/        Language and text substitution
+packages/motion/      Timings and animations
+packages/ki/          Language models (Ollama, Claude, OpenAI-compatible)
+packages/umgebungen/  Environments
+packages/einstellungen/ Tool settings described for the shell
+packages/foundry/     Foundry VTT JSON export
+packages/farben/      Colour roles and themes
+packages/eintraege/   Entries every tool understands (search, sharing)
+packages/tabellen/    Random tables
+packages/uebergabe/   Encounter handover between tools
+packages/srd/         SRD 5.2.1 content in both languages
 ```
 
-`packages/*` are platform-free: no `node:*`, no `electron`, no browser
-globals. They are bundled into both processes.
+`packages/*` are platform-free (no `node:*`, no `electron`, no browser
+globals).
 
 ## The shell
 
-`apps/shell` is the main entry point: a frameless `BaseWindow` holding the
-shell across the full area, with the tool's view on top of it, leaving room
-for the title bar and the rail.
+- **Ctrl+K** searches all tools at once, read fresh from disk.
+- **Backup**: Settings → Backup writes one ZIP of the whole data folder
+  (without the API key). Restore by unpacking into the data folder.
+- **Share**: pack entries (notes, monsters, house rules, …) into one Markdown
+  file, or open a room on the local network with chat and packages. With a
+  password the room is encrypted; without one it is not, and the app says so.
+- **Themes and interface size** (80–200 %) apply to every tool.
+- **Settings in one place**: each tool describes its fields
+  (`packages/einstellungen`), the shell draws them.
+- **Back/forward** with the mouse side buttons or Alt+arrow.
+- Tools stay loaded once opened (about 130 MB each), each in its own Electron
+  session. The Story Creator is loaded in the background when another tool
+  sends it something.
+- An introduction on first start and per tool; can be reset in the settings.
+- Data folder: `%APPDATA%\LORE` (older installs: `%APPDATA%\TTRPG-Tools`).
+- Start in one tool: `TTRPG_TOOLS_START_APP=backstory`.
 
-- One search across everything. Ctrl+K opens a field that searches monsters,
-  conditions and encounters at once, and a hit takes you to where it lives.
-  The entries are read straight from disk, not collected from the running
-  interfaces: otherwise you would only find what you had already opened in
-  this session, and what you have not touched for a while is exactly what you
-  search for. They are fetched fresh on every open rather than kept in an
-  index, because an index that is not maintained shows things that no longer
-  exist. A tool joins in by answering two questions (`packages/eintraege`):
-  „give me your entries" and „show me this entry". One that answers neither
-  simply does not appear.
-- One backup for everything. Settings → Backup writes a single ZIP of the
-  whole data folder: campaigns, monsters, conditions, encounters, maps, your
-  own icons and the settings. Before packing, every open tool is asked to
-  write what it still holds. The API key is left out — it is encrypted with
-  this machine's keychain and would be useless anywhere else, and a backup
-  is the last place a key belongs. Restoring is manual and deliberately so:
-  close the app, unpack into the data folder, start again.
-- The data folder is `%APPDATA%\LORE` on Windows. Installations from before
-  the rename keep using `%APPDATA%\TTRPG-Tools`; nothing has to be moved.
-- Colours live in one place. `packages/farben` holds fourteen colour *roles*
-  („the ground everything sits on“, not „dark blue“) and seven themes that
-  fill them — five dark, two light, which is what covers light mode. The
-  shell injects them as a `:root` rule into every view, its own included, so
-  a tool needs no code for it: its styles.css derives its own variable names
-  from the roles and keeps a fallback for each. The themes are tested for
-  contrast, not just for looking nice.
-- Sharing (stage 1 of `docs/austausch.md`): the shell's “Share” dialog
-  packs entries from the Story Creator (notes with their images), the
-  Monster Creator and the Reference (house rules; official rules as a
-  reference) into one readable Markdown file, and reads such a file back.
-  An entry that already exists is kept side by side unless you choose to
-  replace it. The tools take entries even while closed. Stage 2 adds a room
-  on the local network: chat to everyone or to one person, and packages to
-  everyone or to one person, under a name you choose. The room is not
-  encrypted, and the app says so.
-- The interface size (80 to 200 percent) works the same way: one setting,
-  applied by the shell to every view; the tools move along with the title bar
-  and the rail instead of slipping underneath them.
-- Settings live in one place. The shell's settings dialog shows its own
-  entries (language, AI, icons, introductions) and, underneath, a section per
-  running tool. A tool does not draw that section itself — it runs in its own
-  view — but describes its fields (`packages/einstellungen`), and the shell
-  draws them. A new tool joins in by answering `werkzeugEinstellungen`; the
-  shell needs to know nothing about it. Started on its own, a tool keeps its
-  own settings dialog: there is no shell to hold it.
-- A tool stays loaded once opened and is only hidden when you switch away.
-  Everything is still there when you come back; the price is memory, roughly
-  130 MB per tool.
-- Each tool runs in its own Electron session (`persist:<id>`). Otherwise they
-  would all share `localStorage` and IndexedDB, because `file://` is the same
-  origin for all of them.
-- Embedding goes through one `src/main/embed.ts` per tool. Its own standalone
-  main process uses the same code.
-- What exists and how far along it is lives in exactly one place:
-  `apps/shell/src/shared/apps.ts`.
-- Language is wired through: a change applies everywhere at once.
-- On opening, the tool's icon grows across the screen; if loading takes
-  longer, the spinner follows.
-- **Back and forward** like in a browser, via the mouse's side buttons or
-  Alt and an arrow key. The history keeps fifty steps and remembers *where*
-  you were — it has nothing to do with Ctrl+Z. The side buttons arrive on two
-  paths: as `app-command` from the window, and from the document of whichever
-  view is in front (each tool's preload reports it). One is not enough —
-  Chromium takes the side buttons inside the view on Windows, and the window
-  never hears about them.
-- Start directly in one tool: `TTRPG_TOOLS_START_APP=backstory`.
-- **An introduction the first time**: a welcome on the very first start, and
-  a short explanation the first time you open each tool. Never again after
-  that; a button in the settings brings them back. The texts live in
-  `apps/shell/src/shared/einfuehrung.ts`.
-
-### Your own icons
-
-The bundled icons are provisional and can be replaced:
-
-1. A `symbole` folder in the data directory — local only.
-2. `apps/shell/symbole/` in the repository — applies to everyone, ships with
-   the app.
-3. The built-in vectors, if neither is there.
-
-The file name is the identifier (`backstory.png`, `mapmaker.png`,
-`initiative.png`, `dice.png`, `npc.png`). PNG, JPG, WebP and GIF up to 2 MB
-are allowed. No SVG, because an SVG file can carry scripts. More in
-`apps/shell/symbole/LIESMICH.md`.
-
-### Packaging the suite
-
-```bash
-npm run dist:suite:win        # installer and portable exe
-npm run dist:suite:linux      # AppImage
-npm run verify:package:suite -- <path-to-the-program>
-```
-
-The embedded applications' files go to `resources/apps/<id>/dist` via
-`extraResources`, deliberately next to the asar archive: what sits outside it
-can be looked at when something is missing.
-
-The suite is what gets shipped. The individual applications stay buildable
-(`npm run dist:backstory:win`) but are not a deliverable.
+**Own icons**: put `<tool id>.png` (PNG, JPG, WebP, GIF, max 2 MB, no SVG)
+into `symbole/` in the data folder (local) or `apps/shell/symbole/` (ships
+with the app). See `apps/shell/symbole/LIESMICH.md`.
 
 ## AI
 
-Configured in one place, in the shell's settings; the tools inherit the
-setting and learn about a change immediately.
-
-- Three providers behind one interface in `packages/ki`: **Ollama** (local,
-  free), the **Claude API**, and **any service with OpenAI's interface** —
-  Groq, Mistral, Together, OpenRouter, a local LM Studio. For the last one you
-  enter address, model and key.
-- The API key is encrypted with the system keychain and never reaches the
-  renderer. All network calls run in the main process, the CSP stays at
-  `connect-src 'self'`.
-- Without a provider everything keeps working: AI is an addition everywhere,
-  never a requirement.
+Set up once in the shell's settings: **Ollama** (local), **Claude API** or
+any **OpenAI-compatible** service. The key is encrypted with the system
+keychain and never reaches a renderer. Everything works without AI.
 
 ## Story Creator
 
-Notes are Markdown with a YAML header, readable in any text editor or in
-Obsidian. Your own entries in the header survive saving.
+Notes are Markdown with a YAML header, readable in any editor or Obsidian.
 
 | Action | How |
 | --- | --- |
-| Link a note | type `[[`, pick from the list |
-| New note from a link | type `[[`, enter a name, "create" |
-| Open a linked note | hold Ctrl (Cmd) and click |
-| Save | Ctrl+S, or autosave |
-| Find and replace | Ctrl+F, jump with F3 / Shift+F3 |
-| Turn selected text into a link | select, then type `[[` |
-| Rename or delete a note | right-click in the note list |
-| Fix a spelling mistake | right-click the underlined word |
-| Collapse a section | the arrow left of the heading |
-| Zoom | Ctrl and the wheel, Ctrl+Plus, Ctrl+Minus, Ctrl+0 |
-| Underline | the U button, or Ctrl+U |
-| Back up a campaign | "Campaign" menu → "Save as ZIP" |
-| Read a backup back in | "Campaign" menu → "Load from ZIP" |
-| Adjust the profile fields | "Campaign" menu → "Note types" |
-| Insert an image | the ▣ button, or drag an image into the text |
-| Ask the assistant | sidebar in the editor |
-| Prompts to keep writing | "Writing help" in the header |
-| Export | the "Export" button: one note or the whole campaign |
-| Get an earlier state back | "History" in the header |
-| Relationship map | "Graph" in the header |
-| Keyboard shortcuts | "Help" in the header |
+| Link, create from a link, link selected text | type `[[` |
+| Open a link | Ctrl+click |
+| Find and replace | Ctrl+F, F3 / Shift+F3 |
+| Rename, delete | right-click in the note list |
+| Zoom (20–500 %) | Ctrl+wheel, Ctrl+Plus/Minus/0 |
+| Backup, restore, note types | "Campaign" menu |
+| Image | ▣ button or drag in |
+| Export (MD, PDF), history, graph, help | header buttons |
 
-The model in short:
-
-- A **campaign** is a container; a note belongs to exactly one and can only
-  be linked within it.
-- **Note types** are schema-driven and belong to the campaign
-  (`campaign.json`), not to the code. Field keys survive renaming a label,
-  and removing a field deletes no values.
-- **Wiki links** sit as `[[Title]]` in plain text and are carried along when
-  a note is renamed. Links to missing notes are coloured differently and are
-  listed in the "Open links" panel.
-- **Relationships** hang on the pair of notes and are directed; they are not
-  part of the link syntax.
-- **Images** are copied into `assets/`, not linked, and shown through the
-  `backstory-asset://` protocol.
-- **Version history** saves before overwriting, at most every five minutes.
-  Restoring is itself undoable.
-- **The assistant** writes nothing into your text; it asks, checks against
-  linked notes and comments on style. A checkbox decides whether the linked
-  notes are sent along — it also says how many that would be right now.
-- **Zoom** applies to every note and only to the editor area, 20 to 500
-  percent. It changes the display only: a font size in the Markdown would be
-  a formatting character no other program understands.
-- **Collapsed sections** are display only as well and never end up in the
-  file. If the cursor lands inside a hidden block, it unfolds again —
-  otherwise you would be typing into text nobody can see.
-- **The PDF export** can include a table of contents and the relationship
-  map, and wiki links become jump targets in it when the note they mean was
-  exported too.
-- **Custom words** for the spell checker live in the settings and can be
-  removed there again.
-
-```
-apps/backstory/src/shared/     Data model, wiki link parsing, texts
-apps/backstory/src/main/       Main process: files, IPC, export, AI
-apps/backstory/src/preload/    The only bridge to the renderer
-apps/backstory/src/renderer/   React, TipTap editor, note index, graph
-```
-
-The renderer has no Node access.
+- A note belongs to one **campaign** and links only within it.
+- **Note types** are defined per campaign in `campaign.json`.
+- **Wiki links** follow renames; missing targets are listed under "Open
+  links". Renaming by title happens when you leave the field.
+- **Relationships** are directed and stored per note pair.
+- **Images** are copied into `assets/`.
+- **History** saves at most every two minutes; restoring can be undone.
+- **The assistant** never writes into your text.
+- **The Markdown survives**: comments, link titles, `<angle>` links and tight
+  lists come out as they went in.
+- **Export**: PDF with table of contents, graph and jump links; Markdown with
+  an alias header where the file name differs from the title.
 
 ## Initiative Tracker
 
-System-neutral: an entry has initiative, hit points and conditions — what the
-numbers mean is up to the table.
-
-- **Groups**: six goblins roll one initiative and have six sets of hit
-  points. That is why hit points hang on the body, not on the entry.
-- **Conditions carry a duration**: open-ended, until the start or end of the
-  next turn, until the end of the round. They count down by themselves.
-- **Terrain events** act on initiative 20 and, on a tie, behind characters
-  with 20, like the lair action in the rulebook. They have no hit points and
-  are not struck through.
-- **Space means next.** Damage is typed and applied with Enter, not clicked —
-  damage is rarely one.
-- Right-clicking a row opens a menu.
-- **Ctrl+Z takes it back.** Everything that changes the fight goes through
-  one place, so undo covers all of it: a removed participant, damage, a
-  condition, the order. Ctrl+Shift+Z (or Ctrl+Y) redoes; the two arrows in
-  the bar do the same and grey out when there is nothing to do. This is not
-  the shell's back arrow (Alt+Left, M4) — that one is the history *between*
-  tools and stays navigation.
-- Encounters are documents (Markdown with a YAML header); the running fight
-  is session state and sits next to them as JSON.
-- **New encounter** clears the tracker, and asks first only when something
-  is at stake: the fight is still running, or the line-up is not saved. What
-  it compares is what *saving* would produce, not the running state — damage
-  and conditions belong to the session, not to the encounter, so taking a
-  hit does not make it "unsaved".
-- **The encounter list is a collection**, laid out like the ones in the
-  Monster and Status Effect Creators: tiles to browse, a list to scan, a
-  search box above. Search covers the encounter's name *and* the names of
-  its participants — you usually remember who was in the fight, not what you
-  called it.
-- Images are copied into the tool's own folder, not linked.
-
-The rules are pure functions in `src/shared/kampf.ts`. A mistake in turn
-order goes unnoticed at the table and cannot be reproduced — it has to be
-checkable before it happens.
+- **Groups**: one initiative, separate hit points per body.
+- **Conditions** with a duration count down by themselves. SRD and your own
+  conditions are suggested, with the rule text on hover.
+- **Terrain events** act on initiative 20, after characters with 20.
+- **Space** = next turn. The damage field calculates (`2d6+3`); a leading
+  `+` or `-` heals. Enter applies, Escape discards.
+- **AC, temp HP, "out"** have their own fields.
+- Changing an initiative re-sorts; the active row stays and scrolls into view.
+- **Stat block** on click for monsters from the Encounter Creator.
+- **Ctrl+Z / Ctrl+Y** undo and redo everything in the fight.
+- Encounters are Markdown files in a searchable collection; the running fight
+  (including the tactics note) is saved as JSON next to them.
 
 ## NPC Creator
 
-A background character at the push of a button: name, species, occupation,
-something noticeable, what they want, a secret, a quirk.
-
-- Every field can be rerolled on its own, locked, or overwritten by hand. A
-  character carries finished text, not references into the tables.
-- The sound of the name is selectable: feminine, masculine, neutral.
-- **With AI** the model suggests freely rather than from the tables —
-  otherwise it would be a slow and expensive die. Without AI the tables
-  apply.
-- **Export** creates a note in the Story Creator's open campaign. The note
-  list there updates immediately.
-- Rolling happens in the working language; a finished character does not
-  switch languages with it, or a translation would overwrite handwritten
-  text.
-
-Generation is a pure function in `src/shared/erzeuge.ts`, the model's tasks
-are in `src/shared/kiAufgaben.ts`.
+- Name, species, occupation, feature, goal, secret, quirk; each field can be
+  rerolled, locked or edited.
+- Sound of the name: feminine, masculine, neutral.
+- With AI the model suggests freely; without, the tables apply.
+- **Export** creates a note in the open Story Creator campaign; no duplicates.
 
 ## Inspiration
 
-The blank page at the start of a campaign. Six building blocks, one button:
-hook, factions, characters, places, connections, and a timeline of what
-happens if the party does nothing.
+- Six blocks: hook, factions, characters, places, connections, timeline.
+- Works without AI (over a million combinations per block).
+- Dials: scope, region, theme, tone. Lock or edit any block.
+- Existing characters from the campaign can be pulled in.
+- The web of characters as a picture, full screen on click.
+- "Start a map" opens the Map Editor with the place's notes as pins.
+- "All from AI" drafts all six blocks in one consistent answer.
+- **Taking it over** creates notes plus an overview in the open campaign.
 
-- **Complete without AI.** The blocks are drawn from combining tables: over a
-  million different hooks, as many places and as many characters. The number
-  is shown in the interface and is computed from the tables, not claimed.
-- **Four dials**: scope (evening, arc, campaign), region, theme, tone.
-  Region, theme and tone are free fields with a suggestion list; known terms
-  narrow the tables, your own leave them open.
-- **Connections are directed**: A sees B as a mentor, B sees A as a threat.
-  Every character hangs off at least one other.
-- **A lock per block**, as in the NPC Creator. The button on the block itself
-  rerolls it anyway.
-- **Everything can be overwritten by hand.** A roll is a suggestion, not a
-  result. Writing a sentence yourself also pins that block — the next "roll
-  everything" leaves it alone.
-- **Characters that already exist** can be pulled in from the open campaign
-  (including the NPC Creator's, which files them there). They are hooked into
-  the web right away and get no second note when taken over.
-- **The web as a picture**: characters as dots, connections as arrows. The
-  list below says what lies between two of them; the picture says where the
-  story is dense and who stands at the edge. Click it and the same web opens
-  full screen, redrawn for the larger area rather than stretched.
-- **"Start a map"** on any place opens the Map Editor and begins a map under
-  that name — with what is known about the place as note pins on it. Nothing
-  is drawn: generating a map from text would mean driving the Map Editor's
-  data model from outside. If the open map already has something on it, it
-  asks first.
-- **With AI** the model suggests a block freely rather than from the tables,
-  with the draft so far as context. It also understands regions of your own,
-  like "floating islands", that the tables can do nothing with. Without AI
-  the tables apply.
-- **The world**: the AI buttons add a sentence or two about the world this
-  plays in — your own entries, like "cyberpunk city", are taken literally.
-  Rolled, it stays empty: the tables deliver building blocks, not a world.
-- **"All from AI"** drafts all six blocks in one answer and relates them to
-  each other: the faction knows the hook, the connection knows the
-  characters. What the model leaves out comes from the tables, what is too
-  much is dropped — the chosen scope applies — and pinned blocks stay as they
-  are.
-- **Taking it over** creates a note per character, place and faction in the
-  open campaign, plus an overview with wiki links — the graph in the Story
-  Creator has something to draw right away. Draft here, truth there: there is
-  no second store for the same world.
-
-Concept and open points: `docs/inspirationshilfe.md` (German).
+Concept: `docs/inspirationshilfe.md` (German).
 
 ## Monster Creator
 
-Homebrew monsters at a rating you choose — and the check is the point, not
-the generator.
+- **The check** computes defensive and offensive CR separately and says
+  what to change; each suggestion is a button.
+- AI numbers are pulled onto the target CR (with a way back); your own
+  numbers only get a warning.
+- **2024-style stat block**: abilities, speed, initiative, passive
+  perception, CR with XP, spelled-out attacks.
+- Resistances and immunities are optional and priced into the hit points.
+- **Edit** after rolling; the check recalculates live. "Save as new" keeps
+  the original.
+- **Own conditions** (separate checkbox): at most one per monster. The save
+  follows the theme: CON (cold, venom, blood, …), DEX (fire), STR (storm),
+  WIS (madness, dream), INT (void, time), CHA (sound, shadow, curse).
+- **Check an existing monster** by typing in its numbers.
+- Collection with search (`undead 4`, `cr 3-6`); files are Markdown with all
+  numbers in the header.
 
-- **The check is a pure function.** Hit points and armour give a defensive
-  CR, damage per round and attack bonus an offensive one; the result is the
-  average. Both halves are shown **separately**: the average alone hides a
-  monster that takes hits like CR 4 and deals damage like CR 9, which is how
-  homebrew usually goes wrong.
-- **The verdict says what to turn**, not just that something is off — and
-  each suggestion is a button.
-- **Whose numbers they are decides what happens.** From the AI: pulled onto
-  the rating automatically, and it says what changed by how much (with a way
-  back to the AI's own suggestion). From your keyboard: a warning with the
-  recommended values, nothing changed behind your back.
-- **Roles shift in table rows, not percentages.** The hit-point column is
-  flat in the middle of the table and the damage column is not; shifting both
-  by the same percentage moves them by different numbers of ratings. A test
-  generates every rating times every role and insists each result passes the
-  tool's own check.
-- **A real stat block, not a column of numbers.** Ability scores, speed and
-  every attack spelled out: weapon, reach, to-hit, dice and damage type. The
-  weapon fits the creature — a beast does not wield a halberd.
-- **Resistances, immunities and vulnerabilities are optional.** They come up
-  by chance, more often at high ratings, and most monsters get none. What a
-  monster survives longer is taken off its raw hit points, so it stays on its
-  rating.
-- **Check an existing monster** without generating one: type in numbers from
-  a book or from an older campaign and see what the rating says.
-- **The collection** holds what you built, as tiles or a list, with one
-  search field for name, type and rating at once (`undead 4`, `cr 3-6`).
-- Monsters are Markdown files with a YAML header in the data folder. Every
-  number lives in the header, so a future encounter tool can read them
-  without taking the stat block apart. Experience points are the one
-  exception: the CC-BY source only documents seven of them, and guessed
-  numbers in a file called "baselines" would be worse than none.
-
-The baselines come from a CC-BY source, credited in [NOTICE.md](NOTICE.md).
+Baselines from a CC-BY source, see [NOTICE.md](NOTICE.md).
 
 ## Status Effect Creator
 
-- **Custom conditions with levels** — cold that builds up, a curse that does
-  something else the third time. Seventeen themes: fire, cold, heat, venom,
-  acid, storm, stone, rot, blood, shadow, light, void, madness, time, sound,
-  dream and the depths. The levels are bullet points, not prose;
-  nobody reads a paragraph at the table.
-- **Every condition gets weighed**, and the weight comes with a comparison:
-  "about as much as Exhaustion 5". What it explicitly does not say is whether
-  the condition is too harsh for your table — that depends on how often you
-  get it, and only your table knows that.
-- **The parts have to fit each other.** A condition that ends on your next
-  turn cannot be eased by an hour at the fire. Duration, relief and worsening
-  all carry a timescale, and a mismatch is flagged.
-- **Packages**: several conditions in one roll, sharing a theme, with the
-  effects spread across all of them — so the same disadvantage does not hit
-  three times.
-- **A card to read aloud**: the front is what the character feels, the back
-  is the rule for you. Print it or hold it up on screen.
+- Conditions with levels, seventeen themes, levels as bullet points.
+- **Weight** compared to known conditions ("about Exhaustion 5").
+- **Timescales** of duration, relief and worsening must match; a mismatch
+  is flagged.
+- **Deadline** (round, hour, day) and saving throw with DC and timing.
+- Blessings read "stronger/weaker" instead of "worse/better".
+- **Packages**: several conditions sharing a theme.
+- **Card to read aloud**: player text in front, rule on the back.
+- "Save as new" keeps the original.
+
+## Encounter Creator
+
+- The rating sits under the opponents and names all three budgets.
+- Build to a target CR or to the difficulty for your party.
+- Into the tracker in one click, each monster with its stat block.
+
+More: `docs/encounter.md` (German).
+
+## Reference
+
+- SRD rules offline, with cross-references and hover previews.
+- House rules in Markdown; `[[` suggests entries to link.
+- Notes on any passage.
+
+More: `docs/nachschlagewerk.md` (German).
 
 ## Dice
 
-- **Shape is the only thing that tells one kind of die from another** —
-  colour and pattern apply to all of them. That is why the outlines are the
-  familiar silhouettes, not geometrically correct projections.
-- The selection is one number per kind and may be negative: `3` on the d20
-  and `-2` on the d4 means `3d20 - 2d4`. Left-click adds, right-click takes
-  away.
-- The number's colour is computed from WCAG luminance so it stays readable on
-  any die colour.
-- Effects: sparkle on a maximum roll, purple stripes on a 1, each can be
-  switched off. Subtracted dice get none.
-- The history keeps the last 40 rolls for the session only.
-
-**As bodies (3D):** a switch in the appearance section drops the dice instead
-of spinning flat outlines. Off is the default, because the display needs
-graphics acceleration; without it, it stays flat automatically.
-
-**The physics does not decide the result.** Rolling happens in `wuerfle()`, a
-pure function. The simulation lets the bodies fall; afterwards the labels are
-renumbered so the result faces up — in pairs with the opposite faces, so the
-sum rule still holds. The d100 and the custom die are unlabelled spheres;
-there is no body for 37 or 100 sides.
-
-Measured (no graphics card, software WebGL): 100 dice come to rest after 211
-steps and 1635 ms of compute; the display is capped at a little over two
-seconds. three.js and cannon-es grow the bundle from 157 to 724 kB.
+- Shape tells the kinds apart; colour and pattern apply to all.
+- One number per kind, negative allowed: left-click adds, right-click
+  subtracts.
+- Effects on max roll and on a 1, switchable.
+- History of 40 rolls per session.
+- **3D** (off by default, needs graphics acceleration): the result comes
+  from `wuerfle()`, the physics only animates it.
 
 ## TTRPG Map Editor
 
-`apps/mapmaker` joined as a standalone repository and brings its own history
-and its own `CLAUDE.md` — that is where the substance is. Two adjustments for
-the workspace:
-
-- `vite.config.ts` sets `base: './'`. Without it, the built `index.html`'s
-  paths point nowhere under `file://` and in a `WebContentsView`.
-- The Vite plugins carry a typing workaround (`as Plugin[]`): the workspace
-  shares `@vitejs/plugin-react` with apps on Vite 5 while this application
-  uses Vite 6. No effect at runtime.
-
-Not part of this repository's CI: the Rust side (`src-tauri/`,
-`npm run tauri:dev`/`tauri:build`), the end-to-end run under `e2e/`, and the
-`build:portable` variant. All three run locally, unchanged.
+`apps/mapmaker` has its own history and `CLAUDE.md`. Workspace changes:
+`base: './'` in `vite.config.ts` and a typing workaround for the Vite
+plugins. The Rust side, `e2e/` and `build:portable` are not part of CI.
 
 ## Where the data lives
 
-The Story Creator's storage location defaults to the user data directory and
-can be changed under Settings → Storage location.
-
-That location can also be backed up as a ZIP and read back in. A campaign
-read back in always gets a new identifier — an existing one is never
-overwritten.
-
 ```
-<storage location>/             Story Creator data
-  campaigns/<campaignId>/
-    campaign.json
-    notes/<noteId>.md           YAML front matter + Markdown
-    assets/                     the campaign's images
-    history/<noteId>/           earlier states
-  writing-prompts.de.json       writing-help prompts, freely editable
-  writing-prompts.en.json
+<Story Creator location>/        changeable under Settings → Storage location
+  campaigns/<id>/campaign.json
+  campaigns/<id>/notes/<noteId>.md
+  campaigns/<id>/assets/
+  campaigns/<id>/history/<noteId>/
+  writing-prompts.<lang>.json
 
-<user data directory>/          the shell's data
-  einstellungen.json            language, AI, encrypted key
-  fenster.json                  window size and position
-  symbole/                      your own app icons
+<user data directory>/
+  einstellungen.json             language, AI, encrypted key
+  fenster.json                   window size and position
+  symbole/                       your own icons
 ```
 
-- A Markdown file you drop into `notes/` yourself is read along. Without a
-  YAML header the first heading serves as the title. The file name becomes
-  the ID and may only contain letters, digits, `-` and `_`.
-- The application runs only once; a second start brings the window to the
-  front.
-- Every file carries a `schemaVersion` for later migrations.
-- The default language is English; a choice you make once sticks.
+- Markdown files dropped into `notes/` are read along.
+- A restored campaign always gets a new ID.
+- Every file carries a `schemaVersion`.
 
 ## Tests
 
-| Command | What it checks |
+| Command | Checks |
 | --- | --- |
-| `npm test` | core logic of all workspaces |
-| `npm run typecheck` | types of all workspaces |
-| `npm run smoke` | the built shell: start, switching, AI, icons, NPC export, introductions, mouse side buttons |
-| `npm run smoke:backstory` | campaign, notes, wiki link, renaming, spelling, reading back in |
-| `npm run roundtrip` | saving does not change the Markdown |
-| `npm run verify:package:suite -- <path>` | the packaged build comes up |
+| `npm test` | core logic |
+| `npm run typecheck` | types |
+| `npm run smoke` | built shell and all tools |
+| `npm run smoke:backstory` | Story Creator (separate run!) |
+| `npm run roundtrip` | Markdown unchanged by saving |
+| `npm run verify:package:suite -- <path>` | packaged build starts |
 
-Worth knowing:
+## Limits
 
-- `smoke` and `smoke:backstory` are **two separate runs**. Starting only the
-  first one misses regressions in the Story Creator.
-- The smoke test runs against the unpacked app. Whether something is missing
-  from the installer is only seen by `verify:package`. Both run in CI before
-  the Windows application is uploaded.
-- The round trip is needed because the core logic tests only check Markdown ↔
-  HTML. If the editor schema does not know an element, it is dropped on load
-  and lost after saving — that is how tables, links and deep headings were
-  lost in the past.
+- Switching campaigns loads every note (fine for a few hundred).
+- Renaming writes files one by one; a crash in between leaves some links on
+  the old name.
+- Ambiguous titles or aliases are not flagged in the interface.
 
-On Linux with Xvfb:
-
-```bash
-npm run dist:backstory:linux:dir
-xvfb-run -a npm run verify:package -w apps/backstory -- \
-  "$PWD/apps/backstory/release/linux-unpacked/backstory-creator"
-```
-
-## State and limits
-
-All nine tools run embedded.
-
-Known limits:
-
-- Switching campaigns loads every note. Fine for a few hundred; well beyond
-  that it would need an index.
-- Renaming writes every affected file one by one; a crash in between would
-  leave part of the links on the old name.
-- Ambiguous names (same title or alias) are recorded in the index but not
-  called out in the interface.
-
-Open tasks and planned phases: [BACKLOG.md](BACKLOG.md) (German). What to
-check by hand before a release — the things automated tests cannot see:
-[TESTLISTE.md](TESTLISTE.md) (German).
+Open tasks: [BACKLOG.md](BACKLOG.md). Manual release checks:
+[TESTLISTE.md](TESTLISTE.md) (both German).
 
 ## Trademarks
 
-This project is not affiliated with, endorsed by or reviewed by Foundry
-Gaming LLC, Roll20, Owlbear Rodeo, Obsidian, Anthropic or Ollama. Those names
-appear here solely to describe which programs and services the tools work
-with.
+Not affiliated with, endorsed or reviewed by Foundry Gaming LLC, Roll20,
+Owlbear Rodeo, Obsidian, Anthropic or Ollama. The names only describe which
+programs and services the tools work with.
 
-## About this project
+## About
 
-Code, architecture and this documentation were to a very large extent written
-with [Claude Code](https://claude.com/claude-code), Anthropic's AI assistant —
-as a developer working on its own across many sessions, not just as
-autocomplete. Contributions are welcome, with or without AI assistance.
+Code, architecture and documentation were largely written with
+[Claude Code](https://claude.com/claude-code). Contributions are welcome,
+with or without AI.
 
-Code comments, commit messages and the project documents
-(`KONVENTIONEN.md`, `BACKLOG.md`, `docs/`) are in German. The interface is
-available in German and English.
+Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
+`docs/`) are in German; the interface is German and English.
 
-What is in `docs/` (all German):
-
-| File | What it holds |
+| `docs/` | Content |
 |---|---|
-| `inspirationshilfe.md` | Concept and open points of the Inspiration tool (built) |
-| `monster.md` | Monster Creator: baselines, calibration, Foundry export |
-| `statuseffekte.md` | Status Effect Creator: effects, weight, Foundry export |
-| `encounter.md` | Encounter Creator: collection, environment, the way into the tracker, difficulty |
-| `austausch.md` | Concept: sharing between the group at the table (not built) |
-| `magicitems.md` | Magic Item Creator: tables, generator, collection, Foundry export, calibration against the SRD |
-| `nachschlagewerk.md` | Reference: rules glossary, equipment, spells and magic items offline in both languages, cross-references, house rules, notes |
-| `loot.md` | Loot Generator: own nested random tables (stages 1 to 3 built; loot by CR open) |
+| `inspirationshilfe.md` | Inspiration |
+| `monster.md` | Monster Creator |
+| `statuseffekte.md` | Status Effect Creator |
+| `encounter.md` | Encounter Creator |
+| `austausch.md` | Sharing and rooms |
+| `magicitems.md` | Magic Item Creator |
+| `nachschlagewerk.md` | Reference |
+| `loot.md` | Loot Generator |
+| `inventar.md` | Inventory (concept, not built) |
 
 ## License
 
-[GNU Affero General Public License v3.0 or later](LICENSE).
+[GNU Affero General Public License v3.0 or later](LICENSE). If a modified
+version is offered over a network, its source must be available too. No
+warranty.
 
-Free software: you may use it, change it and pass it on. If a modified
-version is offered over a network, its source has to be available too.
-Without any warranty, as described in the license.
-
-**Exception: the icons.** The images in `apps/shell/symbole/` are not under
-the AGPL: Copyright © ItsLunasDream, all rights reserved (see
-[LIZENZ.md](apps/shell/symbole/LIZENZ.md)). A modified version passed on
-replaces them or leaves them out; the built-in vector icons take over.
+**Exception: the icons** in `apps/shell/symbole/` are © ItsLunasDream, all
+rights reserved ([LIZENZ.md](apps/shell/symbole/LIZENZ.md)). A modified
+version passed on replaces or omits them.
 
 ### Third-party content
 
-Some **data** in this repository comes from other works under their own
-licenses, which require attribution. The attributions live in
-[NOTICE.md](NOTICE.md) and travel with the project — leaving them out would
-be a licence violation, not a cosmetic slip.
-
-In short: the monster baselines by challenge rating come from the *Lazy GM's
-5e Monster Builder Resource Document* by Teos Abadía, Scott Fitzgerald Gray
-and Michael E. Shea, under CC-BY-4.0, which in turn includes material from
-the SRD 5.1. Nothing here is taken from the Dungeon Master's Guide.
-
-Planned use of the SRD 5.2.1 (CC-BY-4.0) is prepared in
-[NOTICE.md](NOTICE.md); its attribution statement is prescribed word for
-word, and no further mention of Wizards of the Coast is permitted alongside
-it.
+Attributions are in [NOTICE.md](NOTICE.md) and must travel with the project.
+The monster baselines come from the *Lazy GM's 5e Monster Builder Resource
+Document* by Teos Abadía, Scott Fitzgerald Gray and Michael E. Shea
+(CC-BY-4.0, including SRD 5.1 material). SRD 5.2.1 content (CC-BY-4.0) uses
+the attribution prescribed in NOTICE.md. Nothing is taken from the Dungeon
+Master's Guide.

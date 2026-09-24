@@ -9,6 +9,7 @@
  * Plattformfrei: kein `node:fs`. Wer liest und schreibt, entscheidet der
  * Hauptprozess.
  */
+import { rollExpression, type RandomSource } from '@suite/dice';
 import type { Begegnung, Dauer, Koerper, Teilnehmer, Zustand } from './types';
 import { DAUERN, SCHEMA_VERSION } from './types';
 
@@ -121,7 +122,9 @@ function leseTeilnehmer(roh: unknown): Teilnehmer[] {
       koerper: koerper.length > 0 ? koerper : [leerKoerper(index)],
       zustaende: leseZustaende(e.zustaende),
       bild: typeof e.bild === 'string' && e.bild ? e.bild : null,
-      notiz: text(e.notiz)
+      notiz: text(e.notiz),
+      ...(zahl(e.rk) > 0 ? { rk: zahl(e.rk) } : {}),
+      ...(text(e.statblock) ? { statblock: text(e.statblock) } : {})
     };
   });
 }
@@ -180,4 +183,39 @@ function leseZustaende(roh: unknown): Zustand[] {
       frisch: false
     }];
   });
+}
+
+/**
+ * Was im Schadensfeld steht, als Zahl: positiv ist Schaden, negativ Heilung.
+ *
+ * - `7` → 7 Schaden, `3+4` → 7, `2d6+3` → gewuerfelt (Testbericht: aus
+ *   „2d6" wurden bisher 2 Schaden, aus „3+4" wurden 3).
+ * - `-5` oder `+5` → 5 Heilung: ein Vorzeichen vorn heisst heilen, wie am
+ *   Tisch „plus fuenf" gesagt wird.
+ * - Unlesbares → `null`, dann passiert nichts.
+ */
+export function leseSchaden(text: string, rng: RandomSource = Math.random): number | null {
+  const roh = text.replace(/\s+/g, '').toLowerCase().replace(/w/g, 'd');
+  if (!roh) return null;
+  const heilt = roh.startsWith('+') || roh.startsWith('-');
+  const rest = heilt ? roh.slice(1) : roh;
+  if (!/^(\d*d\d+|\d+)([+-](\d*d\d+|\d+))*$/.test(rest)) return null;
+  let summe = 0;
+  for (const teil of rest.match(/[+-]?[^+-]+/g) ?? []) {
+    const minus = teil.startsWith('-');
+    const kern = teil.replace(/^[+-]/, '');
+    let wert: number;
+    if (kern.includes('d')) {
+      const [anzahl, seiten] = kern.split('d');
+      const n = Math.min(100, Number(anzahl || '1'));
+      const s = Number(seiten);
+      if (!(n > 0 && s > 1)) return null;
+      wert = rollExpression(`${n}d${s}`, rng).total;
+    } else {
+      wert = Number(kern);
+    }
+    summe += minus ? -wert : wert;
+  }
+  if (!Number.isFinite(summe) || summe === 0) return null;
+  return heilt ? -Math.abs(summe) : summe;
 }

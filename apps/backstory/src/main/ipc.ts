@@ -6,7 +6,7 @@ import { Vault, VaultError, writeSettings } from './vault';
 import { translate } from '../shared/i18n';
 import { zipDirectory } from './export';
 import { ALLOWED_IMAGE_EXTENSIONS } from './vault';
-import { referencedAssets, renderNoteMarkdown, toFileName } from './markdownExport';
+import { referencedAssets, renderNoteMarkdown, aliasKopf, toFileName } from './markdownExport';
 import { exportNotesToPdf } from './pdfExport';
 import type { PromptCategory } from '../shared/writingPrompts';
 import { askProvider, createProvider, decryptSecret, encryptSecret, AiError } from './ai';
@@ -428,7 +428,7 @@ export function registerIpc(context: IpcContext): void {
       usedNames.add(fileName);
       await fs.writeFile(
         path.join(targetDir, fileName),
-        renderNoteMarkdown(note, campaign.noteTypes, allNotes, labels),
+        aliasKopf(note.title, fileName) + renderNoteMarkdown(note, campaign.noteTypes, allNotes, labels),
         'utf8'
       );
       for (const asset of referencedAssets(note, campaign.noteTypes)) usedAssets.add(asset);
@@ -548,7 +548,7 @@ export function registerIpc(context: IpcContext): void {
     const result = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options);
     if (result.canceled || result.filePaths.length === 0) return null;
 
-    return vault.importCampaign(result.filePaths[0]);
+    return vault.importCampaign(result.filePaths[0], context.settings.language === 'en' ? 'imported' : 'importiert');
   });
 }
 

@@ -80,7 +80,7 @@ export function renderNoteMarkdown(
   return `${parts.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`;
 }
 
-function mentionedBy(note: Note, allNotes: Note[]): Note[] {
+export function mentionedBy(note: Note, allNotes: Note[]): Note[] {
   const names = new Set([note.title, ...note.aliases].map(normalizeName));
   return allNotes.filter(
     (candidate) =>
@@ -113,10 +113,24 @@ export function toFileName(title: string, taken: Iterable<string> = []): string 
       .trim()
       .slice(0, 80) || 'Notiz';
 
-  const used = new Set(taken);
-  if (!used.has(`${base}.md`)) return `${base}.md`;
+  // Ohne Ruecksicht auf Gross- und Kleinschreibung: auf Windows und macOS
+  // ueberschrieb „bo.md" still „Bo.md" (Testbericht).
+  const used = new Set([...taken].map((name) => name.toLowerCase()));
+  if (!used.has(`${base}.md`.toLowerCase())) return `${base}.md`;
 
   let counter = 2;
-  while (used.has(`${base} ${counter}.md`)) counter += 1;
+  while (used.has(`${base} ${counter}.md`.toLowerCase())) counter += 1;
   return `${base} ${counter}.md`;
+}
+
+/**
+ * Ein Kopf mit dem echten Titel als Alias, wenn der Dateiname davon abweicht.
+ *
+ * „Wer ist Bo?" wird zu „Wer ist Bo.md", und `[[Wer ist Bo?]]` war in
+ * Obsidian dann tot (Testbericht). Obsidian loest Links auch ueber
+ * `aliases` im Kopf auf.
+ */
+export function aliasKopf(title: string, fileName: string): string {
+  if (`${title}.md` === fileName) return '';
+  return `---\naliases:\n  - ${JSON.stringify(title)}\n---\n\n`;
 }

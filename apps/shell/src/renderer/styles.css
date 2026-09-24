@@ -286,6 +286,10 @@ body {
   gap: 16px;
   justify-content: center;
   max-width: 900px;
+  /* Volle verfuegbare Breite statt „so breit wie der Inhalt": sonst laeuft
+     das Raster bei grosser Oberflaeche seitlich ueber (Testbericht). */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .kachel {
@@ -714,6 +718,16 @@ body {
 
 .dialog__knopf:active {
   background: color-mix(in srgb, var(--text) 18%, var(--grund-tief));
+}
+
+/* Gesperrte Knoepfe sehen gesperrt aus (Testbericht: sahen aus wie aktive). */
+.dialog__knopf:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dialog__knopf:disabled:hover {
+  background: var(--grund-tief);
 }
 
 /* Titelleisten- und Fensterknoepfe antworten genauso schnell. */
@@ -1419,6 +1433,7 @@ body {
 }
 
 .segment__knopf {
+  white-space: nowrap;
   border: 0;
   background: none;
   padding: 6px 18px;
@@ -2070,4 +2085,69 @@ body {
 .raum__personping {
   opacity: 0.7;
   font-variant-numeric: tabular-nums;
+}
+
+/* Raumverbindung weg, waehrend Teilen zu war. */
+.titelleiste__raumweg {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid #c77d1a;
+  background: rgba(199, 125, 26, 0.16);
+}
+
+/* Ein langer Raumname kuerzt sich mit „…"; Personenzahl und Ping bleiben sichtbar. */
+.titelleiste__raumname {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Enge Titelleiste (grosse Oberflaeche, kleines Fenster): die Fensterknoepfe
+ * bleiben immer ganz, die Textknoepfe und der Pfad kuerzen sich mit „…"
+ * (Testbericht: bei 200 % waren Maximieren und Schliessen abgeschnitten).
+ */
+.titelleiste {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.fensterknopf {
+  flex: none;
+}
+
+.titelleiste__pfad,
+.titelleiste__knopf {
+  min-width: 0;
+  flex-shrink: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Raum: Uhrzeit, Kommen/Gehen, Nachfrage, letzter Chat ---------------- */
+.raum__zeit {
+  color: var(--text-leise);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.raum__system {
+  color: var(--text-leise);
+  font-style: italic;
+}
+.raum__nachfrage {
+  flex-basis: 100%;
+  margin-top: 6px;
+}
+.raum__verbindet {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.raum__letzter {
+  margin-top: 16px;
+  opacity: 0.85;
 }

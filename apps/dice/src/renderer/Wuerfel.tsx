@@ -60,6 +60,8 @@ interface Props {
   readonly rollt?: boolean;
   readonly hoechst?: boolean;
   readonly tiefst?: boolean;
+  /** Liegt da, zaehlt aber nicht (Vorteil, Nachteil, hoechste N). */
+  readonly verworfen?: boolean;
   /**
    * Verzoegerung in Millisekunden. Wuerfel starten leicht versetzt — alle
    * gleichzeitig sieht nach einer Maschine aus, nicht nach Wuerfeln.
@@ -80,6 +82,7 @@ export function Wuerfel({
   rollt = false,
   hoechst = false,
   tiefst = false,
+  verworfen = false,
   verzug = 0,
   onClick,
   onContextMenu,
@@ -112,6 +115,7 @@ export function Wuerfel({
     abzug ? 'wuerfel--abzug' : '',
     hoechst ? 'wuerfel--hoechst' : '',
     tiefst ? 'wuerfel--tiefst' : '',
+    verworfen ? 'wuerfel--verworfen' : '',
     onClick ? 'wuerfel--klickbar' : ''
   ]
     .filter(Boolean)

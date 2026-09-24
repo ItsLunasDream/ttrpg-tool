@@ -77,6 +77,7 @@ const TEXTE = {
   'knopf.ki': ['Von der KI', 'From the AI'],
   'knopf.kiLaeuft': ['Fragt …', 'Asking …'],
   'knopf.ausformulieren': ['Ausformulieren lassen', 'Have it written out'],
+  'knopf.alsNeu': ['Als neu speichern', 'Save as new'],
   'knopf.speichern': ['In die Sammlung', 'To the collection'],
   'knopf.export': ['In den Story Creator', 'To the Story Creator'],
   // Der Name des Programms, nicht uebersetzt — er heisst ueberall so.
@@ -94,6 +95,9 @@ const TEXTE = {
   'blatt.dauer': ['Dauer', 'Duration'],
   'blatt.schlimmer': ['Schlimmer', 'Worse'],
   'blatt.besser': ['Besser', 'Better'],
+  'blatt.frist': ['Frist', 'Interval'],
+  'blatt.staerker': ['Stärker', 'Grows'],
+  'blatt.schwaecher': ['Schwächer', 'Fades'],
   'blatt.ausgeloest': ['Ausgelöst', 'Triggered'],
 
   'gewicht.titel': ['Gewicht', 'Weight'],

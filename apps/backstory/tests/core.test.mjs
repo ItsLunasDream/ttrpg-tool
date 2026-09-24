@@ -96,6 +96,30 @@ test('Markdown-Rundlauf laesst Wiki-Links unversehrt', () => {
   assert.ok(!roundtrip.includes('\\['), 'Turndown darf die Klammern nicht maskieren');
 });
 
+test('Markdown-Rundlauf behaelt Kommentare, Linktitel, spitze Links und enge Listen', () => {
+  // Testbericht: alle vier gingen beim Speichern verloren oder wurden umformatiert.
+  const markdown = [
+    '- eins',
+    '- zwei',
+    '  - tief',
+    '',
+    '1. a',
+    '2. b',
+    '',
+    '<!-- fuer die Spielleitung -->',
+    '',
+    'Text mit <!-- innen --> Kommentar, [x](https://a.de "Titel") und <https://b.de>.',
+    '',
+    '```',
+    '<!-- im Code bleibt es Text -->',
+    '```'
+  ].join('\n');
+  assert.equal(htmlToMarkdown(markdownToHtml(markdown)), markdown);
+  // So, wie der Editor Listen ausgibt: jeder Punkt ein Absatz.
+  const ausEditor = htmlToMarkdown('<ul><li><p>eins</p></li><li><p>zwei</p></li></ul>');
+  assert.equal(ausEditor, '- eins\n- zwei');
+});
+
 test('countWords zaehlt den Anzeigetext, nicht die Syntax', () => {
   assert.equal(countWords('## Titel\n\nSie traf [[Mira Falkenhand|die Jägerin]] am Tor.'), 7);
 });

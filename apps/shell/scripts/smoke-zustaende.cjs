@@ -290,6 +290,16 @@ app.whenReady().then(async () => {
 
   // --- In den Story Creator ----------------------------------------------
   console.log('\nIn den Story Creator:');
+  // Ohne dass der Story Creator je offen war: die Huelle montiert ihn
+  // im Hintergrund, statt „erst einmal oeffnen" zu melden (Testbericht).
+  await js(`(() => {
+    const knopf = [...document.querySelectorAll('.knopf')].find((k) => /Story Creator/i.test(k.textContent));
+    if (knopf) knopf.click();
+    return Boolean(knopf);
+  })()`);
+  await warte(3000);
+  const vorher = await js("document.querySelector('.meldung')?.textContent ?? ''");
+  pruefe(!/once|einmal/i.test(vorher), `kein „erst oeffnen" mehr (${vorher})`);
   await mjs(`(() => {
     const eintrag = [...document.querySelectorAll('.schiene__eintrag:not(:disabled)')]
       .find((k) => /Story|Backstory/i.test(k.title));

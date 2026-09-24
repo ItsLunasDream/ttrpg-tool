@@ -20,6 +20,7 @@
  * das sollen sie bleiben.
  */
 import { join } from 'node:path';
+import { readdir, readFile } from 'node:fs/promises';
 import { app, session as electronSession, WebContentsView, shell } from 'electron';
 import type { BaseWindow } from 'electron';
 import type { WebContents } from 'electron';
@@ -29,6 +30,8 @@ import {
   type BackstoryEmbed
 } from '../../../backstory/src/main/embed';
 import { mountMapmaker } from '../../../mapmaker/src/embed';
+import { translate as storyText, type MessageKey } from '../../../backstory/src/shared/i18n';
+import { hasLinkReservedChars } from '../../../backstory/src/shared/wikilinks';
 import {
   mountInitiative,
   registriereBildSchema as registriereInitiativeSchema
@@ -178,6 +181,12 @@ export interface MontageHaken {
    * sie soll ueberall gleich aussehen, gleich wer sie ausloest.
    */
   readonly onEreignis?: (appId: string) => void;
+  /**
+   * Montiert den Story Creator unsichtbar, falls er noch nicht offen war.
+   * Ohne das scheiterte „In den Story Creator" in Monster und Zustaende,
+   * solange man ihn nicht einmal selbst geoeffnet hatte (Testbericht).
+   */
+  readonly stelleStoryBereit?: () => Promise<void>;
   /**
    * Beginnt im Karteneditor eine leere Karte unter diesem Namen.
    *
@@ -368,12 +377,35 @@ function sichereAb(sicht: WebContentsView, devServerUrl: string | null): void {
    * fuer jede Ansicht, die hier durchlaeuft. Eine Stelle statt neun, und
    * ein neues Werkzeug bekommt es, ohne dass jemand daran denkt.
    */
-  sicht.webContents.on('before-input-event', (_event, eingabe) => {
+  sicht.webContents.on('before-input-event', (event, eingabe) => {
     if (eingabe.type !== 'keyDown') return;
     if (!(eingabe.control || eingabe.meta)) return;
+    // Strg+Alt und Plus, Minus, 0: die Groesse der ganzen Oberflaeche.
+    // Strg allein bleibt den Werkzeugen (Zoom im Story Creator).
+    const stufe = eingabe.alt ? groessenTaste(eingabe.key, eingabe.code) : null;
+    if (stufe && huellenGroesse) {
+      event.preventDefault();
+      huellenGroesse(stufe);
+      return;
+    }
     if (eingabe.key.toLowerCase() !== 'k') return;
     huellenSuche?.();
   });
+}
+
+/** Welche Groessentaste gedrueckt ist, oder null. Auch der Ziffernblock zaehlt. */
+export function groessenTaste(key: string, code = ''): 'groesser' | 'kleiner' | 'zurueck' | null {
+  if (key === '+' || key === '=' || code === 'NumpadAdd' || code === 'Equal') return 'groesser';
+  if (key === '-' || code === 'NumpadSubtract' || code === 'Minus') return 'kleiner';
+  if (key === '0' || code === 'Digit0' || code === 'Numpad0') return 'zurueck';
+  return null;
+}
+
+let huellenGroesse: ((stufe: 'groesser' | 'kleiner' | 'zurueck') => void) | null = null;
+
+/** Was Strg+Alt+Plus/Minus/0 in einem Werkzeug tut; die Huelle traegt es ein. */
+export function setzeGroessentaste(hoerer: (stufe: 'groesser' | 'kleiner' | 'zurueck') => void): void {
+  huellenGroesse = hoerer;
 }
 
 /**
@@ -421,6 +453,75 @@ const OHNE_STORY = () =>
     'Öffne den Story Creator einmal, dann weiß die Sammlung, wohin.',
     'Open the Story Creator once, then the collection knows where to put it.'
   );
+/**
+ * Fehler des Story Creators in lesbarem Text.
+ *
+ * Der Vault wirft Schluessel wie `error.linkChars`; die standen roh in der
+ * Oberflaeche des NPC Creators und der Inspirationshilfe (Testbericht).
+ */
+function fehlerText(fehler: unknown): string {
+  const f = fehler as { key?: unknown; params?: Record<string, string | number> } | null;
+  if (f && typeof f.key === 'string' && f.key.startsWith('error.')) {
+    return storyText(sammlungssprache, f.key as MessageKey, f.params);
+  }
+  return fehler instanceof Error ? fehler.message : String(fehler);
+}
+
+/**
+ * Die eigenen Zustaende aus der Sammlung des Status Effect Creators.
+ *
+ * Direkt von der Platte, wie die Monster fuer den Encounter Creator: kein
+ * zweiter Bestand, und was eben gebaut wurde, ist sofort da. Der Text ist
+ * der Leib der Datei ohne Kopf und ohne die Ueberschrift mit dem Namen.
+ */
+export async function leseEigeneZustaende(): Promise<{ name: string; text: string; thema: string; art: string }[]> {
+  const ordner = join(datenordner('zustaende'), 'zustaende');
+  let dateien: string[];
+  try {
+    dateien = await readdir(ordner);
+  } catch {
+    return [];
+  }
+  const heraus: { name: string; text: string; thema: string; art: string }[] = [];
+  for (const datei of dateien) {
+    if (!datei.endsWith('.md')) continue;
+    try {
+      const inhalt = await readFile(join(ordner, datei), 'utf8');
+      const kopf = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(inhalt);
+      const kopfzeilen = kopf?.[1].split(/\r?\n/) ?? [];
+      const feld = (schluessel: string) =>
+        (kopfzeilen.find((z) => z.startsWith(`${schluessel}:`))?.slice(schluessel.length + 1).trim() ?? '').replace(/^"|"$/g, '');
+      const nameZeile = kopfzeilen.find((z) => z.startsWith('name:'));
+      let name = nameZeile ? nameZeile.slice(5).trim() : datei.slice(0, -3);
+      if (name.startsWith('"')) {
+        try {
+          name = JSON.parse(name) as string;
+        } catch {
+          // Roh lassen.
+        }
+      }
+      const leib = (kopf ? inhalt.slice(kopf[0].length) : inhalt).replace(/^#\s+.*\r?\n+/, '').trim();
+      // Thema und Art: der Monster Creator waehlt danach den Rettungswurf.
+      heraus.push({ name, text: leib.slice(0, 1500), thema: feld('thema'), art: feld('art') });
+    } catch {
+      // Eine kaputte Datei nimmt nicht die ganze Liste mit.
+    }
+  }
+  return heraus.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Gibt es in der Kampagne schon eine Notiz mit diesem Titel (oder Alias)? */
+async function titelVergeben(kampagneId: string, titel: string): Promise<boolean> {
+  if (!backstoryEmbed) return false;
+  const gesucht = titel.trim().toLowerCase();
+  const notizen = await backstoryEmbed.vault.listNotes(kampagneId);
+  return notizen.some(
+    (notiz) =>
+      notiz.title.trim().toLowerCase() === gesucht ||
+      notiz.aliases.some((alias) => alias.trim().toLowerCase() === gesucht)
+  );
+}
+
 const OHNE_KAMPAGNE = () =>
   zweisprachig('Es gibt noch keine Kampagne, in die das passt.', 'There is no campaign yet to put this in.');
 
@@ -508,6 +609,31 @@ async function montiereDice(id: string, haken: MontageHaken): Promise<MontierteA
  * nehmen, den die Kampagne wirklich kennt. Bleibt keiner uebrig, den ersten
  * ueberhaupt — eine Kampagne ohne Notiztypen gibt es nicht.
  */
+/**
+ * Die Kampagnen des Story Creators, fuer die Auswahl im NPC Creator und in
+ * der Inspirationshilfe (Wunsch aus dem Testbericht: man sah nicht, wohin
+ * die Figur geht). `aktuell` ist die, an der zuletzt gearbeitet wurde.
+ */
+async function zielKampagnen(stelleStoryBereit?: () => Promise<void>): Promise<{
+  liste: { id: string; name: string }[];
+  aktuell: string | null;
+}> {
+  if (!backstoryEmbed) await stelleStoryBereit?.().catch(() => undefined);
+  if (!backstoryEmbed) return { liste: [], aktuell: null };
+  const kampagnen = await backstoryEmbed.vault.listCampaigns();
+  const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+  const aktuell = kampagnen.find((k) => k.id === letzte)?.id ?? kampagnen[0]?.id ?? null;
+  return { liste: kampagnen.map((k) => ({ id: k.id, name: k.name })), aktuell };
+}
+
+/** Die gewaehlte Kampagne, sonst die zuletzt offene, sonst die erste. */
+function waehleKampagne<K extends { id: string }>(kampagnen: readonly K[], gewuenscht?: string | null): K {
+  const letzte = backstoryEmbed?.aktuelleEinstellungen().lastCampaignId;
+  return (
+    kampagnen.find((k) => k.id === gewuenscht) ?? kampagnen.find((k) => k.id === letzte) ?? kampagnen[0]
+  );
+}
+
 function passenderNotiztyp(kampagne: { noteTypes: { id: string }[] }, wuensche: readonly string[]): string {
   for (const wunsch of wuensche) {
     if (kampagne.noteTypes.some((typ) => typ.id === wunsch)) return wunsch;
@@ -526,6 +652,7 @@ async function legeNotizAn(
   wuensche: readonly string[],
   haken: MontageHaken
 ): Promise<{ ok: boolean; text: string }> {
+  if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
   if (!backstoryEmbed) {
     return { ok: false, text: OHNE_STORY() };
   }
@@ -536,8 +663,12 @@ async function legeNotizAn(
   const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
   const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
   const typ = passenderNotiztyp(kampagne, wuensche);
-  const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
-  await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+  try {
+    const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
+    await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+  } catch (fehler) {
+    return { ok: false, text: fehlerText(fehler) };
+  }
 
   // Dem Story Creator sagen, dass etwas dazugekommen ist — sonst liegt
   // die Notiz auf der Platte und seine offene Liste zeigt sie nicht.
@@ -568,7 +699,9 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
     // Auch hier die KI der Sammlung. Der NPC Creator hat keine eigene Ablage
     // und soll auch keine eigene Einstellung bekommen.
     kiQuelle: haken.kiQuelle,
-    anlegen: async (titel: string, markdown: string) => {
+    kampagnen: () => zielKampagnen(haken.stelleStoryBereit),
+    anlegen: async (titel: string, markdown: string, kampagneId?: string | null) => {
+      if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
       if (!backstoryEmbed) {
         return {
           ok: false,
@@ -590,14 +723,28 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
       // Stand und nicht der Schnappschuss vom Montagezeitpunkt, sonst landete
       // die Figur nach einem Kampagnenwechsel in der falschen Sammlung.
       //
-      // Eine Auswahl im NPC Creator waere ein zweites Verzeichnis derselben
-      // Dinge — und wer eine Figur wirft, denkt gerade nicht an Ablageorte.
-      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
-      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
+      // Gewaehlt werden kann sie im NPC Creator selbst; vorbelegt ist die
+      // zuletzt offene (Testbericht: man sah nicht, wohin es geht).
+      const kampagne = waehleKampagne(kampagnen, kampagneId);
 
+      // Zweimal „Senden" legte zwei Notizen gleichen Namens an (Testbericht).
+      // Eine vorhandene Figur wird nicht ueberschrieben und nicht verdoppelt.
+      if (await titelVergeben(kampagne.id, titel)) {
+        return {
+          ok: false,
+          text: zweisprachig(
+            `„${titel}" gibt es in ${kampagne.name} schon.`,
+            `"${titel}" already exists in ${kampagne.name}.`
+          )
+        };
+      }
       const typ = passenderNotiztyp(kampagne, ['character', 'note']);
-      const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
-      await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+      try {
+        const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
+        await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+      } catch (fehler) {
+        return { ok: false, text: fehlerText(fehler) };
+      }
 
       // Dem Story Creator sagen, dass etwas dazugekommen ist. Ohne das
       // liegt die Notiz zwar auf der Platte, seine offene Liste zeigt sie
@@ -672,12 +819,12 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
      */
     // Der Weg zum Karteneditor. Nicht direkt: die Huelle holt ihn nach vorn.
     karteAnlegen: haken.oeffneKarte,
-    figuren: async () => {
+    kampagnen: () => zielKampagnen(haken.stelleStoryBereit),
+    figuren: async (kampagneId?: string | null) => {
       if (!backstoryEmbed) return [];
       const kampagnen = await backstoryEmbed.vault.listCampaigns();
       if (kampagnen.length === 0) return [];
-      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
-      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
+      const kampagne = waehleKampagne(kampagnen, kampagneId);
       const notizen = await backstoryEmbed.vault.listNotes(kampagne.id);
       return notizen
         .filter((notiz) => notiz.type === 'character')
@@ -693,7 +840,8 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
             ?.slice(0, 90) ?? ''
         }));
     },
-    anlegen: async (notizen) => {
+    anlegen: async (notizen, kampagneId?: string | null) => {
+      if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
       if (!backstoryEmbed) {
         return {
           ok: false,
@@ -712,22 +860,53 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
       if (kampagnen.length === 0) {
         return { ok: false, text: OHNE_KAMPAGNE(), angelegt: 0 };
       }
-      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
-      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
+      const kampagne = waehleKampagne(kampagnen, kampagneId);
 
+      /*
+       * Erst pruefen, dann anlegen. Ein Titel mit [ ] | scheiterte sonst
+       * mitten im Geflecht, und die Haelfte lag schon da (Testbericht).
+       */
+      const kaputt = notizen.find((notiz) => !notiz.titel.trim() || hasLinkReservedChars(notiz.titel));
+      if (kaputt) {
+        const schluessel: MessageKey = kaputt.titel.trim() ? 'error.linkChars' : 'error.noteTitle';
+        return { ok: false, text: storyText(sammlungssprache, schluessel, { name: kaputt.titel }), angelegt: 0 };
+      }
+
+      /*
+       * Was es schon gibt, wird uebersprungen. Zweimal senden legte vorher
+       * das ganze Geflecht doppelt an, obwohl dort „nichts wird
+       * ueberschrieben" steht — und jeder Verweis war danach mehrdeutig.
+       */
       let angelegt = 0;
+      let uebersprungen = 0;
       try {
         for (const notiz of notizen) {
+          if (await titelVergeben(kampagne.id, notiz.titel)) {
+            uebersprungen += 1;
+            continue;
+          }
           const neu = await backstoryEmbed.vault.createNote(kampagne.id, notiz.typ, notiz.titel);
           await backstoryEmbed.vault.saveNote(kampagne.id, { ...neu, body: notiz.markdown });
           angelegt += 1;
         }
       } catch (fehler) {
-        // Was schon liegt, bleibt liegen: die Haelfte eines Geflechts ist
-        // immer noch mehr wert als nichts, und geloescht wird hier nichts,
-        // was der Nutzer nicht selbst geloescht hat.
-        const grund = fehler instanceof Error ? fehler.message : String(fehler);
-        return { ok: false, text: `${grund} (${angelegt} angelegt)`, angelegt };
+        // Was schon liegt, bleibt liegen: geloescht wird hier nichts, was
+        // der Nutzer nicht selbst geloescht hat.
+        return {
+          ok: false,
+          text: `${fehlerText(fehler)} ${zweisprachig(`(${angelegt} angelegt)`, `(${angelegt} created)`)}`,
+          angelegt
+        };
+      }
+      if (angelegt === 0 && uebersprungen > 0) {
+        return {
+          ok: false,
+          text: zweisprachig(
+            `Alles davon steht schon in ${kampagne.name}; nichts doppelt angelegt.`,
+            `All of it is already in ${kampagne.name}; nothing was duplicated.`
+          ),
+          angelegt: 0
+        };
       }
 
       // Dem Story Creator sagen, dass etwas dazugekommen ist. Ohne das
@@ -737,7 +916,17 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
         backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
       }
       haken.onEreignis?.('backstory');
-      return { ok: true, text: kampagne.name, angelegt };
+      return {
+        ok: true,
+        text:
+          uebersprungen > 0
+            ? zweisprachig(
+                `${kampagne.name} (${uebersprungen} schon vorhanden, übersprungen)`,
+                `${kampagne.name} (${uebersprungen} already there, skipped)`
+              )
+            : kampagne.name,
+        angelegt
+      };
     }
   });
 
@@ -787,7 +976,8 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
           anfang: () =>
             haken.raum?.anfang('initiative') ?? { lage: { rolle: 'aus', ich: null, personen: [] }, nachrichten: [] }
         }
-      : undefined
+      : undefined,
+    eigeneZustaende: leseEigeneZustaende
   });
 
   // Vor dem Laden: die Kopfzeile muss stehen, bevor die erste Antwort kommt.
@@ -985,6 +1175,8 @@ async function montiereMonster(id: string, haken: MontageHaken): Promise<Montier
     // Die KI der Sammlung, wie ueberall. Ein eigener Zugang je Werkzeug waere
     // eine zweite Stelle, an der derselbe Schluessel liegt.
     kiQuelle: haken.kiQuelle,
+    // Fuer den Haken „Eigene Zustaende einbauen".
+    eigeneZustaende: leseEigeneZustaende,
     // „creature" gibt es in keiner Vorlage — ein Monster ist hier eine
     // Figur, und notfalls eine freie Notiz.
     anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['creature', 'character', 'note'], haken)

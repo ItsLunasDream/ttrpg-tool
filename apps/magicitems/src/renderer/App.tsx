@@ -13,7 +13,7 @@ import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { SELTENHEITEN, SELTENHEIT_NAME, gegenstandswert, type Seltenheit } from '@suite/srd';
 import { api } from './api';
 import { getLanguage, setLanguage, t, type TextKey } from './i18n';
-import { erzeuge, wuerfleFluch, wuerfleWirkung, type Gegenstand, type Sprache } from '../shared/erzeuge';
+import { erzeuge, hoechsterGrad, wuerfleFluch, wuerfleWirkung, type Gegenstand, type Sprache } from '../shared/erzeuge';
 import type { Eintrag } from '../shared/ablage';
 import type { Frage, RohGegenstand } from '../shared/kiAufgaben';
 import { pruefeKi } from '../shared/pruefung';
@@ -65,7 +65,10 @@ export function App() {
   // Fuer welche Seltenheit die Wirkungen gewuerfelt wurden. Weicht die
   // eingestellte davon ab, bietet ein Knopf neue Wirkungen an — von selbst
   // ueberschrieben wird nichts, die Texte gehoeren der Spielleitung.
-  const [wirkungenFuer, setWirkungenFuer] = useState<Seltenheit | null>(null);
+  // Fuer welche Seltenheit UND Art die Wirkungen gewuerfelt wurden: aendert
+  // sich eins davon, bietet der Knopf „anpassen" neue an (Testbericht: bei
+  // einer anderen Art blieben Waffenwirkungen an einer Schriftrolle stehen).
+  const [wirkungenFuer, setWirkungenFuer] = useState<string | null>(null);
   const [fehler, setFehler] = useState('');
   /*
    * Die KI, wie beim Monster Creator: sie schreibt, die Pruefung zieht ihre
@@ -87,13 +90,26 @@ export function App() {
    * (Rueckmeldung). `null` ist die Liste, ein ungespeicherter Entwurf heisst
    * „entwurf" und laesst sich nicht wieder herstellen.
    */
+  /*
+   * Was zuletzt erzeugt, geladen oder gespeichert wurde. Weicht der offene
+   * Gegenstand davon ab, hat man daran gearbeitet: dann fragen Neu-Wuerfeln,
+   * Zurueck und „Leer" nach, statt die Aenderung still zu verwerfen.
+   */
+  const [stand, setStand] = useState<string | null>(null);
+  const setzeGrund = (g: Gegenstand | null) => {
+    setOffen(g);
+    setStand(g ? JSON.stringify(g) : null);
+  };
+  const veraendert = offen !== null && stand !== null && JSON.stringify(offen) !== stand;
+  const darfVerwerfen = () => !veraendert || confirm(t('verwerfen.sicher'));
+
   const ort = offen ? offen.id || 'entwurf' : null;
   useEffect(() => api.ort.melde(ort), [ort]);
   useEffect(
     () =>
       api.ort.beiSprung((ziel) => {
         if (ziel === null) {
-          setOffen(null);
+          setzeGrund(null);
           setIstNeu(false);
           setMeldung('');
           setKiZeilen([]);
@@ -102,8 +118,8 @@ export function App() {
         if (ziel === 'entwurf') return;
         void api.sammlung.lesen(ziel).then((g) => {
           if (!g) return;
-          setOffen(g);
-          setWirkungenFuer(g.seltenheit);
+          setzeGrund(g);
+          setWirkungenFuer(`${g.seltenheit}|${g.art}`);
           setIstNeu(false);
         });
       }),
@@ -140,6 +156,7 @@ export function App() {
     const zielSeltenheit = seltenheit || erzeuge({ art: zielArt }, sprache()).seltenheit;
     const wert = (await frageKi({ aufgabe: 'gegenstand', art: zielArt, seltenheit: zielSeltenheit })) as RohGegenstand | null;
     if (!wert) return;
+    if (!darfVerwerfen()) return;
     const grundlage = erzeuge({ art: zielArt, seltenheit: zielSeltenheit, fluchChance: 0 }, sprache());
     const neu = mitPruefung({
       ...grundlage,
@@ -148,8 +165,8 @@ export function App() {
       fluch: wert.fluch,
       einstimmung: wert.einstimmung
     });
-    setOffen(neu);
-    setWirkungenFuer(neu.seltenheit);
+    setzeGrund(neu);
+    setWirkungenFuer(`${neu.seltenheit}|${neu.art}`);
     setIstNeu(true);
   };
 
@@ -175,8 +192,8 @@ export function App() {
         void (async () => {
           const geladen = await api.sammlung.lesen(kennung);
           if (geladen) {
-            setOffen(geladen);
-            setWirkungenFuer(geladen.seltenheit);
+            setzeGrund(geladen);
+            setWirkungenFuer(`${geladen.seltenheit}|${geladen.art}`);
             setIstNeu(false);
           } else setFehler(t('fehler.lesen'));
         })();
@@ -196,13 +213,14 @@ export function App() {
   }, [eintraege, suche]);
 
   const wuerfle = () => {
+    if (!darfVerwerfen()) return;
     setKiZeilen([]);
     const neu = erzeuge(
       { art: art || undefined, seltenheit: seltenheit || undefined, fluchChance: fluch ? 0.1 : 0 },
       spr
     );
-    setOffen(neu);
-    setWirkungenFuer(neu.seltenheit);
+    setzeGrund(neu);
+    setWirkungenFuer(`${neu.seltenheit}|${neu.art}`);
     setIstNeu(true);
     setMeldung('');
     setFehler('');
@@ -218,7 +236,7 @@ export function App() {
       setFehler(t('fehler.speichern', { detail: ergebnis.text }));
       return null;
     }
-    setOffen({ ...fertig, id: ergebnis.id });
+    setzeGrund({ ...fertig, id: ergebnis.id });
     setIstNeu(false);
     setMeldung(t('gespeichert'));
     await ladeListe();
@@ -234,8 +252,16 @@ export function App() {
     const gespeichert = await speichere();
     if (!gespeichert) return;
     if (await api.sammlung.inDenLoot(gespeichert.id)) {
-      setOffen({ ...gespeichert, imLoot: true });
+      setzeGrund({ ...gespeichert, imLoot: true });
       setMeldung(t('loot.fertig'));
+    } else setFehler(t('loot.fehler'));
+  };
+
+  const ausDemLoot = async () => {
+    if (!offen?.id) return;
+    if (await api.sammlung.ausDemLoot(offen.id)) {
+      setzeGrund({ ...offen, imLoot: false });
+      setMeldung(t('loot.heraus'));
     } else setFehler(t('loot.fehler'));
   };
 
@@ -253,6 +279,10 @@ export function App() {
         genau die.
       */}
       <div className="erzeuger">
+        {/* Im offenen Gegenstand gibt es zwei Auswahlen fuer Art und
+            Seltenheit: diese hier gilt fuer den NAECHSTEN Wurf, die unten fuer
+            den offenen Gegenstand. Das Etikett sagt es (Testbericht). */}
+        {imGegenstand ? <span className="erzeuger__etikett">{t('erzeuger.naechster')}</span> : null}
         <select
           className="feld__wahl"
           aria-label={t('erzeuger.art')}
@@ -291,7 +321,8 @@ export function App() {
         </label>
         <span className="leiste__luecke" />
         <button type="button" className="knopf" data-leer onClick={() => {
-          setOffen(leer());
+          if (!darfVerwerfen()) return;
+          setzeGrund(leer());
           setWirkungenFuer(null);
           setIstNeu(true);
         }}>
@@ -331,9 +362,17 @@ export function App() {
       const neu = { ...offen, ...teil };
       // Der Wert folgt der Seltenheit — ausser bei der Schriftrolle, deren
       // Wert am Zaubergrad haengt und beim Wuerfeln schon feststand.
-      if ((teil.seltenheit || teil.art) && neu.art !== 'schriftrolle') {
-        neu.wert = gegenstandswert(neu.seltenheit, { verbrauch: VERBRAUCH[neu.art] });
+      if (teil.seltenheit || teil.art) {
+        // Die Schriftrolle rechnet mit dem hoechsten Zaubergrad ihrer
+        // Seltenheit: sonst kostete eine gewoehnliche Rolle, die eben noch
+        // eine legendaere Waffe war, 100.000 GM (Testbericht).
+        neu.wert = gegenstandswert(neu.seltenheit, {
+          verbrauch: VERBRAUCH[neu.art],
+          schriftrolleGrad: neu.art === 'schriftrolle' ? hoechsterGrad(neu.seltenheit) : undefined
+        });
       }
+      // Traenke und Schriftrollen verlangen nie Einstimmung.
+      if (teil.art && (neu.art === 'trank' || neu.art === 'schriftrolle')) neu.einstimmung = false;
       setOffen(neu);
       setMeldung('');
     };
@@ -365,7 +404,8 @@ export function App() {
             type="button"
             className="knopf"
             onClick={() => {
-              setOffen(null);
+              if (!darfVerwerfen()) return;
+              setzeGrund(null);
               setIstNeu(false);
               setMeldung('');
               setKiZeilen([]);
@@ -380,6 +420,12 @@ export function App() {
             data-foundry
             onClick={() => {
               void (async () => {
+                // Ein leerer Gegenstand ohne Namen wird nicht still exportiert (Testbericht).
+                if (!offen.name.trim()) {
+                  setFehler(t('foundry.ohneName'));
+                  return;
+                }
+                if (!offen.wirkungen.some((w) => w.trim()) && !offen.fluch.trim() && !confirm(t('foundry.leer'))) return;
                 const datei = alsFoundryDatei(offen);
                 const ergebnis = await api.foundry(datei.name, datei.inhalt);
                 if (ergebnis.ok) setMeldung(t('foundry.fertig', { pfad: ergebnis.text }));
@@ -393,8 +439,8 @@ export function App() {
             type="button"
             className="knopf"
             data-loot
-            disabled={Boolean(offen.imLoot)}
-            onClick={() => void inDenLoot()}
+            title={offen.imLoot ? t('loot.herausHinweis') : undefined}
+            onClick={() => void (offen.imLoot ? ausDemLoot() : inDenLoot())}
           >
             {offen.imLoot ? t('loot.drin') : t('loot')}
           </button>
@@ -452,10 +498,33 @@ export function App() {
               {t('feld.einstimmung')}
             </label>
           </div>
-          <p className="wert" title={t('wert.hinweis')} data-wert>
-            {t('feld.wert', { wert: zahl(offen.wert) })}
-          </p>
-          {wirkungenFuer && wirkungenFuer !== offen.seltenheit ? (
+          {/* Der Wert laesst sich von Hand setzen (Wunsch aus dem Testbericht); der Vorschlag nach der Tabelle bleibt einen Klick entfernt. */}
+          <label className="feld wert" title={t('wert.hinweis')} data-wert>
+            <span className="feld__name">{t('feld.wertName')}</span>
+            <input
+              type="number"
+              min={0}
+              className="feld__eingabe feld__eingabe--kurz"
+              data-feld="wert"
+              value={offen.wert}
+              onChange={(e) => {
+                const n = Math.max(0, Math.round(Number(e.target.value) || 0));
+                setOffen({ ...offen, wert: n });
+              }}
+            />
+            {(() => {
+              const vorschlag = gegenstandswert(offen.seltenheit, {
+                verbrauch: VERBRAUCH[offen.art],
+                schriftrolleGrad: offen.art === 'schriftrolle' ? hoechsterGrad(offen.seltenheit) : undefined
+              });
+              return vorschlag !== offen.wert ? (
+                <button type="button" className="knopf knopf--klein" data-wert-vorschlag onClick={() => setOffen({ ...offen, wert: vorschlag })}>
+                  {t('wert.vorschlag', { wert: zahl(vorschlag) })}
+                </button>
+              ) : null;
+            })()}
+          </label>
+          {wirkungenFuer && wirkungenFuer !== `${offen.seltenheit}|${offen.art}` ? (
             <p className="anpassen">
               <button
                 type="button"
@@ -465,7 +534,7 @@ export function App() {
                   if (offen.wirkungen.some((w) => w.trim()) && !confirm(t('anpassen.sicher'))) return;
                   const neu = erzeuge({ art: offen.art, seltenheit: offen.seltenheit, fluchChance: 0 }, spr);
                   setze({ wirkungen: neu.wirkungen, einstimmung: neu.einstimmung || Boolean(offen.fluch.trim()) });
-                  setWirkungenFuer(offen.seltenheit);
+                  setWirkungenFuer(`${offen.seltenheit}|${offen.art}`);
                 }}
               >
                 ⚄ {t('anpassen', { seltenheit: SELTENHEIT_NAME[offen.seltenheit][spr] })}
@@ -679,8 +748,8 @@ export function App() {
                   void (async () => {
                     const geladen = await api.sammlung.lesen(e.id);
                     if (geladen) {
-                      setOffen(geladen);
-                      setWirkungenFuer(geladen.seltenheit);
+                      setzeGrund(geladen);
+                      setWirkungenFuer(`${geladen.seltenheit}|${geladen.art}`);
                       setIstNeu(false);
                     } else setFehler(t('fehler.lesen'));
                   })();

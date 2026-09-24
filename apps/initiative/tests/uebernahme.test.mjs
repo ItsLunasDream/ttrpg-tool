@@ -61,9 +61,9 @@ test('die Initiative wird NICHT gewuerfelt, der Zuschlag steht im Feinwert', () 
   assert.equal(wolf.feinwert, 2);
 });
 
-test('die Ruestungsklasse landet in der Notiz', () => {
+test('die Ruestungsklasse steht im eigenen Feld', () => {
   const teilnehmer = I.alsTeilnehmer(HINTERHALT, zaehler());
-  assert.equal(teilnehmer.find((t) => t.name === 'Wolf').notiz, 'RK 13');
+  assert.equal(teilnehmer.find((t) => t.name === 'Wolf').rk, 13);
 });
 
 test('jede Regel der Umgebung wird ein eigener Terrain-Eintrag', () => {
@@ -108,4 +108,18 @@ test('jede Kennung kommt nur einmal vor', () => {
   const teilnehmer = I.alsTeilnehmer(HINTERHALT, zaehler());
   const ids = [...teilnehmer.map((t) => t.id), ...teilnehmer.flatMap((t) => t.koerper.map((k) => k.id))];
   assert.equal(new Set(ids).size, ids.length);
+});
+
+test('der Statblock reist mit und uebersteht das Speichern', () => {
+  const uebergabe = {
+    name: 'Probe',
+    quelle: 'probe',
+    gegner: [{ name: 'Ghul', anzahl: 1, tp: 22, rk: 12, iniMod: 2, statblock: '# Ghul\n\n**AC** 12\n\n"Zitat" mit: Doppelpunkt' }],
+    umgebung: null
+  };
+  const [ghul] = I.alsTeilnehmer(uebergabe, zaehler());
+  assert.match(ghul.statblock, /^# Ghul/);
+  const begegnung = { schemaVersion: 1, id: 'probe', name: 'Probe', teilnehmer: [ghul], taktik: '' };
+  const gelesen = I.leseBegegnung(I.schreibeBegegnung(begegnung), 'probe');
+  assert.equal(gelesen.teilnehmer[0].statblock, ghul.statblock);
 });

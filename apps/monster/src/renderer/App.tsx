@@ -10,8 +10,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import type { Eintrag } from '../shared/ablage';
-import { alsLeib, zuId } from '../shared/ablage';
-import { alsVariante, erzeugeMonster, wuerfleNeu, type Monster } from '../shared/erzeuge';
+import { alsLeib, freieKennung, zuId } from '../shared/ablage';
+import { alsVariante, erzeugeMonster, mitEigenemZustand, wuerfleNeu, type EigenerZustand, type Monster } from '../shared/erzeuge';
 import type { Kampfweite } from '../shared/angriffe';
 import { alsFoundryDatei } from '../shared/foundry';
 import { zieheKiNach, type RohMonster } from '../shared/kiAufgaben';
@@ -22,6 +22,7 @@ import { api } from './api';
 import { Befund } from './Befund';
 import { Sammlung } from './Sammlung';
 import { Statblock } from './Statblock';
+import { Bearbeiten } from './Bearbeiten';
 import { getLanguage, setLanguage, t, type TextKey } from './i18n';
 
 /** Der Zufall der Oberflaeche. Die reinen Funktionen bekommen ihn uebergeben. */
@@ -42,10 +43,15 @@ export function App() {
   const [themaId, setThemaId] = useState('');
   const [rolleId, setRolleId] = useState('');
   const [legendaer, setLegendaer] = useState(false);
+  // Haken „Eigene Zustaende einbauen" und die Zustaende aus dem Status
+  // Effect Creator, die die Huelle liefert.
+  const [mitZustand, setMitZustand] = useState(false);
+  const [eigeneZustaende, setEigeneZustaende] = useState<readonly EigenerZustand[]>([]);
   const [kampfweite, setKampfweite] = useState<Kampfweite>('egal');
   /** Was der KI thematisch gesagt wird. Leer heisst: nur die Regler zaehlen. */
   const [kiWunsch, setKiWunsch] = useState('');
   const [monster, setMonster] = useState<Monster | null>(null);
+  const [bearbeiten, setBearbeiten] = useState(false);
   const [eintraege, setEintraege] = useState<Eintrag[]>([]);
   const [kiDa, setKiDa] = useState(false);
   const [kiLaeuft, setKiLaeuft] = useState(false);
@@ -88,14 +94,34 @@ export function App() {
   const wuerfeln = () => {
     setKiVorschlag(null);
     setOffenId(null);
+    const neu = erzeugeMonster(
+      { cr, themaId: themaId || undefined, rolleId: rolleId || undefined, legendaer, kampfweite },
+      getLanguage(),
+      wuerfel
+    );
     setMonster(
-      erzeugeMonster(
-        { cr, themaId: themaId || undefined, rolleId: rolleId || undefined, legendaer, kampfweite },
-        getLanguage(),
-        wuerfel
-      )
+      mitZustand && eigeneZustaende.length > 0
+        ? mitEigenemZustand(neu, eigeneZustaende[Math.floor(wuerfel() * eigeneZustaende.length)], getLanguage())
+        : neu
     );
   };
+
+  // Die eigenen Zustaende beim Start und beim Zurueckkommen ins Fenster:
+  // wer eben einen gebaut hat, soll ihn gleich hier finden.
+  useEffect(() => {
+    let aktiv = true;
+    const lade = () =>
+      void api
+        .eigeneZustaende?.()
+        .then((liste) => aktiv && setEigeneZustaende(liste))
+        .catch(() => undefined);
+    lade();
+    window.addEventListener('focus', lade);
+    return () => {
+      aktiv = false;
+      window.removeEventListener('focus', lade);
+    };
+  }, []);
 
   /**
    * Das ganze Monster von der KI.
@@ -162,13 +188,18 @@ export function App() {
     }
   };
 
-  const speichern = async () => {
+  // `alsNeu`: „Als neu speichern" legt eine zweite Datei an, auch wenn das
+  // Stueck schon in der Sammlung liegt (Wunsch aus dem Testbericht).
+  const speichern = async (alsNeu = false) => {
     if (!monster) return;
+    // Das offene Stueck behaelt seine Datei. Alles andere bekommt eine freie
+    // Kennung: ein neues gleichen Namens ersetzt kein gespeichertes still.
+    const id = (alsNeu ? null : offenId) ?? freieKennung(zuId(monster.name), eintraege.map((e) => e.id));
     const ergebnis = await api.sammlung.speichern(
-      { ...monster, id: zuId(monster.name), geaendert: new Date().toISOString() },
+      { ...monster, id, geaendert: new Date().toISOString() },
       getLanguage()
     );
-    if (ergebnis.ok) setOffenId(zuId(monster.name));
+    if (ergebnis.ok) setOffenId(id);
     setMeldung(
       ergebnis.ok
         ? t('meldung.gespeichert', { name: monster.name })
@@ -352,6 +383,19 @@ export function App() {
               <input type="checkbox" checked={legendaer} onChange={(e) => setLegendaer(e.target.checked)} />
               {t('feld.legendaer')}
             </label>
+            <label
+              className="regler__kaestchen"
+              title={eigeneZustaende.length === 0 ? t('feld.eigeneZustaendeLeer') : undefined}
+            >
+              <input
+                type="checkbox"
+                checked={mitZustand}
+                disabled={eigeneZustaende.length === 0}
+                data-eigene-zustaende
+                onChange={(e) => setMitZustand(e.target.checked)}
+              />
+              {t('feld.eigeneZustaende')}
+            </label>
             <div className="regler__knoepfe">
               <button type="button" className="knopf knopf--haupt" onClick={wuerfeln}>
                 {t('knopf.wuerfeln')}
@@ -386,7 +430,11 @@ export function App() {
 
           {monster && befund && (
             <>
-              <Statblock monster={monster} />
+              {bearbeiten ? (
+                <Bearbeiten monster={monster} onAendern={setMonster} />
+              ) : (
+                <Statblock monster={monster} />
+              )}
               <Befund befund={befund} onUebernehmen={uebernimmVorschlag} />
 
               {kiVorschlag && (
@@ -411,10 +459,18 @@ export function App() {
               )}
 
               <section className="werkzeuge">
+                <button type="button" className="knopf knopf--klein" aria-pressed={bearbeiten} onClick={() => setBearbeiten((vorher) => !vorher)}>
+                  {bearbeiten ? t('knopf.fertig') : t('knopf.bearbeiten')}
+                </button>
                 <button type="button" className="knopf knopf--klein" onClick={() => setMonster(wuerfleNeu(monster, 'name', getLanguage(), wuerfel))}>
                   {t('knopf.neuerName')}
                 </button>
-                <button type="button" className="knopf knopf--klein" onClick={() => setMonster(wuerfleNeu(monster, 'faehigkeiten', getLanguage(), wuerfel))}>
+                <button type="button" className="knopf knopf--klein" onClick={() => {
+                  // Der eingebaute eigene Zustand bleibt beim Nachwuerfeln stehen.
+                  const neu = wuerfleNeu(monster, 'faehigkeiten', getLanguage(), wuerfel);
+                  const alt = monster.faehigkeiten.find((f) => f.eigenerZustand);
+                  setMonster(alt ? { ...neu, faehigkeiten: [...neu.faehigkeiten, alt] } : neu);
+                }}>
                   {t('knopf.neueFaehigkeiten')}
                 </button>
                 <button type="button" className="knopf knopf--klein" onClick={() => setMonster(wuerfleNeu(monster, 'angriffe', getLanguage(), wuerfel))}>
@@ -426,7 +482,11 @@ export function App() {
                 <button type="button" className="knopf knopf--klein" onClick={() => setMonster(wuerfleNeu(monster, 'werte', getLanguage(), wuerfel))}>
                   {t('knopf.neueWerte')}
                 </button>
-                <button type="button" className="knopf knopf--klein" onClick={() => setMonster(alsVariante(monster, cr, wuerfel))}>
+                <button type="button" className="knopf knopf--klein" onClick={() => {
+                    // Eine Variante ist ein neues Monster: gespeichert wird sie neben dem Original.
+                    setOffenId(null);
+                    setMonster(alsVariante(monster, cr, wuerfel));
+                  }}>
                   {t('knopf.variante')}
                 </button>
               </section>
@@ -435,6 +495,11 @@ export function App() {
                 <button type="button" className="knopf knopf--haupt" onClick={() => void speichern()}>
                   {t('knopf.speichern')}
                 </button>
+                {offenId && (
+                  <button type="button" className="knopf" onClick={() => void speichern(true)}>
+                    {t('knopf.alsNeu')}
+                  </button>
+                )}
                 <button type="button" className="knopf" onClick={() => void exportieren()}>
                   {t('knopf.export')}
                 </button>

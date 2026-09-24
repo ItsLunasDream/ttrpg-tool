@@ -54,11 +54,12 @@ export function alsTeilnehmer(
     koerper: koerperVon(einer.anzahl, einer.tp, kennung),
     zustaende: [],
     bild: null,
-    // Die Ruestungsklasse hat im Tracker kein eigenes Feld. Sie in die
-    // Notiz zu schreiben ist die ehrlichste Stelle: sichtbar, ohne dass
-    // das Datenmodell des Trackers um ein Feld waechst, das nur von
-    // aussen gefuellt wuerde.
-    notiz: einer.rk > 0 ? `RK ${einer.rk}` : ''
+    // Frueher stand die Ruestungsklasse als „RK 17" in der Notiz — auch
+    // auf Englisch. Mit eigenem Feld zeigt die Zeile sie in der Sprache
+    // der Oberflaeche.
+    notiz: '',
+    ...(einer.rk > 0 ? { rk: einer.rk } : {}),
+    ...(einer.statblock ? { statblock: einer.statblock } : {})
   }));
 
   /*

@@ -579,7 +579,7 @@ export function kleinUndBindestrich(name: string): string {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'unbenannt'
+      .replace(/^-+|-+$/g, '') || 'unnamed'
   );
 }
 
@@ -618,6 +618,21 @@ export interface GegenstandEingabe {
   readonly fluch: string;
   /** Wert in Goldmuenzen. */
   readonly wert: number;
+  /** Die Notiz der Spielleitung; steht als eigener Absatz in der Beschreibung. */
+  readonly notiz?: string;
+}
+
+/**
+ * Der Zahlenbonus einer Waffe, Ruestung oder eines Schilds, wie er in den
+ * Wirkungen steht („+2 auf Angriffs- und Schadenswuerfe", „+1 bonus to AC").
+ * Nur 1 bis 3; alles andere ist kein Bonus im Sinne des SRD.
+ */
+export function zahlenbonus(wirkungen: readonly string[]): number | null {
+  for (const w of wirkungen) {
+    const treffer = /(^|[^\d])\+([1-3])(?!\d)/.exec(w);
+    if (treffer && /(Angriff|attack|RK|AC|Rüstungsklasse|Armor Class)/i.test(w)) return Number(treffer[2]);
+  }
+  return null;
 }
 
 /**
@@ -659,6 +674,7 @@ export function alsFoundryGegenstand(g: GegenstandEingabe): Record<string, unkno
   const wirkungen = g.wirkungen.filter((w) => w.trim());
   if (wirkungen.length) teile.push(`<ul>${wirkungen.map((w) => `<li><p>${maskiere(w.trim())}</p></li>`).join('')}</ul>`);
   if (g.fluch.trim()) teile.push(`<p><strong>${maskiere(g.fluch.trim())}</strong></p>`);
+  if (g.notiz?.trim()) teile.push(`<p><em>${maskiere(g.notiz.trim())}</em></p>`);
 
   const verbrauch = typ.type === 'consumable';
   const system: Record<string, unknown> = {
@@ -682,12 +698,32 @@ export function alsFoundryGegenstand(g: GegenstandEingabe): Record<string, unkno
   };
   if (typ.type === 'weapon') system.type = { value: '', baseItem: '' };
 
+  /*
+   * Der Bonus als Mechanik, nicht nur als Satz (Wunsch aus dem Testbericht).
+   * Waffe: `system.magicalBonus`, wie im Beleg (docs/magicitems.md).
+   * Ruestung und Schild: ein uebertragener Effekt auf
+   * `system.attributes.ac.bonus`, wie beim belegten Schild.
+   */
+  const bonus = g.art === 'waffe' || g.art === 'ruestung' || g.art === 'schild' ? zahlenbonus(wirkungen) : null;
+  const effects: Record<string, unknown>[] = [];
+  if (bonus !== null && g.art === 'waffe') system.magicalBonus = bonus;
+  if (bonus !== null && g.art !== 'waffe') {
+    effects.push({
+      name: `${g.name || 'Bonus'} (+${bonus} AC)`,
+      img: 'icons/svg/shield.svg',
+      transfer: true,
+      disabled: false,
+      changes: [{ key: 'system.attributes.ac.bonus', mode: 2, value: `+${bonus}`, priority: 20 }],
+      flags: {}
+    });
+  }
+
   return {
     name: g.name,
     type: typ.type,
     img: verbrauch ? 'icons/svg/tankard.svg' : 'icons/svg/item-bag.svg',
     system,
-    effects: [],
+    effects,
     folder: null,
     flags: {},
     _stats: stats(),

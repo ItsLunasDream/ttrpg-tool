@@ -396,3 +396,40 @@ test('kein englisches Bild steht im Plural', () => {
     }
   }
 });
+
+test('toedlich und gefaehrlich mit wenigen Stufen bestehen die eigene Pruefung', () => {
+  // Testbericht: „toedlich" mit zwei Stufen wog 39 bei erwarteten 60 bis 180.
+  for (const haerteId of ['gefaehrlich', 'toedlich']) {
+    for (const stufen of [2, 3]) {
+      let bestanden = 0;
+      for (let saat = 1; saat <= 20; saat += 1) {
+        const zustand = T.erzeugeZustand({ haerteId, stufen, wirkrichtung: 'debuff' }, 'de', wuerfelgeber(saat));
+        if (T.pruefeZustand(zustand).urteil === 'passt') bestanden += 1;
+      }
+      assert.ok(bestanden >= 18, `${haerteId}/${stufen}: nur ${bestanden} von 20`);
+    }
+  }
+});
+
+test('die Frist ist festgelegt, wenn eine Stufe sie nennt', () => {
+  let gesehen = 0;
+  for (let saat = 1; saat <= 60; saat += 1) {
+    const zustand = T.erzeugeZustand({ haerteId: 'gefaehrlich', stufen: 3 }, 'de', wuerfelgeber(saat));
+    const nennt = zustand.stufen.some((s) => s.wirkungen.some((id) => /Frist/.test(T.wirkung(id)?.text.de ?? '')));
+    const frist = T.fristText(zustand, 'de');
+    assert.equal(Boolean(frist), nennt, zustand.name);
+    if (frist) {
+      gesehen += 1;
+      assert.match(T.alsLeib({ ...zustand, id: 'x', schemaVersion: 2 }, 'de'), /\*\*Frist\*\*/);
+    }
+  }
+  assert.ok(gesehen > 0, 'kein Zustand mit Frist gezogen');
+});
+
+test('ein Segen ohne Stufen hat kein Schlimmer und Besser', () => {
+  const segen = T.erzeugeZustand({ haerteId: 'ernst', stufen: 1, wirkrichtung: 'buff' }, 'de', wuerfelgeber(3));
+  assert.equal(T.verlaufsZeilen(segen), 'keine');
+  assert.doesNotMatch(T.alsLeib({ ...segen, id: 'x', schemaVersion: 2 }, 'de'), /Schlimmer|Besser/);
+  const fluch = T.erzeugeZustand({ haerteId: 'ernst', stufen: 3, wirkrichtung: 'debuff' }, 'de', wuerfelgeber(3));
+  assert.equal(T.verlaufsZeilen(fluch), 'schaden');
+});

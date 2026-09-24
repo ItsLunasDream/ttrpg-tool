@@ -8,7 +8,7 @@ import { marked } from 'marked';
 import { anker, nachNamen, verlinkeImDokument } from './pdfVerweise';
 import { findNoteType } from '../shared/noteTypes';
 import type { Note, NoteTypeDef } from '../shared/types';
-import { formatFieldValue, type ExportLabels } from './markdownExport';
+import { formatFieldValue, mentionedBy, type ExportLabels } from './markdownExport';
 
 /** Absoluter Dateipfad als URL, damit das Druckfenster Bilder laden kann. */
 function fileUrl(absolutePath: string): string {
@@ -151,6 +151,20 @@ function renderNote(note: Note, context: PdfContext): string {
         ? `<a href="#${anker(target)}">${escapeHtml(target.title)}</a>`
         : escapeHtml(target.title);
       parts.push(`<li>${type}${titel}${comment}</li>`);
+    }
+    parts.push('</ul></div>');
+  }
+
+  // Wie im Markdown-Export: wer auf diese Notiz verweist. Fehlte im PDF.
+  const erwaehnt = mentionedBy(note, context.allNotes);
+  if (erwaehnt.length) {
+    const imDokument = new Set((context.enthalten ?? new Map()).values());
+    parts.push(`<div class="section"><h2>${escapeHtml(context.labels.mentionedBy)}</h2><ul>`);
+    for (const quelle of erwaehnt) {
+      const titel = imDokument.has(quelle)
+        ? `<a href="#${anker(quelle)}">${escapeHtml(quelle.title)}</a>`
+        : escapeHtml(quelle.title);
+      parts.push(`<li>${titel}</li>`);
     }
     parts.push('</ul></div>');
   }

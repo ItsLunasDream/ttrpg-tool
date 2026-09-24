@@ -10,7 +10,8 @@
 import { create } from 'zustand';
 import { DEFAULT_AUTOSAVE_MINUTES, clampInterval } from '@/io/autoSave';
 import { History, type Command, type DocChange, type VttKind } from './commands';
-import { createDocument, defaultTargetLayer } from './document';
+import { createDocument, defaultTargetLayer, uebersetzeStandardnamen } from './document';
+import { onLanguageChange } from '@/i18n';
 import { defaultSymmetry, type SymmetrySettings } from './symmetry';
 import { SYSTEM_GRID, SYSTEM_VTT, type LayerId, type MapDocument, type ObjectId } from './types';
 import {
@@ -598,3 +599,17 @@ export const editor = {
     return useEditor.getState().doc;
   },
 };
+
+/*
+ * Die Sprache wechselt (die Huelle sagt sie oft erst nach dem Laden): die
+ * Standardnamen ziehen mit, eigene Namen bleiben. Ein ungeaendertes Dokument
+ * bleibt dabei ungeaendert — der Name ist keine Bearbeitung.
+ */
+onLanguageChange(() => {
+  useEditor.setState((s) => {
+    const doc = uebersetzeStandardnamen(s.doc);
+    if (doc === s.doc) return {};
+    const sauber = s.rev === s.lastSavedRev;
+    return { doc, rev: s.rev + 1, ...(sauber ? { lastSavedRev: s.rev + 1 } : {}) };
+  });
+});

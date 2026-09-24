@@ -28,8 +28,12 @@ const api = {
    * Auf Knopfdruck und nicht von selbst: „Entwurf hier, Wahrheit dort" —
    * was nicht uebernommen wurde, hat im Archiv nichts verloren.
    */
-  export: (notizen: readonly Notiz[]) =>
-    ipcRenderer.invoke(kanal('export'), notizen) as Promise<ExportErgebnis>,
+  export: (notizen: readonly Notiz[], kampagneId?: string | null) =>
+    ipcRenderer.invoke(kanal('export'), notizen, kampagneId ?? null) as Promise<ExportErgebnis>,
+
+  /** Die Kampagnen des Story Creators und die, an der zuletzt gearbeitet wurde. */
+  kampagnen: () =>
+    ipcRenderer.invoke(kanal('kampagnen')) as Promise<{ liste: { id: string; name: string }[]; aktuell: string | null }>,
 
   /**
    * Die Figuren, die es in der offenen Kampagne schon gibt.
@@ -37,7 +41,8 @@ const api = {
    * Darueber kommen auch die des NPC Creators herein: was dort gewuerfelt und
    * uebernommen wurde, liegt anschliessend als Notiz in derselben Kampagne.
    */
-  figuren: () => ipcRenderer.invoke(kanal('figuren')) as Promise<readonly KampagnenFigur[]>,
+  figuren: (kampagneId?: string | null) =>
+    ipcRenderer.invoke(kanal('figuren'), kampagneId ?? null) as Promise<readonly KampagnenFigur[]>,
 
   /**
    * Der Karteneditor.

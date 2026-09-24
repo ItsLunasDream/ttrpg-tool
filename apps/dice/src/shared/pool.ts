@@ -46,7 +46,30 @@ export interface Einzelwurf {
   readonly istHoechst: boolean;
   /** Eine Eins gewuerfelt. Bei Abzugswuerfeln immer `false`. */
   readonly istTiefst: boolean;
+  /** Liegt da, zaehlt aber nicht (Vorteil, Nachteil, „hoechste N behalten"). */
+  readonly verworfen?: boolean;
+  /** Nachgewuerfelt, weil der vorige explodiert ist. */
+  readonly nachgelegt?: boolean;
 }
+
+/**
+ * Wie gewuerfelt wird, ueber die blosse Summe hinaus (Wunsch aus dem
+ * Testbericht).
+ *
+ * - `vorteil`/`nachteil`: jeder W20, der zaehlt, wird zweimal geworfen; der
+ *   hoehere bzw. niedrigere bleibt, der andere liegt verworfen daneben.
+ * - `behalte`: nur die N hoechsten Wuerfel zaehlen (4d6, hoechste 3).
+ * - `explodiert`: eine Hoechstzahl wird nachgewuerfelt und zaehlt dazu,
+ *   hoechstens zehnmal hintereinander.
+ */
+export interface Wurfart {
+  readonly vorteil?: 'vorteil' | 'nachteil';
+  readonly behalte?: number;
+  readonly explodiert?: boolean;
+}
+
+/** Wie oft ein Wuerfel hoechstens nachgelegt wird. Ohne Grenze liefe ein d2 endlos. */
+export const MAX_EXPLOSIONEN = 10;
 
 export interface Wurf {
   readonly wuerfe: readonly Einzelwurf[];
@@ -131,10 +154,22 @@ export function wuerfle(
   auswahl: Auswahl,
   eigeneSeiten: number,
   modifikator: number,
-  rng: RandomSource = Math.random
+  rng: RandomSource = Math.random,
+  wurfart: Wurfart = {}
 ): Wurf {
-  const wuerfe: Einzelwurf[] = [];
-  let summe = 0;
+  let wuerfe: Einzelwurf[] = [];
+  const einzeln = (art: Art, seiten: number, positiv: boolean, extra: Partial<Einzelwurf> = {}): Einzelwurf => {
+    const augen = rollDie(seiten, rng);
+    return {
+      art,
+      seiten,
+      augen,
+      zaehltPositiv: positiv,
+      istHoechst: positiv && augen === seiten,
+      istTiefst: positiv && augen === 1,
+      ...extra
+    };
+  };
 
   for (const art of reihenfolge(auswahl)) {
     const anzahl = auswahl[art] ?? 0;
@@ -142,23 +177,81 @@ export function wuerfle(
     const seiten = seitenVon(art, eigeneSeiten);
     const positiv = anzahl > 0;
     for (let i = 0; i < Math.abs(anzahl); i++) {
-      const augen = rollDie(seiten, rng);
-      summe += positiv ? augen : -augen;
-      wuerfe.push({
-        art,
-        seiten,
-        augen,
-        zaehltPositiv: positiv,
-        istHoechst: positiv && augen === seiten,
-        istTiefst: positiv && augen === 1
-      });
+      const erster = einzeln(art, seiten, positiv);
+      if (positiv && seiten === 20 && wurfart.vorteil) {
+        // Zweimal werfen, einer bleibt. Beide liegen da, damit man sieht, was verworfen wurde.
+        const zweiter = einzeln(art, seiten, positiv);
+        const nimmZweiten = wurfart.vorteil === 'vorteil' ? zweiter.augen > erster.augen : zweiter.augen < erster.augen;
+        wuerfe.push(nimmZweiten ? { ...erster, verworfen: true } : erster, nimmZweiten ? zweiter : { ...zweiter, verworfen: true });
+      } else wuerfe.push(erster);
+      // Explodieren: nur, was zaehlt und die Hoechstzahl zeigt.
+      if (wurfart.explodiert && positiv && seiten > 1) {
+        let letzter = wuerfe[wuerfe.length - 1].verworfen ? wuerfe[wuerfe.length - 2] : wuerfe[wuerfe.length - 1];
+        for (let n = 0; n < MAX_EXPLOSIONEN && letzter.augen === seiten; n++) {
+          letzter = einzeln(art, seiten, positiv, { nachgelegt: true });
+          wuerfe.push(letzter);
+        }
+      }
     }
   }
 
+  // Hoechste N behalten: unter den zaehlenden, positiven Wuerfeln.
+  const behalte = wurfart.behalte;
+  if (behalte !== undefined && behalte > 0) {
+    const zaehlend = wuerfe
+      .map((w, i) => ({ w, i }))
+      .filter(({ w }) => w.zaehltPositiv && !w.verworfen)
+      .sort((a, b) => b.w.augen - a.w.augen || a.i - b.i);
+    const weg = new Set(zaehlend.slice(behalte).map(({ i }) => i));
+    wuerfe = wuerfe.map((w, i) => (weg.has(i) ? { ...w, verworfen: true } : w));
+  }
+
+  const summe = wuerfe.reduce((acc, w) => (w.verworfen ? acc : acc + (w.zaehltPositiv ? w.augen : -w.augen)), 0);
   return {
-    wuerfe,
+    wuerfe: wuerfe.map((w) => (w.verworfen ? { ...w, istHoechst: false, istTiefst: false } : w)),
     modifikator,
     summe: summe + modifikator,
     ausdruck: alsAusdruck(auswahl, eigeneSeiten, modifikator)
   };
+}
+
+/** Was aus einem getippten Ausdruck wird: Auswahl, Modifikator und, wenn noetig, die eigene Seitenzahl. */
+export interface GelesenerAusdruck {
+  readonly auswahl: Auswahl;
+  readonly modifikator: number;
+  readonly eigeneSeiten?: number;
+}
+
+/**
+ * Liest einen getippten Ausdruck wie „2d6+3", „1W20 - 1W4" oder „3d7".
+ *
+ * Wuerfel, die es als Art gibt, gehen dorthin; eine andere Seitenzahl wird
+ * der eigene Wuerfel — davon kann es nur einen geben. `null`, wenn der Text
+ * kein Ausdruck ist.
+ */
+export function leseAusdruck(text: string): GelesenerAusdruck | null {
+  const sauber = text.replace(/\s+/g, '').replace(/[wW]/g, 'd').replace(/d%/g, 'd100').replace(/−/g, '-');
+  if (!sauber || !/^[+-]?(\d*d\d+|\d+)([+-](\d*d\d+|\d+))*$/.test(sauber)) return null;
+  let auswahl: Auswahl = {};
+  let modifikator = 0;
+  let eigeneSeiten: number | undefined;
+  for (const [, zeichen, glied] of sauber.matchAll(/([+-]?)(\d*d\d+|\d+)/g)) {
+    const vorzeichen = zeichen === '-' ? -1 : 1;
+    const wuerfel = /^(\d*)d(\d+)$/.exec(glied);
+    if (!wuerfel) {
+      modifikator += vorzeichen * Number(glied);
+      continue;
+    }
+    const anzahl = wuerfel[1] === '' ? 1 : Number(wuerfel[1]);
+    const seiten = Number(wuerfel[2]);
+    if (anzahl === 0 || seiten < 2 || seiten > 1000) return null;
+    let art = ARTEN.find((a) => a !== 'custom' && seitenVon(a, 0) === seiten);
+    if (!art) {
+      if (eigeneSeiten !== undefined && eigeneSeiten !== seiten) return null;
+      eigeneSeiten = seiten;
+      art = 'custom';
+    }
+    auswahl = setzeAnzahl(auswahl, art, (auswahl[art] ?? 0) + vorzeichen * anzahl);
+  }
+  return { auswahl, modifikator: begrenzeModifikator(modifikator), ...(eigeneSeiten ? { eigeneSeiten } : {}) };
 }

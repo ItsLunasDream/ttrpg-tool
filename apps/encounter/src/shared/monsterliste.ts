@@ -37,6 +37,8 @@ export interface Monsterkarte {
   /** Fuer die Suche in der Auswahlliste. */
   readonly themaId: string;
   readonly rolleId: string;
+  /** Der Leib der Datei ohne Kopf: der Statblock, fuer den Tracker. */
+  readonly statblock?: string;
 }
 
 /**
@@ -88,7 +90,8 @@ export function alsMonsterkarte(inhalt: string, rueckfallId: string): Monsterkar
     rk: zahl('rk'),
     ge: attributwert(kopf.ge),
     themaId: kopf.thema ?? '',
-    rolleId: kopf.rolle ?? ''
+    rolleId: kopf.rolle ?? '',
+    statblock: inhalt.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim()
   };
 }
 

@@ -197,12 +197,13 @@ app.whenReady().then(async () => {
   );
   pruefe(dateien().length === 3, 'vor dem Speichern liegt nichts Neues auf der Platte');
 
-  // Ohne geoeffneten Story Creator weiss die Sammlung nicht, wohin: das
-  // muss gesagt werden, nicht stillschweigend scheitern.
+  // Ohne Kampagne weiss die Sammlung nicht, wohin: das muss gesagt werden,
+  // nicht stillschweigend scheitern. (Den Story Creator laedt die Huelle
+  // inzwischen selbst im Hintergrund; es fehlt dann nur die Kampagne.)
   await js(`document.querySelector('[data-story]').click(); true`);
   await warte(500);
   const story = await js("document.querySelector('.fehler, .meldung')?.textContent ?? ''");
-  pruefe(/Story Creator/.test(story), `der Story-Knopf meldet ehrlich (${story.slice(0, 70)})`);
+  pruefe(/Story Creator|campaign|Kampagne/.test(story), `der Story-Knopf meldet ehrlich (${story.slice(0, 70)})`);
   pruefe(!/Öffne|weiß/.test(story), 'und in der Sprache der Oberflaeche, nicht auf Deutsch');
 
   await js(`document.querySelector('[data-speichern]').click(); true`);

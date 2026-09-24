@@ -106,7 +106,17 @@ export function App() {
   const [offen, setOffen] = useState<Entwurf | null>(null);
   const [istNeu, setIstNeu] = useState(false);
   const [veraendert, setVeraendert] = useState(false);
-  const [anzahl, setAnzahl] = useState(1);
+  const [anzahlText, setAnzahlText] = useState('1');
+  // Leeren und neu tippen muss gehen: gezaehlt wird erst beim Wuerfeln.
+  const anzahl = Math.max(1, Math.min(20, Math.floor(Number(anzahlText)) || 1));
+  /*
+   * Was „ohne Zuruecklegen" schon gezogen hat, ueber mehrere Klicks und den
+   * Schnellwurf hinweg (Testbericht: galt nur innerhalb eines Klicks).
+   * Zuruecklegen setzt es zurueck.
+   */
+  const gezogen = useRef<Map<string, Set<number>>>(new Map());
+  const zeilenBeimFokus = useRef<string | null>(null);
+  const [, gezogenZeichnen] = useState(0);
   const [ergebnisse, setErgebnisse] = useState<readonly Ergebnis[]>([]);
   const [schnell, setSchnell] = useState<Ergebnis | null>(null);
   // Jeder Wurf bekommt eigene Schluessel: sonst bliebe die Zeile stehen,
@@ -163,6 +173,12 @@ export function App() {
   );
   const srdKacheln = useMemo(() => srd.map(alsKachel), [srd]);
   const alle = useMemo(() => [...eigene, ...srd], [eigene, srd]);
+  // Eigene Tabellen, deren Wuerfeln gesperrt ist: auch der Schnellwurf von
+  // der Kachel wuerfelt sie nicht (Testbericht).
+  const gesperrteIds = useMemo(
+    () => new Set(eigene.filter((e) => pruefe(e, alle).some(sperrt)).map((e) => e.id)),
+    [eigene, alle]
+  );
 
   const oeffne = useCallback(async (id: string) => {
     const geladen = istFest(id) ? festRef.current.find((f) => f.id === id) : await api.sammlung.lesen(id);
@@ -227,6 +243,13 @@ export function App() {
   // Was das Wuerfeln sperrt. Nur bei eigenen Tabellen: die eingebauten und
   // die aus dem Magic Item Creator kann hier niemand berichtigen.
   const sperre = befunde.filter(sperrt);
+  // Eine eigene Tabelle mit dem Namen einer anderen: Verweise `[Name]`
+  // treffen dann nur eine davon, und die eingebaute wird still verdeckt.
+  const doppelterName = useMemo(() => {
+    if (!aktuell || !aktuell.name.trim()) return false;
+    const name = aktuell.name.trim().toLowerCase();
+    return alle.some((a) => a.id !== aktuell.id && a.name.trim().toLowerCase() === name);
+  }, [aktuell, alle]);
   const vorschlaege = useMemo(
     () =>
       verweis
@@ -382,9 +405,10 @@ export function App() {
                 type="number"
                 min={1}
                 max={20}
-                value={anzahl}
+                value={anzahlText}
                 data-anzahl
-                onChange={(e) => setAnzahl(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+                onChange={(e) => setAnzahlText(e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
+                onBlur={() => setAnzahlText(String(anzahl))}
               />
             </label>
             <button
@@ -394,14 +418,39 @@ export function App() {
               disabled={aktuell.eintraege.length === 0 || (!nurLesen && sperre.length > 0)}
               title={!nurLesen && sperre.length > 0 ? befundText(sperre[0]) : undefined}
               onClick={() => {
-                setErgebnisse(wuerfleReihe(aktuell, bestand, anzahl, Math.random));
+                setErgebnisse(wuerfleReihe(aktuell, bestand, anzahl, Math.random, gezogen.current));
+                gezogenZeichnen((n) => n + 1);
                 setMeldung('');
               }}
             >
               ⚄ {t('wuerfeln')}
             </button>
           </div>
+          {aktuell.ohneZuruecklegen && (gezogen.current.get(aktuell.id)?.size ?? 0) > 0 ? (
+            <p className="hinweis hinweis--klein" data-gezogen>
+              {t('zurueckgelegt.hinweis', {
+                n: gezogen.current.get(aktuell.id)?.size ?? 0,
+                m: aktuell.eintraege.length
+              })}{' '}
+              <button
+                type="button"
+                className="knopf knopf--klein"
+                data-zuruecklegen
+                onClick={() => {
+                  gezogen.current = new Map();
+                  gezogenZeichnen((n) => n + 1);
+                }}
+              >
+                {t('zurueckgelegt')}
+              </button>
+            </p>
+          ) : null}
           {aktuell.eintraege.length === 0 ? <p className="hinweis">{t('wurf.leer')}</p> : null}
+          {!nurLesen && doppelterName ? (
+            <p className="hinweis" data-doppelter-name>
+              {t('warnung.doppelterName', { name: aktuell.name })}
+            </p>
+          ) : null}
           {!nurLesen && sperre.length > 0 ? (
             <p className="fehler" data-gesperrt>
               {t('wurf.gesperrt')} {sperre.map(befundText).join(' ')}
@@ -498,8 +547,14 @@ export function App() {
               // Beim Verlassen bekommen Zeilen ohne Nummer die naechste freie
               // (und ein fehlender Wuerfel den passenden). Die Nummern bleiben
               // im Text und lassen sich dort aendern.
+              // Nur, wenn im Feld etwas getippt wurde: ein Klick hinein und
+              // wieder hinaus aendert die Tabelle nicht (Testbericht).
+              onFocus={() => {
+                zeilenBeimFokus.current = offen.zeilen;
+              }}
               onBlur={() => {
                 setVerweis(null);
+                if (zeilenBeimFokus.current === offen.zeilen) return;
                 const neu = nummeriere(offen.zeilen, offen.wuerfel);
                 if (neu.zeilen !== offen.zeilen || neu.wuerfel !== offen.wuerfel) setze(neu);
               }}
@@ -641,7 +696,8 @@ export function App() {
                   ) : null}
                 </span>
                 <span className="tabellenkachel__zahl">
-                  {k.wuerfel || t('kachel.gleich')} · {t('kachel.eintraege', { anzahl: k.anzahl })}
+                  {k.wuerfel || t('kachel.gleich')} ·{' '}
+                  {k.anzahl === 1 ? t('kachel.eintrag') : t('kachel.eintraege', { anzahl: k.anzahl })}
                   {k.ohneZuruecklegen ? ` · ${t('kachel.ohneZuruecklegen')}` : ''}
                 </span>
                 {k.kurz ? <span className="tabellenkachel__unten">{k.kurz}</span> : null}
@@ -651,11 +707,11 @@ export function App() {
                 className="tabellenkachel__wurf"
                 data-schnell={k.id}
                 aria-label={t('schnell')}
-                title={t('schnell')}
-                disabled={k.anzahl === 0}
+                disabled={k.anzahl === 0 || gesperrteIds.has(k.id)}
+                title={gesperrteIds.has(k.id) ? t('schnell.gesperrt') : t('schnell')}
                 onClick={() => {
                   const tabelle = alle.find((a) => a.id === k.id);
-                  if (tabelle) setSchnell(wuerfle(tabelle, alle, Math.random));
+                  if (tabelle) setSchnell(wuerfle(tabelle, alle, Math.random, 0, gezogen.current));
                 }}
               >
                 ⚄
@@ -695,6 +751,10 @@ function Baum({ ergebnis }: { readonly ergebnis: Ergebnis }) {
           <span className="baum__fehler">{t('baum.fehlt', { name: ergebnis.tabelle })}</span>
         ) : ergebnis.fehler === 'zu-tief' ? (
           <span className="baum__fehler">{t('baum.zutief', { name: ergebnis.tabelle })}</span>
+        ) : ergebnis.fehler === 'kreis' ? (
+          <span className="baum__fehler">{t('baum.kreis', { name: ergebnis.tabelle })}</span>
+        ) : ergebnis.fehler === 'zu-viel' ? (
+          <span className="baum__fehler">{t('baum.zuviel', { name: ergebnis.tabelle })}</span>
         ) : (
           <>
             <strong>{ergebnis.tabelle}</strong>

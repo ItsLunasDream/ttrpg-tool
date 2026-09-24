@@ -454,6 +454,11 @@ export interface Faehigkeit {
   readonly kategorie: Kategorie;
   /** Bei welchen Rollen sie passt. Leer heisst: bei allen. */
   readonly rollen?: readonly string[];
+  /**
+   * Kostet einen Angriff: der Text sagt „dafuer ein Angriff weniger", und
+   * der Erzeuger zieht ihn wirklich ab (Testbericht: vorher stand es nur da).
+   */
+  readonly kostetAngriff?: true;
 }
 
 /**
@@ -506,7 +511,8 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
     text: {
       de: 'Wer seinen Zug in 10 Fuß Nähe beginnt, nimmt {kleinerSchaden} {schadensart}. Dafür hat es einen Angriff weniger.',
       en: 'Anyone starting their turn within 10 feet takes {kleinerSchaden} {schadensart}. In exchange it has one attack fewer.'
-    }
+    },
+    kostetAngriff: true
   },
   {
     name: { de: 'Ausbruch', en: 'Burst' },
@@ -542,6 +548,7 @@ export const FAEHIGKEITEN: readonly Faehigkeit[] = [
       de: 'Wer es im Nahkampf trifft, nimmt selbst {kleinerSchaden} {schadensart}. Dafür hat es einen Angriff weniger.',
       en: 'Whoever hits it in melee takes {kleinerSchaden} {schadensart} in return. In exchange it has one attack fewer.'
     },
+    kostetAngriff: true,
     rollen: ['verteidiger', 'brecher']
   },
   {

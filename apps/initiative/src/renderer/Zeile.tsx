@@ -10,6 +10,9 @@
 import { useState, type ReactNode } from 'react';
 import { Kontextmenue, type MenueEintrag } from './Kontextmenue';
 import { t } from './i18n';
+import { regelZu, useZustandsliste } from './zustandsliste';
+import { Statblockfenster } from './Statblock';
+import { leseSchaden } from '../shared/format';
 import { DAUERN, type Dauer, type Koerper, type Teilnehmer } from '../shared/types';
 
 interface Props {
@@ -24,6 +27,8 @@ interface Props {
   onSchaden(koerperId: string, betrag: number): void;
   onSetzeHp(koerperId: string, wert: number): void;
   onGruppe(anzahl: number): void;
+  /** Nach einer Aenderung der Initiative: neu einsortieren. */
+  onSortieren?(): void;
   onDuplizieren(): void;
   onEntfernen(): void;
   onZustand(name: string, dauer: Dauer, runden: number | null): void;
@@ -38,7 +43,9 @@ interface Props {
 }
 
 export function Zeile(props: Props) {
-  const { teilnehmer, amZug, laeuft, offen } = props;
+  const { teilnehmer, amZug, offen } = props;
+  const zustandsliste = useZustandsliste();
+  const [statblockOffen, setStatblockOffen] = useState(false);
   /** Das offene Rechtsklickmenue, mit der Stelle des Zeigers. */
   const [menue, setMenue] = useState<{ x: number; y: number } | null>(null);
   /*
@@ -68,6 +75,7 @@ export function Zeile(props: Props) {
       // letzte nicht spuerbar spaeter dastehen als der erste.
       style={{ animationDelay: `${Math.min(props.nummer, 8) * 25}ms` }}
       aria-current={amZug ? 'true' : undefined}
+      data-zeile={teilnehmer.id}
     >
       <div className="zeile__kopf">
         <span className="zeile__ini" title={t('feld.initiative')}>
@@ -102,12 +110,35 @@ export function Zeile(props: Props) {
             <span className="zeile__marke">{t('gruppe.mitglieder', { n: teilnehmer.koerper.length })}</span>
           ) : null}
           {teilnehmer.istSpieler ? <span className="zeile__marke">PC</span> : null}
+          {teilnehmer.rk ? (
+            <span className="zeile__marke zeile__rk" title={t('feld.rk')}>
+              {t('feld.rk')} {teilnehmer.rk}
+            </span>
+          ) : null}
           {props.besitzer ? (
             <span className="zeile__marke zeile__besitz" data-besitzer={props.besitzer}>
               {props.besitzer}
             </span>
           ) : null}
         </button>
+        {teilnehmer.statblock ? (
+          <button
+            type="button"
+            className="zeile__statblock"
+            title={t('knopf.statblock')}
+            data-statblock-knopf
+            onClick={() => setStatblockOffen(true)}
+          >
+            {t('knopf.statblockKurz')}
+          </button>
+        ) : null}
+        {statblockOffen && teilnehmer.statblock ? (
+          <Statblockfenster
+            titel={teilnehmer.name}
+            markdown={teilnehmer.statblock}
+            onZu={() => setStatblockOffen(false)}
+          />
+        ) : null}
 
         <div className="zeile__koerper">
           {teilnehmer.istTerrain ? (
@@ -141,7 +172,11 @@ export function Zeile(props: Props) {
               // Wann er ablaeuft, steht in der Kurzinfo statt in der Marke:
               // auf dem Chip ist kein Platz fuer einen ganzen Satz, und im
               // Kampf zaehlt die Zahl.
-              title={`${t(`dauer.${zustand.dauer}`)} · ${t('knopf.entfernen')}`}
+              // Dazu die Regel, wenn es ein bekannter Zustand ist (SRD oder
+              // eigener): am Tisch muss niemand nachschlagen, was Blind heisst.
+              title={[regelZu(zustandsliste, zustand.name), `${t(`dauer.${zustand.dauer}`)} · ${t('knopf.entfernen')}`]
+                .filter(Boolean)
+                .join('\n\n')}
             >
               {zustand.name}
               {zustand.rundenRest !== null ? <span className="zustand__runden">{zustand.rundenRest}</span> : null}
@@ -153,9 +188,9 @@ export function Zeile(props: Props) {
       {offen ? (
         <Ausklapp
           teilnehmer={teilnehmer}
-          laeuft={laeuft}
           hatBild={Boolean(props.bildUrl)}
           onAendern={props.onAendern}
+          onSortieren={props.onSortieren}
           onGruppe={props.onGruppe}
           onDuplizieren={props.onDuplizieren}
           onEntfernen={props.onEntfernen}
@@ -199,12 +234,16 @@ function KoerperFeld({
   onSetzeHp: (wert: number) => void;
 }) {
   const [eingabe, setEingabe] = useState('');
+  // Das HP-Feld haelt beim Tippen seinen eigenen Text: sofortiges Klemmen
+  // machte aus „7" plus „5" wieder 7 (Testbericht).
+  const [hpText, setHpText] = useState<string | null>(null);
   const [blitzt, setBlitzt] = useState<'schaden' | 'heilung' | null>(null);
   const liegt = koerper.hp <= 0 || koerper.raus;
 
   function anwenden() {
-    const betrag = Number.parseInt(eingabe, 10);
-    if (!Number.isFinite(betrag) || betrag === 0) return;
+    // Summen und Wuerfel („3+4", „2d6+3"); ein Vorzeichen vorn heilt.
+    const betrag = leseSchaden(eingabe);
+    if (betrag === null) return;
     onSchaden(betrag);
     setEingabe('');
     // Ein kurzes Aufleuchten statt einer Meldung: es sagt „angekommen\", ohne
@@ -219,8 +258,15 @@ function KoerperFeld({
       <input
         className="koerper__hp"
         type="number"
-        value={koerper.hp}
-        onChange={(ereignis) => onSetzeHp(Number.parseInt(ereignis.target.value, 10) || 0)}
+        value={hpText ?? koerper.hp}
+        onChange={(ereignis) => setHpText(ereignis.target.value)}
+        onBlur={() => {
+          if (hpText !== null) onSetzeHp(Number.parseInt(hpText, 10) || 0);
+          setHpText(null);
+        }}
+        onKeyDown={(ereignis) => {
+          if (ereignis.key === 'Enter') (ereignis.target as HTMLInputElement).blur();
+        }}
         aria-label={t('feld.hp')}
       />
       <span className="koerper__max">/{koerper.hpMax}</span>
@@ -237,9 +283,12 @@ function KoerperFeld({
           if (ereignis.key === 'Enter') {
             ereignis.preventDefault();
             anwenden();
+          } else if (ereignis.key === 'Escape') {
+            setEingabe('');
           }
         }}
-        onBlur={anwenden}
+        // Kein Anwenden beim Verlassen: Schaden gilt erst mit Enter
+        // (Testbericht: ein Klick daneben zog sonst unbemerkt Schaden ab).
       />
     </span>
   );
@@ -256,9 +305,9 @@ function Feld({ label, children }: { label: string; children: ReactNode }) {
 
 function Ausklapp({
   teilnehmer,
-  laeuft,
   hatBild,
   onAendern,
+  onSortieren,
   onGruppe,
   onDuplizieren,
   onEntfernen,
@@ -266,15 +315,16 @@ function Ausklapp({
   onBild
 }: {
   teilnehmer: Teilnehmer;
-  laeuft: boolean;
   hatBild: boolean;
   onAendern: (aendere: (teilnehmer: Teilnehmer) => Teilnehmer) => void;
+  onSortieren?: () => void;
   onGruppe: (anzahl: number) => void;
   onDuplizieren: () => void;
   onEntfernen: () => void;
   onZustand: (name: string, dauer: Dauer, runden: number | null) => void;
   onBild: () => void;
 }) {
+  const zustandsliste = useZustandsliste();
   const [zustandName, setZustandName] = useState('');
   const [zustandRunden, setZustandRunden] = useState('');
   // 'zugEnde' als Vorgabe: das ist die Dauer der allermeisten Zauber.
@@ -312,6 +362,8 @@ function Ausklapp({
             className="schmal"
             value={teilnehmer.initiative}
             onChange={(e) => onAendern((alt) => ({ ...alt, initiative: Number.parseInt(e.target.value, 10) || 0 }))}
+            // Erst beim Verlassen einsortieren: beim Tippen sprang die Zeile sonst unter dem Cursor weg.
+            onBlur={() => onSortieren?.()}
           />
         </Feld>
         {/*
@@ -364,6 +416,40 @@ function Ausklapp({
             onChange={(e) => onGruppe(Number.parseInt(e.target.value, 10) || 1)}
           />
         </Feld>
+        <Feld label={t('feld.tempHp')}>
+          <input
+            type="number"
+            className="schmal"
+            min={0}
+            value={teilnehmer.koerper[0]?.tempHp ?? 0}
+            onChange={(e) => {
+              const tempHp = Math.max(0, Number.parseInt(e.target.value, 10) || 0);
+              onAendern((alt) => ({ ...alt, koerper: alt.koerper.map((k) => ({ ...k, tempHp })) }));
+            }}
+          />
+        </Feld>
+        <Feld label={t('feld.rk')}>
+          <input
+            type="number"
+            min={0}
+            className="schmal"
+            value={teilnehmer.rk ?? ''}
+            onChange={(e) => {
+              const rk = Number.parseInt(e.target.value, 10);
+              onAendern(({ rk: _alt, ...alt }) => (rk > 0 ? { ...alt, rk } : alt));
+            }}
+          />
+        </Feld>
+        <label className="feld feld--haken">
+          <input
+            type="checkbox"
+            checked={teilnehmer.koerper.length > 0 && teilnehmer.koerper.every((k) => k.raus)}
+            onChange={(e) =>
+              onAendern((alt) => ({ ...alt, koerper: alt.koerper.map((k) => ({ ...k, raus: e.target.checked })) }))
+            }
+          />
+          <span>{t('feld.raus')}</span>
+        </label>
         <label className="feld feld--haken">
           <input
             type="checkbox"
@@ -377,8 +463,18 @@ function Ausklapp({
       </div>
 
       <div className="ausklapp__zustand">
+        {/* Die Zustaende des SRD als Vorschlag; Freitext bleibt moeglich
+            (Wunsch aus dem Testbericht: Auswahl statt nur Freitext). */}
+        <datalist id={`zustaende-${teilnehmer.id}`}>
+          {zustandsliste.map((z) => (
+            <option key={`${z.eigen ? 'e' : 's'}-${z.name}`} value={z.name}>
+              {z.eigen ? t('zustand.eigen') : 'SRD'}
+            </option>
+          ))}
+        </datalist>
         <input
           type="text"
+          list={`zustaende-${teilnehmer.id}`}
           placeholder={t('knopf.zustand')}
           value={zustandName}
           onChange={(e) => setZustandName(e.target.value)}
@@ -444,7 +540,9 @@ function Ausklapp({
         </button>
       </div>
 
-      {laeuft ? null : (
+      {/* Die Notiz bleibt auch im Kampf sichtbar: dort steht etwa die
+          Ruestungsklasse aus dem Encounter Creator (Testbericht). */}
+      {(
         <textarea
           className="ausklapp__notiz"
           placeholder={t('feld.notiz')}

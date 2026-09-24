@@ -57,7 +57,7 @@ app.whenReady().then(async () => {
   const eintraege = await hjs('window.shell.suche.eintraege()');
   const regeln = (eintraege ?? []).filter((e) => e.werkzeug === 'nachschlagewerk');
   pruefe(
-    regeln.length === 155 + 180 + 339 + 258,
+    regeln.length === 155 + 180 + 51 + 339 + 258,
     `die Suche der Huelle kennt Glossar, Ausruestung, Zauber und magische Gegenstaende (${regeln.length})`
   );
   pruefe(
@@ -99,8 +99,8 @@ app.whenReady().then(async () => {
   });
 
   pruefe(
-    (await js("document.querySelectorAll('.eintrag').length")) === 155 + 180 + 339 + 258,
-    'die Liste zeigt 155 Eintraege des Glossars, 180 der Ausruestung, 339 Zauber und 258 Gegenstaende'
+    (await js("document.querySelectorAll('.eintrag').length")) === 155 + 180 + 51 + 339 + 258,
+    'die Liste zeigt 155 Eintraege des Glossars, 180 der Ausruestung und 51 einzelne Waffen und Ruestungen, 339 Zauber und 258 Gegenstaende'
   );
   // Die Einfuehrung kann beim ersten Oeffnen davor liegen; sie gehoert der
   // Huelle, nicht dem Werkzeug, und stoert die Pruefungen hier nicht.
@@ -244,6 +244,17 @@ app.whenReady().then(async () => {
     return true;
   })()`);
   await tippe('name', 'Kritische Treffer: maximal');
+  // „[[" schlaegt Eintraege vor, wie im Story Creator; Enter setzt den Verweis.
+  await tippe('text', 'Gilt auch bei [[Blin');
+  await warte(200);
+  const vorgeschlagen = await js("[...document.querySelectorAll('[data-verweisvorschlag]')].map(e => e.dataset.verweisvorschlag)");
+  pruefe(vorgeschlagen.some((n) => /^Blind/.test(n)), `"[[" schlaegt Eintraege vor (${vorgeschlagen.slice(0, 4).join(', ')})`);
+  await js(`document.querySelector('[data-hausregel-formular] [data-feld="text"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); true`);
+  await warte(200);
+  pruefe(
+    /\[\[Blind(ed)?\]\]/.test(await js("document.querySelector('[data-hausregel-formular] [data-feld=\"text\"]').value")),
+    'und Enter setzt den ganzen Verweis'
+  );
   await tippe('text', 'Bei uns wird der Schaden maximiert. Gilt auch bei [[Liegend]].');
   await warte(200);
   pruefe(

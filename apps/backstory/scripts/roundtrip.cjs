@@ -109,11 +109,12 @@ const PROBEN = [
     erwartet: 'Davor:\n\n```\neins\n   \nzwei\n\n```'
   },
   { name: 'Codeblock', text: 'Davor:\n\n```\nzeile eins\nzeile zwei\n```', erwartet: 'Davor:\n\n```\nzeile eins\nzeile zwei\n\n```' },
-  {
-    name: 'Liste',
-    text: '- eins\n- zwei\n  - zwei a',
-    erwartet: '-   eins\n\n-   zwei\n\n    -   zwei a'
-  },
+  // Listen bleiben seit dem Testbericht eng und wortgleich; vorher wurden
+  // sie zu „-   eins" mit Leerzeilen vereinheitlicht.
+  { name: 'Liste', text: '- eins\n- zwei\n  - zwei a' },
+  { name: 'Nummerierte Liste', text: '1. eins\n2. zwei' },
+  { name: 'HTML-Kommentar', text: 'Vorne <!-- fuer die SL --> hinten.\n\n<!-- ganze Zeile -->' },
+  { name: 'Linktitel und spitzer Link', text: '[x](https://a.de "Titel") und <https://b.de>.' },
   {
     name: 'Sonderzeichen',
     text: 'Ein Stern * und ein Unterstrich _ mitten drin.',

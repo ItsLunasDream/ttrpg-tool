@@ -6,6 +6,7 @@
  * der nur sagt, DASS etwas klemmt, hilft beim naechsten Schritt nicht.
  */
 import type { Befund as Werteurteil, Vorschlag } from '../shared/pruefung';
+import { schadensSpanne } from '../shared/pruefung';
 import { richtwert } from '../shared/richtwerte';
 import { t, type TextKey } from './i18n';
 
@@ -58,7 +59,7 @@ export function Befund({ befund, onUebernehmen }: Props) {
           titel={t('befund.angriff')}
           cr={befund.angriff.cr}
           gemessen={befund.angriff.gemessen}
-          spanne={ziel ? `${Math.ceil(ziel.schadenProRunde * 0.75)}–${Math.floor(ziel.schadenProRunde * 1.25)}` : ''}
+          spanne={ziel ? `${Math.ceil(schadensSpanne(ziel).von)}–${Math.floor(schadensSpanne(ziel).bis)}` : ''}
           passt={befund.angriff.passt}
         />
       </div>
@@ -107,7 +108,7 @@ function Haelfte({
   return (
     <div className={passt ? 'haelfte haelfte--gut' : 'haelfte haelfte--schlecht'}>
       <span className="haelfte__titel">{titel}</span>
-      <span className="haelfte__cr">CR {cr}</span>
+      <span className="haelfte__cr">{t('befund.grad')} {cr}</span>
       <span className="haelfte__zahl">{gemessen}</span>
       {spanne && <span className="haelfte__spanne">{spanne}</span>}
       <span className="haelfte__zeichen" aria-hidden="true">

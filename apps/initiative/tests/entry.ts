@@ -19,13 +19,15 @@ export {
   entferneZustand,
   entferneTeilnehmer,
   fuegeEin,
-  neueId
+  neueId,
+  sortiereNeu
 } from '../src/shared/kampf';
 export {
   schreibeBegegnung,
   leseBegegnung,
   zuId,
-  istGueltigeId
+  istGueltigeId,
+  leseSchaden
 } from '../src/shared/format';
 export { Ablage } from '../src/main/ablage';
 export {
@@ -38,6 +40,6 @@ export {
   VERLAUF_TIEFE
 } from '../src/shared/verlauf';
 export { finde, passt, heuhaufen, treffendeTeilnehmer } from '../src/shared/suche';
-export { pruefeVerlust, nichtsZuVerlieren, alsVorlage } from '../src/shared/neuebegegnung';
+export { pruefeVerlust, nichtsZuVerlieren, alsVorlage, speicherZiel } from '../src/shared/neuebegegnung';
 export { alsTeilnehmer, alsTaktik } from '../src/shared/uebernahme';
 export { teileKampf, stufe, leseBotschaft, wendeAn, setzeBesitz } from '../src/shared/teilen';

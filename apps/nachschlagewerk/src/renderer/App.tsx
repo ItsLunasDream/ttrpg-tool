@@ -5,7 +5,7 @@
  * Seitenwechsel beim Auswaehlen — wer nachschlaegt, will zurueck zur Liste,
  * ohne sie neu aufzubauen, und die Suche soll stehen bleiben.
  */
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { NAMENSNENNUNG, type Sprache } from '@suite/srd';
 import { api } from './api';
@@ -27,6 +27,7 @@ import { finde } from '../shared/suche';
 import { verlinke } from '../shared/verweise';
 import { zerlege, type Hausregel } from '../shared/hausregeln';
 import { findetStelle, markiere, nteStelle, vorkommenBei, type Notiz } from '../shared/notizen';
+import { Verweisfeld } from './Verweisfeld';
 
 /**
  * Die Notizen am Text: welche es gibt, und wie man eine oeffnet. Als Kontext
@@ -686,6 +687,7 @@ function Blatt({
                   eigenes={glossarId(regel)}
                   gesehen={gesehen}
                   notizen={meine.filter((n) => n.sprache === s && n.block === index)}
+                  fremde={meine.filter((n) => n.sprache !== s && n.block === index)}
                 />
               ));
             })()}
@@ -799,16 +801,85 @@ function Hausblatt({
         </p>
       ) : null}
       <section className="regel__fassung">
-        {regel.text
-          .split(/\n{2,}/)
-          .filter((absatz) => absatz.trim())
-          .map((absatz, i) => (
-            <p key={i} className="regel__einleitung">
-              <Hausverweise text={absatz} />
-            </p>
-          ))}
+        <Hausmarkdown text={regel.text} />
       </section>
     </article>
+  );
+}
+
+/**
+ * Das Markdown einer Hausregel, soweit man es fuer Regeltext braucht
+ * (Testbericht: der Hinweis versprach Markdown, gezeigt wurde es roh):
+ * Absaetze, Zeilenumbrueche, Listen mit „-"/„*" oder „1.", Ueberschriften
+ * mit „#", **fett** und *kursiv*. Die `[[Verweise]]` bleiben Verweise.
+ * Kein HTML: was jemand tippt, wird nie als Markup ausgefuehrt.
+ */
+function Hausmarkdown({ text }: { readonly text: string }) {
+  const bloecke = text.replace(/\r\n/g, '\n').split(/\n{2,}/).filter((b) => b.trim());
+  return (
+    <>
+      {bloecke.map((block, i) => {
+        const zeilen = block.split('\n');
+        if (zeilen.every((z) => /^\s*[-*]\s+/.test(z))) {
+          return (
+            <ul key={i} className="regel__liste">
+              {zeilen.map((z, j) => (
+                <li key={j}>
+                  <Hausinline text={z.replace(/^\s*[-*]\s+/, '')} />
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        if (zeilen.every((z) => /^\s*\d+[.)]\s+/.test(z))) {
+          return (
+            <ol key={i} className="regel__liste">
+              {zeilen.map((z, j) => (
+                <li key={j}>
+                  <Hausinline text={z.replace(/^\s*\d+[.)]\s+/, '')} />
+                </li>
+              ))}
+            </ol>
+          );
+        }
+        const kopf = /^(#{1,3})\s+(.*)$/.exec(zeilen[0]);
+        if (kopf && zeilen.length === 1) {
+          return kopf[1].length === 1 ? (
+            <h3 key={i}>
+              <Hausinline text={kopf[2]} />
+            </h3>
+          ) : (
+            <h4 key={i}>
+              <Hausinline text={kopf[2]} />
+            </h4>
+          );
+        }
+        return (
+          <p key={i} className="regel__einleitung">
+            {zeilen.map((z, j) => (
+              <Fragment key={j}>
+                {j > 0 ? <br /> : null}
+                <Hausinline text={z} />
+              </Fragment>
+            ))}
+          </p>
+        );
+      })}
+    </>
+  );
+}
+
+/** **fett**, *kursiv* und _kursiv_ innerhalb einer Zeile, dazu die Verweise. */
+function Hausinline({ text }: { readonly text: string }) {
+  const teile = text.split(/(\*\*[^*\n]+\*\*|\*[^*\n]+\*|_[^_\n]+_)/g);
+  return (
+    <>
+      {teile.map((teil, i) => {
+        if (/^\*\*[^*]+\*\*$/.test(teil)) return <strong key={i}><Hausverweise text={teil.slice(2, -2)} /></strong>;
+        if (/^\*[^*]+\*$/.test(teil) || /^_[^_]+_$/.test(teil)) return <em key={i}><Hausverweise text={teil.slice(1, -1)} /></em>;
+        return teil ? <Hausverweise key={i} text={teil} /> : null;
+      })}
+    </>
   );
 }
 
@@ -859,6 +930,14 @@ function Hausregelformular({
         .sort((a, b) => a.name[spr].localeCompare(b.name[spr], spr)),
     [regeln, spr]
   );
+  // Fuer „[[" im Text: alle Eintraege mit ihrer Art, die eigene Regel nicht.
+  const verweisVorschlaege = useMemo(
+    () =>
+      regeln
+        .filter((r) => r.id !== `hausregel/${regel.id}`)
+        .map((r) => ({ name: r.name[spr], art: ART_NAME[r.art]?.[spr] ?? '' })),
+    [regeln, spr, regel.id]
+  );
   return (
     <form
       className="hausformular"
@@ -895,12 +974,13 @@ function Hausregelformular({
       </label>
       <label className="hausformular__feld">
         <span>{t('haus.text')}</span>
-        <textarea
+        <Verweisfeld
           rows={10}
-          value={entwurf.text}
+          wert={entwurf.text}
           data-feld="text"
           placeholder={t('haus.textHinweis')}
-          onChange={(e) => setEntwurf({ ...entwurf, text: e.target.value })}
+          vorschlaege={verweisVorschlaege}
+          setze={(text) => setEntwurf({ ...entwurf, text })}
         />
       </label>
       {fehler ? <p className="hausformular__fehler">{fehler}</p> : null}
@@ -970,7 +1050,8 @@ function Block({
   sprache: s,
   eigenes,
   gesehen,
-  notizen
+  notizen,
+  fremde = []
 }: {
   readonly index: number;
   readonly block: Glossarblock;
@@ -978,7 +1059,26 @@ function Block({
   readonly eigenes: string;
   readonly gesehen: Set<string>;
   readonly notizen: readonly Notiz[];
+  /**
+   * Notizen, die in der anderen Sprachfassung an diesem Block haengen. Ihre
+   * Stelle laesst sich hier nicht finden, aber der Block ist derselbe: ein
+   * Zeichen am Ende, damit sie beim Sprachwechsel nicht verschwinden.
+   */
+  readonly fremde?: readonly Notiz[];
 }) {
+  const { oeffne } = useContext(NotizKontext);
+  const fremdeMarken = fremde.map((n) => (
+    <button
+      key={n.id}
+      type="button"
+      className="notizmarke"
+      data-fremde-notiz={n.id}
+      title={`„${n.stelle}": ${n.text}`}
+      onClick={(e) => oeffne(n, e.currentTarget.getBoundingClientRect(), false)}
+    >
+      ✎
+    </button>
+  ));
   if (block.typ === 'tabelle') {
     return (
       <table className="regel__tabelle">
@@ -1034,6 +1134,7 @@ function Block({
     return (
       <p className="regel__einleitung" data-block={index} data-sprache={s}>
         <Verlinkt text={block.text[s]} sprache={s} eigenes={eigenes} gesehen={gesehen} notizen={notizen} />
+        {fremdeMarken}
       </p>
     );
   }
@@ -1054,6 +1155,7 @@ function Block({
         quelle={block.text[s]}
         versatz={block.text[s].length - teil.rest.length}
       />
+      {fremdeMarken}
     </p>
   );
 }

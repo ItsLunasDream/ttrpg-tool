@@ -41,6 +41,11 @@ function ausruestungsTabelle(id: string, kennung: string, sprache: 'de' | 'en'):
   return {
     id: `${SRD_PRAEFIX}${kennung}`,
     name: tabelle.titel,
+    // Der Name in der anderen Sprache, damit ein Verweis in beiden trifft.
+    aliase: (() => {
+      const andere = eintrag?.bloecke[sprache === 'de' ? 'en' : 'de'].find((b) => b.typ === 'tabelle');
+      return andere && andere.typ === 'tabelle' ? [andere.titel] : [];
+    })(),
     eintraege: tabelle.reihen
       .filter((r) => r.slice(1).some(Boolean))
       .map((r) => ({ text: `${r[0].replace(/\s+/g, ' ')} (${r[r.length - 1]})` })),
@@ -54,6 +59,7 @@ export function srdTabellen(sprache: 'de' | 'en'): Gespeichert[] {
     {
       id: `${SRD_PRAEFIX}trinkets`,
       name: TAND_TITEL[sprache],
+      aliase: [TAND_TITEL[sprache === 'de' ? 'en' : 'de']],
       wuerfel: '1d100',
       eintraege: TAND.map((paar, i) => ({ text: paar[sprache], von: i + 1, bis: i + 1 })),
       notiz: '',

@@ -63,6 +63,9 @@ const api = {
   bild: {
     waehlen: () => ipcRenderer.invoke(kanal('bild:waehlen')) as Promise<string | null>
   },
+  /** Die eigenen Zustaende aus dem Status Effect Creator (ueber die Huelle). */
+  eigeneZustaende: () =>
+    ipcRenderer.invoke(kanal('zustaende:eigene')) as Promise<readonly { name: string; text: string }[]>,
   /** Der Raum im lokalen Netz: die geteilte Initiative. */
   raum: {
     sende: (inhalt: string, an: string | null) => ipcRenderer.invoke(kanal('raum:senden'), inhalt, an) as Promise<boolean>,

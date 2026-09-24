@@ -281,7 +281,7 @@ export function Einstellungen({
                         data-groesse={stufe}
                         onClick={() => melde(setzeGroesse(stufe))}
                       >
-                        {stufe} %
+                        {stufe}&nbsp;%
                       </button>
                     ))}
                   </div>

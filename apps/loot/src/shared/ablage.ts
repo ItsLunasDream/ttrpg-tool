@@ -38,7 +38,10 @@ export function zuId(name: string): string {
     .replace(/[üÜ]/g, 'ue')
     .replace(/ß/g, 'ss')
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/^-+|-+$/g, '')
+    // Dateinamen haben Grenzen (ENAMETOOLONG bei sehr langen Namen).
+    .slice(0, 80)
+    .replace(/-+$/, '');
   return sauber || 'tabelle';
 }
 
@@ -191,7 +194,9 @@ export type Befund =
   | { readonly art: 'doppelt'; readonly zahl: number }
   | { readonly art: 'ausserhalb'; readonly zahl: number }
   | { readonly art: 'verweis-fehlt'; readonly name: string }
-  | { readonly art: 'verweis-selbst' };
+  | { readonly art: 'verweis-selbst' }
+  | { readonly art: 'verweis-kreis'; readonly name: string }
+  | { readonly art: 'ohne-nummer'; readonly anzahl: number };
 
 export function pruefe(tabelle: Tabelle, alle: readonly Tabelle[]): Befund[] {
   const befunde: Befund[] = [];
@@ -241,6 +246,10 @@ export function pruefe(tabelle: Tabelle, alle: readonly Tabelle[]): Befund[] {
   } else if (mitSpanne.length > 0) {
     befunde.push({ art: 'spannen-ohne-wuerfel' });
   }
+  // Mit Nummern waehlt der Wuerfel: eine Zeile ohne Nummer kaeme nie dran.
+  if (wuerfel && mitSpanne.length > 0 && mitSpanne.length < tabelle.eintraege.length) {
+    befunde.push({ art: 'ohne-nummer', anzahl: tabelle.eintraege.length - mitSpanne.length });
+  }
 
   // Die Tabelle selbst steht in `alle` vielleicht noch in der alten
   // Fassung; fuer die Verweise zaehlt die, die gerade bearbeitet wird.
@@ -255,10 +264,33 @@ export function pruefe(tabelle: Tabelle, alle: readonly Tabelle[]): Befund[] {
       } else if (ziel === tabelle && !gemeldet.has('\u0000selbst')) {
         gemeldet.add('\u0000selbst');
         befunde.push({ art: 'verweis-selbst' });
+      } else if (ziel && ziel !== tabelle && !gemeldet.has(`\u0000kreis${ziel.id}`) && fuehrtZurueck(ziel, tabelle, bestand)) {
+        gemeldet.add(`\u0000kreis${ziel.id}`);
+        befunde.push({ art: 'verweis-kreis', name });
       }
     }
   }
   return befunde;
+}
+
+/** Ob man von `start` ueber Verweise wieder bei `ziel` ankommt (A → B → … → A). */
+function fuehrtZurueck(start: Tabelle, ziel: Tabelle, bestand: readonly Tabelle[]): boolean {
+  const gesehen = new Set<string>();
+  const offen: Tabelle[] = [start];
+  while (offen.length > 0) {
+    const t = offen.pop()!;
+    if (gesehen.has(t.id)) continue;
+    gesehen.add(t.id);
+    for (const e of t.eintraege) {
+      for (const name of verweise(e.text)) {
+        const n = finde(bestand, name);
+        if (!n) continue;
+        if (n === ziel || n.id === ziel.id) return true;
+        if (!gesehen.has(n.id)) offen.push(n);
+      }
+    }
+  }
+  return false;
 }
 
 /**
@@ -281,9 +313,15 @@ export function nummeriere(zeilen: string, wuerfel: string): { zeilen: string; w
     const max = Math.max(0, ...eintraege.map((e) => e.bis ?? e.von ?? 0));
     return { zeilen, wuerfel: wuerfel.trim() || max < 2 ? wuerfel : `1d${max}` };
   }
-  let naechste = Math.max(0, ...eintraege.map((e) => e.bis ?? e.von ?? 0)) + 1;
+  const bisher = Math.max(0, ...eintraege.map((e) => e.bis ?? e.von ?? 0));
+  let naechste = bisher + 1;
   const nummeriert = eintraege.map((e) => (typeof e.von === 'number' ? e : { ...e, von: naechste, bis: naechste++ }));
   const max = naechste - 1;
+  // Ein Wuerfel, der genau die bisherigen Zeilen abdeckte (etwa von hier
+  // gesetzt, „1d8" bei acht Zeilen), waechst mit: sonst sperrt die neunte
+  // Zeile das Wuerfeln (Testbericht).
+  const w = /^1[dw](\d+)$/i.exec(wuerfel.trim());
+  if (w && Number(w[1]) === bisher && max >= 2) return { zeilen: alsZeilen(nummeriert), wuerfel: `1d${max}` };
   // Unter zwei Zeilen kein Wuerfel: einen „1d1" gibt es nicht.
   return { zeilen: alsZeilen(nummeriert), wuerfel: wuerfel.trim() || max < 2 ? wuerfel : `1d${max}` };
 }
@@ -294,7 +332,13 @@ export function nummeriere(zeilen: string, wuerfel: string): { zeilen: string; w
  * die Tabelle verspricht. Hinweise wie ein fehlender Verweis sperren nicht.
  */
 export function sperrt(befund: Befund): boolean {
-  return befund.art === 'luecke' || befund.art === 'doppelt' || befund.art === 'ausserhalb' || befund.art === 'wuerfel-unlesbar';
+  return (
+    befund.art === 'luecke' ||
+    befund.art === 'doppelt' ||
+    befund.art === 'ausserhalb' ||
+    befund.art === 'wuerfel-unlesbar' ||
+    befund.art === 'ohne-nummer'
+  );
 }
 
 /**

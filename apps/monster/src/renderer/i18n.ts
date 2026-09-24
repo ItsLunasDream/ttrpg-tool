@@ -40,6 +40,12 @@ const TEXTE = {
   'knopf.wuerfeln': ['Würfeln', 'Roll'],
   'knopf.ki': ['Von der KI', 'From the AI'],
   'knopf.kiLaeuft': ['Fragt …', 'Asking …'],
+  'feld.eigeneZustaende': ['Eigene Zustände einbauen', 'Use own conditions'],
+  'feld.eigeneZustaendeLeer': [
+    'Im Status Effect Creator liegen noch keine eigenen Zustände.',
+    'There are no own conditions in the Status Effect Creator yet.'
+  ],
+  'knopf.alsNeu': ['Als neu speichern', 'Save as new'],
   'knopf.speichern': ['In die Sammlung', 'To the collection'],
   'knopf.export': ['In den Story Creator', 'To the Story Creator'],
   // Der Name des Programms, nicht uebersetzt — er heisst ueberall so.
@@ -61,6 +67,10 @@ const TEXTE = {
   'werte.angriffe': ['Angriffe', 'Attacks'],
   'werte.tempo': ['Bewegung', 'Speed'],
   'werte.umgebung': ['Umgebung', 'Environment'],
+  'werte.initiative': ['Initiative', 'Initiative'],
+  'werte.sinne': ['Sinne', 'Senses'],
+  'werte.passiv': ['Passive Wahrnehmung {n}', 'Passive Perception {n}'],
+  'werte.grad': ['{cr} (EP {ep}; ÜB +{ub})', '{cr} (XP {ep}; PB +{ub})'],
   'werte.resistent': ['Resistenzen', 'Damage Resistances'],
   'werte.immun': ['Immunitäten', 'Damage Immunities'],
   'werte.verwundbar': ['Verwundbarkeiten', 'Damage Vulnerabilities'],
@@ -71,6 +81,22 @@ const TEXTE = {
 
   'block.aktionen': ['Aktionen', 'Actions'],
   'block.bonusaktionen': ['Bonusaktionen', 'Bonus Actions'],
+  'kategorie.passiv': ['Eigenschaft', 'Trait'],
+  'kategorie.aktion': ['Aktion', 'Action'],
+  'kategorie.bonusaktion': ['Bonusaktion', 'Bonus action'],
+  'kategorie.reaktion': ['Reaktion', 'Reaction'],
+  'kategorie.legendaer': ['Legendäre Aktion', 'Legendary action'],
+  'knopf.bearbeiten': ['Bearbeiten', 'Edit'],
+  'knopf.fertig': ['Fertig', 'Done'],
+  'bearbeiten.name': ['Name', 'Name'],
+  'bearbeiten.satz': ['Beschreibung', 'Description'],
+  'bearbeiten.anzahl': ['Anzahl', 'Count'],
+  'bearbeiten.schnitt': ['Schnitt', 'Average'],
+  'bearbeiten.wuerfel': ['Würfel', 'Dice'],
+  'bearbeiten.faehigkeiten': ['Fähigkeiten', 'Features'],
+  'bearbeiten.art': ['Art', 'Kind'],
+  'bearbeiten.neueFaehigkeit': ['Neue Fähigkeit', 'New feature'],
+  'bearbeiten.dazu': ['Fähigkeit hinzufügen', 'Add feature'],
   'block.reaktionen': ['Reaktionen', 'Reactions'],
   'block.legendaer': ['Legendäre Aktionen', 'Legendary Actions'],
   'block.legendaerText': [
@@ -97,9 +123,17 @@ const TEXTE = {
     '{flaeche}. Each creature in the area makes a DC {sg} {attribut} saving throw, taking {schaden} on a failure, or half as much on a success.'
   ],
   'block.aufladen': ['(Aufladen 5–6)', '(Recharge 5–6)'],
+  'block.summeMitFaehigkeit': [
+    'Zusammen {gesamt} Schaden pro Runde — {anzahl} {{Angriff|Angriffe}} zu je etwa {je}, dazu etwa {zusatz} aus seinen Fähigkeiten. Mit dieser Zahl rechnet die Prüfung.',
+    'Together {gesamt} damage per round — {anzahl} {{attack|attacks}} at about {je} each, plus about {zusatz} from its features. This is the number the check uses.'
+  ],
+  'block.summeFlaeche': [
+    'Die Fläche mit Aufladen ersetzt in ihrer Runde die Angriffe und zählt deshalb nicht dazu.',
+    'The recharge area replaces the attacks on its turn, so it is not added.'
+  ],
   'block.summe': [
-    'Zusammen {gesamt} Schaden pro Runde — {anzahl} Angriffe zu je etwa {je}. Mit dieser Zahl rechnet die Prüfung.',
-    'Together {gesamt} damage per round — {anzahl} attacks at about {je} each. This is the number the check uses.'
+    'Zusammen {gesamt} Schaden pro Runde — {anzahl} {{Angriff|Angriffe}} zu je etwa {je}. Mit dieser Zahl rechnet die Prüfung.',
+    'Together {gesamt} damage per round — {anzahl} {{attack|attacks}} at about {je} each. This is the number the check uses.'
   ],
 
   'befund.passt': ['Passt zum Grad', 'Matches the rating'],
@@ -144,7 +178,8 @@ const TEXTE = {
     'Nothing built yet. What you save shows up here.'
   ],
   'sammlung.nichts': ['Nichts gefunden.', 'Nothing found.'],
-  'sammlung.anzahl': ['{anzahl} Monster', '{anzahl} monsters'],
+  'befund.grad': ['HG', 'CR'],
+  'sammlung.anzahl': ['{anzahl} Monster', '{anzahl} {{monster|monsters}}'],
   'sammlung.kacheln': ['Kacheln', 'Tiles'],
   'sammlung.liste': ['Liste', 'List'],
   'sammlung.sortieren': ['Sortieren', 'Sort'],
@@ -189,6 +224,16 @@ export function getLanguage(): Language {
   return sprache;
 }
 
+/**
+ * `{{Einzahl|Mehrzahl}}` im Text waehlt nach der ersten Zahl in den
+ * Parametern (`anzahl` oder `n` zuerst): aus „1 creatures" wird so „1 creature".
+ */
+function mitMehrzahl(text: string, params: Record<string, string | number>): string {
+  if (!text.includes('{{')) return text;
+  const zahl = params.anzahl ?? params.n ?? Object.values(params).find((wert) => typeof wert === 'number');
+  return text.replace(/\{\{([^|}]*)\|([^}]*)\}\}/g, (_, eins: string, mehr: string) => (Number(zahl) === 1 ? eins : mehr));
+}
+
 export function t(key: TextKey, params?: Record<string, string | number>): string {
   const paar = TEXTE[key];
   let text: string = sprache === 'de' ? paar[0] : paar[1];
@@ -196,6 +241,7 @@ export function t(key: TextKey, params?: Record<string, string | number>): strin
     for (const [name, wert] of Object.entries(params)) {
       text = text.split(`{${name}}`).join(String(wert));
     }
+    text = mitMehrzahl(text, params);
   }
   return text;
 }

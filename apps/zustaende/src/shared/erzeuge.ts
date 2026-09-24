@@ -10,7 +10,7 @@
  * harmloser als auf Stufe 2, und das merkt am Tisch jeder sofort.
  */
 
-import { darfAufStufe, pruefe, type Befund, type Stufe } from './gewicht';
+import { darfAufStufe, gesamtgewicht, pruefe, type Befund, type Stufe } from './gewicht';
 import { pruefeStimmigkeit, skalenFuerStufen, type Stimmigkeitsbefund } from './stimmigkeit';
 import {
   ARTEN,
@@ -31,6 +31,7 @@ import {
 import {
   SCHWEREN,
   schwereWert,
+  wirkung,
   wirkungenFuer,
   type Richtung,
   type Schwere,
@@ -122,7 +123,41 @@ export function baueStufen(
   thema: Thema,
   rng: () => number
 ): Stufe[] {
-  const richtungen = richtungenFuer(wirkrichtung);
+  /*
+   * Mehrere Zuege, der erste, der die eigene Pruefung besteht, gewinnt.
+   *
+   * Ein einzelner Zug landete zu oft daneben: „toedlich" mit zwei Stufen
+   * wog 39 bei erwarteten 60 bis 180, „ernst, gemischt" hatte flache
+   * Stufen (Testbericht). Besteht keiner, bleibt der mit dem kleinsten
+   * Abstand zur Spanne — ehrlich angezeigt von der Waage.
+   */
+  let bester: { stufen: Stufe[]; abstand: number } | null = null;
+  for (let versuch = 0; versuch < 24; versuch += 1) {
+    const stufen = zieheStufen(anzahl, haerte, wirkrichtung, thema, rng);
+    const befund = pruefe(stufen, haerte.id);
+    if (befund.urteil === 'passt') return stufen;
+    const abstand =
+      (befund.urteil === 'kaputt' ? 1000 : 0) +
+      Math.max(0, befund.haerteVon - befund.gewicht, befund.gewicht - befund.haerteBis);
+    if (!bester || abstand < bester.abstand) bester = { stufen, abstand };
+  }
+  return bester!.stufen;
+}
+
+function zieheStufen(
+  anzahl: number,
+  haerte: Haerte,
+  wirkrichtung: Wirkrichtung,
+  thema: Thema,
+  rng: () => number
+): Stufe[] {
+  /*
+   * „Gemischt" zieht die Stufen aus einer Richtung, den Gegenpol aus der
+   * anderen. Zogen die Stufen selbst schon Buffs und Debuffs durcheinander,
+   * hob eine Stufe die vorige auf und der Zustand war kaputt (Testbericht:
+   * „laestig, gemischt" mit vier oder fuenf Stufen).
+   */
+  const richtungen = wirkrichtung === 'gemischt' ? richtungenFuer('debuff') : richtungenFuer(wirkrichtung);
   const vergeben = new Set<string>();
   const bisher: Wirkung[] = [];
   const gezogen: Wirkung[] = [];
@@ -171,8 +206,10 @@ export function baueStufen(
     const letzte = stufen[stufen.length - 1];
     const bisherige = letzte.wirkungen.map((id) => bisher.find((w) => w.id === id)).filter(Boolean) as Wirkung[];
     const gegenrichtung: Richtung = bisherige.some((w) => w.richtung === 'buff') ? 'debuff' : 'buff';
+    // Eine Schwere leichter als die Stufe: der Gegenpol soll ziehen, nicht aufheben.
+    const gegenSchwere = SCHWEREN[Math.max(0, schwereWert(schwereFuerStufe(letzte.nummer, anzahl, haerte)) - 1)];
     const gegenpol = waehleWirkung(
-      schwereFuerStufe(letzte.nummer, anzahl, haerte),
+      gegenSchwere,
       [gegenrichtung],
       thema,
       vergeben,
@@ -190,15 +227,90 @@ export function baueStufen(
      * Angriffswuerfe" aus „mittel" in einem laestigen Zustand.
      */
     if (gegenpol && schwereWert(gegenpol.schwere) <= schwereWert(haerte.bis as Schwere)) {
-      vergeben.add(gegenpol.id);
-      stufen[stufen.length - 1] = {
-        nummer: letzte.nummer,
-        wirkungen: [...letzte.wirkungen, gegenpol.id]
-      };
+      const mit = [...stufen];
+      mit[mit.length - 1] = { nummer: letzte.nummer, wirkungen: [...letzte.wirkungen, gegenpol.id] };
+      // Nur, wenn die letzte Stufe danach noch etwas dazubringt: sonst waere
+      // sie flach, und der Zustand kaputt (Testbericht: „laestig, gemischt").
+      if (pruefe(mit, haerte.id).steigtAn) {
+        vergeben.add(gegenpol.id);
+        stufen.splice(0, stufen.length, ...mit);
+      }
     }
   }
 
-  return stufen;
+  /*
+   * Auffuellen, wenn wenige Stufen die Haerte nicht tragen.
+   *
+   * Die Spannen der Haerten sind auf drei bis fuenf Stufen gebaut. „Toedlich"
+   * mit zwei Stufen blieb mit einer Wirkung je Stufe weit darunter
+   * (Testbericht: 39 statt 60 bis 180). Dann bekommen die Stufen von hinten
+   * her eine zweite und dritte Wirkung — hinten, weil die spaeten Stufen
+   * ohnehin die schweren sind und der Verlauf so steigend bleibt.
+   */
+  const richtungenAuffuellen = wirkrichtung === 'gemischt' ? richtungenFuer('debuff') : richtungen;
+  // Mit ein oder zwei Stufen muss eine Stufe mehr tragen: bis zu vier Wirkungen.
+  const hoechstensJeStufe = stufen.length <= 2 ? 4 : 3;
+  for (let runde = 0; runde < 3; runde += 1) {
+    for (let i = stufen.length - 1; i >= 0; i -= 1) {
+      if (Math.abs(gesamtgewicht(stufen)) >= haerte.gewichtVon) return speckeAb(stufen, haerte, wirkrichtung, vergeben);
+      if (stufen[i].wirkungen.length >= hoechstensJeStufe) continue;
+      const gewuenscht = schwereFuerStufe(stufen[i].nummer, stufen.length, haerte);
+      // Ist die Schwere erschoepft (ein Segen hat nur zwei toedliche Buffs), eine darunter.
+      const dazu =
+        waehleWirkung(gewuenscht, richtungenAuffuellen, thema, vergeben, [], rng, haerte) ??
+        waehleWirkung(SCHWEREN[Math.max(0, schwereWert(gewuenscht) - 1)], richtungenAuffuellen, thema, vergeben, [], rng, haerte);
+      if (!dazu || schwereWert(dazu.schwere) > schwereWert(haerte.bis as Schwere)) continue;
+      vergeben.add(dazu.id);
+      stufen[i] = { nummer: stufen[i].nummer, wirkungen: [...stufen[i].wirkungen, dazu.id] };
+    }
+  }
+
+  return speckeAb(stufen, haerte, wirkrichtung, vergeben);
+}
+
+/** Jede Stufe wiegt fuer sich mindestens so viel wie die davor. */
+function staffelt(stufen: readonly Stufe[]): boolean {
+  const je = stufen.map((stufe) => stufe.wirkungen.reduce((summe, id) => summe + Math.abs(wirkung(id)?.punkte ?? 0), 0));
+  return je.every((wert, i) => i === 0 || wert >= je[i - 1]);
+}
+
+/**
+ * Zu schwer fuer die Haerte: die schwerste Wirkung durch eine leichtere
+ * derselben Schwere und Richtung ersetzen, bis es passt.
+ *
+ * Fuenf Stufen auf „laestig" ziehen fuenf leichte Wirkungen, und fuenf
+ * leichte koennen zusammen ueber 15 kommen (Testbericht: die Haelfte war
+ * zu schwer). Getauscht wird nur innerhalb der Schwere, damit der Verlauf
+ * bleibt, wie er war; danach wird wie beim Ziehen sortiert.
+ */
+function speckeAb(stufen: Stufe[], haerte: Haerte, wirkrichtung: Wirkrichtung, vergeben: Set<string>): Stufe[] {
+  let jetzt = stufen;
+  for (let schritt = 0; schritt < 12 && Math.abs(gesamtgewicht(jetzt)) > haerte.gewichtBis; schritt += 1) {
+    const kandidaten = jetzt
+      .flatMap((stufe, i) => stufe.wirkungen.map((id) => ({ i, id, w: wirkung(id) })))
+      .filter((k): k is { i: number; id: string; w: Wirkung } => Boolean(k.w))
+      // Nur, was in die Hauptrichtung zieht: einen Gegenpol leichter zu machen, machte es schwerer.
+      .filter((k) => wirkrichtung === 'gemischt' || richtungenFuer(wirkrichtung).includes(k.w.richtung))
+      .sort((a, b) => Math.abs(b.w.punkte) - Math.abs(a.w.punkte));
+    let getauscht = false;
+    for (const k of kandidaten) {
+      const leichter = wirkungenFuer(k.w.schwere, [k.w.richtung])
+        .filter((w) => !vergeben.has(w.id) && Math.abs(w.punkte) < Math.abs(k.w.punkte))
+        .sort((a, b) => Math.abs(b.punkte) - Math.abs(a.punkte))[0];
+      if (!leichter) continue;
+      const neu = jetzt.map((stufe, i) =>
+        i === k.i ? { ...stufe, wirkungen: stufe.wirkungen.map((id) => (id === k.id ? leichter.id : id)) } : stufe
+      );
+      if (!pruefe(neu, haerte.id).steigtAn || !staffelt(neu)) continue;
+      vergeben.delete(k.id);
+      vergeben.add(leichter.id);
+      jetzt = neu;
+      getauscht = true;
+      break;
+    }
+    if (!getauscht) break;
+  }
+  return jetzt;
 }
 
 /**
@@ -550,6 +662,41 @@ export function wuerfleNeu(
       return { ...zustand, zeichen: sinnbild.zeichen, farbe: sinnbild.farbe };
     }
   }
+}
+
+/**
+ * Was „Frist" bei diesem Zustand heisst.
+ *
+ * Die Wirkungen sagen „1W4 Schaden je Frist", damit dieselbe Zeile im Kampf
+ * und ueber Tage passt. Festgelegt war die Frist aber nirgends (Testbericht),
+ * und am Tisch fragte man nach. Sie folgt der Dauer: im Kampf eine Runde,
+ * sonst eine Stunde oder ein Tag. `null`, wenn keine Stufe sie braucht.
+ */
+export function fristText(zustand: Zustand, sprache: Sprache): string | null {
+  const braucht = zustand.stufen.some((stufe) =>
+    stufe.wirkungen.some((id) => {
+      const w = wirkung(id);
+      return w !== undefined && /Frist|interval/.test(`${w.text.de} ${w.text.en}`);
+    })
+  );
+  if (!braucht) return null;
+  const skala = dauerMit(zustand.dauerId)?.zeitskala ?? 'lang';
+  const de = sprache !== 'en';
+  if (skala === 'kampf') return de ? 'eine Runde, jeweils zu Beginn deines Zuges' : 'one round, at the start of each of your turns';
+  if (skala === 'kurz') return de ? 'eine Stunde' : 'one hour';
+  return de ? 'ein Tag' : 'one day';
+}
+
+/**
+ * Ob „Schlimmer" und „Besser" zu diesem Zustand gehoeren.
+ *
+ * Bei einem Segen ohne Stufen ergab „Schlimmer: jedes gebrochene
+ * Versprechen" keinen Sinn (Testbericht). Mit Stufen waechst ein Segen,
+ * dann heissen die Zeilen „Staerker" und „Schwaecher".
+ */
+export function verlaufsZeilen(zustand: Zustand): 'keine' | 'schaden' | 'segen' {
+  if (zustand.wirkrichtung !== 'buff') return 'schaden';
+  return zustand.stufen.length > 1 ? 'segen' : 'keine';
 }
 
 /** Der Befund zu einem Zustand. Bequemlichkeit fuer Oberflaeche und Tests. */

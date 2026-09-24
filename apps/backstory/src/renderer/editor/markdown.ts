@@ -10,7 +10,16 @@ const turndown = new TurndownService({
   emDelimiter: '*',
   // Voreinstellung waere '* * *'. Dann saehe eine Trennlinie nach jedem
   // Speichern anders aus als vorher in der Datei.
-  hr: '---'
+  hr: '---',
+  // Der Kommentar (siehe `kommentarText`) traegt ein unsichtbares Zeichen,
+  // damit Turndown ihn nicht als leer wegwirft und den Leerraum daneben
+  // richtig behandelt. Kommt er doch leer an, greift es hier.
+  blankReplacement: (_content, node) =>
+    node.nodeName === 'SPAN' && (node as HTMLElement).hasAttribute('data-kommentar')
+      ? kommentarText(node as HTMLElement)
+      : (node as { isBlock?: boolean }).isBlock
+        ? '\n\n'
+        : ''
 });
 
 /**
@@ -173,6 +182,61 @@ turndown.addRule('bareLink', {
   replacement: (content) => content
 });
 
+function kommentarText(node: HTMLElement): string {
+  const roh = node.getAttribute('data-kommentar') ?? '';
+  try {
+    return `<!--${decodeURIComponent(roh)}-->`;
+  } catch {
+    // Unkodiert stehen lassen: lieber der Rohtext als gar nichts.
+    return `<!--${roh}-->`;
+  }
+}
+
+/**
+ * Listen eng und mit einem Leerzeichen nach dem Zeichen: `- a`, `1. a`.
+ *
+ * Turndown schrieb `-   a` und `1.  a`, und weil der Editor jeden Punkt in
+ * einen Absatz packt, kam jede Liste „locker" mit Leerzeilen zurueck —
+ * viel Rauschen im Diff fuer alle, die mit Git oder Obsidian arbeiten
+ * (Testbericht). Absaetze innerhalb eines Punkts bleiben erhalten.
+ */
+turndown.addRule('listenpunkt', {
+  filter: (node) => node.nodeName === 'LI' && !(node as HTMLElement).hasAttribute('data-checked'),
+  replacement: (content, node) => {
+    const eltern = node.parentNode as HTMLElement | null;
+    let zeichen = '- ';
+    if (eltern?.nodeName === 'OL') {
+      const start = Number(eltern.getAttribute('start') ?? '1') || 1;
+      zeichen = `${start + Array.prototype.indexOf.call(eltern.children, node)}. `;
+    }
+    const einzug = ' '.repeat(zeichen.length);
+    const text = content
+      .replace(/^\n+/, '')
+      .replace(/\n+$/, '')
+      // Zwischen dem Text des Punkts und einer Unterliste keine Leerzeile.
+      .replace(/\n\n(?=[-*+] |\d+\. )/g, '\n')
+      .replace(/\n/gm, `\n${einzug}`);
+    return `${zeichen}${text}${node.nextSibling ? '\n' : ''}`;
+  }
+});
+
+turndown.addRule('kommentar', {
+  filter: (node) => node.nodeName === 'SPAN' && (node as HTMLElement).hasAttribute('data-kommentar'),
+  replacement: (_content, node) => kommentarText(node as HTMLElement)
+});
+
+/**
+ * Eine Adresse in spitzen Klammern bleibt in spitzen Klammern.
+ *
+ * `<https://…>` kam vorher als blosse Adresse zurueck (Testbericht). Der
+ * Markdown-Leser markiert solche Links mit `data-spitz`, der Editor traegt
+ * das Attribut mit (siehe BodyEditor), und hier wird es wieder `<…>`.
+ */
+turndown.addRule('spitzLink', {
+  filter: (node) => node.nodeName === 'A' && (node as HTMLElement).getAttribute('data-spitz') === '1',
+  replacement: (_content, node) => `<${(node as HTMLElement).getAttribute('href') ?? ''}>`
+});
+
 /**
  * Unterstrichener Text bleibt als HTML stehen. Markdown kennt dafuer keine
  * Schreibweise; `__text__` waere die naheliegende, gehoert dort aber dem
@@ -257,6 +321,24 @@ marked.setOptions({ gfm: true, breaks: false });
 marked.use({ renderer: taskListRenderer });
 
 /**
+ * `<https://…>` merken, damit es beim Speichern `<https://…>` bleibt.
+ * Der Leser reicht nur Adresse, Titel und Text an den Renderer; die Marke
+ * reist deshalb im Titel mit und wird dort wieder abgenommen.
+ */
+const SPITZ = '\u0000spitz';
+marked.use({
+  walkTokens(token) {
+    if (token.type === 'link' && token.raw.startsWith('<')) (token as { title: string | null }).title = SPITZ;
+  },
+  renderer: {
+    link(href: string, title: string | null | undefined, text: string) {
+      if (title !== SPITZ) return false;
+      return `<a href="${escapeHtml(href)}" data-spitz="1">${text}</a>`;
+    }
+  }
+});
+
+/**
  * Zweiter Leser fuer eingefuegten Text: er gibt rohes HTML als Text aus,
  * statt es durchzureichen.
  */
@@ -280,7 +362,7 @@ const ASSET_MARKDOWN = /(!\[[^\]]*\]\()(assets\/[^)\s]+)(\))/g;
 const ASSET_HTML = /(<img[^>]*\ssrc=")(assets\/[^"]+)(")/g;
 
 export function markdownToHtml(markdown: string, resolveAsset?: AssetResolver): string {
-  return toHtml(markdown, resolveAsset, (text) => marked.parse(text, { async: false }) as string);
+  return toHtml(markdown, resolveAsset, (text) => marked.parse(text, { async: false }) as string, true);
 }
 
 /**
@@ -295,13 +377,21 @@ export function pastedMarkdownToHtml(markdown: string, resolveAsset?: AssetResol
   return toHtml(markdown, resolveAsset, (text) => plainMarked.parse(text, { async: false }) as string);
 }
 
-function toHtml(markdown: string, resolveAsset: AssetResolver | undefined, parse: (text: string) => string): string {
+function toHtml(
+  markdown: string,
+  resolveAsset: AssetResolver | undefined,
+  parse: (text: string) => string,
+  mitKommentaren = false
+): string {
   const replace = (text: string, pattern: RegExp) =>
     text.replace(pattern, (_whole, prefix: string, target: string, suffix: string) =>
       `${prefix}${resolveAsset!(target)}${suffix}`
     );
 
-  const prepared = resolveAsset ? replace(replace(markdown, ASSET_MARKDOWN), ASSET_HTML) : markdown;
+  const mitBildern = resolveAsset ? replace(replace(markdown, ASSET_MARKDOWN), ASSET_HTML) : markdown;
+  // Nur beim Laden einer Datei. Beim Einfuegen wird rohes HTML als Text
+  // gezeigt, und dort gehoert ein Kommentar sichtbar hin.
+  const prepared = mitKommentaren ? kommentareAlsZeichen(mitBildern) : mitBildern;
 
   // Ohne diesen Schutz macht der Markdown-Leser aus [[Der *Turm*]] kursiven
   // Text und schneidet den Link dabei in Stuecke. Zurueck kaeme er dann nicht
@@ -312,6 +402,39 @@ function toHtml(markdown: string, resolveAsset: AssetResolver | undefined, parse
   // einer Tabellenzelle muss sie in der Datei stehen, im Dokument gehoert
   // dort der blosse Strich hin. Beim Speichern wird sie neu gesetzt.
   return restore(parse(masked), (link) => escapeHtml(link.replace(/\\\|/g, '|')));
+}
+
+/**
+ * HTML-Kommentare werden zu einem Zeichen, das der Editor kennt.
+ *
+ * Siehe `editor/kommentar.ts`. Nicht in Codebloecken und nicht in `Code`:
+ * dort ist `<!-- -->` Inhalt und kein Kommentar.
+ */
+function kommentareAlsZeichen(markdown: string): string {
+  if (!markdown.includes('<!--')) return markdown;
+  let offen: string | null = null;
+  const abschnitte: { code: boolean; text: string }[] = [];
+  for (const zeile of markdown.split('\n')) {
+    const zaun = FENCE_LINE.exec(zeile);
+    const imCode = offen !== null || Boolean(zaun);
+    if (zaun) {
+      const marke = zaun[2];
+      if (offen === null) offen = marke;
+      else if (marke[0] === offen[0] && marke.length >= offen.length) offen = null;
+    }
+    const letzter = abschnitte[abschnitte.length - 1];
+    if (letzter && letzter.code === imCode) letzter.text += `\n${zeile}`;
+    else abschnitte.push({ code: imCode, text: zeile });
+  }
+  return abschnitte
+    .map(({ code, text }) =>
+      code
+        ? text
+        : text.replace(/(`+)[\s\S]*?\1|<!--([\s\S]*?)-->/g, (ganz, _zaun: string | undefined, inhalt: string | undefined) =>
+            inhalt === undefined ? ganz : `<span data-kommentar="${encodeURIComponent(inhalt)}">\u2060</span>`
+          )
+    )
+    .join('\n');
 }
 
 /**

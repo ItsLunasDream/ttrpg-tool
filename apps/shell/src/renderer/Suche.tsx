@@ -14,6 +14,11 @@ import { buendle, eintragsSchluessel, finde, WERKZEUG_APP, type Eintrag } from '
 import type { MessageKey, MessageParams } from '../shared/i18n';
 import { nameKey } from '../shared/apps';
 
+/** Eine Regel aus dem SRD, keine eigene Hausregel. */
+function istOffizielleRegel(e: Eintrag): boolean {
+  return e.werkzeug === 'nachschlagewerk' && !e.kennung.startsWith('hausregel/');
+}
+
 interface Props {
   readonly eintraege: readonly Eintrag[];
   /** `null`, solange noch geladen wird. */
@@ -32,7 +37,12 @@ export function Suche({ eintraege, laedt, onWahl, onClose, t }: Props) {
     feld.current?.focus();
   }, []);
 
-  const treffer = useMemo(() => finde(eintraege, text), [eintraege, text]);
+  // Ohne Suchtext nur das Eigene und die Werkzeuge: die rund 900 Regeln des
+  // Nachschlagewerks fuellten sonst die Liste (Testbericht).
+  const treffer = useMemo(
+    () => finde(text.trim() ? eintraege : eintraege.filter((e) => !istOffizielleRegel(e)), text),
+    [eintraege, text]
+  );
   const gruppen = useMemo(() => buendle(treffer), [treffer]);
 
   /*
@@ -114,6 +124,8 @@ export function Suche({ eintraege, laedt, onWahl, onClose, t }: Props) {
                         <button
                           type="button"
                           className={nummer === aktiv ? 'suche__treffer is-active' : 'suche__treffer'}
+                          // Der aktive Treffer bleibt sichtbar, wenn die Pfeiltasten weiterlaufen.
+                          ref={nummer === aktiv ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
                           onMouseEnter={() => setAktiv(nummer)}
                           onClick={() => waehle(eintrag)}
                         >

@@ -25,7 +25,8 @@
     "@suite/dice": "*",
     "@suite/motion": "*",
     "@suite/eintraege": "*",
-    "@suite/uebergabe": "*"
+    "@suite/uebergabe": "*",
+    "@suite/srd": "*"
   },
   "author": {
     "name": "ItsLunasDream"

@@ -40,7 +40,7 @@ export interface ExportErgebnis {
  * montiert ist und welche Kampagne offen steht — genauso wie beim NPC
  * Creator.
  */
-export type Anleger = (notizen: readonly Notiz[]) => Promise<ExportErgebnis>;
+export type Anleger = (notizen: readonly Notiz[], kampagneId?: string | null) => Promise<ExportErgebnis>;
 
 /** Eine Figur, die es in der offenen Kampagne schon gibt. */
 export interface KampagnenFigur {
@@ -57,7 +57,7 @@ export interface KampagnenFigur {
  * auch die des NPC Creators: was dort gewuerfelt und uebernommen wurde, liegt
  * anschliessend als Notiz in derselben Kampagne.
  */
-export type Figurenquelle = () => Promise<readonly KampagnenFigur[]>;
+export type Figurenquelle = (kampagneId?: string | null) => Promise<readonly KampagnenFigur[]>;
 
 /**
  * Beginnt im Karteneditor eine leere Karte unter diesem Namen.
@@ -106,6 +106,8 @@ export interface InspirationEmbedOptions {
   readonly figuren?: Figurenquelle;
   /** Der Weg zum Karteneditor. Fehlt er, gibt es den Knopf nicht. */
   readonly karteAnlegen?: Kartenanleger;
+  /** Die Kampagnen, in die uebernommen werden kann, und die vorbelegte. */
+  readonly kampagnen?: () => Promise<{ liste: { id: string; name: string }[]; aktuell: string | null }>;
 }
 
 export interface InspirationEmbed {
@@ -148,12 +150,12 @@ export async function mountInspiration(
   // Erst abmelden: nach einem Fehlschlag kann dieselbe Anwendung ein zweites
   // Mal montiert werden, und `handle` weist einen zweiten Handler ab.
   ipcMain.removeHandler(kanal('export'));
-  ipcMain.handle(kanal('export'), async (_e, notizen: Notiz[]) => {
+  ipcMain.handle(kanal('export'), async (_e, notizen: Notiz[], kampagneId?: string | null) => {
     if (!options.anlegen) {
       return { ok: false, text: 'Der Story Creator ist nicht verfügbar.', angelegt: 0 };
     }
     try {
-      return await options.anlegen(notizen);
+      return await options.anlegen(notizen, kampagneId ?? null);
     } catch (fehler) {
       return {
         ok: false,
@@ -163,11 +165,16 @@ export async function mountInspiration(
     }
   });
 
+  ipcMain.removeHandler(kanal('kampagnen'));
+  ipcMain.handle(kanal('kampagnen'), async () =>
+    options.kampagnen ? await options.kampagnen().catch(() => ({ liste: [], aktuell: null })) : { liste: [], aktuell: null }
+  );
+
   ipcMain.removeHandler(kanal('figuren'));
-  ipcMain.handle(kanal('figuren'), async (): Promise<readonly KampagnenFigur[]> => {
+  ipcMain.handle(kanal('figuren'), async (_e, kampagneId?: string | null): Promise<readonly KampagnenFigur[]> => {
     if (!options.figuren) return [];
     try {
-      return await options.figuren();
+      return await options.figuren(kampagneId ?? null);
     } catch {
       // Eine leere Liste ist hier die ehrlichere Antwort als ein Fehler: die
       // Oberflaeche sagt dann „niemand da", und das stimmt aus ihrer Sicht.

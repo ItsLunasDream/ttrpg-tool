@@ -75,6 +75,25 @@ test('Umbenennen zieht Links in anderen Notizen mit', async () => {
   });
 });
 
+test('Umbenennen laesst Links stehen, deren Titel sich eine andere Notiz teilt', async () => {
+  // Testbericht: „Aldric" wurde beim Tippen ueber „Bo" zu „Borin", und der
+  // letzte Schritt bog [[Bo]] der eigenen Notiz „Bo" mit um.
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const bo = await vault.createNote(campaign.id, 'character', 'Bo');
+    const aldric = await vault.createNote(campaign.id, 'character', 'Aldric');
+    const chronik = await vault.createNote(campaign.id, 'character', 'Chronik');
+    await vault.saveNote(campaign.id, { ...chronik, body: '[[Bo]] und [[Aldric]]' });
+
+    await vault.renameNote(campaign.id, aldric.id, 'Bo');
+    const zweiter = await vault.renameNote(campaign.id, aldric.id, 'Borin');
+    assert.equal(zweiter.rewritten, 0);
+    const text = (await vault.getNote(campaign.id, chronik.id)).body.trim();
+    assert.equal(text, '[[Bo]] und [[Bo]]');
+    assert.equal((await vault.getNote(campaign.id, bo.id)).title, 'Bo');
+  });
+});
+
 test('Loeschen entfernt Beziehungen anderer Notizen auf die geloeschte', async () => {
   await withVault(async (vault) => {
     const campaign = await vault.createCampaign('Sturmkueste');
@@ -1130,5 +1149,22 @@ test('ein unbekannter Notiztyp wird beim Empfang in der Kampagne angelegt', asyn
     assert.equal(notiz.type, 'artefakt');
     const typ = (await vault.getCampaign(ziel.id)).noteTypes.find((t) => t.id === 'artefakt');
     assert.equal(typ?.label, 'Artefakt');
+  });
+});
+
+test('Ein weggefallener oder ersetzter Alias zieht seine Links mit', async () => {
+  // Testbericht: nur der Titel wurde beim Umbenennen nachgezogen, [[Alias]] blieb tot.
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    await vault.saveNote(campaign.id, { ...mira, aliases: ['die Graue', 'Falkin'] });
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+    await vault.saveNote(campaign.id, { ...toran, body: 'Er traf [[die Graue]] und [[Falkin]].' });
+
+    // „die Graue" wird durch „die Weisse" ersetzt, „Falkin" faellt weg.
+    const jetzt = await vault.getNote(campaign.id, mira.id);
+    await vault.saveNote(campaign.id, { ...jetzt, aliases: ['die Weisse'] });
+    const text = (await vault.getNote(campaign.id, toran.id)).body.trim();
+    assert.equal(text, 'Er traf [[die Weisse]] und [[Mira]].');
   });
 });

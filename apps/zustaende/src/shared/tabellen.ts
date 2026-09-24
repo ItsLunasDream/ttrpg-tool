@@ -98,7 +98,7 @@ export const ARTEN: readonly Art[] = [
     name: { de: 'Krankheit', en: 'Disease' },
     ausloeser: [
       { text: { de: 'jeder Tag ohne Pflege', en: 'each day without care' }, zeitskala: 'lang' },
-      { text: { de: 'jede misslungene Konstitutionsrettung', en: 'each failed Constitution save' }, zeitskala: 'kampf' },
+      { text: { de: 'jede misslungene Konstitutionsrettung (SG 13) am Ende deines Zuges', en: 'each failed DC 13 Constitution save at the end of your turn' }, zeitskala: 'kampf' },
       { text: { de: 'jeder Kontakt mit einem Erkrankten', en: 'each contact with the afflicted' }, zeitskala: 'lang' }
     ]
   },

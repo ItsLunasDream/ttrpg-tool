@@ -56,6 +56,11 @@ export interface Tabelle {
    * Wurfs — „die zwoelf Wirtshausgaeste sind zwoelf verschiedene".
    */
   readonly ohneZuruecklegen?: boolean;
+  /**
+   * Weitere Namen, unter denen ein Verweis die Tabelle findet — etwa der
+   * Name in der anderen Sprache, damit „[Trinkets]" auch auf Deutsch trifft.
+   */
+  readonly aliase?: readonly string[];
 }
 
 /**
@@ -98,8 +103,24 @@ export function alsWuerfel(ausdruck: string): string {
 /** Wie tief verschachtelt gewuerfelt wird, bevor abgebrochen wird. */
 export const TIEFE_DECKEL = 10;
 
+/**
+ * Wie viele Tabellen ein einzelner Wurf hoechstens aufloest.
+ *
+ * Gegen Explosionen: eine Zeile mit sechs Verweisen, die je sechs Verweise
+ * haben, sind nach wenigen Ebenen Zehntausende Wuerfe und ein haengendes
+ * Fenster (Testbericht: 29 Sekunden). Was darueber hinaus geht, bleibt als
+ * `[Name]` stehen und wird als `zu-viel` vermerkt.
+ */
+export const WURF_DECKEL = 300;
+
 /** Warum ein Zweig nicht zu Ende gewuerfelt wurde. */
-export type Fehler = 'fehlt' | 'zu-tief';
+export type Fehler = 'fehlt' | 'zu-tief' | 'kreis' | 'zu-viel';
+
+/** Was ein Wurf ueber alle Ebenen mitfuehrt: der Weg hierher und das Restbudget. */
+interface Lauf {
+  readonly pfad: readonly string[];
+  readonly rest: { n: number };
+}
 
 /**
  * Was ein Wurf ergeben hat.
@@ -134,13 +155,41 @@ export function finde(tabellen: readonly Tabelle[], gesucht: string): Tabelle | 
   return (
     tabellen.find((tabelle) => tabelle.id === gesucht.trim()) ??
     tabellen.find((tabelle) => schluessel(tabelle.name) === ziel) ??
+    tabellen.find((tabelle) => tabelle.aliase?.some((a) => schluessel(a) === ziel)) ??
     null
   );
 }
 
+/*
+ * Maskieren mit `\`: `\2d4` bleibt „2d4", `\[` bleibt „[". Fuer Namen wie
+ * „Ring of 2d4 Wishes" und fuer Text, der einfach eckige Klammern braucht.
+ * Maskierte Zeichen werden fuer die Dauer des Wurfs durch Zeichen aus dem
+ * privaten Bereich ersetzt, die weder Wuerfel noch Verweis sein koennen.
+ */
+const MASKE_START = 0xe000;
+function maskiere(text: string): { text: string; zurueck: (t: string) => string } {
+  const gemerkt: string[] = [];
+  const maskiert = text.replace(/\\([\s\S])/g, (_, zeichen: string) => {
+    gemerkt.push(zeichen);
+    return String.fromCharCode(MASKE_START + gemerkt.length - 1);
+  });
+  if (gemerkt.length === 0) return { text, zurueck: (t) => t };
+  return {
+    text: maskiert,
+    zurueck: (t) =>
+      t.replace(/[\ue000-\uf8ff]/g, (z) => gemerkt[z.charCodeAt(0) - MASKE_START] ?? z)
+  };
+}
+
+/** Maskiert Text so, dass ihn ein Wurf woertlich stehen laesst (Wuerfel, Klammern). */
+export function woertlich(text: string): string {
+  // Der Buchstabe des Wuerfels wird maskiert: aus „2d4" wird „2\\d4".
+  return text.replace(/([\\[\]])/g, '\\$1').replace(/(\d)([dDwW])(\d)/g, '$1\\$2$3').replace(/(^|[^\w\\])([dDwW])(\d)/g, '$1\\$2$3');
+}
+
 /** Die Namen, auf die ein Text verweist, in der Reihenfolge ihres Auftretens. */
 export function verweise(text: string): readonly string[] {
-  return [...text.matchAll(VERWEIS)].map((treffer) => treffer[1].trim());
+  return [...maskiere(text).text.matchAll(VERWEIS)].map((treffer) => treffer[1].trim());
 }
 
 /**
@@ -183,6 +232,15 @@ export function waehle(
   // die Tabelle von vorn — am Tisch ist ein dreizehnter Gast besser als
   // keiner.
   if (gesperrt && gesperrt.size > 0 && gesperrt.size < tabelle.eintraege.length) {
+    // Mit Wuerfel: so lange wuerfeln, bis ein freier Eintrag faellt. So
+    // bleibt die Verteilung des Wuerfels erhalten (bei 2d6 ist die 7 weiter
+    // die haeufigste), statt nach der Breite der Spannen zu gewichten.
+    if (tabelle.wuerfel && tabelle.eintraege.some((e) => typeof e.von === 'number')) {
+      for (let versuch = 0; versuch < 64; versuch += 1) {
+        const ohne = waehle(tabelle, rng);
+        if (ohne && !gesperrt.has(ohne.nummer)) return ohne;
+      }
+    }
     const frei = tabelle.eintraege.map((eintrag, nummer) => ({ eintrag, nummer })).filter((x) => !gesperrt.has(x.nummer));
     // Mit Spannen bleibt die Gewichtung erhalten: eine Spanne 1-3 zaehlt dreifach.
     const gewicht = (e: Eintrag) =>
@@ -231,9 +289,11 @@ export function waehle(
  * Zwei Dinge duerfen dabei nicht passieren, und beide passieren beim
  * Umbauen, nicht aus Boesartigkeit:
  *
- * - **Kreise.** A zeigt auf B, B auf A. Deshalb der Deckel bei
- *   `TIEFE_DECKEL` Ebenen. Was dort abbricht, wird als `zu-tief` vermerkt
- *   und nicht verschwiegen.
+ * - **Kreise.** A zeigt auf B, B auf A. Ein Verweis auf eine Tabelle, die
+ *   schon auf dem Weg hierher liegt, wird nicht aufgeloest (`kreis`). Dazu
+ *   der Deckel bei `TIEFE_DECKEL` Ebenen (`zu-tief`) und bei `WURF_DECKEL`
+ *   Tabellen je Wurf (`zu-viel`). Was abbricht, wird vermerkt und nicht
+ *   verschwiegen.
  * - **Fehlende Ziele.** Eine Tabelle wird umbenannt, ein Verweis darauf
  *   bleibt stehen. Dann bleibt der Verweis als `[Name]` im Text sichtbar
  *   stehen und wird als `fehlt` vermerkt — der Rest wird trotzdem
@@ -250,8 +310,11 @@ export function wuerfle(
   tabellen: readonly Tabelle[],
   rng: RandomSource,
   tiefe = 0,
-  gezogen?: Gezogen
+  gezogen?: Gezogen,
+  lauf: Lauf = { pfad: [], rest: { n: WURF_DECKEL } }
 ): Ergebnis {
+  lauf.rest.n -= 1;
+  const pfad = [...lauf.pfad, tabelle.id];
   const gesperrt = tabelle.ohneZuruecklegen ? gezogen?.get(tabelle.id) : undefined;
   const gewaehlt = waehle(tabelle, rng, gesperrt);
   if (!gewaehlt) {
@@ -268,25 +331,33 @@ export function wuerfle(
   }
 
   const teile: Ergebnis[] = [];
-  // Erst die Wuerfel, dann die Verweise: ein Verweisname enthaelt keine
-  // Wuerfel, ein eingesetztes Ergebnis aber moeglicherweise Zeichen, die
-  // wie welche aussehen — und das waere dann schon gewuerfelter Text.
-  const mitWuerfeln = setzeWuerfel(gewaehlt.eintrag.text, rng);
-
-  const text = mitWuerfeln.replace(VERWEIS, (ganz, name: string) => {
-    if (tiefe + 1 >= TIEFE_DECKEL) {
-      teile.push({ tabelle: name.trim(), text: '', teile: [], fehler: 'zu-tief' });
-      return ganz;
-    }
+  const { text: maskiert, zurueck } = maskiere(gewaehlt.eintrag.text);
+  // Die Wuerfel nur im Text zwischen den Verweisen: ein Verweisname bleibt,
+  // wie er ist („[d100 Trinkets]"), und ein eingesetztes Ergebnis wird nicht
+  // ein zweites Mal gewuerfelt (Testbericht).
+  let text = '';
+  let bis = 0;
+  for (const treffer of maskiert.matchAll(VERWEIS)) {
+    const ganz = treffer[0];
+    const name = zurueck(treffer[1]);
+    text += zurueck(setzeWuerfel(maskiert.slice(bis, treffer.index), rng));
+    bis = (treffer.index ?? 0) + ganz.length;
     const ziel = finde(tabellen, name);
-    if (!ziel) {
-      teile.push({ tabelle: name.trim(), text: '', teile: [], fehler: 'fehlt' });
-      return ganz;
+    let fehler: Fehler | null = null;
+    if (!ziel) fehler = 'fehlt';
+    else if (pfad.includes(ziel.id)) fehler = 'kreis';
+    else if (tiefe + 1 >= TIEFE_DECKEL) fehler = 'zu-tief';
+    else if (lauf.rest.n <= 0) fehler = 'zu-viel';
+    if (fehler || !ziel) {
+      teile.push({ tabelle: name.trim(), text: '', teile: [], fehler: fehler ?? 'fehlt' });
+      text += zurueck(ganz);
+      continue;
     }
-    const unten = wuerfle(ziel, tabellen, rng, tiefe + 1, gezogen);
+    const unten = wuerfle(ziel, tabellen, rng, tiefe + 1, gezogen, { pfad, rest: lauf.rest });
     teile.push(unten);
-    return unten.text;
-  });
+    text += unten.text;
+  }
+  text += zurueck(setzeWuerfel(maskiert.slice(bis), rng));
 
   return {
     tabelle: tabelle.name,
@@ -307,9 +378,10 @@ export function wuerfleReihe(
   tabelle: Tabelle,
   tabellen: readonly Tabelle[],
   anzahl: number,
-  rng: RandomSource
+  rng: RandomSource,
+  /** Von aussen, damit „ohne Zuruecklegen" ueber mehrere Klicks gilt. */
+  gezogen: Gezogen = new Map()
 ): readonly Ergebnis[] {
-  const gezogen: Gezogen = new Map();
   const heraus: Ergebnis[] = [];
   for (let i = 0; i < Math.max(0, Math.floor(anzahl)); i += 1) {
     heraus.push(wuerfle(tabelle, tabellen, rng, 0, gezogen));

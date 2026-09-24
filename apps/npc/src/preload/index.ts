@@ -26,8 +26,12 @@ const api = {
    * Auf Knopfdruck und nicht von selbst: eine Figur, die man verwirft, soll
    * nicht schon im Archiv liegen.
    */
-  export: (titel: string, markdown: string) =>
-    ipcRenderer.invoke(kanal('export'), titel, markdown) as Promise<ExportErgebnis>,
+  export: (titel: string, markdown: string, kampagneId?: string | null) =>
+    ipcRenderer.invoke(kanal('export'), titel, markdown, kampagneId ?? null) as Promise<ExportErgebnis>,
+
+  /** Die Kampagnen des Story Creators und die, an der zuletzt gearbeitet wurde. */
+  kampagnen: () =>
+    ipcRenderer.invoke(kanal('kampagnen')) as Promise<{ liste: { id: string; name: string }[]; aktuell: string | null }>,
 
   /**
    * Die KI.

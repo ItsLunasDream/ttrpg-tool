@@ -35,7 +35,10 @@ export function zuId(name: string): string {
     .replace(/[üÜ]/g, 'ue')
     .replace(/ß/g, 'ss')
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/^-+|-+$/g, '')
+    // Dateinamen haben Grenzen (ENAMETOOLONG bei sehr langen Namen).
+    .slice(0, 80)
+    .replace(/-+$/, '');
   return sauber || 'gegenstand';
 }
 

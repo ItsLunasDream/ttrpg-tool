@@ -16,7 +16,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import type { MessageKey, MessageParams } from '../shared/i18n';
-import type { GefundenerRaum, Raumzustand } from '../main/raum';
+import type { Chatzeile, GefundenerRaum, Raumzustand } from '../main/raum';
 import { alsAdresse, leseAdresse, RAUM_INTERNETPORT } from '@suite/austausch';
 
 interface Props {
@@ -40,6 +40,10 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   const [eigenerFehler, setEigenerFehler] = useState('');
   const [oeffentlich, setOeffentlich] = useState<string | null | 'fragt' | 'fehlt'>(null);
   const [kopiert, setKopiert] = useState('');
+  // Waehrend ein Beitritt laeuft: Knoepfe gesperrt und ein Hinweis statt des alten Fehlers.
+  const [verbindet, setVerbindet] = useState(false);
+  // Ein geschuetzter Raum aus der Liste, fuer den noch das Passwort fehlt.
+  const [passwortFuer, setPasswortFuer] = useState<string | null>(null);
   // Chatzeilen mit geteilten Eintraegen, die aufgeklappt sind (nach Index).
   const [aufgeklappt, setAufgeklappt] = useState<Set<number>>(new Set());
   const liste = useRef<HTMLDivElement>(null);
@@ -69,16 +73,33 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   }, []);
 
   useEffect(() => {
-    void window.shell.einstellungen.lesen().then((e) => setName(e.tischName));
     void window.shell.raum.suchen();
   }, []);
+  // Der Name kann sich im Raum geaendert haben; nach dem Verlassen steht hier der aktuelle.
+  useEffect(() => {
+    if (zustand.rolle === 'aus') void window.shell.einstellungen.lesen().then((e) => setName(e.tischName));
+  }, [zustand.rolle]);
+
+  const beitreten = (host: string, port: number) => {
+    if (verbindet) return;
+    setVerbindet(true);
+    setPasswortFuer(null);
+    void window.shell.raum.beitreten(host, port, beitrittPasswort).finally(() => setVerbindet(false));
+  };
 
   useEffect(() => {
     liste.current?.scrollTo({ top: liste.current.scrollHeight });
   }, [zustand.chat.length]);
 
+  // Wer gegangen ist, bekommt keine Direktnachricht mehr: sonst ginge die
+  // naechste privat an „?" (Testbericht).
+  useEffect(() => {
+    if (an && !zustand.personen.some((p) => p.id === an)) setAn('');
+  }, [an, zustand.personen]);
+
   const kopiere = (text: string) => {
-    void window.shell.raum.kopieren(text).then(() => {
+    void window.shell.raum.kopieren(text).then((ok) => {
+      if (!ok) return;
       setKopiert(text);
       setTimeout(() => setKopiert((alt) => (alt === text ? '' : alt)), 1200);
     });
@@ -151,10 +172,41 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
                   type="button"
                   className="dialog__knopf"
                   data-beitreten={r.raum}
-                  onClick={() => void window.shell.raum.beitreten(r.adresse, r.port, beitrittPasswort)}
+                  disabled={verbindet}
+                  onClick={() => {
+                    // Geschuetzt und noch kein Passwort: hier nachfragen statt scheitern.
+                    if (r.geschuetzt && !beitrittPasswort) setPasswortFuer(`${r.adresse}:${r.port}`);
+                    else beitreten(r.adresse, r.port);
+                  }}
                 >
                   {t('room.join')}
                 </button>
+                {passwortFuer === `${r.adresse}:${r.port}` && (
+                  <div className="raum__reihe raum__nachfrage" data-passwort-nachfrage>
+                    <span className="einst__satz">{t('room.needsPassword')}</span>
+                    <input
+                      className="suche__feld raum__eingabe"
+                      type="password"
+                      autoFocus
+                      data-nachfrage-passwort
+                      value={beitrittPasswort}
+                      placeholder={t('room.password')}
+                      onChange={(e) => setBeitrittPasswort(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && beitrittPasswort) beitreten(r.adresse, r.port);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="dialog__knopf"
+                      disabled={!beitrittPasswort || verbindet}
+                      title={!beitrittPasswort ? t('room.hint.password') : undefined}
+                      onClick={() => beitreten(r.adresse, r.port)}
+                    >
+                      {t('room.join')}
+                    </button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -176,23 +228,30 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
             title={t('room.addressHint', { port: String(RAUM_INTERNETPORT) })}
             onChange={(e) => setAdresse(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && ziel) void window.shell.raum.beitreten(ziel.host, ziel.port, beitrittPasswort);
+              if (e.key === 'Enter' && ziel) beitreten(ziel.host, ziel.port);
             }}
           />
           <button
             type="button"
             className="dialog__knopf"
             data-adresse-beitreten
-            disabled={!ziel}
-            onClick={() => ziel && void window.shell.raum.beitreten(ziel.host, ziel.port, beitrittPasswort)}
+            disabled={!ziel || verbindet}
+            title={!ziel ? t('room.hint.address', { port: String(RAUM_INTERNETPORT) }) : undefined}
+            onClick={() => ziel && beitreten(ziel.host, ziel.port)}
           >
             {t('room.join')}
           </button>
         </div>
-        {fehler && (
-          <p className="einst__satz austausch__fehler" data-raum-fehler>
-            {fehler}
+        {verbindet ? (
+          <p className="einst__satz raum__verbindet" data-raum-verbindet>
+            <span className="raum__kreis" /> {t('room.connecting')}
           </p>
+        ) : (
+          fehler && (
+            <p className="einst__satz austausch__fehler" data-raum-fehler>
+              {fehler}
+            </p>
+          )
         )}
 
         <h3 className="raum__kopf">{t('room.open')}</h3>
@@ -218,6 +277,7 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
             className="dialog__knopf"
             data-raum-eroeffnen
             disabled={internet && (!passwort || !portGut)}
+            title={internet && !passwort ? t('room.hint.password') : internet && !portGut ? t('room.hint.port') : undefined}
             onClick={eroeffnen}
           >
             {t('room.openButton')}
@@ -246,6 +306,19 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
           <p className="einst__satz austausch__fehler" data-raum-eroeffnen-fehler>
             {eigenerFehler}
           </p>
+        )}
+        {zustand.letzter && (
+          <section className="raum__letzter" data-raum-letzter>
+            <div className="raum__suchkopf">
+              <h3 className="raum__kopf">{t('room.lastRoom', { raum: zustand.letzter.raum })}</h3>
+              <button type="button" className="dialog__knopf" data-raum-vergessen onClick={() => void window.shell.raum.vergessen()}>
+                {t('room.hideLast')}
+              </button>
+            </div>
+            <div className="raum__chat">
+              <Chatliste chat={zustand.letzter.chat} aufgeklappt={aufgeklappt} setAufgeklappt={setAufgeklappt} t={t} />
+            </div>
+          </section>
         )}
       </div>
     );
@@ -276,7 +349,16 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
         <span className={`raum__marke${zustand.verschluesselt ? ' is-sicher' : ''}`} data-raum-verschluesselt={zustand.verschluesselt}>
           {zustand.verschluesselt ? t('room.encrypted') : t('room.notEncrypted')}
         </span>
-        <button type="button" className="dialog__knopf" data-raum-verlassen onClick={() => void window.shell.raum.verlassen()}>
+        <button
+          type="button"
+          className="dialog__knopf"
+          data-raum-verlassen
+          onClick={() => {
+            // Als Gastgeber fliegen alle raus: erst fragen, wenn jemand da ist.
+            if (zustand.rolle === 'gastgeber' && andere.length > 0 && !window.confirm(t('room.closeConfirm'))) return;
+            void window.shell.raum.verlassen();
+          }}
+        >
           {zustand.rolle === 'gastgeber' ? t('room.close') : t('room.leave')}
         </button>
       </div>
@@ -304,7 +386,7 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
           className="suche__feld raum__eingabe"
           data-raum-umbenennen
           value={neuerName}
-          maxLength={64}
+          maxLength={40}
           placeholder={zustand.ich?.name ?? ''}
           onChange={(e) => setNeuerName(e.target.value)}
           onKeyDown={(e) => {
@@ -336,32 +418,7 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
         {zustand.chat.length === 0 ? (
           <p className="einst__satz">{t('room.emptyChat')}</p>
         ) : (
-          zustand.chat.map((z, i) => (
-            <p key={i} className={`raum__zeile motion-eintritt${z.an ? ' is-privat' : ''}${z.eigene ? ' is-eigen' : ''}`}>
-              <span className="raum__wer">
-                {z.von.name}
-                {z.an ? ` → ${z.an.name}` : ''}
-              </span>{' '}
-              {z.an ? <em className="raum__privat">{t('room.private')} </em> : null}
-              {z.dateien ? (
-                <Dateizeile
-                  dateien={z.dateien}
-                  offen={aufgeklappt.has(i)}
-                  schalte={() =>
-                    setAufgeklappt((alt) => {
-                      const neu = new Set(alt);
-                      if (neu.has(i)) neu.delete(i);
-                      else neu.add(i);
-                      return neu;
-                    })
-                  }
-                  t={t}
-                />
-              ) : (
-                z.text
-              )}
-            </p>
-          ))
+          <Chatliste chat={zustand.chat} aufgeklappt={aufgeklappt} setAufgeklappt={setAufgeklappt} t={t} />
         )}
       </div>
       <div className="raum__reihe">
@@ -477,6 +534,64 @@ function Adressen({
         </>
       )}
     </div>
+  );
+}
+
+/** Die Uhrzeit einer Chatzeile, kurz (14:05). */
+function uhrzeit(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+/** Die Zeilen eines Chats, mit Uhrzeit; Kommen und Gehen als leise Zeile der App. */
+function Chatliste({
+  chat,
+  aufgeklappt,
+  setAufgeklappt,
+  t
+}: {
+  readonly chat: readonly Chatzeile[];
+  readonly aufgeklappt: Set<number>;
+  readonly setAufgeklappt: (f: (alt: Set<number>) => Set<number>) => void;
+  readonly t: Props['t'];
+}) {
+  return (
+    <>
+      {chat.map((z, i) =>
+        z.system ? (
+          <p key={i} className="raum__zeile raum__system" data-chat-system={z.system}>
+            <span className="raum__zeit">{uhrzeit(z.zeit)}</span>{' '}
+            {t(z.system === 'kommt' ? 'room.joined' : 'room.left', { name: z.von.name })}
+          </p>
+        ) : (
+          <p key={i} className={`raum__zeile motion-eintritt${z.an ? ' is-privat' : ''}${z.eigene ? ' is-eigen' : ''}`}>
+            <span className="raum__zeit">{uhrzeit(z.zeit)}</span>{' '}
+            <span className="raum__wer">
+              {z.von.name}
+              {z.an ? ` → ${z.an.name}` : ''}
+            </span>{' '}
+            {z.an ? <em className="raum__privat">{t('room.private')} </em> : null}
+            {z.dateien ? (
+              <Dateizeile
+                dateien={z.dateien}
+                offen={aufgeklappt.has(i)}
+                schalte={() =>
+                  setAufgeklappt((alt) => {
+                    const neu = new Set(alt);
+                    if (neu.has(i)) neu.delete(i);
+                    else neu.add(i);
+                    return neu;
+                  })
+                }
+                t={t}
+              />
+            ) : (
+              z.text
+            )}
+          </p>
+        )
+      )}
+    </>
   );
 }
 

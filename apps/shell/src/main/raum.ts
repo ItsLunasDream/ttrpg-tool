@@ -57,6 +57,14 @@ export interface Chatzeile {
   readonly eigene: boolean;
   /** Bei einem Paket: die Namen der Eintraege darin (der Text bleibt leer). */
   readonly dateien?: readonly string[];
+  /** Eine Zeile der App selbst: `von` ist gekommen oder gegangen. */
+  readonly system?: 'kommt' | 'geht';
+}
+
+/** Der Chat des Raums, aus dem man gerade kam, zum Nachlesen. */
+export interface LetzterRaum {
+  readonly raum: string;
+  readonly chat: readonly Chatzeile[];
 }
 
 export interface Raumzustand {
@@ -79,6 +87,11 @@ export interface Raumzustand {
   readonly ping: number | null;
   /** Nur beim Gastgeber: der Ping zu jedem Gast, nach Personen-ID. */
   readonly pings: Readonly<Record<string, number>>;
+  /**
+   * Nur ausserhalb eines Raums: der Chat des letzten, damit er nach dem
+   * Schliessen nicht sofort weg ist (Testbericht). `null`, wenn es keinen gab.
+   */
+  readonly letzter: LetzterRaum | null;
 }
 
 /** Die Namen der Eintraege eines Pakets; laesst es sich nicht lesen, der Titel. */
@@ -119,7 +132,7 @@ export function eigeneIpv6(): string[] {
 }
 
 /** Warum eine Verbindung nicht zustande kam, so dass man etwas damit anfangen kann. */
-export type Verbindungsgrund = 'verbindung' | 'getrennt' | 'nichtErreichbar' | 'abgewiesen' | 'unbekannt';
+export type Verbindungsgrund = 'verbindung' | 'getrennt' | 'geschlossen' | 'nichtErreichbar' | 'abgewiesen' | 'unbekannt';
 
 function grundAus(fehler: unknown): Verbindungsgrund {
   const code = (fehler as { code?: string } | null)?.code ?? '';
@@ -161,6 +174,7 @@ export class Raumdienst {
   private ich: Person | null = null;
   private personen: Person[] = [];
   private chat: Chatzeile[] = [];
+  private letzter: LetzterRaum | null = null;
 
   // Gastgeber
   private server: Server | null = null;
@@ -212,8 +226,37 @@ export class Raumdienst {
       verschluesselt: this.rolle === 'gastgeber' ? this.stamm !== null : this.leitungsschutz !== null,
       internet: this.rolle === 'gastgeber' && this.internet,
       ping: this.rolle === 'gast' ? this.ping : null,
-      pings: this.rolle === 'gastgeber' ? Object.fromEntries(this.gastPings) : {}
+      pings: this.rolle === 'gastgeber' ? Object.fromEntries(this.gastPings) : {},
+      letzter: this.rolle === 'aus' ? this.letzter : null
     };
+  }
+
+  /** Den nachzulesenden Chat des letzten Raums verwerfen. */
+  vergissLetzten(): void {
+    if (!this.letzter) return;
+    this.letzter = null;
+    this.meldeZustand();
+  }
+
+  /**
+   * Die Personenliste setzen und im Chat vermerken, wer gekommen oder
+   * gegangen ist. Die eigene Person bekommt keine Zeile.
+   */
+  private setzePersonen(neu: Person[]): void {
+    const alt = this.personen;
+    this.personen = neu;
+    const zeit = new Date().toISOString();
+    const zeilen: Chatzeile[] = [];
+    for (const p of neu)
+      if (p.id !== this.ich?.id && !alt.some((a) => a.id === p.id))
+        zeilen.push({ von: p, an: null, text: '', zeit, eigene: false, system: 'kommt' });
+    for (const p of alt)
+      if (p.id !== this.ich?.id && !neu.some((n) => n.id === p.id))
+        zeilen.push({ von: p, an: null, text: '', zeit, eigene: false, system: 'geht' });
+    for (const zeile of zeilen) {
+      this.chat = [...this.chat, zeile].slice(-500);
+      this.melde({ art: 'chat', zeile });
+    }
   }
 
   private meldeZustand(): void {
@@ -352,6 +395,7 @@ export class Raumdienst {
     this.ich = { id: 'gastgeber', name: eindeutigerName(name, []) };
     this.personen = [this.ich];
     this.chat = [];
+    this.letzter = null;
     this.rolle = 'gastgeber';
     const port = (server.address() as { port: number }).port;
     this.starteRuf(port);
@@ -431,7 +475,7 @@ export class Raumdienst {
       if (!this.gaeste.delete(gast)) return;
       if (gast.person) {
         this.gastPings.delete(gast.person.id);
-        this.personen = this.personen.filter((p) => p.id !== gast.person?.id);
+        this.setzePersonen(this.personen.filter((p) => p.id !== gast.person?.id));
         this.verteilePersonen();
       }
     };
@@ -457,7 +501,7 @@ export class Raumdienst {
         id: randomBytes(6).toString('hex'),
         name: eindeutigerName(n.name, this.personen.map((p) => p.name))
       };
-      this.personen = [...this.personen, gast.person];
+      this.setzePersonen([...this.personen, gast.person]);
       this.schreibe(gast, { typ: 'willkommen', du: gast.person, personen: this.personen });
       this.verteilePersonen();
       return;
@@ -532,6 +576,9 @@ export class Raumdienst {
       this.leitung = socket;
       const leser = new Zeilenleser();
       let erledigt = false;
+      let abgelehnt = false;
+      // Der Gastgeber hat mit Absicht geschlossen: dann ist es kein Abriss.
+      let geschlossen = false;
       const ende = () => {
         if (!erledigt) {
           erledigt = true;
@@ -548,14 +595,19 @@ export class Raumdienst {
           this.ich = n.du;
           this.personen = [...n.personen];
           this.chat = [];
+          this.letzter = null;
           this.meldeZustand();
           this.startePing();
           ende();
         } else if (n.typ === 'abgelehnt') {
+          // Die Absage ist der Grund; das Schliessen danach meldet nichts mehr.
+          abgelehnt = true;
           this.melde({ art: 'fehler', grund: n.grund });
           ende();
+        } else if (n.typ === 'schluss') {
+          geschlossen = true;
         } else if (n.typ === 'personen') {
-          this.personen = [...n.personen];
+          this.setzePersonen([...n.personen]);
           // Der eigene Name kann sich geaendert haben (umbenannt, eindeutig gemacht).
           const selbst = this.personen.find((p) => p.id === this.ich?.id);
           if (selbst) this.ich = selbst;
@@ -598,7 +650,7 @@ export class Raumdienst {
         this.leitung = null;
         this.leitungsschutz = null;
         this.setzeZurueck();
-        this.melde({ art: 'fehler', grund: warDrin ? 'getrennt' : grund });
+        if (!abgelehnt) this.melde({ art: 'fehler', grund: warDrin ? (geschlossen ? 'geschlossen' : 'getrennt') : grund });
         this.meldeZustand();
         ende();
       };
@@ -734,7 +786,7 @@ export class Raumdienst {
    * ihn eindeutig macht und die Liste an alle schickt.
    */
   umbenennen(name: string): boolean {
-    const neuName = name.trim().slice(0, 64);
+    const neuName = name.trim().slice(0, 40);
     if (!neuName || !this.ich) return false;
     if (this.rolle === 'gastgeber') {
       const ich = this.ich;
@@ -759,6 +811,7 @@ export class Raumdienst {
   }
 
   private setzeZurueck(): void {
+    if (this.rolle !== 'aus' && this.chat.length > 0) this.letzter = { raum: this.raumName, chat: this.chat };
     this.stoppePing();
     this.rolle = 'aus';
     this.ich = null;
@@ -779,7 +832,17 @@ export class Raumdienst {
     } else this.rufer?.close();
     this.abschied = null;
     this.rufer = null;
-    for (const g of this.gaeste) g.socket.destroy();
+    // Die Gaeste erfahren, dass geschlossen wurde, statt einen Abriss zu sehen.
+    for (const g of this.gaeste) {
+      if (g.person) {
+        try {
+          this.schreibe(g, { typ: 'schluss' });
+        } catch {
+          // Leitung schon weg.
+        }
+        g.socket.end();
+      } else g.socket.destroy();
+    }
     this.gaeste.clear();
     this.server?.close();
     this.server = null;

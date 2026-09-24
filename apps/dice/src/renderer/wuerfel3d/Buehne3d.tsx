@@ -137,6 +137,9 @@ export function Buehne3d({ einwuerfe, einstellungen, rollt, animieren, wurfId, o
   useEffect(() => {
     if (rollt) setMarken([]);
   }, [rollt]);
+  // Fuer die Groessenaenderung: waehrend gerollt wird, bleiben die Marken weg.
+  const rolltRef = useRef(rollt);
+  rolltRef.current = rollt;
 
   useEffect(() => {
     const knoten = halter.current;
@@ -289,6 +292,7 @@ export function Buehne3d({ einwuerfe, einstellungen, rollt, animieren, wurfId, o
       stelleKameraAuf(neueBreite, neueHoehe);
       kamera.updateProjectionMatrix();
       renderer.render(szene, kamera);
+      if (gemeldet && !rolltRef.current) setMarken(berechneMarken());
     };
     const beobachter = new ResizeObserver(passeAn);
     beobachter.observe(knoten);
@@ -361,23 +365,41 @@ export function Buehne3d({ einwuerfe, einstellungen, rollt, animieren, wurfId, o
         abgelesen
       };
 
-      setMarken(
-        geworfen.map((wuerfel, nummer) => {
-          const einwurf = einwuerfe[nummer];
-          const ort = wuerfel.endlage.position.clone().project(kamera);
-          return {
-            nummer,
-            // project() liefert -1 bis 1 mit dem Ursprung in der Mitte und y
-            // nach oben; die Seite rechnet in Prozent von links oben.
-            links: (ort.x * 0.5 + 0.5) * 100,
-            oben: (-ort.y * 0.5 + 0.5) * 100,
-            augen: wuerfel.augen,
-            abzug: einwurf.abzug === true,
-            art: einwurf.hoechst ? 'hoechst' : einwurf.tiefst ? 'tiefst' : 'schlicht'
-          };
-        })
-      );
+      setMarken(berechneMarken());
     };
+
+    /*
+     * Wo die Zahlen stehen: ueber der Endlage jedes Wuerfels, aus Sicht der
+     * Kamera. Neu berechnet auch nach jeder Groessenaenderung — sonst
+     * schwebten sie danach neben den Koerpern (Testbericht). Liegen zwei zu
+     * dicht, rueckt die spaetere ein Stueck nach unten, damit keine Zahl eine
+     * andere verdeckt.
+     */
+    function berechneMarken(): Marke[] {
+      const heraus: Marke[] = [];
+      for (const [nummer, wuerfel] of geworfen.entries()) {
+        const einwurf = einwuerfe[nummer];
+        const ort = wuerfel.endlage.position.clone().project(kamera);
+        // project() liefert -1 bis 1 mit dem Ursprung in der Mitte und y
+        // nach oben; die Seite rechnet in Prozent von links oben.
+        const links = (ort.x * 0.5 + 0.5) * 100;
+        let oben = (-ort.y * 0.5 + 0.5) * 100;
+        for (let versuch = 0; versuch < 6; versuch += 1) {
+          const zuNah = heraus.some((m) => Math.abs(m.links - links) < 5 && Math.abs(m.oben - oben) < 6);
+          if (!zuNah) break;
+          oben += 6;
+        }
+        heraus.push({
+          nummer,
+          links,
+          oben: Math.min(96, oben),
+          augen: wuerfel.augen,
+          abzug: einwurf.abzug === true,
+          art: einwurf.hoechst ? 'hoechst' : einwurf.tiefst ? 'tiefst' : 'schlicht'
+        });
+      }
+      return heraus;
+    }
 
     // Die Notbremse haengt an der Uhr und nicht am Bildtakt: sie greift auch
     // dann, wenn gar keine Bilder mehr kommen.

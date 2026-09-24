@@ -37,6 +37,20 @@ export interface Abgelegt extends Monster {
 }
 
 /** Aus einem Namen eine Dateikennung machen. */
+/**
+ * Eine freie Kennung: der Wunsch selbst, sonst mit angehaengter Zahl.
+ * Damit ein neues Monster gleichen Namens (oder eine Variante) ein
+ * gespeichertes nicht still ueberschreibt (Testbericht: Datenverlust).
+ */
+export function freieKennung(wunsch: string, vergeben: Iterable<string>): string {
+  const belegt = new Set(vergeben);
+  if (!belegt.has(wunsch)) return wunsch;
+  for (let n = 2; ; n += 1) {
+    const versuch = `${wunsch}-${n}`;
+    if (!belegt.has(versuch)) return versuch;
+  }
+}
+
 export function zuId(name: string): string {
   const sauber = name
     .toLowerCase()

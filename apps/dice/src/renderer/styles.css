@@ -890,3 +890,43 @@ input[type='number'] {
   transition: background var(--motion-feedback) var(--motion-ease-standard),
     border-color var(--motion-feedback) var(--motion-ease-standard);
 }
+
+/*
+ * Ein grosser Wurf (8 × 100 Wuerfel) hat einen langen Rechenweg. Er darf die
+ * Buehne nicht zusammendruecken (Testbericht: 35 px Wuerfelstreifen): hoechstens
+ * ein paar Zeilen hoch, der Rest scrollt.
+ */
+.buehne__summe {
+  max-height: 30%;
+  min-height: 0;
+}
+
+.buehne__summe-weg {
+  max-height: 5.5em;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+
+/* Verworfen: liegt da, zaehlt nicht. */
+.wuerfel--verworfen {
+  opacity: 0.35;
+  filter: grayscale(0.6);
+}
+.wurfart {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+}
+.wurfart__zeile {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.wurfart__zeile input[type='number'] {
+  width: 64px;
+}
+.feld--fehler {
+  outline: 1px solid var(--fehler, #d05050);
+}

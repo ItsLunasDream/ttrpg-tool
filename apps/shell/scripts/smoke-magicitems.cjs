@@ -78,7 +78,7 @@ app.whenReady().then(async () => {
   const wirkung = await js("document.querySelector('[data-wirkung]')?.value ?? ''");
   pruefe(wirkung.length > 20, `ein gewuerfelter Gegenstand hat Wirkungen (${wirkung.slice(0, 60)})`);
   pruefe(
-    /4[.,]000/.test(await js("document.querySelector('[data-wert]')?.textContent ?? ''")),
+    /^4[.,]?000$/.test(await js("document.querySelector('[data-feld=wert]')?.value ?? ''")),
     'der Wert einer seltenen Waffe ist 4.000 nach der SRD-Tabelle'
   );
   const ordner = path.join(userData, 'magicitems', 'gegenstaende');
@@ -94,7 +94,7 @@ app.whenReady().then(async () => {
   })()`);
   await warte(200);
   pruefe(
-    /40[.,]000/.test(await js("document.querySelector('[data-wert]')?.textContent ?? ''")),
+    /^40[.,]?000$/.test(await js("document.querySelector('[data-feld=wert]')?.value ?? ''")),
     'eine andere Seltenheit aendert den Wert'
   );
   // Die Wirkungen bleiben, bis man sie ausdruecklich neu wuerfelt.
@@ -161,7 +161,19 @@ app.whenReady().then(async () => {
     await hjs("Boolean(document.querySelector('.schiene__eintrag--gemeldet'))"),
     'und die Farbe wischt ueber ein Symbol in der Schiene'
   );
-  pruefe(await js("document.querySelector('[data-loot]')?.disabled === true"), 'danach zeigt der Knopf, dass er drin ist');
+  pruefe(
+    /Im Loot Generator|In Loot Generator/.test(await js("document.querySelector('[data-loot]')?.textContent ?? ''")),
+    'danach zeigt der Knopf, dass er drin ist'
+  );
+  // Und wieder heraus (Wunsch aus dem Testbericht), dann wieder hinein fuer die Pruefungen unten.
+  await js(`document.querySelector('[data-loot]').click(); true`);
+  await warte(500);
+  pruefe(
+    /^loot: ja$/m.test(fs.readFileSync(path.join(ordner, dateien()[0]), 'utf8')) === false,
+    'ein zweiter Klick nimmt ihn wieder aus dem Loot Generator'
+  );
+  await js(`document.querySelector('[data-loot]').click(); true`);
+  await warte(500);
 
   // --- Die Sammlung und die Suche -------------------------------------------
   await js(`[...document.querySelectorAll('button')].find(b => /Zurück zur Liste|Back to the list/.test(b.textContent)).click(); true`);

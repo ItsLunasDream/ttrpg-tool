@@ -396,10 +396,14 @@ app.whenReady().then(async () => {
   );
 
   // --- Die Sammlung --------------------------------------------------------
+  // Die Zusammenstellung ist nicht gespeichert: „Zurueck" fragt nach, statt
+  // sie still zu verwerfen. Hier wird die Rueckfrage mit „Ja" beantwortet.
+  await js(`window.__gefragt = 0; window.confirm = () => { window.__gefragt += 1; return true; }; true`);
   await js(
     `[...document.querySelectorAll('button')].find(b => /Zurück zur Liste|Back to the list/.test(b.textContent)).click(); true`
   );
   await warte(700);
+  pruefe((await js('window.__gefragt')) === 1, 'Zurueck mit ungespeicherter Zusammenstellung fragt nach');
   pruefe(
     (await js("document.querySelectorAll('.begegnungskachel').length")) === 3,
     'alle drei stehen in der Sammlung'
@@ -541,6 +545,16 @@ app.whenReady().then(async () => {
       /Hinterhalt am Fluss/.test(text),
       'und der Kampf traegt den Namen der Begegnung'
     );
+    // Der Statblock reist mit und steht per Klick bereit.
+    pruefe(
+      await tjs("Boolean(document.querySelector('[data-statblock-knopf]'))"),
+      'der Gegner hat einen Statblock-Knopf'
+    );
+    await tjs("document.querySelector('[data-statblock-knopf]').click(); true");
+    await warte(300);
+    const block = await tjs("document.querySelector('[data-statblock]')?.innerText ?? ''");
+    pruefe(/Bounty Hounter/.test(block), `und der Statblock geht auf (${block.slice(0, 40).replace(/\n/g, ' ')})`);
+    await tjs("document.querySelector('.statblock-fenster__zu').click(); true");
   }
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);

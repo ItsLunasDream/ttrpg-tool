@@ -219,3 +219,36 @@ test('kein Rollenaufschlag auf die Ruestungsklasse ueber einen Punkt hinaus', ()
     assert.ok(Math.abs(rolle.rk) <= 1, `${rolle.id}: ${rolle.rk}`);
   }
 });
+
+test('ein eigener Zustand wird als Faehigkeit eingebaut, hoechstens einer', () => {
+  const monster = T.erzeugeMonster({ cr: '5' }, 'de', wuerfelgeber(4));
+  const eins = T.mitEigenemZustand(monster, 'Trockenfieber', 'de');
+  const zwei = T.mitEigenemZustand(eins, 'Frostbiss', 'de');
+  const eigene = zwei.faehigkeiten.filter((f) => f.eigenerZustand);
+  assert.equal(eigene.length, 1);
+  assert.equal(eigene[0].name, 'Frostbiss');
+  assert.match(eigene[0].text, /SG \d+/);
+  assert.equal(zwei.werte.schadenProRunde, monster.werte.schadenProRunde);
+});
+
+test('der Rettungswurf richtet sich nach Thema und Art des Zustands', () => {
+  assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'kaelte' }), 'ko');
+  assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'leere' }), 'in');
+  assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'wahnsinn' }), 'we');
+  assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'sturm' }), 'st');
+  assert.equal(T.rettungFuerZustand({ name: 'x', art: 'fluch' }), 'ch');
+  assert.equal(T.rettungFuerZustand({ name: 'x' }), 'ko');
+  const monster = T.erzeugeMonster({ cr: '5' }, 'de', wuerfelgeber(4));
+  const mit = T.mitEigenemZustand(monster, { name: 'Leerenblick', thema: 'leere' }, 'de');
+  assert.match(mit.faehigkeiten.at(-1).text, /Intelligenzrettung \(SG \d+\)/);
+  const en = T.mitEigenemZustand(monster, { name: 'Frost', thema: 'kaelte' }, 'en');
+  assert.match(en.faehigkeiten.at(-1).text, /DC \d+ Constitution saving throw/);
+});
+
+test('Klang, Schatten und Fluch retten mit Charisma', () => {
+  assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'klang' }), 'ch');
+  assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'schatten' }), 'ch');
+  assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'traum' }), 'we');
+  const monster = T.erzeugeMonster({ cr: '3' }, 'de', wuerfelgeber(2));
+  assert.match(T.mitEigenemZustand(monster, { name: 'Dröhnen', thema: 'klang' }, 'de').faehigkeiten.at(-1).text, /Charismarettung/);
+});

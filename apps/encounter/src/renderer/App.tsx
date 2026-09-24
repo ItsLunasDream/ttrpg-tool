@@ -20,7 +20,7 @@ import {
   type Eintrag
 } from '../shared/ablage';
 import type { Monsterkarte } from '../shared/monsterliste';
-import { eigeneKarten, srdKarten, type Katalogkarte } from '../shared/katalog';
+import { eigeneKarten, srdKarten, srdStatblock, type Katalogkarte } from '../shared/katalog';
 import { Katalog } from './Katalog';
 import { Zusammensteller } from './Zusammensteller';
 import {
@@ -113,7 +113,7 @@ export function App() {
       api.beiSuchtreffer((kennung) => {
         void (async () => {
           const geladen = await api.sammlung.lesen(kennung);
-          if (geladen) setOffen(geladen);
+          if (geladen) setzeGrund(geladen);
           else setFehler(t('fehler.lesen'));
         })();
       }),
@@ -126,17 +126,28 @@ export function App() {
    * (Rueckmeldung). `null` ist die Liste, ein ungespeicherter Entwurf heisst
    * „entwurf" und laesst sich nicht wieder herstellen.
    */
+  /*
+   * Was zuletzt geladen oder gespeichert wurde. Weicht die offene Begegnung
+   * davon ab, fragt „Zurueck", statt sie still zu verwerfen (Testbericht).
+   */
+  const [stand, setStand] = useState<string | null>(null);
+  const setzeGrund = (b: Begegnung | null) => {
+    setOffen(b);
+    setStand(b ? JSON.stringify(b) : null);
+  };
+  const veraendert = offen !== null && stand !== null && JSON.stringify(offen) !== stand;
+
   const ort = offen ? offen.id || 'entwurf' : null;
   useEffect(() => api.ort.melde(ort), [ort]);
   useEffect(
     () =>
       api.ort.beiSprung((ziel) => {
         if (ziel === null) {
-          setOffen(null);
+          setzeGrund(null);
           return;
         }
         if (ziel === 'entwurf') return;
-        void api.sammlung.lesen(ziel).then((geladen) => geladen && setOffen(geladen));
+        void api.sammlung.lesen(ziel).then((geladen) => geladen && setzeGrund(geladen));
       }),
     []
   );
@@ -180,8 +191,22 @@ export function App() {
     if (id === null) return;
     // Mit der Kennung, die der Hauptprozess vergeben hat — sie kann wegen
     // eines Namensgleichstands eine andere sein als die geratene.
-    setOffen({ ...fertig, id });
+    setzeGrund({ ...fertig, id });
     setIstNeu(false);
+  };
+
+  /**
+   * Als neue Begegnung speichern: die gespeicherte bleibt, wie sie ist
+   * (wie in Monster und Status Effects; Testbericht).
+   */
+  const speichereAlsNeu = async () => {
+    if (!offen) return;
+    const fertig = { ...offen, name: nameVon(offen) };
+    const id = await speichere(fertig, true);
+    if (id === null) return;
+    setzeGrund({ ...fertig, id });
+    setIstNeu(false);
+    setMeldung(t('gespeichertNeu'));
   };
 
   const setzeGruppe = async (neu: Gruppe) => {
@@ -224,7 +249,9 @@ export function App() {
           rk: karte?.rk ?? 0,
           // Das SRD nennt den Zuschlag selbst; eigene Monster haben nur
           // die Geschicklichkeit.
-          iniMod: karte?.ini ?? modifikator(karte?.ge ?? 10)
+          iniMod: karte?.ini ?? modifikator(karte?.ge ?? 10),
+          // Der Statblock reist mit, damit der Tracker ihn per Klick zeigt.
+          statblock: karte?.statblock || srdStatblock(einer.monsterId, spr)
         };
       }),
       umgebung: umgebung
@@ -253,7 +280,8 @@ export function App() {
             type="button"
             className="knopf"
             onClick={() => {
-              setOffen(null);
+              if (veraendert && !confirm(t('verwerfen.sicher'))) return;
+              setzeGrund(null);
               setIstNeu(false);
               setMeldung('');
             }}
@@ -275,6 +303,11 @@ export function App() {
           >
             {t('tracker.knopf')}
           </button>
+          {!istNeu ? (
+            <button type="button" className="knopf" data-als-neu onClick={() => void speichereAlsNeu()}>
+              {t('speichernNeu')}
+            </button>
+          ) : null}
           <button
             type="button"
             className="knopf knopf--haupt"
@@ -363,11 +396,16 @@ export function App() {
             </ul>
           )}
 
+          {/* Direkt unter den Gegnern: vorher stand die Einordnung unter dem
+              ganzen Katalog, 2700 Pixel tief (Testbericht). */}
+          <Verhaeltnis offen={offen} monster={karten} gruppe={gruppe} />
+
           <Klappe id="bauen" titel={t('bau.titel')}>
             <Zusammensteller
               karten={karten}
               gegner={offen.gegner}
               sprache={sprache()}
+              gruppe={gruppe}
               setzeGegner={(gegner) => setOffen({ ...offen, gegner })}
             />
           </Klappe>
@@ -398,8 +436,6 @@ export function App() {
           <Klappe id="gruppe" titel={t('gruppe.titel')} zusatz={gruppeKurz(gruppe)}>
             <Gruppenfeld gruppe={gruppe} setze={(neu) => void setzeGruppe(neu)} />
           </Klappe>
-
-          <Verhaeltnis offen={offen} monster={karten} gruppe={gruppe} />
 
           <Klappe
             id="umgebung"
@@ -444,7 +480,7 @@ export function App() {
           onClick={() => {
             // Gleich in die Begegnung, ohne erst nach dem Namen zu fragen.
             // Auf die Platte kommt sie mit dem ersten Speichern.
-            setOffen(leereBegegnung('', new Date().toISOString()));
+            setzeGrund(leereBegegnung('', new Date().toISOString()));
             setIstNeu(true);
             setMeldung('');
             setFehler('');
@@ -494,7 +530,7 @@ export function App() {
                   void (async () => {
                     const geladen = await api.sammlung.lesen(eintrag.id);
                     if (geladen) {
-                      setOffen(geladen);
+                      setzeGrund(geladen);
                       setIstNeu(false);
                     } else setFehler(t('fehler.lesen'));
                   })();
@@ -583,9 +619,9 @@ function Verhaeltnis({
           <span className="verhaeltnis__punkte">
             {t('verhaeltnis.punkte', {
               punkte: punkte.summe.toLocaleString(spr === 'de' ? 'de-DE' : 'en-US'),
-              budget: (budget(gruppe, 'mittel') ?? 0).toLocaleString(
-                spr === 'de' ? 'de-DE' : 'en-US'
-              )
+              niedrig: (budget(gruppe, 'niedrig') ?? 0).toLocaleString(spr === 'de' ? 'de-DE' : 'en-US'),
+              mittel: (budget(gruppe, 'mittel') ?? 0).toLocaleString(spr === 'de' ? 'de-DE' : 'en-US'),
+              hoch: (budget(gruppe, 'hoch') ?? 0).toLocaleString(spr === 'de' ? 'de-DE' : 'en-US')
             })}
           </span>
         </p>

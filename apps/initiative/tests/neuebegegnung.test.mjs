@@ -90,3 +90,16 @@ test('eine geloeschte Begegnungsdatei macht die Aufstellung ungespeichert', () =
   const kampf = mitTeilnehmern({ begegnungId: 'weg' });
   assert.equal(T.pruefeVerlust(kampf, []).ungespeichert, true);
 });
+
+test('Speichern: gleicher Name bleibt, neuer Name ist eine neue Datei, fremde Datei wird nicht still ersetzt', () => {
+  const zuId = T.zuId;
+  const vorhanden = [
+    { ...T.leererKampf(), id: 'forest-ambush', name: 'Forest Ambush', teilnehmer: [], schemaVersion: 1, taktik: '' },
+    { id: 'cave-fight', name: 'Cave Fight', teilnehmer: [], schemaVersion: 1, taktik: '' }
+  ];
+  const geladen = { begegnungId: 'forest-ambush', name: 'Forest Ambush' };
+  assert.deepEqual(T.speicherZiel('Forest Ambush', geladen, vorhanden, zuId), { id: 'forest-ambush', kollision: null });
+  assert.deepEqual(T.speicherZiel('Night Raid', geladen, vorhanden, zuId), { id: 'night-raid', kollision: null });
+  assert.equal(T.speicherZiel('Cave Fight', geladen, vorhanden, zuId).kollision?.id, 'cave-fight');
+  assert.equal(T.speicherZiel('Forest Ambush', { begegnungId: undefined, name: '' }, vorhanden, zuId).kollision?.id, 'forest-ambush');
+});
