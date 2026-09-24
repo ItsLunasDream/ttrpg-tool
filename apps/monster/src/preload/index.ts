@@ -37,7 +37,7 @@ const api = {
   },
   /** Die eigenen Zustaende aus dem Status Effect Creator (ueber die Huelle). */
   eigeneZustaende: () =>
-    ipcRenderer.invoke(kanal('zustaende:eigene')) as Promise<readonly { name: string; text: string }[]>,
+    ipcRenderer.invoke(kanal('zustaende:eigene')) as Promise<readonly { name: string; text: string; thema?: string; art?: string }[]>,
   sammlung: {
     liste: () => ipcRenderer.invoke(kanal('liste')) as Promise<Eintrag[]>,
     lesen: (id: string) => ipcRenderer.invoke(kanal('lesen'), id) as Promise<string | null>,

@@ -576,14 +576,74 @@ export function istStimmig(monster: Monster): boolean {
  *
  * Ein Monster traegt hoechstens einen: ein zweiter ersetzt den ersten.
  */
-export function mitEigenemZustand(monster: Monster, zustand: string, sprache: Sprache): Monster {
+export interface EigenerZustand {
+  readonly name: string;
+  /** Thema aus dem Status Effect Creator: „kaelte", „leere" … */
+  readonly thema?: string;
+  /** Art aus dem Status Effect Creator: „gift", „fluch" … */
+  readonly art?: string;
+}
+
+/**
+ * Welcher Rettungswurf zu einem Zustand passt.
+ *
+ * Nach dem Thema, und ohne Thema nach der Art. Was den Koerper angreift
+ * (Kaelte, Gift, Faeulnis), rettet Konstitution; was den Geist angreift
+ * (Wahnsinn, Traum, Schatten, Fluch), Weisheit; Leere, Zeit und Magie
+ * Intelligenz; Feuer weicht man aus (Geschicklichkeit), Sturm haelt man
+ * stand (Staerke). Wunsch des Nutzers: „Eis = Kon, Leere = Wei/Int".
+ */
+const RETTUNG_NACH_THEMA: Readonly<Record<string, AttributId>> = {
+  kaelte: 'ko',
+  hitze: 'ko',
+  faeulnis: 'ko',
+  gift: 'ko',
+  saeure: 'ko',
+  blut: 'ko',
+  stein: 'ko',
+  klang: 'ko',
+  licht: 'ko',
+  tiefe: 'ko',
+  feuer: 'ge',
+  sturm: 'st',
+  wahnsinn: 'we',
+  traum: 'we',
+  schatten: 'we',
+  leere: 'in',
+  zeit: 'in'
+};
+const RETTUNG_NACH_ART: Readonly<Record<string, AttributId>> = {
+  gift: 'ko',
+  krankheit: 'ko',
+  verletzung: 'ko',
+  umgebung: 'ko',
+  fluch: 'we',
+  magie: 'in'
+};
+
+export function rettungFuerZustand(zustand: EigenerZustand): AttributId {
+  return RETTUNG_NACH_THEMA[zustand.thema ?? ''] ?? RETTUNG_NACH_ART[zustand.art ?? ''] ?? 'ko';
+}
+
+const RETTUNG_TEXT: Readonly<Record<AttributId, { de: string; en: string }>> = {
+  st: { de: 'Stärkerettung', en: 'Strength' },
+  ge: { de: 'Geschicklichkeitsrettung', en: 'Dexterity' },
+  ko: { de: 'Konstitutionsrettung', en: 'Constitution' },
+  in: { de: 'Intelligenzrettung', en: 'Intelligence' },
+  we: { de: 'Weisheitsrettung', en: 'Wisdom' },
+  ch: { de: 'Charismarettung', en: 'Charisma' }
+};
+
+export function mitEigenemZustand(monster: Monster, zustandEingabe: EigenerZustand | string, sprache: Sprache): Monster {
+  const zustand: EigenerZustand = typeof zustandEingabe === 'string' ? { name: zustandEingabe } : zustandEingabe;
   const sg = rettungsSg(monster.werte.angriffsbonus);
+  const rettung = RETTUNG_TEXT[rettungFuerZustand(zustand)];
   const eintrag: Faehigkeitseintrag = {
-    name: zustand,
+    name: zustand.name,
     text:
       sprache === 'en'
-        ? `When it hits with an attack, the target must succeed on a DC ${sg} Constitution saving throw or gain the condition “${zustand}”.`
-        : `Trifft es mit einem Angriff, muss das Ziel eine Konstitutionsrettung (SG ${sg}) bestehen, sonst erhält es den Zustand „${zustand}“.`,
+        ? `When it hits with an attack, the target must succeed on a DC ${sg} ${rettung.en} saving throw or gain the condition “${zustand.name}”.`
+        : `Trifft es mit einem Angriff, muss das Ziel eine ${rettung.de} (SG ${sg}) bestehen, sonst erhält es den Zustand „${zustand.name}“.`,
     kategorie: 'passiv',
     eigenerZustand: true
   };

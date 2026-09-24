@@ -451,7 +451,7 @@ function fehlerText(fehler: unknown): string {
  * zweiter Bestand, und was eben gebaut wurde, ist sofort da. Der Text ist
  * der Leib der Datei ohne Kopf und ohne die Ueberschrift mit dem Namen.
  */
-export async function leseEigeneZustaende(): Promise<{ name: string; text: string }[]> {
+export async function leseEigeneZustaende(): Promise<{ name: string; text: string; thema: string; art: string }[]> {
   const ordner = join(datenordner('zustaende'), 'zustaende');
   let dateien: string[];
   try {
@@ -459,13 +459,16 @@ export async function leseEigeneZustaende(): Promise<{ name: string; text: strin
   } catch {
     return [];
   }
-  const heraus: { name: string; text: string }[] = [];
+  const heraus: { name: string; text: string; thema: string; art: string }[] = [];
   for (const datei of dateien) {
     if (!datei.endsWith('.md')) continue;
     try {
       const inhalt = await readFile(join(ordner, datei), 'utf8');
       const kopf = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(inhalt);
-      const nameZeile = kopf?.[1].split(/\r?\n/).find((z) => z.startsWith('name:'));
+      const kopfzeilen = kopf?.[1].split(/\r?\n/) ?? [];
+      const feld = (schluessel: string) =>
+        (kopfzeilen.find((z) => z.startsWith(`${schluessel}:`))?.slice(schluessel.length + 1).trim() ?? '').replace(/^"|"$/g, '');
+      const nameZeile = kopfzeilen.find((z) => z.startsWith('name:'));
       let name = nameZeile ? nameZeile.slice(5).trim() : datei.slice(0, -3);
       if (name.startsWith('"')) {
         try {
@@ -475,7 +478,8 @@ export async function leseEigeneZustaende(): Promise<{ name: string; text: strin
         }
       }
       const leib = (kopf ? inhalt.slice(kopf[0].length) : inhalt).replace(/^#\s+.*\r?\n+/, '').trim();
-      heraus.push({ name, text: leib.slice(0, 1500) });
+      // Thema und Art: der Monster Creator waehlt danach den Rettungswurf.
+      heraus.push({ name, text: leib.slice(0, 1500), thema: feld('thema'), art: feld('art') });
     } catch {
       // Eine kaputte Datei nimmt nicht die ganze Liste mit.
     }

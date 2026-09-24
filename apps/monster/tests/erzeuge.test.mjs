@@ -230,3 +230,17 @@ test('ein eigener Zustand wird als Faehigkeit eingebaut, hoechstens einer', () =
   assert.match(eigene[0].text, /SG \d+/);
   assert.equal(zwei.werte.schadenProRunde, monster.werte.schadenProRunde);
 });
+
+test('der Rettungswurf richtet sich nach Thema und Art des Zustands', () => {
+  assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'kaelte' }), 'ko');
+  assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'leere' }), 'in');
+  assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'wahnsinn' }), 'we');
+  assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'sturm' }), 'st');
+  assert.equal(T.rettungFuerZustand({ name: 'x', art: 'fluch' }), 'we');
+  assert.equal(T.rettungFuerZustand({ name: 'x' }), 'ko');
+  const monster = T.erzeugeMonster({ cr: '5' }, 'de', wuerfelgeber(4));
+  const mit = T.mitEigenemZustand(monster, { name: 'Leerenblick', thema: 'leere' }, 'de');
+  assert.match(mit.faehigkeiten.at(-1).text, /Intelligenzrettung \(SG \d+\)/);
+  const en = T.mitEigenemZustand(monster, { name: 'Frost', thema: 'kaelte' }, 'en');
+  assert.match(en.faehigkeiten.at(-1).text, /DC \d+ Constitution saving throw/);
+});

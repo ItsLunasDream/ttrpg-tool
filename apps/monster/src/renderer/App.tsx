@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import type { Eintrag } from '../shared/ablage';
 import { alsLeib, freieKennung, zuId } from '../shared/ablage';
-import { alsVariante, erzeugeMonster, mitEigenemZustand, wuerfleNeu, type Monster } from '../shared/erzeuge';
+import { alsVariante, erzeugeMonster, mitEigenemZustand, wuerfleNeu, type EigenerZustand, type Monster } from '../shared/erzeuge';
 import type { Kampfweite } from '../shared/angriffe';
 import { alsFoundryDatei } from '../shared/foundry';
 import { zieheKiNach, type RohMonster } from '../shared/kiAufgaben';
@@ -46,7 +46,7 @@ export function App() {
   // Haken „Eigene Zustaende einbauen" und die Zustaende aus dem Status
   // Effect Creator, die die Huelle liefert.
   const [mitZustand, setMitZustand] = useState(false);
-  const [eigeneZustaende, setEigeneZustaende] = useState<readonly string[]>([]);
+  const [eigeneZustaende, setEigeneZustaende] = useState<readonly EigenerZustand[]>([]);
   const [kampfweite, setKampfweite] = useState<Kampfweite>('egal');
   /** Was der KI thematisch gesagt wird. Leer heisst: nur die Regler zaehlen. */
   const [kiWunsch, setKiWunsch] = useState('');
@@ -113,7 +113,7 @@ export function App() {
     const lade = () =>
       void api
         .eigeneZustaende?.()
-        .then((liste) => aktiv && setEigeneZustaende(liste.map((z) => z.name)))
+        .then((liste) => aktiv && setEigeneZustaende(liste))
         .catch(() => undefined);
     lade();
     window.addEventListener('focus', lade);

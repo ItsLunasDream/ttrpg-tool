@@ -138,7 +138,7 @@ export interface MonsterEmbedOptions {
   /** Legt eine Notiz im Story Creator an. Fehlt sie, meldet der Export es ehrlich. */
   readonly anlegen?: (titel: string, markdown: string) => Promise<{ ok: boolean; text: string }>;
   /** Die eigenen Zustaende aus dem Status Effect Creator, von der Huelle gelesen. */
-  readonly eigeneZustaende?: () => Promise<readonly { name: string; text: string }[]>;
+  readonly eigeneZustaende?: () => Promise<readonly { name: string; text: string; thema?: string; art?: string }[]>;
 }
 
 export interface MonsterEmbed {
