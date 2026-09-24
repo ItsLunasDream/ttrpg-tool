@@ -649,3 +649,13 @@ textarea {
   opacity: 0.65;
   font-size: 12px;
 }
+
+/* Eine Notiz aus der anderen Sprachfassung: ein Zeichen am Ende des Blocks. */
+.notizmarke {
+  border: none;
+  background: none;
+  color: var(--akzent, #c9a227);
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 0.9em;
+}

@@ -78,6 +78,12 @@ const TEXTE = {
   'kachel.eintraege': ['{anzahl} Einträge', '{anzahl} entries'],
   'kachel.ohneZuruecklegen': ['ohne Zurücklegen', 'without replacement'],
   'kachel.gleich': ['gleich verteilt', 'equal odds'],
+  'kachel.eintrag': ['1 Eintrag', '1 entry'],
+  'schnell.gesperrt': ['Würfeln gesperrt: die Nummern passen nicht. Zum Berichtigen öffnen.', 'Rolling is blocked: the numbers do not fit. Open the table to fix it.'],
+  'warnung.doppelterName': [
+    'Eine andere Tabelle heißt schon „{name}". Verweise [{name}] treffen dann nur eine davon.',
+    'Another table is already called "{name}". References [{name}] will then only reach one of them.'
+  ],
   'befund.wuerfel-unlesbar': ['„{wuerfel}" ist kein Würfel, den das Werkzeug lesen kann.', '“{wuerfel}” is not a die the tool can read.'],
   'befund.spannen-ohne-wuerfel': [
     'Einträge haben Spannen, die Tabelle aber keinen Würfel: alle Einträge sind gleich wahrscheinlich.',

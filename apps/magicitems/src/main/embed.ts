@@ -168,6 +168,18 @@ export async function mountMagicItems(options: MagicItemsEmbedOptions): Promise<
     }
   });
 
+  // Wieder heraus aus dem Loot Generator (Wunsch aus dem Testbericht: der Knopf blieb fuer immer „drin").
+  handle('ausDemLoot', async (_e: never, id: string): Promise<boolean> => {
+    const datei = path.join(ordner, `${zuId(id)}.md`);
+    try {
+      const g = leseGegenstand(await readFile(datei, 'utf8'), zuId(id));
+      await writeFile(datei, alsMarkdown({ ...g, imLoot: false }), 'utf8');
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
   handle('loeschen', async (_e: never, id: string): Promise<boolean> => {
     try {
       await unlink(path.join(ordner, `${zuId(id)}.md`));
@@ -250,6 +262,6 @@ export async function mountMagicItems(options: MagicItemsEmbedOptions): Promise<
 
 /** Meldet alles ab. Fuer Tests und einen sauberen Abbau. */
 export function unmountMagicItems(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'inDenLoot', 'loeschen', 'foundry', 'ki:da', 'ki:frage']) ipcMain.removeHandler(kanal(name));
+  for (const name of ['liste', 'lesen', 'speichern', 'inDenLoot', 'ausDemLoot', 'loeschen', 'foundry', 'ki:da', 'ki:frage']) ipcMain.removeHandler(kanal(name));
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));
 }

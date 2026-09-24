@@ -28,6 +28,15 @@ export function schluessel(text: string): string {
     .replace(/[’‘]/g, "'");
 }
 
+/**
+ * Ein grober Wortstamm fuer englische Endungen: „grapple" soll „Grappling"
+ * finden, „grappled" auch (Testbericht). Kurze Worte bleiben, wie sie sind.
+ */
+export function stamm(wort: string): string {
+  const ohne = wort.replace(/(ing|ed|es|s|e)$/, '');
+  return ohne.length >= 4 ? ohne : wort;
+}
+
 export interface Treffer {
   readonly regel: Regel;
   /** Hoeher ist besser. Name vor Text, Anfang vor Mitte. */
@@ -62,22 +71,29 @@ export function finde(
     // Auf Deutsch wird in beiden Sprachen gesucht (englische Begriffe sind
     // am Tisch ueblich), auf Englisch nur im Englischen: sonst stuende ein
     // Treffer da, dessen Grund ein deutscher Satz ist, der nie gezeigt wird.
-    const namen = schluessel(sprache === 'de' ? `${regel.name.de} ${regel.name.en}` : regel.name.en);
+    // Die Namen immer in beiden Sprachen: „Feuerball" findet auch auf
+    // Englisch den Fireball (Testbericht). Der Text bleibt bei der Regel oben.
+    const namen = schluessel(`${regel.name.de} ${regel.name.en}`);
     const text = schluessel(sprache === 'de' ? `${regel.text.de} ${regel.text.en}` : regel.text.en);
     // Alle Worte muessen vorkommen, irgendwo — sonst wird die Liste mit
     // jedem getippten Wort laenger statt kuerzer.
-    if (!worte.every((wort) => namen.includes(wort) || text.includes(wort))) continue;
+    const imNamen = (wort: string) => namen.includes(wort) || namen.includes(stamm(wort));
+    if (!worte.every((wort) => imNamen(wort) || text.includes(wort) || text.includes(stamm(wort)))) continue;
 
     let guete = 0;
     const eigenerName = schluessel(regel.name[sprache]);
-    if (eigenerName === ganz) guete += 100;
-    else if (eigenerName.startsWith(ganz)) guete += 60;
+    const andererName = schluessel(regel.name[sprache === 'de' ? 'en' : 'de']);
+    if (eigenerName === ganz || andererName === ganz) guete += 100;
+    else if (eigenerName.startsWith(ganz) || eigenerName.startsWith(stamm(ganz))) guete += 60;
     else if (namen.includes(ganz)) guete += 40;
-    for (const wort of worte) if (namen.includes(wort)) guete += 10;
+    for (const wort of worte) if (imNamen(wort)) guete += 10;
+    // Bei gleicher Guete die Regeln vor Zaubern, Gegenstaenden und Ausruestung:
+    // wer „grapple" tippt, sucht die Regel.
+    if (guete > 0 && !['zauber', 'gegenstand', 'ausruestung'].includes(regel.art)) guete += 5;
 
     // Die Fundstelle zeigen, wenn es NICHT am Namen lag: dann ist sie der
     // Grund, warum der Eintrag ueberhaupt in der Liste steht.
-    const amNamen = worte.every((wort) => namen.includes(wort));
+    const amNamen = worte.every((wort) => imNamen(wort));
     const stelle = amNamen
       ? null
       : ausschnitt(regel.text[sprache], ganz) ??

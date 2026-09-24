@@ -57,7 +57,7 @@ app.whenReady().then(async () => {
   const eintraege = await hjs('window.shell.suche.eintraege()');
   const regeln = (eintraege ?? []).filter((e) => e.werkzeug === 'nachschlagewerk');
   pruefe(
-    regeln.length === 155 + 180 + 339 + 258,
+    regeln.length === 155 + 180 + 51 + 339 + 258,
     `die Suche der Huelle kennt Glossar, Ausruestung, Zauber und magische Gegenstaende (${regeln.length})`
   );
   pruefe(
@@ -99,8 +99,8 @@ app.whenReady().then(async () => {
   });
 
   pruefe(
-    (await js("document.querySelectorAll('.eintrag').length")) === 155 + 180 + 339 + 258,
-    'die Liste zeigt 155 Eintraege des Glossars, 180 der Ausruestung, 339 Zauber und 258 Gegenstaende'
+    (await js("document.querySelectorAll('.eintrag').length")) === 155 + 180 + 51 + 339 + 258,
+    'die Liste zeigt 155 Eintraege des Glossars, 180 der Ausruestung und 51 einzelne Waffen und Ruestungen, 339 Zauber und 258 Gegenstaende'
   );
   // Die Einfuehrung kann beim ersten Oeffnen davor liegen; sie gehoert der
   // Huelle, nicht dem Werkzeug, und stoert die Pruefungen hier nicht.

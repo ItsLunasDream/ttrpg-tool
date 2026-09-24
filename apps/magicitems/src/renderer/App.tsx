@@ -257,6 +257,14 @@ export function App() {
     } else setFehler(t('loot.fehler'));
   };
 
+  const ausDemLoot = async () => {
+    if (!offen?.id) return;
+    if (await api.sammlung.ausDemLoot(offen.id)) {
+      setzeGrund({ ...offen, imLoot: false });
+      setMeldung(t('loot.heraus'));
+    } else setFehler(t('loot.fehler'));
+  };
+
   /*
    * Die Leiste des Erzeugers steht in BEIDEN Ansichten: auch mit einem
    * offenen Gegenstand soll man Art und Seltenheit fuer den naechsten
@@ -412,6 +420,12 @@ export function App() {
             data-foundry
             onClick={() => {
               void (async () => {
+                // Ein leerer Gegenstand ohne Namen wird nicht still exportiert (Testbericht).
+                if (!offen.name.trim()) {
+                  setFehler(t('foundry.ohneName'));
+                  return;
+                }
+                if (!offen.wirkungen.some((w) => w.trim()) && !offen.fluch.trim() && !confirm(t('foundry.leer'))) return;
                 const datei = alsFoundryDatei(offen);
                 const ergebnis = await api.foundry(datei.name, datei.inhalt);
                 if (ergebnis.ok) setMeldung(t('foundry.fertig', { pfad: ergebnis.text }));
@@ -425,8 +439,8 @@ export function App() {
             type="button"
             className="knopf"
             data-loot
-            disabled={Boolean(offen.imLoot)}
-            onClick={() => void inDenLoot()}
+            title={offen.imLoot ? t('loot.herausHinweis') : undefined}
+            onClick={() => void (offen.imLoot ? ausDemLoot() : inDenLoot())}
           >
             {offen.imLoot ? t('loot.drin') : t('loot')}
           </button>
@@ -484,9 +498,32 @@ export function App() {
               {t('feld.einstimmung')}
             </label>
           </div>
-          <p className="wert" title={t('wert.hinweis')} data-wert>
-            {t('feld.wert', { wert: zahl(offen.wert) })}
-          </p>
+          {/* Der Wert laesst sich von Hand setzen (Wunsch aus dem Testbericht); der Vorschlag nach der Tabelle bleibt einen Klick entfernt. */}
+          <label className="feld wert" title={t('wert.hinweis')} data-wert>
+            <span className="feld__name">{t('feld.wertName')}</span>
+            <input
+              type="number"
+              min={0}
+              className="feld__eingabe feld__eingabe--kurz"
+              data-feld="wert"
+              value={offen.wert}
+              onChange={(e) => {
+                const n = Math.max(0, Math.round(Number(e.target.value) || 0));
+                setOffen({ ...offen, wert: n });
+              }}
+            />
+            {(() => {
+              const vorschlag = gegenstandswert(offen.seltenheit, {
+                verbrauch: VERBRAUCH[offen.art],
+                schriftrolleGrad: offen.art === 'schriftrolle' ? hoechsterGrad(offen.seltenheit) : undefined
+              });
+              return vorschlag !== offen.wert ? (
+                <button type="button" className="knopf knopf--klein" data-wert-vorschlag onClick={() => setOffen({ ...offen, wert: vorschlag })}>
+                  {t('wert.vorschlag', { wert: zahl(vorschlag) })}
+                </button>
+              ) : null;
+            })()}
+          </label>
           {wirkungenFuer && wirkungenFuer !== `${offen.seltenheit}|${offen.art}` ? (
             <p className="anpassen">
               <button

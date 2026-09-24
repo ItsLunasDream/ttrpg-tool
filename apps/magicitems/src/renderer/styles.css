@@ -549,3 +549,4 @@ textarea {
   font-size: 0.9em;
   white-space: nowrap;
 }
+.feld__eingabe--kurz { width: 110px; }

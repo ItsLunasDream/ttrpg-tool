@@ -203,6 +203,94 @@ function ausruestungAlsRegel(a: Ausruestung): Regel {
   };
 }
 
+/*
+ * Einzelne Waffen und Ruestungen als eigene Eintraege (Wunsch aus dem
+ * Testbericht: „longsword" fand nur die Sammeltabelle).
+ *
+ * Die Zeilen stehen im SRD je Sprache alphabetisch, also in verschiedener
+ * Folge. Gepaart wird deshalb ueber das, was in beiden gleich ist: die
+ * Gruppe (Einfache Nahkampfwaffen …), bei Waffen Wuerfel, Schadensart,
+ * Meisterschaft und Preis, bei Ruestung die Zahl der RK und der Preis. Ein
+ * Test besteht darauf, dass jede Zeile genau einen Partner hat.
+ */
+const SCHADENSART: Record<string, string> = { Hieb: 'slashing', Stich: 'piercing', Wucht: 'bludgeoning' };
+const MEISTERSCHAFTEN = ['cleave', 'graze', 'nick', 'push', 'sap', 'slow', 'topple', 'vex'];
+
+function preis(text: string): string {
+  return text.replace('GM', 'GP').replace('SM', 'SP').replace('KM', 'CP').replace(/[.,]/g, '').trim();
+}
+
+function tabelleVon(id: string, sprache: 'de' | 'en'): { kopf: readonly string[]; reihen: readonly (readonly string[])[] } | null {
+  const eintrag = AUSRUESTUNG.find((a) => a.id === id);
+  const block = eintrag?.bloecke[sprache].find((b) => b.typ === 'tabelle');
+  return block && block.typ === 'tabelle' ? block : null;
+}
+
+/** Die Zeilen einer Tabelle, je mit ihrer Gruppe und einem sprachfreien Schluessel. */
+function zeilen(
+  id: string,
+  sprache: 'de' | 'en',
+  schluessel: (reihe: readonly string[]) => string
+): { reihe: readonly string[]; gruppe: string; schluessel: string }[] {
+  const tabelle = tabelleVon(id, sprache);
+  if (!tabelle) return [];
+  const heraus: { reihe: readonly string[]; gruppe: string; schluessel: string }[] = [];
+  let gruppe = '';
+  let nr = -1;
+  for (const reihe of tabelle.reihen) {
+    if (reihe.slice(1).every((zelle) => !zelle)) {
+      gruppe = reihe[0];
+      nr += 1;
+      continue;
+    }
+    heraus.push({ reihe, gruppe, schluessel: `${nr}|${schluessel(reihe)}` });
+  }
+  return heraus;
+}
+
+export function einzelstuecke(): Regel[] {
+  const meister = new Map(
+    AUSRUESTUNG.filter((a) => MEISTERSCHAFTEN.includes(a.id)).map((a) => [a.name.de, a.name.en])
+  );
+  const waffe = (sprache: 'de' | 'en') => (r: readonly string[]) => {
+    const [wuerfel = '', art = ''] = r[1].replace(/(\d)W(\d)/g, '$1d$2').split(/\s+/);
+    const schadensart = sprache === 'de' ? SCHADENSART[art] ?? art : art.toLowerCase();
+    const meisterschaft = sprache === 'de' ? meister.get(r[3]) ?? r[3] : r[3];
+    return [wuerfel, schadensart, meisterschaft, preis(r[5])].join('|');
+  };
+  const ruestung = () => (r: readonly string[]) => [r[1].replace(/\D/g, ''), preis(r[5])].join('|');
+
+  const heraus: Regel[] = [];
+  for (const [id, art, schluessel] of [
+    ['weapons', 'waffe', waffe],
+    ['armor', 'ruestung', ruestung]
+  ] as const) {
+    const de = zeilen(id, 'de', schluessel('de'));
+    const en = zeilen(id, 'en', schluessel('en'));
+    const kopf = { de: tabelleVon(id, 'de')?.kopf ?? [], en: tabelleVon(id, 'en')?.kopf ?? [] };
+    const abschnitt = AUSRUESTUNG.find((a) => a.id === id)?.name ?? { de: '', en: '' };
+    for (const e of en) {
+      const passend = de.filter((d) => d.schluessel === e.schluessel);
+      if (passend.length !== 1) continue;
+      const d = passend[0];
+      const bloecke: Glossarblock[] = e.reihe.slice(1).map((_, i) => ({
+        typ: 'stichpunkt' as const,
+        text: { de: `${kopf.de[i + 1]}: ${d.reihe[i + 1]}`, en: `${kopf.en[i + 1]}: ${e.reihe[i + 1]}` }
+      }));
+      heraus.push({
+        id: `ausruestung/${art}-${e.reihe[0].toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
+        art: 'ausruestung',
+        name: { de: d.reihe[0], en: e.reihe[0] },
+        unterzeile: { de: `${abschnitt.de} · ${d.gruppe}`, en: `${abschnitt.en} · ${e.gruppe}` },
+        text: { de: flach(bloecke, 'de'), en: flach(bloecke, 'en') },
+        bloecke,
+        verweise: [`ausruestung/${id}`]
+      });
+    }
+  }
+  return heraus;
+}
+
 let bestand: readonly Regel[] | null = null;
 
 export function alleRegeln(): readonly Regel[] {
@@ -219,6 +307,7 @@ export function alleRegeln(): readonly Regel[] {
   bestand = [
     ...bestand,
     ...AUSRUESTUNG.map(ausruestungAlsRegel),
+    ...einzelstuecke(),
     ...ZAUBER.map(zauberAlsRegel),
     ...MAGISCHE_GEGENSTAENDE.map(gegenstandAlsRegel)
   ];

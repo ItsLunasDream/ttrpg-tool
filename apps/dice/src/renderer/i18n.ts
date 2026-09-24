@@ -13,6 +13,20 @@ export const texte = {
   'knopf.leeren': ['Leeren', 'Clear'],
   'feld.modifikator': ['Modifikator', 'Modifier'],
   'feld.seiten': ['Seiten', 'Sides'],
+  'feld.ausdruck': ['Ausdruck', 'Expression'],
+  'feld.ausdruckHinweis': [
+    'Etwa 2d6+3 oder 1W20 - 1W4. Enter setzt die Auswahl und rollt.',
+    'Such as 2d6+3 or 1d20 - 1d4. Enter sets the pool and rolls.'
+  ],
+  'feld.ausdruckFehler': ['Das ist kein Würfelausdruck (etwa 2d6+3).', 'That is not a dice expression (such as 2d6+3).'],
+  'wurfart.titel': ['Wurfart', 'Roll mode'],
+  'wurfart.normal': ['Normal', 'Normal'],
+  'wurfart.vorteil': ['Vorteil', 'Advantage'],
+  'wurfart.nachteil': ['Nachteil', 'Disadvantage'],
+  'wurfart.w20Hinweis': ['Gilt für jeden W20: zweimal werfen, einer zählt.', 'Applies to every d20: roll twice, one counts.'],
+  'wurfart.explodiert': ['Explodierend (Höchstzahl würfelt nach)', 'Exploding (a max roll rolls again)'],
+  'wurfart.behalte': ['Höchste behalten:', 'Keep highest:'],
+  'wurfart.alle': ['alle', 'all'],
   'ergebnis': ['Ergebnis', 'Result'],
   'verlauf.titel': ['Verlauf', 'History'],
   'verlauf.leer': ['Noch nichts gewürfelt', 'Nothing rolled yet'],
@@ -22,7 +36,7 @@ export const texte = {
   'teilen.titel': ['Würfe im Raum teilen', 'Share rolls in the room'],
   'teilen.aus': ['Nicht teilen', 'Don’t share'],
   'teilen.alle': ['An alle', 'Everyone'],
-  'teilen.dm': ['Nur an DM', 'DM only'],
+  'teilen.dm': ['Nur an SL', 'DM only'],
   'teilen.keinRaum': [
     'Du bist in keinem Raum. Öffne einen unter „Teilen“, dann gehen die Würfe hinaus.',
     'You are not in a room. Open one under “Share” and rolls will go out.'

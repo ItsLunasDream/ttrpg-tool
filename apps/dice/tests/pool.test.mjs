@@ -10,7 +10,9 @@ const {
   wuerfle,
   MAX_PRO_ART,
   MAX_MODIFIKATOR,
-  begrenzeModifikator
+  begrenzeModifikator,
+  leseAusdruck,
+  MAX_EXPLOSIONEN
 } = entry;
 
 /** Liefert einen rng, der auf einem N-seitigen Wuerfel genau `augen` ergibt. */
@@ -157,4 +159,47 @@ test('der Modifikator nimmt nur ganze Zahlen', () => {
   assert.equal(begrenzeModifikator(-3.9), -3);
   assert.equal(begrenzeModifikator(Number.NaN), 0);
   assert.equal(begrenzeModifikator(Number.POSITIVE_INFINITY), 0);
+});
+
+
+/** Ein rng, der der Reihe nach die gegebenen Augen auf N Seiten liefert. */
+function folge(seiten, ...augen) {
+  let i = 0;
+  return () => ergibt(seiten, augen[i++ % augen.length]);
+}
+
+test('Vorteil und Nachteil: zwei W20, einer zaehlt, der andere liegt verworfen da', () => {
+  const vorteil = wuerfle({ d20: 1 }, 6, 0, folge(20, 5, 17), { vorteil: 'vorteil' });
+  assert.equal(vorteil.summe, 17);
+  assert.deepEqual(vorteil.wuerfe.map((w) => [w.augen, Boolean(w.verworfen)]), [[5, true], [17, false]]);
+  const nachteil = wuerfle({ d20: 1 }, 6, 2, folge(20, 5, 17), { vorteil: 'nachteil' });
+  assert.equal(nachteil.summe, 7);
+  // Andere Wuerfel bleiben einfach.
+  const gemischt = wuerfle({ d20: 1, d6: 1 }, 6, 0, folge(20, 10, 12, 20), { vorteil: 'vorteil' });
+  assert.equal(gemischt.wuerfe.length, 3);
+});
+
+test('hoechste N behalten: 4d6, die drei hoechsten zaehlen', () => {
+  const wurf = wuerfle({ d6: 4 }, 6, 0, folge(6, 3, 1, 6, 4), { behalte: 3 });
+  assert.equal(wurf.summe, 13);
+  assert.equal(wurf.wuerfe.filter((w) => w.verworfen).length, 1);
+  assert.equal(wurf.wuerfe.find((w) => w.verworfen).augen, 1);
+});
+
+test('explodierend: eine Hoechstzahl wuerfelt nach, mit Deckel', () => {
+  const wurf = wuerfle({ d6: 1 }, 6, 0, folge(6, 6, 6, 2), { explodiert: true });
+  assert.equal(wurf.summe, 14);
+  assert.equal(wurf.wuerfe.filter((w) => w.nachgelegt).length, 2);
+  const immer = wuerfle({ d4: 1 }, 6, 0, folge(4, 4), { explodiert: true });
+  assert.equal(immer.wuerfe.length, 1 + MAX_EXPLOSIONEN);
+});
+
+test('ein getippter Ausdruck wird zur Auswahl', () => {
+  assert.deepEqual(leseAusdruck('2d6+3'), { auswahl: { d6: 2 }, modifikator: 3 });
+  assert.deepEqual(leseAusdruck('1W20 - 1W4'), { auswahl: { d20: 1, d4: -1 }, modifikator: 0 });
+  assert.deepEqual(leseAusdruck('d%'), { auswahl: { d100: 1 }, modifikator: 0 });
+  assert.deepEqual(leseAusdruck('3d7 + 2d7 - 1'), { auswahl: { custom: 5 }, modifikator: -1, eigeneSeiten: 7 });
+  assert.equal(leseAusdruck('3d7 + 1d9'), null);
+  assert.equal(leseAusdruck('hallo'), null);
+  assert.equal(leseAusdruck(''), null);
 });

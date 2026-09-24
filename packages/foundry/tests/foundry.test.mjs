@@ -4,6 +4,8 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const {
+  alsFoundryGegenstand,
+  zahlenbonus,
   alsFoundryMonster,
   alsFoundryZustand,
   alsGradZahl,
@@ -93,7 +95,7 @@ test('aus einem Namen wird eine Kennung wie im Beispiel', () => {
   assert.equal(kleinUndBindestrich('Absolute Zero'), 'absolute-zero');
   assert.equal(kleinUndBindestrich('Kälte'), 'kaelte');
   assert.equal(kleinUndBindestrich('Café  Noir'), 'cafe-noir');
-  assert.equal(kleinUndBindestrich('!!!'), 'unbenannt');
+  assert.equal(kleinUndBindestrich('!!!'), 'unnamed');
 });
 
 test('eine Kennung hat 16 erlaubte Zeichen', () => {
@@ -255,4 +257,26 @@ test('leere Felder erzeugen keine leeren Zeilen', () => {
 test('ein Zustand ueberlebt JSON', () => {
   const i = alsFoundryZustand(ZUSTAND);
   assert.deepEqual(JSON.parse(JSON.stringify(i)), i);
+});
+
+
+test('Gegenstand: Bonus als Mechanik, Notiz in der Beschreibung', () => {
+  const basis = { seltenheit: 'rare', einstimmung: false, fluch: '', wert: 4000 };
+  const waffe = alsFoundryGegenstand({
+    ...basis,
+    name: 'Klinge',
+    art: 'waffe',
+    wirkungen: ['Du erhältst +2 auf Angriffs- und Schadenswürfe mit dieser magischen Waffe.'],
+    notiz: 'Gehoerte dem Baron'
+  });
+  assert.equal(waffe.system.magicalBonus, 2);
+  assert.match(waffe.system.description.value, /Gehoerte dem Baron/);
+  const ruestung = alsFoundryGegenstand({ ...basis, name: 'Platte', art: 'ruestung', wirkungen: ['You have a +1 bonus to AC while wearing this armor.'] });
+  assert.equal(ruestung.effects.length, 1);
+  assert.equal(ruestung.effects[0].changes[0].key, 'system.attributes.ac.bonus');
+  assert.equal(ruestung.effects[0].changes[0].value, '+1');
+  // Ohne Angriff/RK im Satz ist „+1" kein Bonus.
+  assert.equal(zahlenbonus(['Ladungen: +1 pro Tag']), null);
+  const ring = alsFoundryGegenstand({ ...basis, name: 'Ring', art: 'ring', wirkungen: ['+1 to AC'] });
+  assert.equal(ring.effects.length, 0);
 });

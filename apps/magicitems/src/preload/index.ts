@@ -30,7 +30,8 @@ const api = {
     speichern: (g: Gegenstand, neu: boolean) =>
       ipcRenderer.invoke(kanal('speichern'), g, neu) as Promise<{ ok: boolean; id: string; text: string }>,
     loeschen: (id: string) => ipcRenderer.invoke(kanal('loeschen'), id) as Promise<boolean>,
-    inDenLoot: (id: string) => ipcRenderer.invoke(kanal('inDenLoot'), id) as Promise<boolean>
+    inDenLoot: (id: string) => ipcRenderer.invoke(kanal('inDenLoot'), id) as Promise<boolean>,
+    ausDemLoot: (id: string) => ipcRenderer.invoke(kanal('ausDemLoot'), id) as Promise<boolean>
   },
   foundry: (vorschlag: string, inhalt: string) =>
     ipcRenderer.invoke(kanal('foundry'), vorschlag, inhalt) as Promise<{ ok: boolean; text: string }>,

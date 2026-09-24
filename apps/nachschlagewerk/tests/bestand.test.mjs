@@ -16,7 +16,7 @@ test('der Bestand traegt alle fuenfzehn Zustaende', () => {
 test('der Bestand ist das ganze Glossar und alle magischen Gegenstaende', () => {
   const eigene = ['gegenstand', 'zauber', 'ausruestung'];
   assert.equal(N.alleRegeln().filter((r) => !eigene.includes(r.art)).length, 155);
-  assert.equal(N.alleRegeln().filter((r) => r.art === 'ausruestung').length, 180);
+  assert.equal(N.alleRegeln().filter((r) => r.art === 'ausruestung').length, 180 + 38 + 13);
   assert.equal(N.alleRegeln().filter((r) => r.art === 'zauber').length, 339);
   assert.equal(N.alleRegeln().filter((r) => r.art === 'gegenstand').length, 258);
 });
@@ -156,4 +156,30 @@ test('Verweise im Text: kuratiert, nur das erste Mal, nie auf sich selbst', () =
   assert.deepEqual(wort.filter((t) => typeof t !== 'string').map((t) => t.text), ['Help action']);
   const de = N.verlinke('Ein Bereich ist schwieriges Gelände; nutze die Spurt‑Aktion.', 'de', 'x', new Set());
   assert.deepEqual(de.filter((t) => typeof t !== 'string').map((t) => t.ziel), ['difficult-terrain', 'dash']);
+});
+
+test('die Komponentenzeile verweist nicht und verbraucht kein erstes Vorkommen (Feuerball)', () => {
+  const gesehen = new Set();
+  const komp = N.verlinke('Komponenten: V, G, M (eine Kugel aus Fledermaus-Guano und Schwefel)', 'de', 'zauber/feuerball', gesehen);
+  assert.ok(komp.every((t) => typeof t === 'string'));
+  const text = N.verlinke('Jede Kreatur in einer Kugel mit 6 Metern Radius', 'de', 'zauber/feuerball', gesehen);
+  assert.deepEqual(text.filter((t) => typeof t !== 'string').map((t) => t.ziel), ['sphere']);
+});
+
+test('einzelne Waffen und Ruestungen: jede Zeile hat genau einen Partner', () => {
+  const stuecke = N.einzelstuecke();
+  const waffen = stuecke.filter((r) => r.id.startsWith('ausruestung/waffe-'));
+  const ruestungen = stuecke.filter((r) => r.id.startsWith('ausruestung/ruestung-'));
+  assert.equal(waffen.length, 38);
+  assert.equal(ruestungen.length, 13);
+  const langschwert = waffen.find((r) => r.name.en === 'Longsword');
+  assert.equal(langschwert?.name.de, 'Langschwert');
+  assert.equal(new Set(stuecke.map((r) => r.id)).size, stuecke.length);
+});
+
+test('Suche: Stamm, Regel vor Gegenstand, deutsche Namen auch auf Englisch', () => {
+  const alle = N.alleRegeln();
+  assert.equal(N.finde(alle, 'longsword', 'en')[0].regel.name.en, 'Longsword');
+  assert.equal(N.finde(alle, 'grapple', 'en')[0].regel.name.en.startsWith('Grappl'), true);
+  assert.equal(N.finde(alle, 'Feuerball', 'en')[0].regel.name.en, 'Fireball');
 });

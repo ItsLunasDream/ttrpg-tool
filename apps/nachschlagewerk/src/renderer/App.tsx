@@ -687,6 +687,7 @@ function Blatt({
                   eigenes={glossarId(regel)}
                   gesehen={gesehen}
                   notizen={meine.filter((n) => n.sprache === s && n.block === index)}
+                  fremde={meine.filter((n) => n.sprache !== s && n.block === index)}
                 />
               ));
             })()}
@@ -1049,7 +1050,8 @@ function Block({
   sprache: s,
   eigenes,
   gesehen,
-  notizen
+  notizen,
+  fremde = []
 }: {
   readonly index: number;
   readonly block: Glossarblock;
@@ -1057,7 +1059,26 @@ function Block({
   readonly eigenes: string;
   readonly gesehen: Set<string>;
   readonly notizen: readonly Notiz[];
+  /**
+   * Notizen, die in der anderen Sprachfassung an diesem Block haengen. Ihre
+   * Stelle laesst sich hier nicht finden, aber der Block ist derselbe: ein
+   * Zeichen am Ende, damit sie beim Sprachwechsel nicht verschwinden.
+   */
+  readonly fremde?: readonly Notiz[];
 }) {
+  const { oeffne } = useContext(NotizKontext);
+  const fremdeMarken = fremde.map((n) => (
+    <button
+      key={n.id}
+      type="button"
+      className="notizmarke"
+      data-fremde-notiz={n.id}
+      title={`„${n.stelle}": ${n.text}`}
+      onClick={(e) => oeffne(n, e.currentTarget.getBoundingClientRect(), false)}
+    >
+      ✎
+    </button>
+  ));
   if (block.typ === 'tabelle') {
     return (
       <table className="regel__tabelle">
@@ -1113,6 +1134,7 @@ function Block({
     return (
       <p className="regel__einleitung" data-block={index} data-sprache={s}>
         <Verlinkt text={block.text[s]} sprache={s} eigenes={eigenes} gesehen={gesehen} notizen={notizen} />
+        {fremdeMarken}
       </p>
     );
   }
@@ -1133,6 +1155,7 @@ function Block({
         quelle={block.text[s]}
         versatz={block.text[s].length - teil.rest.length}
       />
+      {fremdeMarken}
     </p>
   );
 }

@@ -13,11 +13,14 @@ import {
   alsAusdruck,
   anzahlGesamt,
   begrenzeModifikator,
+  leseAusdruck,
   MAX_MODIFIKATOR,
+  MAX_PRO_ART,
   setzeAnzahl,
   wuerfle,
   type Auswahl,
-  type Wurf
+  type Wurf,
+  type Wurfart
 } from '../shared/pool';
 import { STANDARD, TEILEN, type Einstellungen, type Teilen } from '../shared/einstellungen';
 import { getLanguage, onLanguageChange, t, type Language } from './i18n';
@@ -45,6 +48,12 @@ const DREID_HOECHSTENS = 100;
 export function App() {
   const [auswahl, setAuswahl] = useState<Auswahl>({});
   const [modifikator, setModifikator] = useState(0);
+  // Vorteil, Nachteil, hoechste N, explodierend: gilt fuer diese Sitzung.
+  const [wurfart, setWurfart] = useState<Wurfart>({});
+  // Getippter Ausdruck („2d6+3"); Enter setzt die Auswahl und rollt.
+  const [getippt, setGetippt] = useState('');
+  const [tippFehler, setTippFehler] = useState(false);
+  const [rollAuftrag, setRollAuftrag] = useState(0);
   const [wurf, setWurf] = useState<Wurf | null>(null);
   const [rollt, setRollt] = useState(false);
   const [einstellungen, setEinstellungen] = useState<Einstellungen>(STANDARD);
@@ -152,7 +161,7 @@ export function App() {
     // Das Ergebnis steht sofort fest; die Animation ist Schau, keine
     // Berechnung. Wuerde erst danach gewuerfelt, koennte ein zweiter Klick
     // waehrend der Drehung zwei Wuerfe ausloesen.
-    const neuerWurf = wuerfle(auswahl, einstellungen.eigeneSeiten, modifikator);
+    const neuerWurf = wuerfle(auswahl, einstellungen.eigeneSeiten, modifikator, Math.random, wurfart);
     window.setTimeout(() => {
       wurfNummer.current += 1;
       setWurf(neuerWurf);
@@ -173,7 +182,49 @@ export function App() {
         ].slice(0, VERLAUF_LAENGE)
       );
     }, ROLLDAUER);
-  }, [auswahl, einstellungen.eigeneSeiten, einstellungen.teilen, modifikator, gesamt, rollt, ausdruck, teileWurf]);
+  }, [auswahl, einstellungen.eigeneSeiten, einstellungen.teilen, modifikator, gesamt, rollt, ausdruck, teileWurf, wurfart]);
+
+  // Ein getippter Ausdruck setzt erst die Auswahl; gerollt wird im naechsten
+  // Durchgang, wenn sie steht.
+  useEffect(() => {
+    if (rollAuftrag > 0) rolle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rollAuftrag]);
+
+  const tippeAus = () => {
+    const gelesen = leseAusdruck(getippt);
+    if (!gelesen || anzahlGesamt(gelesen.auswahl) === 0) {
+      setTippFehler(true);
+      return;
+    }
+    setTippFehler(false);
+    setAuswahl(gelesen.auswahl);
+    setModifikator(gelesen.modifikator);
+    if (gelesen.eigeneSeiten) aendereEinstellungen({ eigeneSeiten: gelesen.eigeneSeiten });
+    setRollAuftrag((n) => n + 1);
+  };
+
+  // Enter oder Leertaste rollen, solange kein Feld den Fokus hat (Wunsch aus dem Testbericht).
+  useEffect(() => {
+    const beiTaste = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const ziel = e.target as HTMLElement | null;
+      if (ziel && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(ziel.tagName)) return;
+      e.preventDefault();
+      rolle();
+    };
+    window.addEventListener('keydown', beiTaste);
+    return () => window.removeEventListener('keydown', beiTaste);
+  }, [rolle]);
+
+  const leere = () => {
+    // Alles weg, was zum Wurf gehoert: Auswahl, Modifikator und das alte Ergebnis.
+    setAuswahl({});
+    setModifikator(0);
+    setWurf(null);
+    setGetippt('');
+    setTippFehler(false);
+  };
 
   return (
     <div className="wuerfelapp">
@@ -220,6 +271,70 @@ export function App() {
           />
         </label>
 
+        <label className="feld">
+          <span className="feld__label">{t('feld.ausdruck')}</span>
+          <input
+            type="text"
+            data-ausdruck
+            value={getippt}
+            placeholder="2d6+3"
+            className={tippFehler ? 'feld--fehler' : ''}
+            title={t('feld.ausdruckHinweis')}
+            onChange={(e) => {
+              setGetippt(e.target.value);
+              setTippFehler(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') tippeAus();
+            }}
+          />
+        </label>
+        {tippFehler ? <p className="teilen__hinweis">{t('feld.ausdruckFehler')}</p> : null}
+
+        <section className="wurfart" aria-label={t('wurfart.titel')}>
+          <span className="aussehen__titel">{t('wurfart.titel')}</span>
+          <div className="teilen__wahl" role="radiogroup">
+            {([undefined, 'vorteil', 'nachteil'] as const).map((wert) => (
+              <button
+                key={wert ?? 'normal'}
+                type="button"
+                role="radio"
+                aria-checked={wurfart.vorteil === wert}
+                data-wurfart={wert ?? 'normal'}
+                className={wurfart.vorteil === wert ? 'teilen__knopf teilen__knopf--an' : 'teilen__knopf'}
+                title={wert ? t('wurfart.w20Hinweis') : undefined}
+                onClick={() => setWurfart((alt) => ({ ...alt, vorteil: wert }))}
+              >
+                {t(`wurfart.${wert ?? 'normal'}` as const)}
+              </button>
+            ))}
+          </div>
+          <label className="wurfart__zeile">
+            <input
+              type="checkbox"
+              data-explodiert
+              checked={Boolean(wurfart.explodiert)}
+              onChange={(e) => setWurfart((alt) => ({ ...alt, explodiert: e.target.checked }))}
+            />
+            {t('wurfart.explodiert')}
+          </label>
+          <label className="wurfart__zeile">
+            {t('wurfart.behalte')}
+            <input
+              type="number"
+              min={1}
+              max={MAX_PRO_ART}
+              data-behalte
+              value={wurfart.behalte ?? ''}
+              placeholder={t('wurfart.alle')}
+              onChange={(e) => {
+                const n = Number.parseInt(e.target.value, 10);
+                setWurfart((alt) => ({ ...alt, behalte: n > 0 ? n : undefined }));
+              }}
+            />
+          </label>
+        </section>
+
         <Aussehen einstellungen={einstellungen} onAendern={aendereEinstellungen} />
 
         <section className="teilen">
@@ -255,7 +370,7 @@ export function App() {
           <button type="button" className="knopf--haupt" onClick={rolle} disabled={gesamt === 0 || rollt}>
             {t('knopf.rollen')}
           </button>
-          <button type="button" onClick={() => setAuswahl({})} disabled={gesamt === 0}>
+          <button type="button" data-leeren onClick={leere} disabled={gesamt === 0 && modifikator === 0 && !wurf}>
             {t('knopf.leeren')}
           </button>
         </div>
@@ -297,6 +412,7 @@ export function App() {
                     abzug={!einzel.zaehltPositiv}
                     hoechst={einzel.istHoechst && einstellungen.glitzerAn}
                     tiefst={einzel.istTiefst && einstellungen.streifenAn}
+                    verworfen={einzel.verworfen}
                   />
                 ))
               : vorschau(auswahl, einstellungen).map((eintrag, nummer) => (
@@ -348,14 +464,17 @@ export function App() {
  * sonst leicht nach einem Fehler aussieht.
  */
 function rechenweg(wurf: Wurf): string {
-  const positiv = wurf.wuerfe.filter((einzel) => einzel.zaehltPositiv);
-  const negativ = wurf.wuerfe.filter((einzel) => !einzel.zaehltPositiv);
+  const positiv = wurf.wuerfe.filter((einzel) => einzel.zaehltPositiv && !einzel.verworfen);
+  const negativ = wurf.wuerfe.filter((einzel) => !einzel.zaehltPositiv && !einzel.verworfen);
   const teile: string[] = [];
   if (positiv.length > 0) teile.push(positiv.map((einzel) => einzel.augen).join(' + '));
   for (const einzel of negativ) teile.push(`− ${einzel.augen}`);
   if (wurf.modifikator !== 0) {
     teile.push(`${wurf.modifikator < 0 ? '−' : '+'} ${Math.abs(wurf.modifikator)}`);
   }
+  // Was verworfen wurde, steht in Klammern dahinter: man soll sehen, was nicht zaehlt.
+  const weg = wurf.wuerfe.filter((einzel) => einzel.verworfen).map((einzel) => einzel.augen);
+  if (weg.length > 0) teile.push(`[${weg.join(', ')}]`);
   return teile.join(' ');
 }
 

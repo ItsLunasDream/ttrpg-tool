@@ -8,6 +8,7 @@
 
 import { makeId } from './ids';
 import { t } from '@/i18n';
+import { strings } from '@/i18n/strings';
 import { defaultGrid, mapPixelSize } from './grid';
 import {
   SCHEMA_VERSION,
@@ -41,6 +42,37 @@ export function makeLayer(name: string, patch: Partial<Layer> = {}): Layer {
     includeInExport: true,
     ...patch,
   };
+}
+
+/** Die Schluessel der Namen, die ein neues Dokument von sich aus bekommt. */
+const STANDARDNAMEN = ['layer.floor', 'layer.drawing', 'layer.objects', 'layer.labels', 'layer.grid', 'layer.vtt'] as const;
+
+/**
+ * Die Standardnamen in die aktuelle Sprache ziehen.
+ *
+ * Namen sind Daten und bleiben, was sie beim Anlegen waren — aber nur, wenn
+ * jemand sie gewaehlt hat. Das erste Dokument entsteht beim Laden, bevor die
+ * Huelle die Sprache sagt, und hiess auf Deutsch „Untitled map" mit
+ * englischen Ebenen (Testbericht). Umbenannt wird deshalb nur, was noch
+ * genau einem Standardnamen in irgendeiner Sprache entspricht.
+ */
+export function uebersetzeStandardnamen(doc: MapDocument): MapDocument {
+  const zuordnung = new Map<string, string>();
+  for (const key of [...STANDARDNAMEN, 'map.untitled'] as const) {
+    for (const fassung of strings[key]) zuordnung.set(fassung, t(key));
+  }
+  let geaendert = false;
+  const layers: Record<LayerId, Layer> = {};
+  for (const [id, layer] of Object.entries(doc.layers)) {
+    const neu = zuordnung.get(layer.name);
+    if (neu && neu !== layer.name) {
+      layers[id] = { ...layer, name: neu };
+      geaendert = true;
+    } else layers[id] = layer;
+  }
+  const name = zuordnung.get(doc.meta.name) ?? doc.meta.name;
+  if (name !== doc.meta.name) geaendert = true;
+  return geaendert ? { ...doc, layers, meta: { ...doc.meta, name } } : doc;
 }
 
 /**

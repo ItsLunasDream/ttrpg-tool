@@ -29,6 +29,10 @@ export function verlinke(
   eigenesZiel: string,
   gesehen: Set<string>
 ): Stueck[] {
+  // Die Materialkomponenten eines Zaubers beschreiben Dinge, keine Regeln:
+  // „eine Kugel aus Fledermaus-Guano" ist nicht der Flaecheneffekt Kugel, und
+  // der Verweis fehlte dann dort, wo er hingehoert (Testbericht, Feuerball).
+  if (/^(Komponenten|Components):/.test(text)) return [text];
   const treffer: { von: number; bis: number; ziel: string }[] = [];
   const belegt = (von: number, bis: number) => treffer.some((t) => von < t.bis && bis > t.von);
 

@@ -14,7 +14,8 @@ export function alsFoundryDatei(g: Gegenstand, zufall: () => number = Math.rando
     einstimmung: g.einstimmung,
     wirkungen: g.wirkungen,
     fluch: g.fluch,
-    wert: g.wert
+    wert: g.wert,
+    notiz: g.notiz
   });
   return { name: dateiname('Item', g.name, kennung(zufall)), inhalt: `${JSON.stringify(item, null, 2)}\n` };
 }
