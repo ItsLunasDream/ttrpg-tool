@@ -20,6 +20,7 @@
  * das sollen sie bleiben.
  */
 import { join } from 'node:path';
+import { readdir, readFile } from 'node:fs/promises';
 import { app, session as electronSession, WebContentsView, shell } from 'electron';
 import type { BaseWindow } from 'electron';
 import type { WebContents } from 'electron';
@@ -441,6 +442,45 @@ function fehlerText(fehler: unknown): string {
     return storyText(sammlungssprache, f.key as MessageKey, f.params);
   }
   return fehler instanceof Error ? fehler.message : String(fehler);
+}
+
+/**
+ * Die eigenen Zustaende aus der Sammlung des Status Effect Creators.
+ *
+ * Direkt von der Platte, wie die Monster fuer den Encounter Creator: kein
+ * zweiter Bestand, und was eben gebaut wurde, ist sofort da. Der Text ist
+ * der Leib der Datei ohne Kopf und ohne die Ueberschrift mit dem Namen.
+ */
+export async function leseEigeneZustaende(): Promise<{ name: string; text: string }[]> {
+  const ordner = join(datenordner('zustaende'), 'zustaende');
+  let dateien: string[];
+  try {
+    dateien = await readdir(ordner);
+  } catch {
+    return [];
+  }
+  const heraus: { name: string; text: string }[] = [];
+  for (const datei of dateien) {
+    if (!datei.endsWith('.md')) continue;
+    try {
+      const inhalt = await readFile(join(ordner, datei), 'utf8');
+      const kopf = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(inhalt);
+      const nameZeile = kopf?.[1].split(/\r?\n/).find((z) => z.startsWith('name:'));
+      let name = nameZeile ? nameZeile.slice(5).trim() : datei.slice(0, -3);
+      if (name.startsWith('"')) {
+        try {
+          name = JSON.parse(name) as string;
+        } catch {
+          // Roh lassen.
+        }
+      }
+      const leib = (kopf ? inhalt.slice(kopf[0].length) : inhalt).replace(/^#\s+.*\r?\n+/, '').trim();
+      heraus.push({ name, text: leib.slice(0, 1500) });
+    } catch {
+      // Eine kaputte Datei nimmt nicht die ganze Liste mit.
+    }
+  }
+  return heraus.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /** Gibt es in der Kampagne schon eine Notiz mit diesem Titel (oder Alias)? */
@@ -885,7 +925,8 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
           anfang: () =>
             haken.raum?.anfang('initiative') ?? { lage: { rolle: 'aus', ich: null, personen: [] }, nachrichten: [] }
         }
-      : undefined
+      : undefined,
+    eigeneZustaende: leseEigeneZustaende
   });
 
   // Vor dem Laden: die Kopfzeile muss stehen, bevor die erste Antwort kommt.
@@ -1083,6 +1124,8 @@ async function montiereMonster(id: string, haken: MontageHaken): Promise<Montier
     // Die KI der Sammlung, wie ueberall. Ein eigener Zugang je Werkzeug waere
     // eine zweite Stelle, an der derselbe Schluessel liegt.
     kiQuelle: haken.kiQuelle,
+    // Fuer den Haken „Eigene Zustaende einbauen".
+    eigeneZustaende: leseEigeneZustaende,
     // „creature" gibt es in keiner Vorlage — ein Monster ist hier eine
     // Figur, und notfalls eine freie Notiz.
     anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['creature', 'character', 'note'], haken)

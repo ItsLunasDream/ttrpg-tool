@@ -44,6 +44,11 @@ export interface InitiativeEmbedOptions {
     /** Beim Laden: die Lage im Raum und was schon geteilt wurde. */
     anfang(): { lage: RaumLage; nachrichten: readonly { von: { id: string; name: string }; inhalt: string }[] };
   };
+  /**
+   * Die eigenen Zustaende aus dem Status Effect Creator, von der Huelle
+   * gelesen. Der Tracker schlaegt sie neben denen des SRD vor.
+   */
+  readonly eigeneZustaende?: () => Promise<readonly { name: string; text: string }[]>;
 }
 
 export interface InitiativeEmbed {
@@ -143,6 +148,8 @@ export async function mountInitiative(
   );
   ipcMain.removeHandler(kanal('raum:anfang'));
   ipcMain.handle(kanal('raum:anfang'), () => options.raum?.anfang() ?? { lage: KEIN_RAUM, nachrichten: [] });
+  ipcMain.removeHandler(kanal('zustaende:eigene'));
+  ipcMain.handle(kanal('zustaende:eigene'), async () => (await options.eigeneZustaende?.().catch(() => [])) ?? []);
 
   return {
     raumNachricht: (webContents, von, inhalt) => {
@@ -184,4 +191,5 @@ export function unmountInitiative(): void {
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));
   ipcMain.removeHandler(kanal('raum:senden'));
   ipcMain.removeHandler(kanal('raum:anfang'));
+  ipcMain.removeHandler(kanal('zustaende:eigene'));
 }

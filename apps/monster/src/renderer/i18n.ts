@@ -40,6 +40,11 @@ const TEXTE = {
   'knopf.wuerfeln': ['Würfeln', 'Roll'],
   'knopf.ki': ['Von der KI', 'From the AI'],
   'knopf.kiLaeuft': ['Fragt …', 'Asking …'],
+  'feld.eigeneZustaende': ['Eigene Zustände einbauen', 'Use own conditions'],
+  'feld.eigeneZustaendeLeer': [
+    'Im Status Effect Creator liegen noch keine eigenen Zustände.',
+    'There are no own conditions in the Status Effect Creator yet.'
+  ],
   'knopf.alsNeu': ['Als neu speichern', 'Save as new'],
   'knopf.speichern': ['In die Sammlung', 'To the collection'],
   'knopf.export': ['In den Story Creator', 'To the Story Creator'],

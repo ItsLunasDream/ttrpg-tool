@@ -21,7 +21,7 @@ import {
 import { LEGENDAER_FAKTOR, RK_ZU_TP, pruefe, widerstandsAnteil, type Werte } from './pruefung';
 import { ANTEIL_KLEIN, kampfzahlen, setzeZahlen, type Kampfzahlen } from './platzhalter';
 import { umgebungFuer, umgebungName } from './umgebungen';
-import { attributeFuer, modifikator, profilFuer, type AttributId, type Attribute } from './attribute';
+import { attributeFuer, modifikator, profilFuer, rettungsSg, type AttributId, type Attribute } from './attribute';
 import { bewegungFuer, type Bewegung } from './bewegung';
 import {
   angriffsAttribut,
@@ -78,6 +78,8 @@ export interface Faehigkeitseintrag {
   readonly kategorie: Faehigkeit['kategorie'];
   /** Siehe `Faehigkeit.kostetAngriff`. */
   readonly kostetAngriff?: true;
+  /** Kam aus dem Haken „Eigene Zustaende einbauen", siehe `mitEigenemZustand`. */
+  readonly eigenerZustand?: true;
 }
 
 /**
@@ -562,4 +564,31 @@ export function angriffeProRunde(monster: Monster): number {
 /** Besteht dieses Monster die eigene Pruefung? Bequemlichkeit fuer Tests und Oberflaeche. */
 export function istStimmig(monster: Monster): boolean {
   return pruefe(monster.werte, monster.cr).urteil === 'passt';
+}
+
+/**
+ * Ein eigener Zustand aus dem Status Effect Creator als Faehigkeit.
+ *
+ * Nur mit dem Haken „Eigene Zustaende einbauen": trifft das Monster, muss
+ * das Ziel retten oder bekommt den Zustand. Der SG kommt aus dem Grad wie
+ * bei allen anderen Faehigkeiten; die Regel des Zustands selbst steht im
+ * Status Effect Creator und im Tracker, nicht noch einmal hier.
+ *
+ * Ein Monster traegt hoechstens einen: ein zweiter ersetzt den ersten.
+ */
+export function mitEigenemZustand(monster: Monster, zustand: string, sprache: Sprache): Monster {
+  const sg = rettungsSg(monster.werte.angriffsbonus);
+  const eintrag: Faehigkeitseintrag = {
+    name: zustand,
+    text:
+      sprache === 'en'
+        ? `When it hits with an attack, the target must succeed on a DC ${sg} Constitution saving throw or gain the condition “${zustand}”.`
+        : `Trifft es mit einem Angriff, muss das Ziel eine Konstitutionsrettung (SG ${sg}) bestehen, sonst erhält es den Zustand „${zustand}“.`,
+    kategorie: 'passiv',
+    eigenerZustand: true
+  };
+  return {
+    ...monster,
+    faehigkeiten: [...monster.faehigkeiten.filter((f) => !f.eigenerZustand), eintrag]
+  };
 }

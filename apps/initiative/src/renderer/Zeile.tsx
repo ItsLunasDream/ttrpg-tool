@@ -9,8 +9,9 @@
  */
 import { useState, type ReactNode } from 'react';
 import { Kontextmenue, type MenueEintrag } from './Kontextmenue';
-import { getLanguage, t } from './i18n';
-import { zustandsnamen } from '@suite/srd/zustaende';
+import { t } from './i18n';
+import { regelZu, useZustandsliste } from './zustandsliste';
+import { Statblockfenster } from './Statblock';
 import { leseSchaden } from '../shared/format';
 import { DAUERN, type Dauer, type Koerper, type Teilnehmer } from '../shared/types';
 
@@ -43,6 +44,8 @@ interface Props {
 
 export function Zeile(props: Props) {
   const { teilnehmer, amZug, offen } = props;
+  const zustandsliste = useZustandsliste();
+  const [statblockOffen, setStatblockOffen] = useState(false);
   /** Das offene Rechtsklickmenue, mit der Stelle des Zeigers. */
   const [menue, setMenue] = useState<{ x: number; y: number } | null>(null);
   /*
@@ -118,6 +121,25 @@ export function Zeile(props: Props) {
             </span>
           ) : null}
         </button>
+        {teilnehmer.statblock ? (
+          <button
+            type="button"
+            className="zeile__statblock"
+            title={t('knopf.statblock')}
+            aria-label={t('knopf.statblock')}
+            data-statblock-knopf
+            onClick={() => setStatblockOffen(true)}
+          >
+            📜
+          </button>
+        ) : null}
+        {statblockOffen && teilnehmer.statblock ? (
+          <Statblockfenster
+            titel={teilnehmer.name}
+            markdown={teilnehmer.statblock}
+            onZu={() => setStatblockOffen(false)}
+          />
+        ) : null}
 
         <div className="zeile__koerper">
           {teilnehmer.istTerrain ? (
@@ -151,7 +173,11 @@ export function Zeile(props: Props) {
               // Wann er ablaeuft, steht in der Kurzinfo statt in der Marke:
               // auf dem Chip ist kein Platz fuer einen ganzen Satz, und im
               // Kampf zaehlt die Zahl.
-              title={`${t(`dauer.${zustand.dauer}`)} · ${t('knopf.entfernen')}`}
+              // Dazu die Regel, wenn es ein bekannter Zustand ist (SRD oder
+              // eigener): am Tisch muss niemand nachschlagen, was Blind heisst.
+              title={[regelZu(zustandsliste, zustand.name), `${t(`dauer.${zustand.dauer}`)} · ${t('knopf.entfernen')}`]
+                .filter(Boolean)
+                .join('\n\n')}
             >
               {zustand.name}
               {zustand.rundenRest !== null ? <span className="zustand__runden">{zustand.rundenRest}</span> : null}
@@ -299,6 +325,7 @@ function Ausklapp({
   onZustand: (name: string, dauer: Dauer, runden: number | null) => void;
   onBild: () => void;
 }) {
+  const zustandsliste = useZustandsliste();
   const [zustandName, setZustandName] = useState('');
   const [zustandRunden, setZustandRunden] = useState('');
   // 'zugEnde' als Vorgabe: das ist die Dauer der allermeisten Zauber.
@@ -440,8 +467,10 @@ function Ausklapp({
         {/* Die Zustaende des SRD als Vorschlag; Freitext bleibt moeglich
             (Wunsch aus dem Testbericht: Auswahl statt nur Freitext). */}
         <datalist id={`zustaende-${teilnehmer.id}`}>
-          {zustandsnamen(getLanguage() === 'en' ? 'en' : 'de').map((name) => (
-            <option key={name} value={name} />
+          {zustandsliste.map((z) => (
+            <option key={`${z.eigen ? 'e' : 's'}-${z.name}`} value={z.name}>
+              {z.eigen ? t('zustand.eigen') : 'SRD'}
+            </option>
           ))}
         </datalist>
         <input

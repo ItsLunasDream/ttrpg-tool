@@ -98,6 +98,8 @@ export interface Teilnehmer {
   readonly notiz: string;
   /** Ruestungsklasse, wenn bekannt. Fehlt sie, zeigt die Zeile nichts. */
   readonly rk?: number;
+  /** Der Statblock als Markdown, wenn er aus dem Encounter Creator kam. */
+  readonly statblock?: string;
 }
 
 /** Der laufende Kampf. Sitzungszustand, kein Dokument. */

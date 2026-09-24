@@ -20,7 +20,7 @@ import {
   type Eintrag
 } from '../shared/ablage';
 import type { Monsterkarte } from '../shared/monsterliste';
-import { eigeneKarten, srdKarten, type Katalogkarte } from '../shared/katalog';
+import { eigeneKarten, srdKarten, srdStatblock, type Katalogkarte } from '../shared/katalog';
 import { Katalog } from './Katalog';
 import { Zusammensteller } from './Zusammensteller';
 import {
@@ -235,7 +235,9 @@ export function App() {
           rk: karte?.rk ?? 0,
           // Das SRD nennt den Zuschlag selbst; eigene Monster haben nur
           // die Geschicklichkeit.
-          iniMod: karte?.ini ?? modifikator(karte?.ge ?? 10)
+          iniMod: karte?.ini ?? modifikator(karte?.ge ?? 10),
+          // Der Statblock reist mit, damit der Tracker ihn per Klick zeigt.
+          statblock: karte?.statblock || srdStatblock(einer.monsterId, spr)
         };
       }),
       umgebung: umgebung

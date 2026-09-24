@@ -219,3 +219,14 @@ test('kein Rollenaufschlag auf die Ruestungsklasse ueber einen Punkt hinaus', ()
     assert.ok(Math.abs(rolle.rk) <= 1, `${rolle.id}: ${rolle.rk}`);
   }
 });
+
+test('ein eigener Zustand wird als Faehigkeit eingebaut, hoechstens einer', () => {
+  const monster = T.erzeugeMonster({ cr: '5' }, 'de', wuerfelgeber(4));
+  const eins = T.mitEigenemZustand(monster, 'Trockenfieber', 'de');
+  const zwei = T.mitEigenemZustand(eins, 'Frostbiss', 'de');
+  const eigene = zwei.faehigkeiten.filter((f) => f.eigenerZustand);
+  assert.equal(eigene.length, 1);
+  assert.equal(eigene[0].name, 'Frostbiss');
+  assert.match(eigene[0].text, /SG \d+/);
+  assert.equal(zwei.werte.schadenProRunde, monster.werte.schadenProRunde);
+});

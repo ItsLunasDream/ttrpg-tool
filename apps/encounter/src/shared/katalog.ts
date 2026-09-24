@@ -141,3 +141,53 @@ export const GRADE: readonly string[] = [
   '0', '1/8', '1/4', '1/2',
   ...Array.from({ length: 30 }, (_, i) => String(i + 1))
 ];
+
+const ABSCHNITTE: Record<string, readonly [string, string]> = {
+  merkmale: ['Merkmale', 'Traits'],
+  aktionen: ['Aktionen', 'Actions'],
+  bonusaktionen: ['Bonusaktionen', 'Bonus Actions'],
+  reaktionen: ['Reaktionen', 'Reactions'],
+  legendaer: ['Legendäre Aktionen', 'Legendary Actions']
+};
+const KUERZEL: Record<Sprache, readonly string[]> = {
+  de: ['Stä', 'Ges', 'Kon', 'Int', 'Wei', 'Cha'],
+  en: ['Str', 'Dex', 'Con', 'Int', 'Wis', 'Cha']
+};
+
+/**
+ * Der Statblock eines SRD-Monsters als Markdown, fuer den Tracker.
+ *
+ * Dieselben Zeilen wie der Wertekasten im Katalog, nur als Text: der
+ * Tracker zeigt ihn per Klick, ohne das SRD selbst zu kennen.
+ */
+export function srdStatblock(kennung: string, sprache: Sprache): string | undefined {
+  if (!kennung.startsWith(SRD_PRAEFIX)) return undefined;
+  const id = kennung.slice(SRD_PRAEFIX.length);
+  const m = SRD_MONSTER.find((x) => x.id === id);
+  if (!m) return undefined;
+  const de = sprache === 'de';
+  const mod = (wert: number) => {
+    const z = Math.floor((wert - 10) / 2);
+    return z >= 0 ? `+${z}` : `−${-z}`;
+  };
+  const zeilen: string[] = [
+    `# ${m.name[sprache]}`,
+    '',
+    `*${m.art[sprache]}*`,
+    '',
+    `**${de ? 'RK' : 'AC'}** ${m.rk} · **Initiative** ${m.initiative >= 0 ? '+' : '−'}${Math.abs(m.initiative)} · **${de ? 'TP' : 'HP'}** ${m.tp} (${m.tpFormel[sprache]})`,
+    '',
+    `**${de ? 'Bewegungsrate' : 'Speed'}** ${m.bewegung[sprache]}`,
+    '',
+    m.attribute.map((wert, i) => `**${KUERZEL[sprache][i]}** ${wert} (${mod(wert)})`).join(' · '),
+    '',
+    ...m.zeilen[sprache].flatMap((zeile) => [zeile, '']),
+    `**${de ? 'HG' : 'CR'}** ${m.hg} (${m.ep.toLocaleString(de ? 'de-DE' : 'en-US')} ${de ? 'EP' : 'XP'})`
+  ];
+  for (const a of m.abschnitte) {
+    zeilen.push('', `## ${ABSCHNITTE[a.id]?.[de ? 0 : 1] ?? a.id}`, '');
+    if (a.einleitung[sprache]) zeilen.push(a.einleitung[sprache], '');
+    for (const e of a.eintraege) zeilen.push(`***${e.name[sprache]}${de ? ':' : '.'}*** ${e.text[sprache]}`, '');
+  }
+  return zeilen.join('\n').trim();
+}

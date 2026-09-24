@@ -58,7 +58,8 @@ export function alsTeilnehmer(
     // auf Englisch. Mit eigenem Feld zeigt die Zeile sie in der Sprache
     // der Oberflaeche.
     notiz: '',
-    ...(einer.rk > 0 ? { rk: einer.rk } : {})
+    ...(einer.rk > 0 ? { rk: einer.rk } : {}),
+    ...(einer.statblock ? { statblock: einer.statblock } : {})
   }));
 
   /*
