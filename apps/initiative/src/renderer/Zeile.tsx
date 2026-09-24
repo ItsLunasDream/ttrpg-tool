@@ -9,7 +9,8 @@
  */
 import { useState, type ReactNode } from 'react';
 import { Kontextmenue, type MenueEintrag } from './Kontextmenue';
-import { t } from './i18n';
+import { getLanguage, t } from './i18n';
+import { zustandsnamen } from '@suite/srd/zustaende';
 import { leseSchaden } from '../shared/format';
 import { DAUERN, type Dauer, type Koerper, type Teilnehmer } from '../shared/types';
 
@@ -358,18 +359,6 @@ function Ausklapp({
             onChange={(e) => onAendern((alt) => ({ ...alt, feinwert: Number.parseInt(e.target.value, 10) || 0 }))}
           />
         </Feld>
-        <Feld label={t('feld.rk')}>
-          <input
-            type="number"
-            min={0}
-            className="schmal"
-            value={teilnehmer.rk ?? ''}
-            onChange={(e) => {
-              const rk = Number.parseInt(e.target.value, 10);
-              onAendern(({ rk: _alt, ...alt }) => (rk > 0 ? { ...alt, rk } : alt));
-            }}
-          />
-        </Feld>
         <Feld label={t('feld.hpMax')}>
           <input
             type="number"
@@ -413,6 +402,18 @@ function Ausklapp({
             }}
           />
         </Feld>
+        <Feld label={t('feld.rk')}>
+          <input
+            type="number"
+            min={0}
+            className="schmal"
+            value={teilnehmer.rk ?? ''}
+            onChange={(e) => {
+              const rk = Number.parseInt(e.target.value, 10);
+              onAendern(({ rk: _alt, ...alt }) => (rk > 0 ? { ...alt, rk } : alt));
+            }}
+          />
+        </Feld>
         <label className="feld feld--haken">
           <input
             type="checkbox"
@@ -436,8 +437,16 @@ function Ausklapp({
       </div>
 
       <div className="ausklapp__zustand">
+        {/* Die Zustaende des SRD als Vorschlag; Freitext bleibt moeglich
+            (Wunsch aus dem Testbericht: Auswahl statt nur Freitext). */}
+        <datalist id={`zustaende-${teilnehmer.id}`}>
+          {zustandsnamen(getLanguage() === 'en' ? 'en' : 'de').map((name) => (
+            <option key={name} value={name} />
+          ))}
+        </datalist>
         <input
           type="text"
+          list={`zustaende-${teilnehmer.id}`}
           placeholder={t('knopf.zustand')}
           value={zustandName}
           onChange={(e) => setZustandName(e.target.value)}
