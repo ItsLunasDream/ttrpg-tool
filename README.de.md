@@ -139,6 +139,8 @@ Browser-Globals. Sie werden in beide Prozesse gebündelt.
 Hülle über die volle Fläche und darüber die Ansicht des Werkzeugs, die oben
 und links Platz für Titelleiste und Schiene lässt.
 
+- „In den Story Creator" klappt auch, wenn der noch nicht geöffnet war: die
+  Hülle lädt ihn unsichtbar im Hintergrund.
 - Einmal geöffnete Werkzeuge bleiben geladen und werden beim Wechseln nur
   versteckt. Beim Zurückkommen steht alles noch da; der Preis ist Speicher,
   rund 130 MB je Werkzeug.
@@ -268,6 +270,15 @@ Modell in Stichpunkten:
   Notiz mit exportiert wurde.
 - **Eigene Wörter** der Rechtschreibprüfung stehen in den Einstellungen und
   lassen sich dort wieder entfernen.
+- **Umbenennen über den Titel** passiert beim Verlassen des Felds, nicht bei
+  jedem Tastendruck. Verweise werden nicht mitgezogen, wenn sich eine andere
+  Notiz den alten Titel teilt.
+- **Das Markdown übersteht den Editor**: HTML-Kommentare, Linktitel,
+  `<spitze>` Links und enge Listen (`- a`, `1. a`) kommen so heraus, wie sie
+  hineingingen. `npm run roundtrip` prüft das.
+- **Der Markdown-Export** vermeidet Dateinamen, die sich nur in Groß- und
+  Kleinschreibung unterscheiden, und Titel mit `?` oder `:` bekommen einen
+  Alias-Kopf, damit die Verweise weiter greifen.
 
 ```
 apps/backstory/src/shared/     Datenmodell, Wiki-Link-Parsing, Texte
@@ -293,6 +304,19 @@ die Zahlen bedeuten, entscheidet der Tisch.
   Trefferpunkte und werden nicht durchgestrichen.
 - **Leertaste heißt weiter.** Schaden wird getippt und mit Enter angewendet,
   nicht geklickt — Schaden ist selten eins.
+- **Das Schadensfeld rechnet**: `3+4` oder `2d6+3` wird gewürfelt und
+  addiert, ein `+` oder `-` vorn heilt. Trefferpunkte gelten bei Enter oder beim
+  Verlassen des Felds; Escape verwirft.
+- **RK und temporäre Trefferpunkte** haben eigene Felder; wer ausfällt, lässt
+  sich als „Raus" markieren, ohne ihn zu entfernen.
+- **Initiative ändern sortiert neu**, wer am Zug ist, bleibt am Zug. Die
+  aktive Zeile rollt in den Blick.
+- **Der Statblock ist einen Klick entfernt** (📜) bei Monstern aus dem
+  Encounter Creator: SRD-Monster und eigene.
+- **Zustände werden vorgeschlagen**, aus dem SRD und aus dem Status Effect
+  Creator; Freitext geht weiter. Mit der Maus über einem Zustand steht sein
+  Regeltext da.
+- **Die Taktik-Notiz** wird mit dem laufenden Kampf gespeichert.
 - Rechtsklick auf eine Zeile öffnet ein Menü.
 - Begegnungen sind Dokumente (Markdown mit YAML-Kopf); der laufende Kampf ist
   Sitzungszustand und liegt als JSON daneben.
@@ -317,6 +341,9 @@ Geheimnis, Eigenheit.
   an. Die Notizliste dort aktualisiert sich sofort.
 - Gewürfelt wird in der Arbeitssprache; eine fertige Figur wechselt die
   Sprache nicht mit, sonst überschriebe eine Übersetzung Handarbeit.
+- Ein Titel, der kollidieren würde, fällt vor dem Anlegen auf, und ein
+  Doppelklick legt die Notiz nicht zweimal an. Gilt auch für die
+  Inspirationshilfe.
 
 Die Erzeugung steht als reine Funktion in `src/shared/erzeuge.ts`, die
 Modellaufgaben in `src/shared/kiAufgaben.ts`.
@@ -402,6 +429,20 @@ Prüfung, nicht der Erzeuger.
   kommen über Chancen, mit dem Grad häufiger, und die meisten Monster
   bekommen nichts. Was ein Monster länger aushalten lässt, wird von seinen
   rohen Trefferpunkten abgezogen — so bleibt es auf seinem Grad.
+- **Der Statblock folgt dem Aufbau von 2024**: Initiative, passive
+  Wahrnehmung, HG mit EP und Übungsbonus. Der Schadenszuschlag ist genau
+  der Attributsmodifikator, der auch den Trefferbonus trägt.
+- **„Dafür ein Angriff weniger"** zieht wirklich einen Angriff ab, und der
+  Anteil der Fähigkeit steht im Schaden pro Runde.
+- **Von Hand bearbeiten** nach dem Würfeln: Name, RK, TP, Beschreibung,
+  Angriffe und Fähigkeiten. Die Prüfung rechnet beim Tippen mit. „Als neu
+  speichern" lässt das Original stehen und legt eine Kopie ab.
+- **Eigene Zustände** aus dem Status Effect Creator kommen hinter einem
+  eigenen Haken dazu: höchstens einer je Monster, und er übersteht das
+  Neuwürfeln der Fähigkeiten. Der Rettungswurf folgt dem Thema: Kälte, Gift
+  oder Blut retten mit Konstitution, Feuer mit Geschicklichkeit, Sturm mit
+  Stärke, Wahnsinn und Traum mit Weisheit, Leere und Zeit mit Intelligenz,
+  Klang, Schatten und Flüche mit Charisma.
 - **Ein vorhandenes Monster prüfen**, ohne eines zu bauen: Zahlen aus einem
   Buch oder aus einer alten Kampagne eintippen und sehen, was der Grad sagt.
 - **Die Sammlung** zeigt Gebautes als Kacheln oder Liste, mit einem Suchfeld
@@ -432,8 +473,32 @@ Die Richtwerte stammen aus einer CC-BY-Quelle, genannt in
   gemeldet.
 - **Pakete**: mehrere Zustände in einem Wurf, mit demselben Thema und über
   alle verteilten Wirkungen — so greift nicht dreimal derselbe Nachteil an.
+- **Eine Frist** als eigene Zeile: Runde, Stunde oder Tag, abgeleitet aus
+  der Dauer. Ein Rettungswurf im Auslöser nennt SG und Zeitpunkt.
+- **Segen** ohne Stufen haben kein „Schlimmer/Besser", mit Stufen heißt es
+  „Stärker/Schwächer".
+- **„Als neu speichern"** legt eine zweite Datei an, statt die in der
+  Sammlung zu ersetzen.
 - **Eine Karte zum Vorlesen**: vorn, was die Figur merkt, hinten die Regel
   für dich. Zum Ausdrucken oder groß auf dem Schirm.
+
+## Encounter Creator
+
+- **Die Einordnung steht direkt unter den Gegnern** und nennt alle drei
+  Budgets (niedrig, mittel, hoch).
+- **Nach Schwierigkeit zusammenstellen**: ist eine Gruppe eingetragen,
+  zielt der Zusammensteller auf deren Budget statt auf einen Ziel-HG.
+- **In den Tracker** mit einem Klick; jedes Monster nimmt seinen Statblock
+  mit.
+
+Mehr: `docs/encounter.md`.
+
+## Nachschlagewerk
+
+- **Hausregeln** zeigen Markdown, und `[[` schlägt beim Schreiben andere
+  Einträge zum Verlinken vor, wie im Story Creator.
+
+Mehr: `docs/nachschlagewerk.md`.
 
 ## Würfel
 

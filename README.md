@@ -179,6 +179,8 @@ for the title bar and the rail.
   draws them. A new tool joins in by answering `werkzeugEinstellungen`; the
   shell needs to know nothing about it. Started on its own, a tool keeps its
   own settings dialog: there is no shell to hold it.
+- "Send to the Story Creator" works even when that tool has not been opened
+  yet: the shell loads it invisibly in the background.
 - A tool stays loaded once opened and is only hidden when you switch away.
   Everything is still there when you come back; the price is memory, roughly
   130 MB per tool.
@@ -308,6 +310,14 @@ The model in short:
   exported too.
 - **Custom words** for the spell checker live in the settings and can be
   removed there again.
+- **Renaming by typing in the title** happens when you leave the field, not
+  with every keystroke. Links are not carried along when another note shares
+  the old title.
+- **The Markdown survives the editor**: HTML comments, link titles,
+  `<angle bracket>` links and tight lists (`- a`, `1. a`) come back out as
+  they went in. `npm run roundtrip` checks this.
+- **The Markdown export** avoids file names that differ only in case, and
+  titles with `?` or `:` get an alias header so the links still resolve.
 
 ```
 apps/backstory/src/shared/     Data model, wiki link parsing, texts
@@ -332,6 +342,19 @@ numbers mean is up to the table.
   are not struck through.
 - **Space means next.** Damage is typed and applied with Enter, not clicked —
   damage is rarely one.
+- **The damage field calculates**: `3+4` or `2d6+3` is rolled and summed, a
+  leading `+` or `-` heals. Hit points are applied on Enter or when leaving
+  the field; Escape discards.
+- **AC and temporary hit points** have their own fields; a participant can be
+  marked "out" without being removed.
+- **Changing an initiative re-sorts**, and whoever is up stays up. The
+  active row scrolls into view.
+- **The stat block is one click away** (📜) for monsters that came from the
+  Encounter Creator: SRD monsters and your own.
+- **Conditions are suggested** from the SRD and from the Status Effect
+  Creator; free text still works. Hovering over a condition shows its rule
+  text.
+- **The tactics note** is saved with the running fight.
 - Right-clicking a row opens a menu.
 - **Ctrl+Z takes it back.** Everything that changes the fight goes through
   one place, so undo covers all of it: a removed participant, damage, a
@@ -373,6 +396,9 @@ something noticeable, what they want, a secret, a quirk.
 - Rolling happens in the working language; a finished character does not
   switch languages with it, or a translation would overwrite handwritten
   text.
+- A title that would clash is caught before anything is created, and a
+  double click does not create the note twice. The same goes for
+  Inspiration.
 
 Generation is a pure function in `src/shared/erzeuge.ts`, the model's tasks
 are in `src/shared/kiAufgaben.ts`.
@@ -455,6 +481,20 @@ the generator.
   by chance, more often at high ratings, and most monsters get none. What a
   monster survives longer is taken off its raw hit points, so it stays on its
   rating.
+- **The stat block follows the 2024 layout**: initiative, passive
+  perception, CR with XP and proficiency bonus. The damage bonus is exactly
+  the ability modifier that also drives the to-hit.
+- **"One attack fewer for it"** really removes an attack, and the ability's
+  share shows up in the damage per round.
+- **Edit by hand** after rolling: name, AC, HP, description, attacks and
+  abilities. The check recalculates as you type. "Save as new" keeps the
+  original and files a copy.
+- **Your own conditions** from the Status Effect Creator can be added behind
+  a separate checkbox: at most one per monster, and it survives rerolling
+  the abilities. The saving throw follows the condition's theme: cold, venom
+  or blood save with Constitution, fire with Dexterity, storm with Strength,
+  madness and dream with Wisdom, void and time with Intelligence, sound,
+  shadow and curses with Charisma.
 - **Check an existing monster** without generating one: type in numbers from
   a book or from an older campaign and see what the rating says.
 - **The collection** holds what you built, as tiles or a list, with one
@@ -484,8 +524,32 @@ The baselines come from a CC-BY source, credited in [NOTICE.md](NOTICE.md).
 - **Packages**: several conditions in one roll, sharing a theme, with the
   effects spread across all of them — so the same disadvantage does not hit
   three times.
+- **A deadline** of its own: round, hour or day, derived from the duration.
+  A saving throw in the trigger names its DC and when it is rolled.
+- **Blessings** without levels have no "worse/better", with levels they read
+  "stronger/weaker".
+- **"Save as new"** files a second copy instead of replacing the one in the
+  collection.
 - **A card to read aloud**: the front is what the character feels, the back
   is the rule for you. Print it or hold it up on screen.
+
+## Encounter Creator
+
+- **The rating sits right under the opponents** and names all three budgets
+  (low, moderate, high).
+- **Build to a difficulty**: with a party entered, the builder aims at that
+  party's budget instead of a target CR.
+- **Into the tracker** with one click; each monster takes its stat block
+  along.
+
+More: `docs/encounter.md` (German).
+
+## Reference
+
+- **House rules** show Markdown, and typing `[[` suggests other entries to
+  link, as in the Story Creator.
+
+More: `docs/nachschlagewerk.md` (German).
 
 ## Dice
 
@@ -638,10 +702,11 @@ What is in `docs/` (all German):
 | `monster.md` | Monster Creator: baselines, calibration, Foundry export |
 | `statuseffekte.md` | Status Effect Creator: effects, weight, Foundry export |
 | `encounter.md` | Encounter Creator: collection, environment, the way into the tracker, difficulty |
-| `austausch.md` | Concept: sharing between the group at the table (not built) |
+| `austausch.md` | Sharing between the group at the table: file and local room (stages 1 and 2 built) |
 | `magicitems.md` | Magic Item Creator: tables, generator, collection, Foundry export, calibration against the SRD |
 | `nachschlagewerk.md` | Reference: rules glossary, equipment, spells and magic items offline in both languages, cross-references, house rules, notes |
 | `loot.md` | Loot Generator: own nested random tables (stages 1 to 3 built; loot by CR open) |
+| `inventar.md` | Concept: inventory in the Share dialog (not built) |
 
 ## License
 
