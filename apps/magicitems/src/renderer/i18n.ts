@@ -90,7 +90,7 @@ const TEXTE = {
   'error.aiHttp': ['Die KI meldet einen Fehler.', 'The AI reports an error.'],
   'error.aiModelMissing': ['Kein Modell eingestellt.', 'No model selected.'],
   'error.aiModelNotInstalled': ['Das Modell ist nicht installiert.', 'The model is not installed.'],
-  'error.aiNoKey': ['Kein API-Schlüssel hinterlegt.', 'No API key stored.'],
+  'error.aiNoKey': ['Kein API-Schlüssel hinterlegt. Eintragen unter „Einstellungen“ in der Titelleiste → KI.', 'No API key stored. Enter it under “Settings” in the title bar → AI.'],
   'error.aiNoModels': ['Keine Modelle gefunden.', 'No models found.'],
   'error.aiRefused': ['Die KI hat die Anfrage abgelehnt.', 'The AI declined the request.'],
   'fehler.speichern': ['Konnte nicht speichern: {detail}', 'Could not save: {detail}'],

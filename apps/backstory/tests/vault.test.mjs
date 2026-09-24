@@ -1151,3 +1151,20 @@ test('ein unbekannter Notiztyp wird beim Empfang in der Kampagne angelegt', asyn
     assert.equal(typ?.label, 'Artefakt');
   });
 });
+
+test('Ein weggefallener oder ersetzter Alias zieht seine Links mit', async () => {
+  // Testbericht: nur der Titel wurde beim Umbenennen nachgezogen, [[Alias]] blieb tot.
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    await vault.saveNote(campaign.id, { ...mira, aliases: ['die Graue', 'Falkin'] });
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+    await vault.saveNote(campaign.id, { ...toran, body: 'Er traf [[die Graue]] und [[Falkin]].' });
+
+    // „die Graue" wird durch „die Weisse" ersetzt, „Falkin" faellt weg.
+    const jetzt = await vault.getNote(campaign.id, mira.id);
+    await vault.saveNote(campaign.id, { ...jetzt, aliases: ['die Weisse'] });
+    const text = (await vault.getNote(campaign.id, toran.id)).body.trim();
+    assert.equal(text, 'Er traf [[die Weisse]] und [[Mira]].');
+  });
+});

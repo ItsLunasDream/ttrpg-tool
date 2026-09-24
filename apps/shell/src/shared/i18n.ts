@@ -245,7 +245,7 @@ const en = {
   'error.aiOther': 'The provider reports: {detail}',
   'error.aiNoModels': 'No model is installed in Ollama.',
   'error.aiModelNotInstalled': 'The model {model} is not installed in Ollama.',
-  'error.aiNoKey': 'No API key stored.',
+  'error.aiNoKey': 'No API key stored. Enter it under “Settings” in the title bar → AI.',
 
   'intro.start': 'Let’s go',
   'intro.wieder': 'Shown once. You can bring it back in the settings.',
@@ -544,7 +544,7 @@ const de: Partial<Record<MessageKey, string>> = {
   'error.aiOther': 'Der Anbieter meldet: {detail}',
   'error.aiNoModels': 'In Ollama ist kein Modell installiert.',
   'error.aiModelNotInstalled': 'Das Modell {model} ist in Ollama nicht installiert.',
-  'error.aiNoKey': 'Kein API-Schlüssel hinterlegt.',
+  'error.aiNoKey': 'Kein API-Schlüssel hinterlegt. Eintragen unter „Einstellungen“ in der Titelleiste → KI.',
 
   'intro.start': 'Los geht’s',
   'intro.wieder': 'Wird einmal gezeigt. In den Einstellungen holst du es zurück.',

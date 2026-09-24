@@ -320,7 +320,7 @@ const de = {
   'error.aiOther': 'Der Anbieter meldet: {detail}',
   'error.aiNoModels': 'In Ollama ist kein Modell installiert.',
   'error.aiModelNotInstalled': 'Das Modell {model} ist in Ollama nicht installiert.',
-  'error.aiNoKey': 'Kein API-Schlüssel hinterlegt.',
+  'error.aiNoKey': 'Kein API-Schlüssel hinterlegt. Eintragen unter „Einstellungen“ in der Titelleiste → KI.',
   'error.noSecureStorage':
     'Dieses System bietet keine sichere Ablage für Schlüssel. Der Schlüssel wird deshalb nicht gespeichert.',
 
@@ -335,7 +335,7 @@ const de = {
 
   'history.title': 'Versionsverlauf',
   'history.open': 'Verlauf',
-  'history.empty': 'Noch keine früheren Fassungen. Es wird höchstens alle fünf Minuten eine gesichert.',
+  'history.empty': 'Noch keine früheren Fassungen. Es wird höchstens alle zwei Minuten eine gesichert.',
   'history.disabled': 'Der Versionsverlauf ist in den Einstellungen abgeschaltet.',
   'history.restore': 'Wiederherstellen',
   'history.restored': 'Fassung vom {date} wiederhergestellt.',
@@ -440,7 +440,11 @@ const de = {
   'cleanup.deleted': '{count} {{count:Bild|Bilder}} gelöscht.',
   'cleanup.deletedOne': 'Ein Bild gelöscht.',
   'cleanup.hint':
-    'Gezählt wird auch, was gesicherte Fassungen im Versionsverlauf noch brauchen. Ein Bild taucht hier also erst auf, wenn wirklich nichts mehr darauf zeigt. Löschen lässt sich nicht rückgängig machen.'
+    'Gezählt wird auch, was gesicherte Fassungen im Versionsverlauf noch brauchen. Ein Bild taucht hier also erst auf, wenn wirklich nichts mehr darauf zeigt. Löschen lässt sich nicht rückgängig machen.',
+  'list.emptyCampaign': 'Noch keine Notizen. Lege oben eine an.',
+  'editor.titleNeeded': 'Ein Titel fehlt, sonst geht es nicht weiter',
+  'list.untitled': '(ohne Titel)',
+  'msg.createdInBackground': 'Notiz „{title}" angelegt. Du kannst hier weiterschreiben.'
 } as const;
 
 export type MessageKey = keyof typeof de;
@@ -740,7 +744,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'error.aiOther': 'The provider reports: {detail}',
   'error.aiNoModels': 'No model is installed in Ollama.',
   'error.aiModelNotInstalled': 'The model {model} is not installed in Ollama.',
-  'error.aiNoKey': 'No API key stored.',
+  'error.aiNoKey': 'No API key stored. Enter it under “Settings” in the title bar → AI.',
   'error.noSecureStorage':
     'This system offers no secure storage for keys, so the key was not saved.',
 
@@ -755,7 +759,7 @@ const en: Partial<Record<MessageKey, string>> = {
 
   'history.title': 'Version history',
   'history.open': 'History',
-  'history.empty': 'No earlier versions yet. At most one is kept every five minutes.',
+  'history.empty': 'No earlier versions yet. At most one is kept every two minutes.',
   'history.disabled': 'Version history is switched off in the settings.',
   'history.restore': 'Restore',
   'history.restored': 'Restored the version from {date}.',
@@ -859,7 +863,11 @@ const en: Partial<Record<MessageKey, string>> = {
   'cleanup.deleted': 'Deleted {count} {{count:image|images}}.',
   'cleanup.deletedOne': 'Deleted one image.',
   'cleanup.hint':
-    'What saved versions in the history still need is counted too. An image only shows up here once nothing points to it any more. Deleting cannot be undone.'
+    'What saved versions in the history still need is counted too. An image only shows up here once nothing points to it any more. Deleting cannot be undone.',
+  'list.emptyCampaign': 'No notes yet. Create one with the buttons above.',
+  'editor.titleNeeded': 'A title is needed to continue',
+  'list.untitled': '(no title)',
+  'msg.createdInBackground': 'Note "{title}" created. You can keep writing here.',
 };
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { de, en };

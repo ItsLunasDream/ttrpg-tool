@@ -165,15 +165,33 @@ export function App() {
     setExportStand('ruht');
   }, [figur, festgehalten, wuensche]);
 
+  /*
+   * Wohin die Figur geht: die Kampagnen des Story Creators, vorbelegt mit der
+   * zuletzt offenen. Beim Zurueckkommen ins Fenster neu gefragt, damit eine
+   * eben angelegte Kampagne dabei ist.
+   */
+  const [kampagnen, setKampagnen] = useState<{ id: string; name: string }[]>([]);
+  const [ziel, setZiel] = useState<string | null>(null);
+  useEffect(() => {
+    const frage = () =>
+      void api.kampagnen?.().then((k) => {
+        setKampagnen(k.liste);
+        setZiel((alt) => (alt && k.liste.some((e) => e.id === alt) ? alt : k.aktuell));
+      }, () => undefined);
+    frage();
+    window.addEventListener('focus', frage);
+    return () => window.removeEventListener('focus', frage);
+  }, []);
+
   const exportiere = useCallback(async () => {
     if (!figur) return;
     setExportStand('laeuft');
     // Exportiert wird in der Sprache, in der man gerade arbeitet: die Notiz
     // landet zwischen anderen Notizen derselben Kampagne.
-    const ergebnis = await api.export(figur.name, alsMarkdown(figur, getLanguage()));
+    const ergebnis = await api.export(figur.name, alsMarkdown(figur, getLanguage()), ziel);
     setExportStand(ergebnis.ok ? 'fertig' : 'fehler');
     setExportText(ergebnis.text);
-  }, [figur]);
+  }, [figur, ziel]);
 
   // Gewuerfelt wird in der Sprache, in der gearbeitet wird. Eine bereits
   // gewuerfelte Figur wechselt NICHT mit: sie koennte von Hand bearbeitet
@@ -280,6 +298,18 @@ export function App() {
             <div className="buehne__knoepfe">
               {/* Der Export laeuft auf Knopfdruck und nicht von selbst: eine
                   Figur, die man verwirft, soll nicht schon im Archiv liegen. */}
+              {kampagnen.length > 0 ? (
+                <label className="ziel" title={t('ziel.hinweis')}>
+                  {t('ziel.kampagne')}
+                  <select data-ziel value={ziel ?? ''} onChange={(e) => setZiel(e.target.value)}>
+                    {kampagnen.map((k) => (
+                      <option key={k.id} value={k.id}>
+                        {k.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <button
                 type="button"
                 className="knopf--haupt"
@@ -393,7 +423,13 @@ function Zeile({
         spellCheck={false}
       />
       <span className="zeile__knoepfe">
-        <button type="button" onClick={onNachwuerfeln} title={t('knopf.nachwuerfeln')}>
+        {/* Festgehalten heisst festgehalten: auch das einzelne Nachwuerfeln laesst das Feld in Ruhe (Testbericht). */}
+        <button
+          type="button"
+          onClick={onNachwuerfeln}
+          disabled={fest}
+          title={fest ? t('knopf.nachwuerfelnGesperrt') : t('knopf.nachwuerfeln')}
+        >
           ↻
         </button>
         {onKi ? (

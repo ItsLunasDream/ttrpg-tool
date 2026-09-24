@@ -129,7 +129,7 @@ export function NoteList({
 
       <div className="note-list__scroll">
         {grouped.length === 0 ? (
-          <p className="note-list__empty">{t('list.noMatch')}</p>
+          <p className="note-list__empty">{index.notes.length === 0 ? t('list.emptyCampaign') : t('list.noMatch')}</p>
         ) : (
           grouped.map(({ def, entries }) => (
             <section key={def.id}>
@@ -155,8 +155,11 @@ export function NoteList({
                         <span className="note-list__title">
                           {hit?.field === 'title' ? (
                             <HighlightedText text={hit.snippet} matches={hit.matches} />
-                          ) : (
+                          ) : note.title.trim() ? (
                             note.title
+                          ) : (
+                            // Ohne Titel stand hier nur der Punkt „ungespeichert" (Testbericht).
+                            <em className="note-list__ohne-titel">{t('list.untitled')}</em>
                           )}
                           {ungespeichert.has(note.id) ? (
                             <span

@@ -2054,3 +2054,13 @@ mark {
   font-family: ui-monospace, monospace;
   opacity: 0.75;
 }
+
+/* Leerer Titel: am Feld selbst sagen, warum man nicht weiterkommt (Testbericht). */
+.note-editor__title--leer {
+  outline: 1px solid var(--danger, #d05050);
+  border-radius: 4px;
+}
+.note-editor__title--leer::placeholder {
+  color: var(--danger, #d05050);
+  opacity: 0.8;
+}

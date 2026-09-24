@@ -6,9 +6,12 @@ export const texte = {
   'app.title': ['NPC Creator', 'NPC Creator'],
   'knopf.wuerfeln': ['Neue Figur', 'New character'],
   'knopf.nachwuerfeln': ['Neu würfeln', 'Reroll'],
+  'knopf.nachwuerfelnGesperrt': ['Festgehalten: erst das Schloss öffnen, dann neu würfeln', 'Locked: open the lock first, then reroll'],
   'knopf.festhalten': ['Festhalten', 'Lock'],
   'knopf.losgeben': ['Freigeben', 'Unlock'],
   'knopf.export': ['In den Story Creator', 'Send to Story Creator'],
+  'ziel.kampagne': ['Kampagne:', 'Campaign:'],
+  'ziel.hinweis': ['In diese Kampagne des Story Creators kommt die Figur.', 'The Story Creator campaign the character goes into.'],
   'knopf.exportLaeuft': ['Wird angelegt …', 'Creating …'],
   'knopf.exportFertig': ['Angelegt', 'Created'],
   'leer': ['Noch keine Figur — wirf eine.', 'No character yet — roll one.'],
@@ -89,7 +92,7 @@ export const texte = {
     'Das eingestellte Modell ist in Ollama nicht installiert.',
     'The selected model is not installed in Ollama.'
   ],
-  'error.aiNoKey': ['Kein API-Schlüssel hinterlegt.', 'No API key stored.'],
+  'error.aiNoKey': ['Kein API-Schlüssel hinterlegt. Eintragen unter „Einstellungen“ in der Titelleiste → KI.', 'No API key stored. Enter it under “Settings” in the title bar → AI.'],
   'error.aiOther': ['Die KI meldet einen Fehler.', 'The AI reported an error.']
 } as const;
 

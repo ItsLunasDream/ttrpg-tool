@@ -548,7 +548,7 @@ export function registerIpc(context: IpcContext): void {
     const result = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options);
     if (result.canceled || result.filePaths.length === 0) return null;
 
-    return vault.importCampaign(result.filePaths[0]);
+    return vault.importCampaign(result.filePaths[0], context.settings.language === 'en' ? 'imported' : 'importiert');
   });
 }
 

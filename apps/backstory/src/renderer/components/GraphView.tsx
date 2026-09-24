@@ -19,6 +19,29 @@ interface Props {
 
 const WIDTH = 1200;
 const HEIGHT = 780;
+/** Kleiner zoomt die Startansicht nicht: sonst wird ein einzelner Knoten riesig. */
+const MIN_ANSICHT = 520;
+
+/**
+ * Die Startansicht: der Ausschnitt um die Knoten, im Seitenverhaeltnis der
+ * Flaeche. Bei zwei Notizen standen sie sonst winzig am Rand der ganzen
+ * Flaeche, mit Beschriftungen um 8 Pixel (Testbericht).
+ */
+function ansichtUm(knoten: readonly { x: number; y: number }[]): { x: number; y: number; width: number; height: number } {
+  if (knoten.length === 0) return { x: 0, y: 0, width: WIDTH, height: HEIGHT };
+  const rand = 110;
+  const minX = Math.min(...knoten.map((k) => k.x)) - rand;
+  const maxX = Math.max(...knoten.map((k) => k.x)) + rand;
+  const minY = Math.min(...knoten.map((k) => k.y)) - rand;
+  const maxY = Math.max(...knoten.map((k) => k.y)) + rand;
+  const verhaeltnis = HEIGHT / WIDTH;
+  let breite = Math.max(MIN_ANSICHT, maxX - minX, (maxY - minY) / verhaeltnis);
+  breite = Math.min(breite, WIDTH);
+  const hoehe = breite * verhaeltnis;
+  const mitteX = (minX + maxX) / 2;
+  const mitteY = (minY + maxY) / 2;
+  return { x: mitteX - breite / 2, y: mitteY - hoehe / 2, width: breite, height: hoehe };
+}
 
 /**
  * Ab dieser Kantenzahl ueberlagern sich die Beschriftungen so stark, dass sie
@@ -159,7 +182,8 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
   // ist darin schon enthalten.
   useEffect(() => {
     setDragged({});
-    setView({ x: 0, y: 0, width: WIDTH, height: HEIGHT });
+    setView(ansichtUm(computed.map((node) => ({ ...node, ...(savedRef.current[node.id] ?? {}) }))));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [computed]);
 
   const nodes: GraphNode[] = useMemo(
@@ -284,7 +308,7 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
         <button type="button" title={t('graph.zoomIn')} onClick={() => zoomAt(0.8, null)}>
           +
         </button>
-        <button type="button" onClick={() => setView({ x: 0, y: 0, width: WIDTH, height: HEIGHT })}>
+        <button type="button" onClick={() => setView(ansichtUm(nodes))}>
           {t('graph.zoomReset')}
         </button>
         <button

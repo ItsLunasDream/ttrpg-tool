@@ -145,7 +145,7 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
   links". Renaming by title happens when you leave the field.
 - **Relationships** are directed and stored per note pair.
 - **Images** are copied into `assets/`.
-- **History** saves at most every five minutes; restoring can be undone.
+- **History** saves at most every two minutes; restoring can be undone.
 - **The assistant** never writes into your text.
 - **The Markdown survives**: comments, link titles, `<angle>` links and tight
   lists come out as they went in.

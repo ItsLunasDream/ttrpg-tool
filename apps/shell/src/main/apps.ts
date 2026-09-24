@@ -609,6 +609,31 @@ async function montiereDice(id: string, haken: MontageHaken): Promise<MontierteA
  * nehmen, den die Kampagne wirklich kennt. Bleibt keiner uebrig, den ersten
  * ueberhaupt — eine Kampagne ohne Notiztypen gibt es nicht.
  */
+/**
+ * Die Kampagnen des Story Creators, fuer die Auswahl im NPC Creator und in
+ * der Inspirationshilfe (Wunsch aus dem Testbericht: man sah nicht, wohin
+ * die Figur geht). `aktuell` ist die, an der zuletzt gearbeitet wurde.
+ */
+async function zielKampagnen(stelleStoryBereit?: () => Promise<void>): Promise<{
+  liste: { id: string; name: string }[];
+  aktuell: string | null;
+}> {
+  if (!backstoryEmbed) await stelleStoryBereit?.().catch(() => undefined);
+  if (!backstoryEmbed) return { liste: [], aktuell: null };
+  const kampagnen = await backstoryEmbed.vault.listCampaigns();
+  const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+  const aktuell = kampagnen.find((k) => k.id === letzte)?.id ?? kampagnen[0]?.id ?? null;
+  return { liste: kampagnen.map((k) => ({ id: k.id, name: k.name })), aktuell };
+}
+
+/** Die gewaehlte Kampagne, sonst die zuletzt offene, sonst die erste. */
+function waehleKampagne<K extends { id: string }>(kampagnen: readonly K[], gewuenscht?: string | null): K {
+  const letzte = backstoryEmbed?.aktuelleEinstellungen().lastCampaignId;
+  return (
+    kampagnen.find((k) => k.id === gewuenscht) ?? kampagnen.find((k) => k.id === letzte) ?? kampagnen[0]
+  );
+}
+
 function passenderNotiztyp(kampagne: { noteTypes: { id: string }[] }, wuensche: readonly string[]): string {
   for (const wunsch of wuensche) {
     if (kampagne.noteTypes.some((typ) => typ.id === wunsch)) return wunsch;
@@ -674,7 +699,8 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
     // Auch hier die KI der Sammlung. Der NPC Creator hat keine eigene Ablage
     // und soll auch keine eigene Einstellung bekommen.
     kiQuelle: haken.kiQuelle,
-    anlegen: async (titel: string, markdown: string) => {
+    kampagnen: () => zielKampagnen(haken.stelleStoryBereit),
+    anlegen: async (titel: string, markdown: string, kampagneId?: string | null) => {
       if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
       if (!backstoryEmbed) {
         return {
@@ -697,10 +723,9 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
       // Stand und nicht der Schnappschuss vom Montagezeitpunkt, sonst landete
       // die Figur nach einem Kampagnenwechsel in der falschen Sammlung.
       //
-      // Eine Auswahl im NPC Creator waere ein zweites Verzeichnis derselben
-      // Dinge — und wer eine Figur wirft, denkt gerade nicht an Ablageorte.
-      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
-      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
+      // Gewaehlt werden kann sie im NPC Creator selbst; vorbelegt ist die
+      // zuletzt offene (Testbericht: man sah nicht, wohin es geht).
+      const kampagne = waehleKampagne(kampagnen, kampagneId);
 
       // Zweimal „Senden" legte zwei Notizen gleichen Namens an (Testbericht).
       // Eine vorhandene Figur wird nicht ueberschrieben und nicht verdoppelt.
@@ -794,12 +819,12 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
      */
     // Der Weg zum Karteneditor. Nicht direkt: die Huelle holt ihn nach vorn.
     karteAnlegen: haken.oeffneKarte,
-    figuren: async () => {
+    kampagnen: () => zielKampagnen(haken.stelleStoryBereit),
+    figuren: async (kampagneId?: string | null) => {
       if (!backstoryEmbed) return [];
       const kampagnen = await backstoryEmbed.vault.listCampaigns();
       if (kampagnen.length === 0) return [];
-      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
-      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
+      const kampagne = waehleKampagne(kampagnen, kampagneId);
       const notizen = await backstoryEmbed.vault.listNotes(kampagne.id);
       return notizen
         .filter((notiz) => notiz.type === 'character')
@@ -815,7 +840,7 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
             ?.slice(0, 90) ?? ''
         }));
     },
-    anlegen: async (notizen) => {
+    anlegen: async (notizen, kampagneId?: string | null) => {
       if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
       if (!backstoryEmbed) {
         return {
@@ -835,8 +860,7 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
       if (kampagnen.length === 0) {
         return { ok: false, text: OHNE_KAMPAGNE(), angelegt: 0 };
       }
-      const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
-      const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
+      const kampagne = waehleKampagne(kampagnen, kampagneId);
 
       /*
        * Erst pruefen, dann anlegen. Ein Titel mit [ ] | scheiterte sonst

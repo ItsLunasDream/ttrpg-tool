@@ -156,7 +156,7 @@ Obsidian.
   Felds.
 - **Beziehungen** sind gerichtet und hängen am Notizpaar.
 - **Bilder** werden nach `assets/` kopiert.
-- **Verlauf** sichert höchstens alle fünf Minuten; Wiederherstellen ist
+- **Verlauf** sichert höchstens alle zwei Minuten; Wiederherstellen ist
   umkehrbar.
 - **Der Assistent** schreibt nie in den Text.
 - **Das Markdown bleibt erhalten**: Kommentare, Linktitel, `<spitze>` Links

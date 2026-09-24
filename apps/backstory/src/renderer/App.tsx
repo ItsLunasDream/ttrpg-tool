@@ -57,6 +57,8 @@ type Dialog =
   | { kind: 'about' };
 
 const EMPTY_FILTERS: SearchFilters = { query: '', type: 'all', tag: null };
+/** Der zuletzt gewaehlte Notiztyp im Dialog „Neue Notiz" (nur ein Komfort, im Browser-Speicher). */
+const LETZTER_TYP = 'backstory.letzterNotiztyp';
 
 export function App() {
   const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
@@ -816,11 +818,40 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         report(t('msg.alreadyExists', { title }));
         return;
       }
-      setDialog({ kind: 'newNote', type: 'character' });
-      // Titel vorbelegen, indem direkt angelegt wird: der Dialog dient nur der Typwahl.
+      // Der zuletzt gewaehlte Typ statt immer „Charakter" (Testbericht).
+      let typ: NoteType = 'character';
+      try {
+        const gemerkt = localStorage.getItem(LETZTER_TYP);
+        if (gemerkt && noteTypes.some((d) => d.id === gemerkt)) typ = gemerkt as NoteType;
+      } catch {
+        // Ohne Speicher bleibt es beim Charakter.
+      }
+      setDialog({ kind: 'newNote', type: typ });
       setPendingLinkTitle(title);
     },
-    [index, report]
+    [index, report, noteTypes]
+  );
+
+  /**
+   * Aus einem [[Link]] angelegt: die neue Notiz entsteht im Hintergrund, und
+   * man schreibt in der alten weiter (Testbericht: der Satz war sonst
+   * unterbrochen). Wurde der Titel im Dialog geaendert, bekommt die neue
+   * Notiz den alten als Alias — so greift der Link, der schon im Text steht.
+   */
+  const createNoteInBackground = useCallback(
+    (type: NoteType, title: string, linkTitle: string) => {
+      const campaignId = activeCampaignId;
+      if (!campaignId) return;
+      void guard(async () => {
+        const created = await call(api.notes.create(campaignId, type, title));
+        if (normalizeName(linkTitle) !== normalizeName(title)) {
+          await call(api.notes.save(campaignId, { ...created, aliases: [...created.aliases, linkTitle] }));
+        }
+        await reloadNotes(campaignId);
+        report(t('msg.createdInBackground', { title }));
+      });
+    },
+    [activeCampaignId, guard, reloadNotes, report, t]
   );
 
   const [pendingLinkTitle, setPendingLinkTitle] = useState<string | null>(null);
@@ -1283,7 +1314,13 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               report(t('error.linkChars', { name: title }));
               return;
             }
-            createNote(type, title);
+            try {
+              localStorage.setItem(LETZTER_TYP, type);
+            } catch {
+              // Nur ein Komfort.
+            }
+            if (pendingLinkTitle !== null) createNoteInBackground(type, title, pendingLinkTitle);
+            else createNote(type, title);
             setDialog({ kind: 'none' });
             setPendingLinkTitle(null);
           }}

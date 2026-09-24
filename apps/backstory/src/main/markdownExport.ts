@@ -80,7 +80,7 @@ export function renderNoteMarkdown(
   return `${parts.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`;
 }
 
-function mentionedBy(note: Note, allNotes: Note[]): Note[] {
+export function mentionedBy(note: Note, allNotes: Note[]): Note[] {
   const names = new Set([note.title, ...note.aliases].map(normalizeName));
   return allNotes.filter(
     (candidate) =>

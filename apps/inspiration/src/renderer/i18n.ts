@@ -115,6 +115,7 @@ export const texte = {
   'figur.vorhanden': ['aus der Kampagne', 'from the campaign'],
 
   'export.titel': ['Titel der Übersichtsnotiz', 'Title of the overview note'],
+  'export.kampagne': ['In die Kampagne', 'Into campaign'],
   'export.titelVorgabe': ['Überblick', 'Overview'],
   'export.hinweis': [
     'Legt je Figur, Ort und Fraktion eine Notiz an, dazu eine Übersicht mit Verweisen. Nichts wird überschrieben.',
@@ -176,7 +177,7 @@ export const texte = {
     'Das eingestellte Modell ist in Ollama nicht installiert.',
     'The selected model is not installed in Ollama.'
   ],
-  'error.aiNoKey': ['Kein API-Schlüssel hinterlegt.', 'No API key stored.'],
+  'error.aiNoKey': ['Kein API-Schlüssel hinterlegt. Eintragen unter „Einstellungen“ in der Titelleiste → KI.', 'No API key stored. Enter it under “Settings” in the title bar → AI.'],
   'error.aiOther': ['Die KI meldet einen Fehler.', 'The AI reported an error.']
 } as const;
 

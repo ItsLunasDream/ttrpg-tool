@@ -518,17 +518,34 @@ export function App() {
    * Nicht beim Laden: das Werkzeug soll ohne Kampagne genauso laufen, und
    * eine Liste, die niemand aufgeschlagen hat, muss auch niemand lesen.
    */
+  /*
+   * Wohin uebernommen wird: vorbelegt mit der zuletzt im Story Creator
+   * offenen Kampagne, waehlbar (Wunsch aus dem Testbericht).
+   */
+  const [kampagnen, setKampagnen] = useState<{ id: string; name: string }[]>([]);
+  const [ziel, setZiel] = useState<string | null>(null);
+  useEffect(() => {
+    const frage = () =>
+      void api.kampagnen?.().then((k) => {
+        setKampagnen(k.liste);
+        setZiel((alt) => (alt && k.liste.some((e) => e.id === alt) ? alt : k.aktuell));
+      }, () => undefined);
+    frage();
+    window.addEventListener('focus', frage);
+    return () => window.removeEventListener('focus', frage);
+  }, []);
+
   const zeigeKampagnenFiguren = useCallback(async () => {
     if (kampagnenFiguren) {
       setKampagnenFiguren(null);
       return;
     }
     try {
-      setKampagnenFiguren(await api.figuren());
+      setKampagnenFiguren(await api.figuren(ziel));
     } catch {
       setKampagnenFiguren([]);
     }
-  }, [kampagnenFiguren]);
+  }, [kampagnenFiguren, ziel]);
 
   /** Eine vorhandene Figur dazunehmen — mit Anbindung ans Geflecht. */
   const holeFigur = useCallback(
@@ -568,7 +585,7 @@ export function App() {
     setExportStand('laeuft');
     const notizen = alsNotizen(entwurf, getLanguage(), titel.trim() || t('export.titelVorgabe'));
     try {
-      const ergebnis = await api.export(notizen);
+      const ergebnis = await api.export(notizen, ziel);
       setExportStand(ergebnis.ok ? 'fertig' : 'fehler');
       setExportText(
         ergebnis.ok
@@ -579,7 +596,7 @@ export function App() {
       setExportStand('fehler');
       setExportText(t('export.fehler', { grund: String(fehler) }));
     }
-  }, [entwurf, titel]);
+  }, [entwurf, titel, ziel]);
 
   const kopieren = useCallback(async () => {
     if (!entwurf) return;
@@ -1120,6 +1137,27 @@ export function App() {
               onChange={(ereignis) => setTitel(ereignis.target.value)}
             />
           </label>
+          {kampagnen.length > 0 ? (
+            <label className="regler">
+              <span className="regler__name">{t('export.kampagne')}</span>
+              <select
+                className="regler__feld"
+                data-ziel
+                value={ziel ?? ''}
+                onChange={(ereignis) => {
+                  setZiel(ereignis.target.value);
+                  // Die Figurenliste gehoert zur Kampagne: neu holen, wenn sie offen ist.
+                  setKampagnenFiguren(null);
+                }}
+              >
+                {kampagnen.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <div className="fuss__knoepfe">
             <button type="button" className="knopf" onClick={kopieren}>
               {kopiert ? t('knopf.kopiert') : t('knopf.kopieren')}

@@ -1587,9 +1587,11 @@ app.whenReady().then(async () => {
     check(await run(window, `return document.querySelector('.graph__canvas').getAttribute('viewBox') !== ${JSON.stringify(zoomed)};`),
       'Zoom verändert die Ansicht nicht');
 
+    // Zuruecksetzen stellt die Ansicht um die Knoten, nicht mehr fest auf
+    // 0 0 1200 780. Geprueft wird: dieselbe Ansicht wie vor dem Zoom.
     await clickButton(window, 'Zoom zurücksetzen', "document.querySelector('.graph__bar')");
     await sleep(500);
-    check(await run(window, `return document.querySelector('.graph__canvas').getAttribute('viewBox') === '0 0 1200 780';`),
+    check(await run(window, `return document.querySelector('.graph__canvas').getAttribute('viewBox') === ${JSON.stringify(zoomed)};`),
       'Zurücksetzen der Ansicht wirkt nicht');
 
     // 17a. Zwei Richtungen zwischen denselben Knoten liegen nebeneinander

@@ -36,7 +36,7 @@ export interface ExportErgebnis {
  * ueberhaupt montiert ist und welche Kampagne offen steht. Der NPC Creator
  * kennt den Vault nicht und soll ihn auch nicht kennen.
  */
-export type Anleger = (titel: string, markdown: string) => Promise<ExportErgebnis>;
+export type Anleger = (titel: string, markdown: string, kampagneId?: string | null) => Promise<ExportErgebnis>;
 
 /**
  * Woher die KI-Anbindung kommt.
@@ -66,6 +66,8 @@ export interface NpcEmbedOptions {
   readonly onLanguageChange?: (language: string) => void;
   /** Legt die Figur an. Fehlt sie, meldet der Export das ehrlich. */
   readonly anlegen?: Anleger;
+  /** Die Kampagnen, in die angelegt werden kann, und die vorbelegte. */
+  readonly kampagnen?: () => Promise<{ liste: { id: string; name: string }[]; aktuell: string | null }>;
   /** Die KI der Sammlung. Fehlt sie, gibt es hier keine KI. */
   readonly kiQuelle?: KiQuelle;
 }
@@ -112,16 +114,21 @@ export async function mountNpc(options: NpcEmbedOptions): Promise<NpcEmbed> {
   // Erst abmelden: nach einem Fehlschlag kann dieselbe Anwendung ein zweites
   // Mal montiert werden, und `handle` weist einen zweiten Handler ab.
   ipcMain.removeHandler(kanal('export'));
-  ipcMain.handle(kanal('export'), async (_e, titel: string, markdown: string) => {
+  ipcMain.handle(kanal('export'), async (_e, titel: string, markdown: string, kampagneId?: string | null) => {
     if (!options.anlegen) {
       return { ok: false, text: 'Der Story Creator ist nicht verfügbar.' };
     }
     try {
-      return await options.anlegen(titel, markdown);
+      return await options.anlegen(titel, markdown, kampagneId ?? null);
     } catch (fehler) {
       return { ok: false, text: String(fehler instanceof Error ? fehler.message : fehler) };
     }
   });
+
+  ipcMain.removeHandler(kanal('kampagnen'));
+  ipcMain.handle(kanal('kampagnen'), async () =>
+    options.kampagnen ? await options.kampagnen().catch(() => ({ liste: [], aktuell: null })) : { liste: [], aktuell: null }
+  );
 
   // --- KI ------------------------------------------------------------------
 

@@ -97,8 +97,11 @@ export function NoteEditor(props: Props) {
     <div className="note-editor">
       <header className="note-editor__head">
         <input
-          className="note-editor__title"
+          className={`note-editor__title${note.title.trim() ? '' : ' note-editor__title--leer'}`}
           value={note.title}
+          placeholder={t('editor.titleNeeded')}
+          title={note.title.trim() ? undefined : t('error.noteTitle')}
+          aria-invalid={!note.title.trim()}
           onChange={(event) => onPatch({ title: event.target.value })}
           onBlur={(event) => onRename(event.target.value)}
           aria-label={t('editor.title')}
