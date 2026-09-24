@@ -236,7 +236,7 @@ test('der Rettungswurf richtet sich nach Thema und Art des Zustands', () => {
   assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'leere' }), 'in');
   assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'wahnsinn' }), 'we');
   assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'sturm' }), 'st');
-  assert.equal(T.rettungFuerZustand({ name: 'x', art: 'fluch' }), 'we');
+  assert.equal(T.rettungFuerZustand({ name: 'x', art: 'fluch' }), 'ch');
   assert.equal(T.rettungFuerZustand({ name: 'x' }), 'ko');
   const monster = T.erzeugeMonster({ cr: '5' }, 'de', wuerfelgeber(4));
   const mit = T.mitEigenemZustand(monster, { name: 'Leerenblick', thema: 'leere' }, 'de');
@@ -245,8 +245,10 @@ test('der Rettungswurf richtet sich nach Thema und Art des Zustands', () => {
   assert.match(en.faehigkeiten.at(-1).text, /DC \d+ Constitution saving throw/);
 });
 
-test('Klang rettet mit Charisma', () => {
+test('Klang, Schatten und Fluch retten mit Charisma', () => {
   assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'klang' }), 'ch');
+  assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'schatten' }), 'ch');
+  assert.equal(T.rettungFuerZustand({ name: 'x', thema: 'traum' }), 'we');
   const monster = T.erzeugeMonster({ cr: '3' }, 'de', wuerfelgeber(2));
   assert.match(T.mitEigenemZustand(monster, { name: 'Dröhnen', thema: 'klang' }, 'de').faehigkeiten.at(-1).text, /Charismarettung/);
 });

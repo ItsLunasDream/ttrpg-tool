@@ -589,10 +589,10 @@ export interface EigenerZustand {
  *
  * Nach dem Thema, und ohne Thema nach der Art. Was den Koerper angreift
  * (Kaelte, Gift, Faeulnis), rettet Konstitution; was den Geist angreift
- * (Wahnsinn, Traum, Schatten, Fluch), Weisheit; Leere, Zeit und Magie
- * Intelligenz; Feuer weicht man aus (Geschicklichkeit), Sturm haelt man
- * stand (Staerke), Klang trifft die Persoenlichkeit (Charisma). Wunsch des
- * Nutzers: „Eis = Kon, Leere = Wei/Int, Klang = Cha".
+ * (Wahnsinn, Traum), Weisheit; was das Selbst angreift (Klang, Schatten,
+ * Fluch), Charisma; Leere, Zeit und Magie Intelligenz. Feuer weicht man aus
+ * (Geschicklichkeit), Sturm haelt man stand (Staerke). Wunsch des Nutzers:
+ * „Eis = Kon, Leere = Wei/Int, Klang/Schatten/Fluch = Cha".
  */
 const RETTUNG_NACH_THEMA: Readonly<Record<string, AttributId>> = {
   kaelte: 'ko',
@@ -608,18 +608,20 @@ const RETTUNG_NACH_THEMA: Readonly<Record<string, AttributId>> = {
   sturm: 'st',
   wahnsinn: 'we',
   traum: 'we',
-  schatten: 'we',
   leere: 'in',
   zeit: 'in',
   // Klang greift die Persoenlichkeit an, nicht den Koerper (Wunsch des Nutzers).
-  klang: 'ch'
+  klang: 'ch',
+  // Schatten verzehrt das Selbst: Charisma (Wunsch des Nutzers).
+  schatten: 'ch'
 };
 const RETTUNG_NACH_ART: Readonly<Record<string, AttributId>> = {
   gift: 'ko',
   krankheit: 'ko',
   verletzung: 'ko',
   umgebung: 'ko',
-  fluch: 'we',
+  // Fluch wie Verbannen und Besessenheit: Charisma (Wunsch des Nutzers).
+  fluch: 'ch',
   magie: 'in'
 };
 
