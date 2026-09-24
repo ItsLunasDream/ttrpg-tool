@@ -14,7 +14,7 @@
  * Die Oberflaeche sieht nie den Inhalt eines Pakets, nur Namen und Arten.
  * Das Paket selbst bleibt im Hauptprozess, bis angenommen ist.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { eintragsSchluessel, type Eintrag } from '@suite/eintraege';
 import type { MessageKey, MessageParams } from '../shared/i18n';
 import { nameKey } from '../shared/apps';
@@ -27,7 +27,7 @@ import { Ankunftsfenster } from './Ankunftsfenster';
 import type { GefundenerRaum, Raumzustand } from '../main/raum';
 import type { Raumpaket } from '../preload';
 
-const AUS: Raumzustand = { rolle: 'aus', raum: '', ich: null, personen: [], chat: [], port: null, adressen: [], ipv6: [], verschluesselt: false, internet: false, ping: null, pings: {} };
+const AUS: Raumzustand = { rolle: 'aus', raum: '', ich: null, personen: [], chat: [], port: null, adressen: [], ipv6: [], verschluesselt: false, internet: false, ping: null, pings: {}, letzter: null };
 
 type Modus = 'uebernehmen' | 'daneben' | 'verwerfen';
 
@@ -59,6 +59,13 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
   const [raumPakete, setRaumPakete] = useState<readonly Raumpaket[]>([]);
   const [raumFehler, setRaumFehler] = useState(() => (anfangsFehler ? t(`room.error.${anfangsFehler}` as MessageKey) : ''));
   const [raumAn, setRaumAn] = useState('');
+  // Neue Chatzeilen, waehrend der Reiter „Als Datei" vorn ist: sonst sieht man sie nicht kommen.
+  const [ungelesen, setUngelesen] = useState(0);
+  const richtungRef = useRef(richtung);
+  richtungRef.current = richtung;
+  useEffect(() => {
+    if (richtung === 'raum') setUngelesen(0);
+  }, [richtung]);
   // Das Ziel „nur an …" faellt weg, wenn die Person gegangen ist.
   useEffect(() => {
     if (raumAn && !raum.personen.some((p) => p.id === raumAn)) setRaumAn('');
@@ -77,7 +84,10 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
       } else if (e.art === 'raeume') setRaeume(e.raeume);
       else if (e.art === 'pakete') setRaumPakete(e.pakete);
       // Wie im Hauptprozess hoechstens 500 Zeilen, sonst waechst die Liste bis zum naechsten Zustand.
-      else if (e.art === 'chat') setRaum((alt) => ({ ...alt, chat: [...alt.chat, e.zeile].slice(-500) }));
+      else if (e.art === 'chat') {
+        setRaum((alt) => ({ ...alt, chat: [...alt.chat, e.zeile].slice(-500) }));
+        if (richtungRef.current !== 'raum' && !e.zeile.eigene) setUngelesen((n) => n + 1);
+      }
       else if (e.art === 'ping') setRaum((alt) => ({ ...alt, ping: e.ping, pings: e.pings }));
       else if (e.art === 'fehler') setRaumFehler(t(`room.error.${e.grund}` as MessageKey));
     });
@@ -86,7 +96,9 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
   /* ---------- Weitergeben ---------- */
   const [teilbar, setTeilbar] = useState<Eintrag[] | null>(null);
   const [gewaehlt, setGewaehlt] = useState<Set<string>>(new Set());
-  const [meldung, setMeldung] = useState('');
+  // Je Reiter eine eigene Meldung: „Gespeichert" gehoert nicht unter „In den Raum" (Testbericht).
+  const [meldungen, setMeldungen] = useState<{ raum: string; datei: string }>({ raum: '', datei: '' });
+  const setMeldung = (wo: 'raum' | 'datei', text: string) => setMeldungen((alt) => ({ ...alt, [wo]: text }));
 
   const [zuletzt, setZuletzt] = useState<readonly { werkzeug: string; ort: string }[]>([]);
   useEffect(() => {
@@ -100,10 +112,15 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
       .map((e) => ({ werkzeug: e.werkzeug, kennung: e.kennung }));
 
   const inDenRaum = async () => {
-    const antwort = await window.shell.raum.senden(auswahlListe(), raumAn || null);
-    setMeldung(
-      !antwort.ok ? t('share.sendFailed') : antwort.anzahl === 1 ? t('share.sentToRoomOne') : t('share.sentToRoom', { anzahl: antwort.anzahl })
-    );
+    try {
+      const antwort = await window.shell.raum.senden(auswahlListe(), raumAn || null);
+      setMeldung(
+        'raum',
+        !antwort.ok ? t('share.sendFailed') : antwort.anzahl === 1 ? t('share.sentToRoomOne') : t('share.sentToRoom', { anzahl: antwort.anzahl })
+      );
+    } catch {
+      setMeldung('raum', t('share.sendFailed'));
+    }
   };
 
   const speichern = async () => {
@@ -112,11 +129,12 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
       const antwort = await window.shell.austausch.speichern(auswahl);
       if (antwort.abgebrochen) return;
       setMeldung(
+        'datei',
         !antwort.ok ? t('share.saveFailed') : antwort.anzahl === 1 ? t('share.savedOne') : t('share.saved', { anzahl: antwort.anzahl })
       );
     } catch {
       // Etwa ein Ordner ohne Schreibrecht: sagen, statt die alte Meldung stehen zu lassen.
-      setMeldung(t('share.saveFailed'));
+      setMeldung('datei', t('share.saveFailed'));
     }
   };
 
@@ -131,14 +149,20 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
   const [ergebnis, setErgebnis] = useState<{ ok: boolean; name: string; grund?: string }[] | null>(null);
   // Jede geoeffnete Sendung zaehlt hoch: die Vorschau merkt sich Texte je Sendung.
   const [eingangNr, setEingangNr] = useState(0);
+  // Woher die gezeigten Ankuenfte kommen: jeder Reiter zeigt nur seine eigenen (Testbericht).
+  const [quelle, setQuelle] = useState<{ art: 'raum'; paket: number } | { art: 'datei' } | null>(null);
   const [fenster, setFenster] = useState<number | null>(null);
   const [gespeichert, setGespeichert] = useState<Set<number>>(new Set());
   const vorschau = useVorschau();
 
-  const oeffnen = async () => zeige(await window.shell.austausch.oeffnen());
+  const oeffnen = async () => zeige(await window.shell.austausch.oeffnen(), { art: 'datei' });
 
-  const zeige = (antwort: Awaited<ReturnType<typeof window.shell.austausch.oeffnen>>) => {
+  const zeige = (
+    antwort: Awaited<ReturnType<typeof window.shell.austausch.oeffnen>>,
+    woher: { art: 'raum'; paket: number } | { art: 'datei' }
+  ) => {
     if (antwort.abgebrochen) return;
+    setQuelle(woher);
     setErgebnis(null);
     if (!antwort.ok || !antwort.ankuenfte) {
       setAnkuenfte(null);
@@ -178,8 +202,33 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
     // Angenommenes ist erledigt: abgehakt und nicht mehr waehlbar, damit ein
     // zweiter Klick es nicht noch einmal daneben legt (Testbericht).
     const fertig = entscheidungen.filter((_, i) => ergebnisse[i]?.ok).map((e) => e.nummer);
-    setGespeichert((alt) => new Set([...alt, ...fertig]));
+    setGespeichert((alt) => {
+      const neu = new Set([...alt, ...fertig]);
+      erledigePaket(neu);
+      return neu;
+    });
     setAnnehmen((alt) => new Set([...alt].filter((n) => !fertig.includes(n))));
+  };
+
+  // Ein anderer Raum (oder keiner): was aus dem alten angesehen wurde, ist weg.
+  const raumSchluessel = `${raum.rolle}:${raum.raum}`;
+  const vorigerRaum = useRef(raumSchluessel);
+  useEffect(() => {
+    if (vorigerRaum.current === raumSchluessel) return;
+    vorigerRaum.current = raumSchluessel;
+    if (quelle?.art === 'raum') {
+      setAnkuenfte(null);
+      setErgebnis(null);
+      setQuelle(null);
+    }
+  }, [raumSchluessel, quelle]);
+
+  /** Ist aus einem Raumpaket alles Annehmbare angenommen, verschwindet es aus „Angekommen". */
+  const erledigePaket = (gespeichertJetzt: Set<number>) => {
+    if (quelle?.art !== 'raum' || !ankuenfte) return;
+    if (ankuenfte.filter((a) => a.annehmbar).every((a) => gespeichertJetzt.has(a.nummer))) {
+      void window.shell.raum.paketVerwerfen(quelle.paket);
+    }
   };
 
   /** Eine einzelne Ankunft annehmen, aus ihrem Fenster heraus. */
@@ -187,7 +236,11 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
     const modus = konflikt[a.nummer] ? (modi[a.nummer] ?? 'daneben') : 'daneben';
     const [e] = await window.shell.austausch.annehmen([{ nummer: a.nummer, modus }], zielWahl);
     if (e?.ok) {
-      setGespeichert((alt) => new Set(alt).add(a.nummer));
+      setGespeichert((alt) => {
+        const neu = new Set(alt).add(a.nummer);
+        erledigePaket(neu);
+        return neu;
+      });
       setAnnehmen((alt) => {
         const neu = new Set(alt);
         neu.delete(a.nummer);
@@ -353,7 +406,7 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
               onClick={() => setRichtung(r)}
             >
               {t(r === 'raum' ? 'share.room' : 'share.tabFile')}
-              {r === 'raum' && raumPakete.length > 0 ? ` (${raumPakete.length})` : ''}
+              {r === 'raum' && raumPakete.length + ungelesen > 0 ? ` (${raumPakete.length + ungelesen})` : ''}
             </button>
           ))}
         </div>
@@ -389,9 +442,9 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
                     {t('share.sendToRoom')}
                   </button>
                 </div>
-                {meldung && (
+                {meldungen.raum && (
                   <p className="einst__satz" data-meldung>
-                    {meldung}
+                    {meldungen.raum}
                   </p>
                 )}
               </section>
@@ -407,7 +460,7 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
                       <li
                         key={p.id}
                         className="auswahl__karte"
-                        onDoubleClick={() => void window.shell.raum.paketAnsehen(p.id).then(zeige)}
+                        onDoubleClick={() => void window.shell.raum.paketAnsehen(p.id).then((a) => zeige(a, { art: 'raum', paket: p.id }))}
                       >
                         <span className="auswahl__name">{p.titel}</span>
                         <span className="auswahl__art">{t('share.fromRoom', { name: p.von })}</span>
@@ -415,15 +468,35 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
                           type="button"
                           className="dialog__knopf"
                           data-raumpaket={p.id}
-                          onClick={() => void window.shell.raum.paketAnsehen(p.id).then(zeige)}
+                          onClick={() => void window.shell.raum.paketAnsehen(p.id).then((a) => zeige(a, { art: 'raum', paket: p.id }))}
                         >
                           {t('share.look')}
+                        </button>
+                        <button
+                          type="button"
+                          className="dialog__knopf"
+                          data-raumpaket-verwerfen={p.id}
+                          title={t('share.discard')}
+                          onClick={() => {
+                            if (quelle?.art === 'raum' && quelle.paket === p.id) {
+                              setAnkuenfte(null);
+                              setQuelle(null);
+                            }
+                            void window.shell.raum.paketVerwerfen(p.id);
+                          }}
+                        >
+                          {t('share.discard')}
                         </button>
                       </li>
                     ))}
                   </ul>
                 )}
-                {ankunftsTeil}
+                {raumPakete.length > 1 && (
+                  <button type="button" className="dialog__knopf" data-alle-verwerfen onClick={() => void window.shell.raum.paketVerwerfen(null)}>
+                    {t('share.discardAll')}
+                  </button>
+                )}
+                {quelle?.art === 'raum' && ankunftsTeil}
               </section>
             </>
           )}
@@ -446,9 +519,9 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
                 {t('share.save')}
               </button>
             </div>
-            {meldung && (
+            {meldungen.datei && (
               <p className="einst__satz" data-meldung>
-                {meldung}
+                {meldungen.datei}
               </p>
             )}
           </section>
@@ -458,7 +531,7 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
             <button type="button" className="dialog__knopf" data-paket-oeffnen onClick={() => void oeffnen()}>
               {t('share.open')}
             </button>
-            {ankunftsTeil}
+            {quelle?.art === 'datei' && ankunftsTeil}
           </section>
         </div>
       )}

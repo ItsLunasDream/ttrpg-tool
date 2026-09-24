@@ -241,7 +241,7 @@ export async function schreibePaket(datei: string, paket: Paket): Promise<void> 
 /** Liest ein Paket von der Platte. Wirft `PaketFehler` mit einem lesbaren Grund. */
 export async function lesePaketDatei(datei: string): Promise<Paket> {
   const groesse = (await stat(datei)).size;
-  if (groesse > MAX_PAKET_BYTES) throw new PaketFehler('Die Datei ist zu gross fuer ein Paket');
+  if (groesse > MAX_PAKET_BYTES) throw new PaketFehler('Die Datei ist zu gross fuer ein Paket', 'The file is too large for a package');
   return lesePaket(await readFile(datei, 'utf8'));
 }
 

@@ -72,6 +72,8 @@ export type Nachricht =
    */
   | { readonly typ: 'ping'; readonly n: number }
   | { readonly typ: 'pong'; readonly n: number }
+  /** Der Gastgeber schliesst den Raum mit Absicht; die Gaeste lesen dann nicht „Verbindung abgerissen". */
+  | { readonly typ: 'schluss' }
   | {
       readonly typ: 'chat';
       readonly von: string;
@@ -154,6 +156,8 @@ export function leseNachricht(zeile: string): Nachricht | null {
       return Array.isArray(n.personen) && n.personen.every(istPerson) ? { typ: n.typ, personen: n.personen } : null;
     case 'name':
       return istText(n.name, 64) && n.name.trim() ? { typ: n.typ, name: n.name } : null;
+    case 'schluss':
+      return { typ: n.typ };
     case 'ping':
     case 'pong':
       return Number.isSafeInteger(n.n) && (n.n as number) >= 0 ? { typ: n.typ, n: n.n as number } : null;

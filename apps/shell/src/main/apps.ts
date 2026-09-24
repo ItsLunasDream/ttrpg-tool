@@ -377,12 +377,35 @@ function sichereAb(sicht: WebContentsView, devServerUrl: string | null): void {
    * fuer jede Ansicht, die hier durchlaeuft. Eine Stelle statt neun, und
    * ein neues Werkzeug bekommt es, ohne dass jemand daran denkt.
    */
-  sicht.webContents.on('before-input-event', (_event, eingabe) => {
+  sicht.webContents.on('before-input-event', (event, eingabe) => {
     if (eingabe.type !== 'keyDown') return;
     if (!(eingabe.control || eingabe.meta)) return;
+    // Strg+Alt und Plus, Minus, 0: die Groesse der ganzen Oberflaeche.
+    // Strg allein bleibt den Werkzeugen (Zoom im Story Creator).
+    const stufe = eingabe.alt ? groessenTaste(eingabe.key, eingabe.code) : null;
+    if (stufe && huellenGroesse) {
+      event.preventDefault();
+      huellenGroesse(stufe);
+      return;
+    }
     if (eingabe.key.toLowerCase() !== 'k') return;
     huellenSuche?.();
   });
+}
+
+/** Welche Groessentaste gedrueckt ist, oder null. Auch der Ziffernblock zaehlt. */
+export function groessenTaste(key: string, code = ''): 'groesser' | 'kleiner' | 'zurueck' | null {
+  if (key === '+' || key === '=' || code === 'NumpadAdd' || code === 'Equal') return 'groesser';
+  if (key === '-' || code === 'NumpadSubtract' || code === 'Minus') return 'kleiner';
+  if (key === '0' || code === 'Digit0' || code === 'Numpad0') return 'zurueck';
+  return null;
+}
+
+let huellenGroesse: ((stufe: 'groesser' | 'kleiner' | 'zurueck') => void) | null = null;
+
+/** Was Strg+Alt+Plus/Minus/0 in einem Werkzeug tut; die Huelle traegt es ein. */
+export function setzeGroessentaste(hoerer: (stufe: 'groesser' | 'kleiner' | 'zurueck') => void): void {
+  huellenGroesse = hoerer;
 }
 
 /**

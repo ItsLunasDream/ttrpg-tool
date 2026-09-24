@@ -11,7 +11,14 @@ const warte = (ms) => new Promise((r) => setTimeout(r, ms));
 function dienst(suchport) {
   const ereignisse = [];
   const d = new Raumdienst((e) => ereignisse.push(e), { suchport, rufziel: '127.0.0.1' });
-  return { d, ereignisse, chat: () => ereignisse.filter((e) => e.art === 'chat').map((e) => e.zeile) };
+  const zeilen = () => ereignisse.filter((e) => e.art === 'chat').map((e) => e.zeile);
+  return {
+    d,
+    ereignisse,
+    // Die Zeilen der Menschen; Kommen und Gehen stehen getrennt.
+    chat: () => zeilen().filter((z) => !z.system),
+    system: () => zeilen().filter((z) => z.system)
+  };
 }
 
 async function bis(bedingung, ms = 3000) {
@@ -111,11 +118,28 @@ test('der Raum erscheint in der Liste, und wer geht, verschwindet aus dem Raum',
     await bis(() => g.d.zustand().personen.length === 2);
     a.d.verlasse();
     await bis(() => g.d.zustand().personen.length === 1);
-    // Der Gastgeber schliesst: der Gast erfaehrt es.
+    // Kommen und Gehen stehen beim Gastgeber als Zeile der App im Chat.
+    assert.deepEqual(
+      g.system().map((z) => [z.system, z.von.name]),
+      [
+        ['kommt', 'Anna'],
+        ['geht', 'Anna']
+      ]
+    );
+    // Der Gastgeber schliesst mit Absicht: der Gast liest „geschlossen", nicht „abgerissen".
     await a.d.trittBei('127.0.0.1', port, 'x', 'Anna');
+    g.d.chatte('Bis naechste Woche', null);
+    await bis(() => a.chat().some((z) => z.text === 'Bis naechste Woche'));
     g.d.verlasse();
     await bis(() => a.d.zustand().rolle === 'aus');
-    assert.ok(a.ereignisse.some((e) => e.art === 'fehler' && e.grund === 'getrennt'));
+    assert.ok(a.ereignisse.some((e) => e.art === 'fehler' && e.grund === 'geschlossen'));
+    assert.ok(!a.ereignisse.some((e) => e.art === 'fehler' && e.grund === 'getrennt'));
+    // Der Chat bleibt zum Nachlesen, bis man ihn ausblendet.
+    const letzter = a.d.zustand().letzter;
+    assert.equal(letzter?.raum, 'Sonntag');
+    assert.ok(letzter.chat.some((z) => z.text === 'Bis naechste Woche'));
+    a.d.vergissLetzten();
+    assert.equal(a.d.zustand().letzter, null);
   } finally {
     such.d.beende();
     a.d.beende();

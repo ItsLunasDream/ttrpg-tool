@@ -105,7 +105,8 @@ export function App() {
    * zeichnen. Sitzungszustand ist er ohnehin — beim naechsten Start faengt
    * er leer an, wie ein frisches Fenster auch.
    */
-  const verlauf = useRef<Verlauf>(LEERER_VERLAUF);
+  // Die Startseite ist die erste Stelle: sonst ist „Zurück" nach dem ersten Werkzeug gesperrt (Testbericht).
+  const verlauf = useRef<Verlauf>(besuche(LEERER_VERLAUF, { app: null }));
   /**
    * Bis wann ein Ortsbericht zu einem laufenden Verlaufsschritt gehoert.
    * `null`, solange kein Schritt laeuft.
@@ -464,7 +465,13 @@ export function App() {
         kennung: app.id,
         name: t(nameKey(app.id)),
         art: t('search.appArt'),
-        stichworte: t(descriptionKey(app.id))
+        // Beide Sprachen: „würfel" findet die Würfel auch in der englischen Oberfläche.
+        stichworte: [
+          t(descriptionKey(app.id)),
+          translate('de', nameKey(app.id)),
+          translate('en', nameKey(app.id)),
+          translate('de', descriptionKey(app.id))
+        ].join(' ')
       })),
     [t]
   );
@@ -667,6 +674,21 @@ export function App() {
 
   useEffect(() => {
     const beiTaste = (ereignis: KeyboardEvent) => {
+      if ((ereignis.ctrlKey || ereignis.metaKey) && ereignis.altKey) {
+        const stufe =
+          ereignis.key === '+' || ereignis.code === 'NumpadAdd' || ereignis.code === 'Equal'
+            ? 'groesser'
+            : ereignis.key === '-' || ereignis.code === 'NumpadSubtract' || ereignis.code === 'Minus'
+              ? 'kleiner'
+              : ereignis.code === 'Digit0' || ereignis.code === 'Numpad0'
+                ? 'zurueck'
+                : null;
+        if (stufe) {
+          ereignis.preventDefault();
+          window.shell.einstellungen.groesseTaste(stufe);
+          return;
+        }
+      }
       if ((ereignis.ctrlKey || ereignis.metaKey) && ereignis.key.toLowerCase() === 'k') {
         ereignis.preventDefault();
         oeffneSuche();
@@ -677,6 +699,7 @@ export function App() {
   }, [oeffneSuche]);
 
   useEffect(() => window.shell.suche.beiTastenkuerzel(oeffneSuche), [oeffneSuche]);
+  useEffect(() => window.shell.einstellungen.beiGroesseVonAussen(setGroesse), []);
 
   const ladeSymboleNeu = useCallback(async () => {
     setSymbole(await window.shell.symbole.lesen());

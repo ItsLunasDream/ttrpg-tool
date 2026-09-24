@@ -125,7 +125,23 @@ const MARKE_ZEILE = /^<!-- ttrpg:(paket|eintrag|bild|ende)(?: (.*?))?(?: -->)?$/
 /** Eine Zeile im Inhalt, die wie eine Marke aussieht, bekommt einen Rueckstrich mehr. */
 const WIE_MARKE = /^\\*<!-- ttrpg:/;
 
-export class PaketFehler extends Error {}
+/**
+ * Ein Paket, das sich nicht lesen laesst. `message` ist deutsch, `en` die
+ * englische Fassung; die Huelle zeigt die zur Oberflaeche passende.
+ */
+export class PaketFehler extends Error {
+  constructor(
+    de: string,
+    readonly en: string = de
+  ) {
+    super(de);
+  }
+
+  /** Der Grund in der gewuenschten Sprache. */
+  text(sprache: 'de' | 'en'): string {
+    return sprache === 'en' ? this.en : this.message;
+  }
+}
 
 function escape(zeile: string): string {
   return WIE_MARKE.test(zeile) ? `\\${zeile}` : zeile;
@@ -177,11 +193,11 @@ function json(text: string | undefined, wo: string): Record<string, unknown> {
   } catch {
     // unten
   }
-  throw new PaketFehler(`Unlesbare Angabe (${wo})`);
+  throw new PaketFehler(`Unlesbare Angabe (${wo})`, `Unreadable field (${wo})`);
 }
 
 function zeichenkette(wert: unknown, wo: string): string {
-  if (typeof wert !== 'string' || !wert) throw new PaketFehler(`Fehlende Angabe: ${wo}`);
+  if (typeof wert !== 'string' || !wert) throw new PaketFehler(`Fehlende Angabe: ${wo}`, `Missing field: ${wo}`);
   return wert;
 }
 
@@ -207,7 +223,7 @@ export function lesePaket(text: string): Paket {
       i += 1;
       continue;
     }
-    if (art !== 'eintrag') throw new PaketFehler(`Unerwartete Marke „${art}" in Zeile ${i + 1}`);
+    if (art !== 'eintrag') throw new PaketFehler(`Unerwartete Marke „${art}" in Zeile ${i + 1}`, `Unexpected marker "${art}" in line ${i + 1}`);
     const k = json(angabe, `Zeile ${i + 1}`);
     i += 1;
     const inhalt: string[] = [];
@@ -225,24 +241,24 @@ export function lesePaket(text: string): Paket {
         i += 1;
         const daten: string[] = [];
         while (i < zeilen.length && zeilen[i] !== '-->') daten.push(zeilen[i++].trim());
-        if (i >= zeilen.length) throw new PaketFehler('Ein Bild bricht ab');
+        if (i >= zeilen.length) throw new PaketFehler('Ein Bild bricht ab', 'An image is cut off');
         i += 1;
         const d = daten.join('');
-        if (!/^[A-Za-z0-9+/]*={0,2}$/.test(d)) throw new PaketFehler('Ein Bild ist kein Base64');
+        if (!/^[A-Za-z0-9+/]*={0,2}$/.test(d)) throw new PaketFehler('Ein Bild ist kein Base64', 'An image is not Base64');
         bilder.push({ name: zeichenkette(b.name, 'Bildname'), mime: zeichenkette(b.mime, 'Bildart'), daten: d });
         continue;
       }
-      if (m) throw new PaketFehler(`Unerwartete Marke „${m[1]}" in Zeile ${i + 1}`);
+      if (m) throw new PaketFehler(`Unerwartete Marke „${m[1]}" in Zeile ${i + 1}`, `Unexpected marker "${m[1]}" in line ${i + 1}`);
       if (bilder.length > 0) {
         // Nach den Bildern kommt nur noch das Ende.
-        if (zeilen[i].trim()) throw new PaketFehler(`Text nach den Bildern in Zeile ${i + 1}`);
+        if (zeilen[i].trim()) throw new PaketFehler(`Text nach den Bildern in Zeile ${i + 1}`, `Text after the images in line ${i + 1}`);
         i += 1;
         continue;
       }
       inhalt.push(unescape(zeilen[i]));
       i += 1;
     }
-    if (!fertig) throw new PaketFehler('Das Paket bricht mitten in einem Eintrag ab');
+    if (!fertig) throw new PaketFehler('Das Paket bricht mitten in einem Eintrag ab', 'The package ends in the middle of an entry');
     const zusatz =
       typeof k.zusatz === 'object' && k.zusatz !== null
         ? Object.fromEntries(
@@ -261,8 +277,8 @@ export function lesePaket(text: string): Paket {
       ...(zusatz ? { zusatz } : {})
     });
   }
-  if (!kopf) throw new PaketFehler('Keine Paketdatei');
-  if (kopf.version !== 1) throw new PaketFehler(`Unbekannte Fassung ${String(kopf.version)}`);
+  if (!kopf) throw new PaketFehler('Keine Paketdatei', 'Not a package file');
+  if (kopf.version !== 1) throw new PaketFehler(`Unbekannte Fassung ${String(kopf.version)}`, `Unknown version ${String(kopf.version)}`);
   return {
     version: 1,
     erstellt: typeof kopf.erstellt === 'string' ? kopf.erstellt : '',

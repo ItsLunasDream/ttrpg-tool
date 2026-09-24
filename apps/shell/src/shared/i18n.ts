@@ -160,7 +160,7 @@ const en = {
   'dialog.close': 'Close',
 
   'search.title': 'Search everything',
-  'search.placeholder': 'Search monsters, conditions, encounters…',
+  'search.placeholder': 'Search tools, notes, monsters, rules…',
   'search.hint': 'Type to search across all tools.',
   'search.loading': 'Reading…',
   'search.nothing': 'Nothing found.',
@@ -181,7 +181,7 @@ const en = {
   'settings.themeHint':
     'Applies to the whole window, tools included.',
   'settings.size': 'Interface size',
-  'settings.sizeHint': 'Makes text and controls larger or smaller, in the whole window and every tool.',
+  'settings.sizeHint': 'Makes text and controls larger or smaller, in the whole window and every tool. Shortcut: Ctrl+Alt and Plus, Minus or 0.',
   'settings.saveFailed': 'Could not save the settings: {detail}',
 
   'settings.icons': 'Tool icons',
@@ -288,7 +288,20 @@ const en = {
   'app.magicitems.name': 'Magic Item Creator',
   'app.magicitems.description': 'Roll and adjust magic items',
   'app.loot.name': 'Loot Generator',
-  'app.loot.description': 'Your own random tables, nested and rolled'
+  'app.loot.description': 'Your own random tables, nested and rolled',
+  'room.needsPassword': 'This room needs a password.',
+  'room.hint.password': 'Enter a password first.',
+  'room.hint.address': 'Enter an address first, such as 192.168.1.20:{port}.',
+  'room.hint.port': 'The port must be between 1024 and 65535.',
+  'room.connecting': 'Connecting …',
+  'room.lastRoom': 'Last room: {raum}',
+  'room.hideLast': 'Hide',
+  'room.closeConfirm': 'Close the room? Everyone in it will be removed.',
+  'room.joined': '{name} joined the room.',
+  'room.left': '{name} left the room.',
+  'room.error.geschlossen': 'The host closed the room.',
+  'share.discard': 'Discard',
+  'share.discardAll': 'Discard all arrivals',
 };
 
 export type MessageKey = keyof typeof en;
@@ -446,7 +459,7 @@ const de: Partial<Record<MessageKey, string>> = {
   'dialog.close': 'Schließen',
 
   'search.title': 'Alles durchsuchen',
-  'search.placeholder': 'Monster, Zustände, Begegnungen durchsuchen…',
+  'search.placeholder': 'Werkzeuge, Notizen, Monster, Regeln durchsuchen…',
   'search.hint': 'Tippen, um über alle Werkzeuge zu suchen.',
   'search.loading': 'Wird gelesen…',
   'search.nothing': 'Nichts gefunden.',
@@ -467,7 +480,7 @@ const de: Partial<Record<MessageKey, string>> = {
   'settings.themeHint':
     'Gilt für das ganze Fenster, Werkzeuge eingeschlossen.',
   'settings.size': 'Größe der Oberfläche',
-  'settings.sizeHint': 'Macht Schrift und Bedienelemente größer oder kleiner, im ganzen Fenster und in jedem Werkzeug.',
+  'settings.sizeHint': 'Macht Schrift und Bedienelemente größer oder kleiner, im ganzen Fenster und in jedem Werkzeug. Kürzel: Strg+Alt und Plus, Minus oder 0.',
   'settings.saveFailed': 'Die Einstellungen ließen sich nicht speichern: {detail}',
 
   'settings.icons': 'Symbole der Werkzeuge',
@@ -574,7 +587,20 @@ const de: Partial<Record<MessageKey, string>> = {
   'app.magicitems.name': 'Magic Item Creator',
   'app.magicitems.description': 'Magische Gegenstände würfeln und anpassen',
   'app.loot.name': 'Loot Generator',
-  'app.loot.description': 'Eigene Zufallstabellen, verschachtelt und gewürfelt'
+  'app.loot.description': 'Eigene Zufallstabellen, verschachtelt und gewürfelt',
+  'room.needsPassword': 'Dieser Raum braucht ein Passwort.',
+  'room.hint.password': 'Erst ein Passwort eingeben.',
+  'room.hint.address': 'Erst eine Adresse eingeben, etwa 192.168.1.20:{port}.',
+  'room.hint.port': 'Der Port muss zwischen 1024 und 65535 liegen.',
+  'room.connecting': 'Verbinde …',
+  'room.lastRoom': 'Letzter Raum: {raum}',
+  'room.hideLast': 'Ausblenden',
+  'room.closeConfirm': 'Raum schließen? Alle darin fliegen raus.',
+  'room.joined': '{name} ist dazugekommen.',
+  'room.left': '{name} hat den Raum verlassen.',
+  'room.error.geschlossen': 'Der Gastgeber hat den Raum geschlossen.',
+  'share.discard': 'Verwerfen',
+  'share.discardAll': 'Alles Angekommene verwerfen',
 };
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { en, de };

@@ -53,13 +53,14 @@ function startBericht(): void {
 }
 import { join } from 'node:path';
 import { appendFileSync, readFileSync } from 'node:fs';
-import { berechneAppFlaeche } from '../shared/apps';
+import { berechneAppFlaeche, GROESSEN, VORGABE_GROESSE } from '../shared/apps';
 import {
   meldeStoryCreatorAenderung,
   mountApp,
   setzeSammlungssprache,
   registerSchemes,
   setzeSuchtaste,
+  setzeGroessentaste,
   type MontageHaken,
   type MontierteApp,
   type RaumLage
@@ -81,8 +82,8 @@ import {
   vorschau as austauschVorschau,
   zieleFuer
 } from './austausch';
-import { alsPaket, gastname, lesePaket, PAKET_ENDUNG, type Modus, type Paket } from '@suite/austausch';
-import { Raumdienst, type Raumereignis } from './raum';
+import { alsPaket, gastname, lesePaket, PaketFehler, PAKET_ENDUNG, type Modus, type Paket } from '@suite/austausch';
+import { Raumdienst, type Raumereignis, type Raumzustand } from './raum';
 import { sicherungsname } from '../shared/sicherung';
 import { brichFahrtAb, fahreEin } from './fahrt';
 import {
@@ -220,7 +221,27 @@ function holeNachVorn(montiert: MontierteApp, mitFahrt: boolean): void {
  * abgebrochen — die uebrigen werden dann gar nicht erst gefragt, sonst
  * beantwortete man Fragen zu einem Schliessen, das schon abgesagt ist.
  */
+/**
+ * Wer einen Raum mit Gaesten haelt, wird vor dem Beenden gefragt: sonst
+ * fliegen alle ohne Vorwarnung raus (Testbericht).
+ */
+function darfRaumSchliessen(): boolean {
+  const z = raumDienst?.zustand();
+  if (!fenster || !z || z.rolle !== 'gastgeber' || z.personen.length <= 1) return true;
+  const de = gemerkteEinstellungen.language === 'de';
+  const wahl = dialog.showMessageBoxSync(fenster, {
+    type: 'question',
+    buttons: de ? ['Raum schließen und beenden', 'Abbrechen'] : ['Close room and quit', 'Cancel'],
+    defaultId: 1,
+    cancelId: 1,
+    message: de ? 'Du hältst einen Raum mit Gästen.' : 'You are hosting a room with guests.',
+    detail: de ? 'Beim Beenden fliegen alle aus dem Raum.' : 'Quitting removes everyone from the room.'
+  });
+  return wahl === 0;
+}
+
 async function frageAlleVorDemSchliessen(): Promise<boolean> {
+  if (!darfRaumSchliessen()) return false;
   for (const montiert of offen.values()) {
     if (!montiert.darfSchliessen) {
       await montiert.flush();
@@ -644,7 +665,11 @@ async function erzeugeFenster(): Promise<void> {
     // sichern. Das geht nur asynchron, das Schliessen wird deshalb einmal
     // aufgehalten und danach wiederholt. `darfSchliessen` verhindert, dass
     // sich das im Kreis dreht.
-    if (darfSchliessen || offen.size === 0) return;
+    if (darfSchliessen) return;
+    if (offen.size === 0) {
+      if (!darfRaumSchliessen()) event.preventDefault();
+      return;
+    }
     event.preventDefault();
     void frageAlleVorDemSchliessen().then((erlaubt) => {
       // Abgebrochen: das Fenster bleibt offen, und `darfSchliessen` bleibt
@@ -748,6 +773,12 @@ export type ZeigenErgebnis =
   | { zustand: 'offen' }
   | { zustand: 'nicht-einbettbar' }
   | { zustand: 'fehler'; grund: 'dateien-fehlen' | 'sonst'; detail: string };
+
+/** Warum ein Paket nicht lesbar war, in der Sprache der Oberflaeche. */
+function paketGrund(fehler: unknown): string {
+  if (fehler instanceof PaketFehler) return fehler.text(gemerkteEinstellungen?.language === 'de' ? 'de' : 'en');
+  return fehler instanceof Error ? fehler.message : String(fehler);
+}
 
 /** Uebersetzt einen Montagefehler in etwas, das die Oberflaeche zeigen kann. */
 function fehlerErgebnis(fehler: unknown): ZeigenErgebnis {
@@ -959,7 +990,7 @@ function registriereKanaele(): void {
       eingang = await lesePaketDatei(quelle);
     } catch (fehler) {
       eingang = null;
-      return { ok: false, abgebrochen: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };
+      return { ok: false, abgebrochen: false, grund: paketGrund(fehler) };
     }
     return {
       ok: true,
@@ -977,6 +1008,9 @@ function registriereKanaele(): void {
    */
   const raumPakete: { id: number; von: string; titel: string; paket: string; zeit: string }[] = [];
   let naechstesRaumpaket = 1;
+  let raumRolle: Raumzustand['rolle'] = 'aus';
+  const meldePakete = () =>
+    huelle?.webContents.send('raum:ereignis', { art: 'pakete', pakete: raumPakete.map(({ paket: _p, ...rest }) => rest) });
   const raum = new Raumdienst((ereignis: Raumereignis) => {
     if (ereignis.art === 'werkzeug') {
       // Nicht an die Oberflaeche der Huelle: sie reicht nur weiter. Den
@@ -996,6 +1030,13 @@ function registriereKanaele(): void {
     }
     if (ereignis.art === 'zustand') {
       if (ereignis.zustand.rolle === 'aus') geteilteStaende.clear();
+      // Ein neuer Raum faengt ohne die Pakete des alten an (Testbericht:
+      // „Angekommen" wuchs nur).
+      if (ereignis.zustand.rolle !== 'aus' && raumRolle === 'aus' && raumPakete.length > 0) {
+        raumPakete.length = 0;
+        meldePakete();
+      }
+      raumRolle = ereignis.zustand.rolle;
       // Wer gegangen ist, hat auch nichts mehr geteilt.
       const da = new Set(ereignis.zustand.personen.map((p) => p.id));
       for (const id of [...geteilteStaende.keys()]) if (!da.has(id)) geteilteStaende.delete(id);
@@ -1010,7 +1051,7 @@ function registriereKanaele(): void {
         paket: ereignis.paket,
         zeit: new Date().toISOString()
       });
-      huelle?.webContents.send('raum:ereignis', { art: 'pakete', pakete: raumPakete.map(({ paket: _p, ...rest }) => rest) });
+      meldePakete();
       return;
     }
     huelle?.webContents.send('raum:ereignis', ereignis);
@@ -1070,12 +1111,26 @@ function registriereKanaele(): void {
     return raum.zustand();
   });
   handle('raum:chat', (_event, text: string, an: string | null) => raum.chatte(text, an));
+  // Angekommene Pakete wegwerfen: eines (nach ID) oder alle (`null`).
+  handle('raum:paketVerwerfen', (_event, id: number | null) => {
+    if (id === null) raumPakete.length = 0;
+    else {
+      const stelle = raumPakete.findIndex((p) => p.id === id);
+      if (stelle >= 0) raumPakete.splice(stelle, 1);
+    }
+    meldePakete();
+    return true;
+  });
+  handle('raum:vergessen', () => {
+    raum.vergissLetzten();
+    return raum.zustand();
+  });
   // Im offenen Raum umbenennen: gilt sofort im Raum und bleibt als eigener
   // Name in den Einstellungen, wie beim Eroeffnen.
   handle('raum:umbenennen', async (_event, name: string) => {
     if (!raum.umbenennen(name)) return false;
     const vorher = await readSettings(einstellungsDatei);
-    await writeSettings(einstellungsDatei, { ...vorher, tischName: name.trim().slice(0, 64) });
+    await writeSettings(einstellungsDatei, { ...vorher, tischName: name.trim().slice(0, 40) });
     gemerkteEinstellungen = await readSettings(einstellungsDatei);
     return true;
   });
@@ -1093,7 +1148,7 @@ function registriereKanaele(): void {
       eingang = lesePaket(angekommen.paket);
     } catch (fehler) {
       eingang = null;
-      return { ok: false, abgebrochen: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };
+      return { ok: false, abgebrochen: false, grund: paketGrund(fehler) };
     }
     return {
       ok: true,
@@ -1412,6 +1467,30 @@ function registriereKanaele(): void {
    * auf jeder eingebetteten Ansicht (siehe `sichereAb`) und — fuer die
    * Oberflaeche der Huelle selbst — ihr eigener Tastenlauscher.
    */
+  /*
+   * Strg+Alt und Plus, Minus, 0: die Oberflaeche eine Stufe groesser,
+   * kleiner oder zurueck auf 100 Prozent (Wunsch aus dem Testbericht).
+   */
+  const stufeGroesse = async (stufe: 'groesser' | 'kleiner' | 'zurueck') => {
+    const vorher = await readSettings(einstellungsDatei);
+    const stellen = GROESSEN as readonly number[];
+    const jetzt = Math.max(0, stellen.indexOf(vorher.groesse));
+    const neu =
+      stufe === 'zurueck'
+        ? VORGABE_GROESSE
+        : stellen[Math.min(stellen.length - 1, Math.max(0, jetzt + (stufe === 'groesser' ? 1 : -1)))];
+    if (neu === vorher.groesse) return;
+    await writeSettings(einstellungsDatei, { ...vorher, groesse: neu });
+    gemerkteEinstellungen = await readSettings(einstellungsDatei);
+    setzeGroesse(gemerkteEinstellungen.groesse);
+    legeHuelleAus();
+    huelle?.webContents.send('einstellungen:groesse-extern', gemerkteEinstellungen.groesse);
+  };
+  setzeGroessentaste((stufe) => void stufeGroesse(stufe));
+  ipcMain.on('groesse:taste', (_event, stufe: unknown) => {
+    if (stufe === 'groesser' || stufe === 'kleiner' || stufe === 'zurueck') void stufeGroesse(stufe);
+  });
+
   const oeffneSuche = () => huelle?.webContents.send('suche:oeffnen');
   setzeSuchtaste(oeffneSuche);
   ipcMain.on('suche:taste', oeffneSuche);

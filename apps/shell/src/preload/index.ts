@@ -284,6 +284,8 @@ const api = {
       ipcRenderer.invoke('raum:beitreten', adresse, port, passwort) as Promise<Raumzustand>,
     verlassen: () => ipcRenderer.invoke('raum:verlassen') as Promise<Raumzustand>,
     chat: (text: string, an: string | null) => ipcRenderer.invoke('raum:chat', text, an) as Promise<boolean>,
+    paketVerwerfen: (id: number | null) => ipcRenderer.invoke('raum:paketVerwerfen', id) as Promise<boolean>,
+    vergessen: () => ipcRenderer.invoke('raum:vergessen') as Promise<Raumzustand>,
     umbenennen: (name: string) => ipcRenderer.invoke('raum:umbenennen', name) as Promise<boolean>,
     senden: (auswahl: { werkzeug: string; kennung: string }[], an: string | null) =>
       ipcRenderer.invoke('raum:senden', auswahl, an) as Promise<{ ok: boolean; anzahl: number }>,
@@ -338,6 +340,16 @@ const api = {
      *
      * Liefert eine Funktion zum Abmelden zurueck.
      */
+    /** Strg+Alt und Plus, Minus, 0 in der Huelle selbst: eine Stufe groesser, kleiner, zurueck. */
+    groesseTaste: (stufe: 'groesser' | 'kleiner' | 'zurueck') => ipcRenderer.send('groesse:taste', stufe),
+    /** Die Groesse wurde per Tastenkuerzel geaendert; die Anzeige zieht nach. */
+    beiGroesseVonAussen: (fn: (groesse: number) => void): (() => void) => {
+      const hoerer = (_e: unknown, groesse: number) => fn(groesse);
+      ipcRenderer.on('einstellungen:groesse-extern', hoerer);
+      return () => {
+        ipcRenderer.off('einstellungen:groesse-extern', hoerer);
+      };
+    },
     beiSprachwechselVonAussen: (fn: (language: ShellSettings['language']) => void): (() => void) => {
       const hoerer = (_e: unknown, language: ShellSettings['language']) => fn(language);
       ipcRenderer.on('einstellungen:sprache-extern', hoerer);
